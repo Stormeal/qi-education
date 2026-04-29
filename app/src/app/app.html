@@ -1,0 +1,113 @@
+<main class="shell">
+  <nav class="topbar" aria-label="Primary navigation">
+    <a class="brand" href="/" aria-label="QI-Education home">
+      <span class="brand-mark">QI</span>
+      <span>QI-Education</span>
+    </a>
+    <div class="nav-actions">
+      <a href="#courses">Courses</a>
+      <a href="#career-path">Career path</a>
+      <button type="button">Create course</button>
+    </div>
+  </nav>
+
+  <section class="hero" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">Student and teacher portal</p>
+      <h1 id="page-title">Build practical learning paths from real goals.</h1>
+      <p class="intro">
+        QI-Education helps students describe where they are, where they want to go, and which
+        courses can move them forward. Teachers get a clear place to shape useful courses.
+      </p>
+      <div class="hero-actions">
+        <button type="button">Start path</button>
+        <a href="#courses">Review courses</a>
+      </div>
+    </div>
+
+    <aside class="path-panel" id="career-path" aria-label="Career path draft">
+      <div class="panel-header">
+        <span>Path draft</span>
+        <strong>Student view</strong>
+      </div>
+      <ol>
+        <li>
+          <span>Experience</span>
+          <strong>Customer support, 3 years</strong>
+        </li>
+        <li>
+          <span>Goal</span>
+          <strong>Junior product specialist</strong>
+        </li>
+        <li>
+          <span>Next course</span>
+          <strong>Practical AI Foundations</strong>
+        </li>
+      </ol>
+    </aside>
+  </section>
+
+  <section class="metrics" aria-label="Portal overview">
+    <article>
+      <span>Total courses</span>
+      <strong>{{ courses().length }}</strong>
+    </article>
+    <article>
+      <span>Published</span>
+      <strong>{{ publishedCourses() }}</strong>
+    </article>
+    <article>
+      <span>Path model</span>
+      <strong>Draft</strong>
+    </article>
+  </section>
+
+  <section class="content-grid" id="courses">
+    <div>
+      <div class="section-heading">
+        <p class="eyebrow">Course catalog</p>
+        <h2>Early course workspace</h2>
+      </div>
+      <div class="course-list">
+        @for (course of courses(); track course.title) {
+          <article class="course-card">
+            <div>
+              <span class="status">{{ course.status }}</span>
+              <h3>{{ course.title }}</h3>
+              <p>{{ course.teacher }} - {{ course.level }}</p>
+            </div>
+            <div class="tags" aria-label="Career goals">
+              @for (goal of course.goals; track goal) {
+                <span>{{ goal }}</span>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+
+    <aside class="teacher-panel" aria-label="Teacher workflow">
+      <p class="eyebrow">Teacher workflow</p>
+      <h2>Create useful courses</h2>
+      <form>
+        <label>
+          Course title
+          <input type="text" value="Practical AI Foundations" />
+        </label>
+        <label>
+          Target goal
+          <input type="text" value="Automation and productivity" />
+        </label>
+        <label>
+          Level
+          <select>
+            <option>Beginner</option>
+            <option selected>Intermediate</option>
+            <option>Advanced</option>
+          </select>
+        </label>
+        <button type="button">Save draft</button>
+      </form>
+    </aside>
+  </section>
+</main>

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.angular/
+.playwright-mcp/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+.vercel
