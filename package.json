@@ -5,6 +5,7 @@
   "scripts": {
     "app:dev": "npm --prefix app start",
     "app:build": "npm --prefix app run build",
+    "app:build:pages": "npm --prefix app run build -- --base-href /qi-education/ --deploy-url /qi-education/",
     "app:test": "npm --prefix app test",
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",

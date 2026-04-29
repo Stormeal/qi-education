@@ -47,9 +47,10 @@ The current foundation intentionally starts with courses only. Career paths shou
 
 ## Deployment
 
-GitHub Actions runs build and test checks for pull requests and pushes to `main`.
+GitHub Actions runs build and test checks for pull requests.
 
-Production deployment should be handled by the Vercel GitHub integration:
+Merges to `main` deploy the Angular app to GitHub Pages from the `app/dist/qi-education-app/browser` build output.
 
-- Pull requests create Vercel preview deployments.
-- Merges to `main` create production deployments.
+The published site will be available at `https://stormeal.github.io/qi-education/` once GitHub Pages is enabled for the repository.
+
+The API still uses Vercel environment variables for local development through `npm run env:pull`, but the site itself is now deployed through GitHub Pages.
