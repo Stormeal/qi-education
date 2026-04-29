@@ -1,5 +1,21 @@
 {
-  "installCommand": "npm ci",
-  "buildCommand": "npm run app:build",
-  "outputDirectory": "app/dist/qi-education-app"
+  "version": 2,
+  "builds": [
+    {
+      "src": "app/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/qi-education-app"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
