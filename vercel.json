@@ -1,0 +1,5 @@
+{
+  "installCommand": "npm ci",
+  "buildCommand": "npm run app:build",
+  "outputDirectory": "app/dist/qi-education-app"
+}
