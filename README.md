@@ -7,6 +7,12 @@ QI-Education is a portal for students and teachers to create, discover, and part
 
 ## Local Development
 
+Install dependencies:
+
+```bash
+npm ci
+```
+
 Run the frontend:
 
 ```bash
@@ -38,3 +44,12 @@ Share the sheet with the configured Google service account email.
 ## First Product Scope
 
 The current foundation intentionally starts with courses only. Career paths should build on top of real course and goal data once we settle the exact student profile fields and teacher workflow.
+
+## Deployment
+
+GitHub Actions runs build and test checks for pull requests and pushes to `main`.
+
+Production deployment should be handled by the Vercel GitHub integration:
+
+- Pull requests create Vercel preview deployments.
+- Merges to `main` create production deployments.

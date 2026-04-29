@@ -1,113 +1,111 @@
-<main class="shell">
+<main class="page-shell">
   <nav class="topbar" aria-label="Primary navigation">
     <a class="brand" href="/" aria-label="QI-Education home">
       <span class="brand-mark">QI</span>
       <span>QI-Education</span>
     </a>
-    <div class="nav-actions">
+    <div class="tabs" aria-label="Student sections">
+      <a class="active" href="/">Overview</a>
       <a href="#courses">Courses</a>
-      <a href="#career-path">Career path</a>
-      <button type="button">Create course</button>
+      <a href="#actions">Actions</a>
     </div>
   </nav>
 
-  <section class="hero" aria-labelledby="page-title">
+  <header class="overview-header">
     <div>
-      <p class="eyebrow">Student and teacher portal</p>
-      <h1 id="page-title">Build practical learning paths from real goals.</h1>
-      <p class="intro">
-        QI-Education helps students describe where they are, where they want to go, and which
-        courses can move them forward. Teachers get a clear place to shape useful courses.
-      </p>
-      <div class="hero-actions">
-        <button type="button">Start path</button>
-        <a href="#courses">Review courses</a>
-      </div>
+      <p class="eyebrow">Student overview</p>
+      <h1>Welcome back, {{ student().name }}</h1>
+      <p>Testing career path: {{ student().currentRole }} to {{ student().targetRole }}</p>
     </div>
+    <button type="button">Adjust track</button>
+  </header>
 
-    <aside class="path-panel" id="career-path" aria-label="Career path draft">
-      <div class="panel-header">
-        <span>Path draft</span>
-        <strong>Student view</strong>
+  <section class="summary-grid" aria-label="Learning summary">
+    <article class="summary-card featured">
+      <span>Career path</span>
+      <strong>{{ student().pathProgress }}%</strong>
+      <div class="progress-track" aria-label="Career path progress">
+        <span [style.width.%]="student().pathProgress"></span>
       </div>
-      <ol>
-        <li>
-          <span>Experience</span>
-          <strong>Customer support, 3 years</strong>
-        </li>
-        <li>
-          <span>Goal</span>
-          <strong>Junior product specialist</strong>
-        </li>
-        <li>
-          <span>Next course</span>
-          <strong>Practical AI Foundations</strong>
-        </li>
-      </ol>
-    </aside>
-  </section>
+      <p>Next milestone: choose a specialization after ISTQB Foundation.</p>
+    </article>
 
-  <section class="metrics" aria-label="Portal overview">
-    <article>
-      <span>Total courses</span>
-      <strong>{{ courses().length }}</strong>
+    <article class="summary-card">
+      <span>Active course</span>
+      <strong>{{ activeCourse().title }}</strong>
+      <p>{{ activeCourse().progress }}% complete</p>
     </article>
-    <article>
-      <span>Published</span>
-      <strong>{{ publishedCourses() }}</strong>
-    </article>
-    <article>
-      <span>Path model</span>
-      <strong>Draft</strong>
+
+    <article class="summary-card">
+      <span>Recommended</span>
+      <strong>{{ recommendedCourses().length }}</strong>
+      <p>Testing courses matched to your goal.</p>
     </article>
   </section>
 
-  <section class="content-grid" id="courses">
-    <div>
+  <section class="dashboard-grid">
+    <div class="section-block" id="actions">
       <div class="section-heading">
-        <p class="eyebrow">Course catalog</p>
-        <h2>Early course workspace</h2>
+        <p class="eyebrow">Next actions</p>
+        <h2>Keep the certification path moving</h2>
       </div>
-      <div class="course-list">
-        @for (course of courses(); track course.title) {
-          <article class="course-card">
+      <div class="action-list">
+        @for (action of nextActions(); track action.title) {
+          <article class="action-row" [class]="'tone-' + action.tone">
+            <span class="action-marker"></span>
             <div>
-              <span class="status">{{ course.status }}</span>
-              <h3>{{ course.title }}</h3>
-              <p>{{ course.teacher }} - {{ course.level }}</p>
+              <h3>{{ action.title }}</h3>
+              <p>{{ action.meta }}</p>
             </div>
-            <div class="tags" aria-label="Career goals">
-              @for (goal of course.goals; track goal) {
-                <span>{{ goal }}</span>
-              }
-            </div>
+            <button type="button" class="alternative">Open</button>
           </article>
         }
       </div>
     </div>
 
-    <aside class="teacher-panel" aria-label="Teacher workflow">
-      <p class="eyebrow">Teacher workflow</p>
-      <h2>Create useful courses</h2>
-      <form>
-        <label>
-          Course title
-          <input type="text" value="Practical AI Foundations" />
-        </label>
-        <label>
-          Target goal
-          <input type="text" value="Automation and productivity" />
-        </label>
-        <label>
-          Level
-          <select>
-            <option>Beginner</option>
-            <option selected>Intermediate</option>
-            <option>Advanced</option>
-          </select>
-        </label>
-        <button type="button">Save draft</button>
-      </form>
+    <aside class="path-card" aria-label="Career path snapshot">
+      <p class="eyebrow">Testing path</p>
+      <h2>{{ student().targetRole }}</h2>
+      <ol>
+        @for (stage of pathStages(); track stage.title) {
+          <li [class]="stage.state">
+            <span>{{ stage.title }}</span>
+            <strong>{{ stage.detail }}</strong>
+          </li>
+        }
+      </ol>
     </aside>
+  </section>
+
+  <section class="section-block" id="courses">
+    <div class="section-heading horizontal">
+      <div>
+        <p class="eyebrow">Testing courses</p>
+        <h2>Recommended from the Testhuset path</h2>
+      </div>
+      <button type="button" class="alternative">View all</button>
+    </div>
+
+    <div class="course-grid">
+      @for (course of courses(); track course.title) {
+        <article class="course-card">
+          <div class="course-header">
+            <span class="status">{{ course.status }}</span>
+            <span>{{ course.level }}</span>
+          </div>
+          <h3>{{ course.title }}</h3>
+          <p>{{ course.teacher }}</p>
+          <div class="tags" aria-label="Career goals">
+            @for (goal of course.goals; track goal) {
+              <span>{{ goal }}</span>
+            }
+          </div>
+          <footer>
+            <span>{{ course.nextLesson }}</span>
+            <strong>{{ course.progress }}%</strong>
+          </footer>
+        </article>
+      }
+    </div>
   </section>
 </main>
