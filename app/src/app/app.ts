@@ -6,6 +6,20 @@ import { Component, computed, signal } from '@angular/core';
   styleUrl: './app.scss',
 })
 export class App {
+  protected readonly appVersion = '0.1.0';
+  protected readonly currentYear = new Date().getFullYear();
+  protected readonly isFeedbackOpen = signal(false);
+  protected readonly feedbackPage = signal('');
+  protected readonly feedbackRating = signal('great');
+  protected readonly feedbackText = signal('');
+  protected readonly feedbackSubmitted = signal(false);
+
+  protected readonly feedbackOptions = [
+    { value: 'great', icon: ':)', label: 'Great' },
+    { value: 'okay', icon: ':|', label: 'Okay' },
+    { value: 'needs-work', icon: ':(', label: 'Needs work' },
+  ];
+
   protected readonly student = signal({
     name: 'Alex',
     currentRole: 'Manual tester',
@@ -45,37 +59,25 @@ export class App {
 
   protected readonly nextActions = signal([
     {
-      title: 'Finish Foundation chapter',
-      meta: 'Test analysis and design',
-      tone: 'orange',
+      title: 'Test analysis and design',
+      chapter: 'Chapter 3',
+      meta: 'Finished before the current chapter.',
+      state: 'complete',
+      progress: 100,
+    },
+    {
+      title: 'Test design techniques',
+      chapter: 'Chapter 4',
+      meta: 'Current chapter in ISTQB Foundation 4.0.',
+      state: 'current',
+      progress: 62,
     },
     {
       title: 'Pick a specialization track',
-      meta: 'Agile, technical, or management',
-      tone: 'pink',
-    },
-    {
-      title: 'Book exam preparation',
-      meta: 'Recommended before certification',
-      tone: 'green',
-    },
-  ]);
-
-  protected readonly pathStages = signal([
-    {
-      title: 'Foundation',
-      detail: 'ISTQB Foundation 4.0',
-      state: 'complete',
-    },
-    {
-      title: 'Specialize',
-      detail: 'Agile testing or technical testing',
-      state: 'current',
-    },
-    {
-      title: 'Advance',
-      detail: 'Test Analyst, Test Manager, or automation',
+      chapter: 'Next step',
+      meta: 'Agile, technical, or management.',
       state: 'next',
+      progress: 0,
     },
   ]);
 
@@ -86,4 +88,35 @@ export class App {
   protected readonly recommendedCourses = computed(() =>
     this.courses().filter((course) => course.status === 'Recommended'),
   );
+
+  protected logout(): void {
+    // Auth integration will replace this placeholder.
+  }
+
+  protected openFeedback(): void {
+    this.feedbackPage.set(this.currentPageLabel());
+    this.feedbackSubmitted.set(false);
+    this.isFeedbackOpen.set(true);
+  }
+
+  protected closeFeedback(): void {
+    this.isFeedbackOpen.set(false);
+  }
+
+  protected selectFeedbackRating(rating: string): void {
+    this.feedbackRating.set(rating);
+  }
+
+  protected updateFeedbackText(text: string): void {
+    this.feedbackText.set(text);
+  }
+
+  protected submitFeedback(): void {
+    this.feedbackSubmitted.set(true);
+  }
+
+  private currentPageLabel(): string {
+    const path = window.location.pathname === '/' ? 'Home' : window.location.pathname;
+    return window.location.hash ? `${path} ${window.location.hash}` : path;
+  }
 }
