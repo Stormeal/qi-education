@@ -20,14 +20,23 @@ const envSchema = z.object({
 });
 
 const env = envSchema.parse(process.env);
-const coursesRange = env.GOOGLE_SHEETS_COURSES_RANGE ?? env.GOOGLE_SHEETS_COURSES;
+const coursesRange = firstDefined(env.GOOGLE_SHEETS_COURSES_RANGE, env.GOOGLE_SHEETS_COURSES);
+const spreadsheetId = firstDefined(env.GOOGLE_SHEETS_SPREADSHEET_ID, env.GOOGLE_SHEET_ID);
 
-export const config = {
+export const apiConfig = {
   ...env,
-  GOOGLE_SHEETS_SPREADSHEET_ID: env.GOOGLE_SHEETS_SPREADSHEET_ID ?? env.GOOGLE_SHEET_ID,
+  GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
   GOOGLE_SHEETS_COURSES_RANGE:
     coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:H'
 };
+
+function firstDefined(primary: string | undefined, fallback: string | undefined) {
+  if (primary !== undefined) {
+    return primary;
+  }
+
+  return fallback;
+}
 
 export function hasGoogleSheetsConfig() {
   if (process.env.NODE_ENV === 'test') {
@@ -35,8 +44,8 @@ export function hasGoogleSheetsConfig() {
   }
 
   return Boolean(
-    config.GOOGLE_SHEETS_SPREADSHEET_ID &&
-      config.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      config.GOOGLE_PRIVATE_KEY
+    apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID &&
+      apiConfig.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+      apiConfig.GOOGLE_PRIVATE_KEY
   );
 }

@@ -1,0 +1,2 @@
+#!/bin/sh
+"$(dirname "$0")/require-version-update.sh" push

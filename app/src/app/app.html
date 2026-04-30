@@ -1,14 +1,34 @@
 <main class="page-shell">
   <nav class="topbar" aria-label="Primary navigation">
     <a class="brand" href="/" aria-label="QI-Education home">
-      <span class="brand-mark">QI</span>
-      <span>QI-Education</span>
+      <svg class="brand-mark" viewBox="0 0 72 54" aria-hidden="true" focusable="false">
+        <path class="brand-line" d="M10 12h23l3 6 3-6h23v33H40l-4 4-4-4H10V12Z" />
+        <path class="brand-line" d="M36 18v31M18 23h10M18 32h10M45 23h9" />
+        <path class="brand-accent" d="M45 12v20l5-4 5 4V12" />
+      </svg>
+      <span class="brand-name">QI-Education</span>
     </a>
-    <div class="tabs" aria-label="Student sections">
-      <a class="active" href="/">Overview</a>
-      <a href="#courses">Courses</a>
-      <a href="#actions">Actions</a>
+    <button type="button" class="feedback-button" (click)="openFeedback()">Feedback</button>
+    <div class="tabs" aria-label="Site sections">
+      <a class="active" href="/">Home</a>
+      <a href="#actions">About</a>
+      <a class="with-chevron" href="#actions">
+        Courses
+        <span class="nav-chevron" aria-hidden="true"></span>
+      </a>
+      <a class="with-chevron" href="#actions">
+        Other Pages
+        <span class="nav-chevron" aria-hidden="true"></span>
+      </a>
     </div>
+    <button type="button" class="logout-button" aria-label="Log out" (click)="logout()">
+      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+        <path d="M8 4H4v12h4" />
+        <path d="M11 6l4 4-4 4" />
+        <path d="M6 10h9" />
+      </svg>
+      <span>Logout</span>
+    </button>
   </nav>
 
   <header class="overview-header">
@@ -51,61 +71,98 @@
       </div>
       <div class="action-list">
         @for (action of nextActions(); track action.title) {
-          <article class="action-row" [class]="'tone-' + action.tone">
-            <span class="action-marker"></span>
-            <div>
-              <h3>{{ action.title }}</h3>
+          <article
+            class="action-row"
+            [class.is-complete]="action.state === 'complete'"
+            [class.is-current]="action.state === 'current'"
+            [class.is-next]="action.state === 'next'"
+          >
+            <span class="action-state-icon" aria-hidden="true">
+              @if (action.state === 'complete') {
+                <svg viewBox="0 0 16 16" focusable="false">
+                  <path d="M3.2 8.2 6.6 11.4 12.8 4.6" />
+                </svg>
+              }
+            </span>
+            <div class="action-content">
+              <div class="action-title-row">
+                <div class="action-heading">
+                  <span class="action-chapter">{{ action.chapter }}</span>
+                  <h3>{{ action.title }}</h3>
+                </div>
+                <span class="action-status">{{ action.state }}</span>
+              </div>
               <p>{{ action.meta }}</p>
+              <div class="action-progress" [attr.aria-label]="action.title + ' progress'">
+                <span [style.width.%]="action.progress"></span>
+              </div>
             </div>
-            <button type="button" class="alternative">Open</button>
           </article>
         }
       </div>
     </div>
-
-    <aside class="path-card" aria-label="Career path snapshot">
-      <p class="eyebrow">Testing path</p>
-      <h2>{{ student().targetRole }}</h2>
-      <ol>
-        @for (stage of pathStages(); track stage.title) {
-          <li [class]="stage.state">
-            <span>{{ stage.title }}</span>
-            <strong>{{ stage.detail }}</strong>
-          </li>
-        }
-      </ol>
-    </aside>
   </section>
 
-  <section class="section-block" id="courses">
-    <div class="section-heading horizontal">
-      <div>
-        <p class="eyebrow">Testing courses</p>
-        <h2>Recommended from the Testhuset path</h2>
-      </div>
-      <button type="button" class="alternative">View all</button>
-    </div>
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion }}</span>
+  </footer>
+</main>
 
-    <div class="course-grid">
-      @for (course of courses(); track course.title) {
-        <article class="course-card">
-          <div class="course-header">
-            <span class="status">{{ course.status }}</span>
-            <span>{{ course.level }}</span>
-          </div>
-          <h3>{{ course.title }}</h3>
-          <p>{{ course.teacher }}</p>
-          <div class="tags" aria-label="Career goals">
-            @for (goal of course.goals; track goal) {
-              <span>{{ goal }}</span>
+@if (isFeedbackOpen()) {
+  <div class="feedback-overlay" role="presentation" (click)="closeFeedback()">
+    <section
+      class="feedback-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="feedback-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="feedback-modal-header">
+        <span>Share Feedback</span>
+        <button type="button" class="modal-close" aria-label="Close feedback" (click)="closeFeedback()">X</button>
+      </div>
+
+      @if (feedbackSubmitted()) {
+        <div class="feedback-thanks">
+          <h2 id="feedback-title">Thank you for the feedback</h2>
+          <p>We captured this feedback for {{ feedbackPage() }}.</p>
+          <button type="button" class="feedback-submit" (click)="closeFeedback()">Done</button>
+        </div>
+      } @else {
+        <div class="feedback-body">
+          <h2 id="feedback-title">How was your experience?</h2>
+          <p>Your feedback helps us improve QI-Education before we invite more testers.</p>
+          <p class="feedback-page">Page: {{ feedbackPage() }}</p>
+
+          <div class="rating-options" aria-label="Experience rating">
+            @for (option of feedbackOptions; track option.value) {
+              <button
+                type="button"
+                class="rating-option"
+                [class.selected]="feedbackRating() === option.value"
+                (click)="selectFeedbackRating(option.value)"
+              >
+                <span>{{ option.icon }}</span>
+                <strong>{{ option.label }}</strong>
+              </button>
             }
           </div>
-          <footer>
-            <span>{{ course.nextLesson }}</span>
-            <strong>{{ course.progress }}%</strong>
-          </footer>
-        </article>
+
+          <textarea
+            class="feedback-text"
+            rows="4"
+            placeholder="Share feedback..."
+            [value]="feedbackText()"
+            (input)="updateFeedbackText($any($event.target).value)"
+          ></textarea>
+
+          <button type="button" class="feedback-submit" (click)="submitFeedback()">Submit Feedback</button>
+        </div>
       }
-    </div>
-  </section>
-</main>
+    </section>
+  </div>
+}

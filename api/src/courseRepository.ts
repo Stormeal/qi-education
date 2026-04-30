@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { config, hasGoogleSheetsConfig } from './config.js';
+import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import { type Course, type CreateCourseInput, courseFromSheetRow, courseToSheetRow } from './course.js';
 import { createSheetsClient } from './googleSheets.js';
 
@@ -12,8 +12,8 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
   async listCourses(): Promise<Course[]> {
     const sheets = createSheetsClient();
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: config.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: config.GOOGLE_SHEETS_COURSES_RANGE
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE
     });
 
     const rows = response.data.values ?? [];
@@ -29,8 +29,8 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 
     const sheets = createSheetsClient();
     await sheets.spreadsheets.values.append({
-      spreadsheetId: config.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: config.GOOGLE_SHEETS_COURSES_RANGE,
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [courseToSheetRow(course)]
