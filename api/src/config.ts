@@ -20,14 +20,23 @@ const envSchema = z.object({
 });
 
 const env = envSchema.parse(process.env);
-const coursesRange = env.GOOGLE_SHEETS_COURSES_RANGE ?? env.GOOGLE_SHEETS_COURSES;
+const coursesRange = firstDefined(env.GOOGLE_SHEETS_COURSES_RANGE, env.GOOGLE_SHEETS_COURSES);
+const spreadsheetId = firstDefined(env.GOOGLE_SHEETS_SPREADSHEET_ID, env.GOOGLE_SHEET_ID);
 
 export const config = {
   ...env,
-  GOOGLE_SHEETS_SPREADSHEET_ID: env.GOOGLE_SHEETS_SPREADSHEET_ID ?? env.GOOGLE_SHEET_ID,
+  GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
   GOOGLE_SHEETS_COURSES_RANGE:
     coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:H'
 };
+
+function firstDefined(primary: string | undefined, fallback: string | undefined) {
+  if (primary !== undefined) {
+    return primary;
+  }
+
+  return fallback;
+}
 
 export function hasGoogleSheetsConfig() {
   if (process.env.NODE_ENV === 'test') {
