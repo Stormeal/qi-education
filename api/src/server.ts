@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { ZodError } from 'zod';
-import { config, hasGoogleSheetsConfig } from './config.js';
+import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import { createCourseSchema } from './course.js';
 import { createCourseRepository } from './courseRepository.js';
 
@@ -9,7 +9,7 @@ export function createServer() {
   const app = express();
   const courses = createCourseRepository();
 
-  app.use(cors({ origin: config.CORS_ORIGIN }));
+  app.use(cors({ origin: apiConfig.CORS_ORIGIN }));
   app.use(express.json());
 
   app.get('/health', (_request, response) => {

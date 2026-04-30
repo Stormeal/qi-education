@@ -6,7 +6,7 @@ import { Component, computed, signal } from '@angular/core';
   styleUrl: './app.scss',
 })
 export class App {
-  protected readonly appVersion = '0.1.2';
+  protected readonly appVersion = '0.1.3';
   protected readonly currentYear = new Date().getFullYear();
   protected readonly isFeedbackOpen = signal(false);
   protected readonly feedbackPage = signal('');
