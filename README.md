@@ -33,6 +33,31 @@ The API expects one Google Sheet with a `Courses` worksheet. Add this header row
 id,title,description,level,teacher,careerGoals,status,createdAt
 ```
 
+Authentication uses a separate `Users` worksheet. Add this header row:
+
+```text
+id,email,displayName,passwordHash,role,status,createdAt
+```
+
+Supported roles:
+
+- `student`: regular learner access.
+- `teacher`: learner access plus course creation.
+- `admin`: unrestricted platform access.
+
+Supported statuses:
+
+- `active`
+- `disabled`
+
+When the API runs against Google Sheets, the auth repository will create the `Users` worksheet automatically if it does not already exist.
+
+To generate a password hash for a sheet row:
+
+```bash
+npm --prefix api run auth:hash-password -- "Password123!"
+```
+
 Create `api/.env` from Vercel development variables:
 
 ```bash
@@ -40,6 +65,16 @@ npx vercel env pull api/.env --environment=development --yes
 ```
 
 Share the sheet with the configured Google service account email.
+
+Set an `AUTH_TOKEN_SECRET` value in the API environment before using login in shared or production environments.
+
+## Demo Authentication
+
+When Google Sheets is not configured, the API falls back to in-memory demo users so the login flow can still be developed locally:
+
+- `student@qi-education.local` / `Password123!`
+- `teacher@qi-education.local` / `Password123!`
+- `admin@qi-education.local` / `Password123!`
 
 ## First Product Scope
 
