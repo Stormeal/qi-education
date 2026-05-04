@@ -1,8 +1,32 @@
-* {
-  box-sizing: border-box;
-}
-
 :host {
+  --shell-bg: #efe7da;
+  --panel-base: #fcfaf5;
+  --panel-border: rgba(108, 101, 88, 0.16);
+  --hero-start: #345247;
+  --hero-mid: #56705f;
+  --hero-end: #8f6336;
+  --hero-start-strong: #29463c;
+  --hero-mid-strong: #486859;
+  --hero-end-strong: #80592f;
+  --hero-ink: #fff7e8;
+  --hero-subtle: rgba(255, 247, 232, 0.84);
+  --accent: #ff8a1c;
+  --accent-soft: #ffd08e;
+  --accent-deep: #b85d12;
+  --button-disabled: #d9ccb8;
+  --form-ink: #171b4a;
+  --ink: #39393a;
+  --muted: #6c6558;
+  --success-ink: #2f4f43;
+  --danger-ink: #991b1b;
+  --label: #7b6650;
+  --icon: #826a52;
+  --placeholder: #ab9d8c;
+  --input-bg: #f4ede2;
+  --input-border: rgba(140, 121, 96, 0.18);
+  --input-bg-strong: #f1e8da;
+  --input-border-strong: rgba(140, 121, 96, 0.24);
+
   display: block;
   height: 100vh;
   overflow: hidden;
@@ -18,26 +42,23 @@
     sans-serif;
 }
 
-button {
-  border: 1px solid #f59e0b;
-  border-radius: 4px;
-  color: #fff;
-  background: #f59e0b;
-  padding: 8px 12px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #d97706;
-  background: #d97706;
+* {
+  box-sizing: border-box;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }
 
 h1,
@@ -173,11 +194,14 @@ p {
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
-  border-color: rgba(108, 101, 88, 0.28);
+  border: 1px solid rgba(108, 101, 88, 0.28);
   border-radius: 6px;
   color: #6c6558;
   background: rgba(255, 255, 255, 0.42);
   padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .feedback-button {
@@ -210,6 +234,24 @@ p {
   background: #fff;
   padding: 12px 16px;
   margin-bottom: 10px;
+}
+
+.overview-header button,
+.feedback-submit {
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  color: #fff;
+  background: #f59e0b;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.overview-header button:hover,
+.feedback-submit:hover {
+  border-color: #d97706;
+  background: #d97706;
 }
 
 .eyebrow {
@@ -502,6 +544,7 @@ p {
   background: transparent;
   padding: 4px;
   font-size: 14px;
+  cursor: pointer;
 }
 
 .modal-close:hover {
@@ -544,10 +587,12 @@ p {
   display: grid;
   gap: 8px;
   place-items: center;
-  border-color: #d0d0d0;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
   color: #6c6558;
   background: #fff;
   padding: 12px 8px;
+  cursor: pointer;
 }
 
 .rating-option span {
@@ -585,7 +630,6 @@ p {
 
 .feedback-submit {
   border-color: #2f4f43;
-  border-radius: 8px;
   background: #2f4f43;
   padding: 12px 14px;
 }
