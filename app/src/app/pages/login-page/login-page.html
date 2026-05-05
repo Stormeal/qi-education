@@ -1,0 +1,284 @@
+<main
+  class="flex h-screen items-center overflow-hidden bg-[var(--shell-bg)] px-4 py-4 text-[var(--ink)] sm:px-6 lg:px-8 lg:py-6"
+>
+  <section
+    class="mx-auto grid h-full w-full max-w-7xl overflow-hidden rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel-base)] shadow-[0_30px_80px_rgba(23,27,74,0.12)] lg:h-[min(700px,calc(100vh-112px))] lg:grid-cols-[minmax(0,1.08fr)_minmax(430px,0.92fr)] lg:rounded-[36px]"
+  >
+    <div
+      class="relative isolate overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,214,153,0.16),_transparent_28%),linear-gradient(165deg,var(--hero-start-strong)_0%,var(--hero-mid-strong)_54%,var(--hero-end-strong)_100%)] px-6 py-7 sm:px-10 sm:py-9 lg:px-12 lg:py-8"
+    >
+      <div class="absolute inset-0 opacity-65">
+        <div
+          class="absolute left-[-10%] top-[8%] h-40 w-40 rounded-full bg-[rgba(255,255,255,0.06)] blur-[10px] sm:h-52 sm:w-52"
+        ></div>
+        <div
+          class="absolute right-[14%] top-[10%] h-28 w-28 rounded-full bg-[rgba(255,177,98,0.12)] blur-[6px] sm:h-36 sm:w-36"
+        ></div>
+        <div
+          class="absolute left-[-8%] bottom-[8%] h-20 w-64 rotate-[-42deg] rounded-full bg-[linear-gradient(90deg,rgba(255,138,28,0.78),rgba(255,199,120,0.24))] shadow-[0_12px_32px_rgba(120,53,15,0.14)] sm:h-24 sm:w-80"
+        ></div>
+        <div
+          class="absolute left-[10%] bottom-[15%] h-6 w-44 rotate-[-42deg] rounded-full bg-[rgba(255,199,120,0.56)]"
+        ></div>
+        <div
+          class="absolute left-[26%] bottom-[20%] h-5 w-52 rotate-[-42deg] rounded-full bg-[rgba(255,247,232,0.2)]"
+        ></div>
+        <div
+          class="absolute left-[37%] bottom-[7%] h-24 w-72 rotate-[-42deg] rounded-full bg-[linear-gradient(90deg,rgba(255,138,28,0.82),rgba(47,79,67,0.18))] shadow-[0_18px_36px_rgba(23,27,74,0.1)] sm:h-28 sm:w-96"
+        ></div>
+        <div
+          class="absolute right-[-2%] bottom-[14%] h-20 w-60 rotate-[-42deg] rounded-full bg-[linear-gradient(90deg,rgba(255,199,120,0.72),rgba(255,138,28,0.3))] sm:h-24 sm:w-72"
+        ></div>
+        <div
+          class="absolute right-[18%] bottom-[7%] h-4 w-36 rotate-[-42deg] rounded-full bg-[rgba(255,247,232,0.34)]"
+        ></div>
+      </div>
+
+      <div
+        class="absolute inset-0 bg-[linear-gradient(180deg,rgba(16,31,27,0.03)_0%,rgba(16,31,27,0.08)_100%)]"
+      ></div>
+
+      <div class="relative z-10 flex h-full flex-col">
+        <div class="mx-auto flex h-full w-full max-w-[560px] flex-col">
+          <app-brand-link appearance="light" size="large" />
+
+          <div class="flex flex-col justify-start pt-12 pb-6 lg:pt-[54px] lg:pb-0">
+            <div class="flex max-w-[520px] flex-col gap-7">
+              <span
+                class="inline-flex w-fit rounded-full border border-[rgba(255,255,255,0.32)] bg-[rgba(255,255,255,0.14)] px-4 py-1.5 text-[12px] font-semibold uppercase leading-none tracking-[0.22em] text-white"
+              >
+                Testhuset Learning Portal
+              </span>
+              <div class="flex flex-col gap-5">
+                <h1
+                  class="max-w-[540px] !mb-0 text-[42px] font-black leading-[1.04] text-white drop-shadow-[0_4px_18px_rgba(16,31,27,0.22)] sm:text-[48px] lg:text-[52px]"
+                >
+                  Welcome back to focused software testing training.
+                </h1>
+                <div class="max-w-[470px] !text-white text-[18px] leading-8">
+                  Sign in to continue your Testhuset learning path, track certification progress,
+                  and pick up the next course module without losing momentum.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="my-auto grid w-full max-w-[470px] gap-2">
+            @for (highlight of learningHighlights(); track highlight) {
+              <div
+                class="flex min-h-[56px] items-center gap-3 rounded-[18px] border border-[rgba(255,255,255,0.28)] bg-[rgba(255,255,255,0.3)] px-4 py-2.5 backdrop-blur-md"
+              >
+                <span
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgba(224,240,228,0.72)] text-[rgba(47,79,67,0.95)]"
+                  aria-hidden="true"
+                >
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none">
+                    <path
+                      d="M3.2 8.2 6.6 11.4 12.8 4.6"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                    />
+                  </svg>
+                </span>
+                <div class="!text-[rgba(18,29,26,0.98)] text-[14px] leading-[19px]">
+                  {{ highlight }}
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="flex items-start bg-[linear-gradient(180deg,#fffdfa_0%,#f8f3eb_100%)] px-7 py-8 sm:px-10 lg:px-12 lg:py-[126px]"
+    >
+      <div class="mx-auto flex h-full w-full max-w-[450px] flex-col justify-between gap-4">
+        <div>
+          <div
+            class="text-[12px] font-semibold uppercase tracking-[0.24em] text-[var(--accent-deep)]"
+          >
+            User Login
+          </div>
+          <h2
+            class="mt-2 !mb-0 text-[31px] font-extrabold leading-[1.05] tracking-tight text-[var(--form-ink)]"
+          >
+            Continue your learning path
+          </h2>
+          <div class="mt-2 max-w-[390px] text-[15px] leading-5 text-[var(--muted)]">
+            Use your QI-Education account to open courses, assignments, and certification progress.
+          </div>
+        </div>
+
+        <form class="space-y-3" (submit)="loginSubmitted.emit(); $event.preventDefault()">
+          <div class="space-y-1.5">
+            <label
+              class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--label)]"
+              for="email"
+            >
+              Email
+            </label>
+            <div
+              class="group flex h-11 items-center gap-3 rounded-full border border-[var(--input-border-strong)] bg-[var(--input-bg-strong)] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition focus-within:border-[var(--accent)] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(245,158,11,0.14)]"
+            >
+              <svg
+                class="h-5 w-5 shrink-0 text-[var(--icon)]"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M16.25 5.5H3.75A1.75 1.75 0 0 0 2 7.25v5.5c0 .97.78 1.75 1.75 1.75h12.5c.97 0 1.75-.78 1.75-1.75v-5.5c0-.97-.78-1.75-1.75-1.75Z"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="m3 7 6.07 4.25a1.67 1.67 0 0 0 1.86 0L17 7"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
+                />
+              </svg>
+              <input
+                id="email"
+                type="email"
+                autocomplete="email"
+                class="w-full border-0 bg-transparent text-[16px] text-[var(--form-ink)] outline-none placeholder:text-[var(--placeholder)]"
+                placeholder="alex@testhuset.dk"
+                [value]="email()"
+                (input)="emailChanged.emit($any($event.target).value)"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label
+              class="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--label)]"
+              for="password"
+            >
+              Password
+            </label>
+            <div
+              class="group flex h-11 items-center gap-3 rounded-full border border-[var(--input-border-strong)] bg-[var(--input-bg-strong)] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] transition focus-within:border-[var(--accent)] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(245,158,11,0.14)]"
+            >
+              <svg
+                class="h-5 w-5 shrink-0 text-[var(--icon)]"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5.75 9V6.88a4.25 4.25 0 1 1 8.5 0V9"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="M14.75 9h-9.5A1.75 1.75 0 0 0 3.5 10.75v4A1.75 1.75 0 0 0 5.25 16.5h9.5a1.75 1.75 0 0 0 1.75-1.75v-4A1.75 1.75 0 0 0 14.75 9Z"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.6"
+                />
+              </svg>
+              <input
+                id="password"
+                [type]="passwordVisible() ? 'text' : 'password'"
+                autocomplete="current-password"
+                class="w-full border-0 bg-transparent text-[16px] text-[var(--form-ink)] outline-none placeholder:text-[var(--placeholder)]"
+                placeholder="Enter your password"
+                [value]="password()"
+                (input)="passwordChanged.emit($any($event.target).value)"
+              />
+              <button
+                type="button"
+                class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--label)] transition hover:text-[var(--accent-deep)]"
+                (click)="passwordVisibilityToggled.emit()"
+              >
+                {{ passwordVisible() ? 'Hide' : 'Show' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4 text-[14px]">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 text-[var(--muted)] transition hover:text-[var(--form-ink)]"
+              (click)="rememberMeToggled.emit()"
+            >
+              <span
+                class="inline-flex h-5 w-5 items-center justify-center rounded-full border transition"
+                [class.border-[var(--accent-deep)]]="rememberMe()"
+                [class.bg-[var(--accent-deep)]]="rememberMe()"
+                [class.text-white]="rememberMe()"
+                [class.border-[var(--input-border)]]="!rememberMe()"
+                [class.bg-white]="!rememberMe()"
+                [class.text-transparent]="!rememberMe()"
+                aria-hidden="true"
+              >
+                <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M3.2 8.2 6.6 11.4 12.8 4.6"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                  />
+                </svg>
+              </span>
+              <span>Remember me</span>
+            </button>
+
+            <a
+              class="font-semibold text-[var(--form-ink)] transition hover:text-[var(--accent-deep)]"
+              href="/"
+            >
+              Forgot password?
+            </a>
+          </div>
+
+          @if (loginError()) {
+            <div
+              class="rounded-[24px] border border-[rgba(185,28,28,0.16)] bg-[rgba(254,242,242,0.92)] px-5 py-4 text-[15px] leading-6 text-[var(--danger-ink)]"
+            >
+              {{ loginError() }}
+            </div>
+          }
+
+          <app-button class="fill" type="submit" variant="login-submit" [disabled]="!canSubmit()">
+            {{ isSubmitting() ? 'Signing In...' : 'Log In' }}
+          </app-button>
+        </form>
+
+        <div
+          class="flex items-start gap-2.5 rounded-[18px] border border-[rgba(245,158,11,0.18)] bg-[rgba(255,247,232,0.92)] px-4 py-2 text-[11px] leading-[15px] text-[var(--muted)]"
+        >
+          <span
+            class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[rgba(245,158,11,0.14)] text-[var(--accent-deep)]"
+            aria-hidden="true"
+          >
+            <svg class="h-4.5 w-4.5" viewBox="0 0 20 20" fill="none">
+              <path
+                d="M10 6.25v3.5m0 3h.01M18 10A8 8 0 1 1 2 10a8 8 0 0 1 16 0Z"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.7"
+              />
+            </svg>
+          </span>
+          <div>
+            Login now calls the local API. Make sure the backend is running on port 3001 and that
+            the user exists in the `Users` sheet.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

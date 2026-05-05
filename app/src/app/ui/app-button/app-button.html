@@ -1,0 +1,13 @@
+<button
+  class="app-button"
+  [class.app-button-outline]="variant() === 'outline'"
+  [class.app-button-primary]="variant() === 'primary'"
+  [class.app-button-ghost]="variant() === 'ghost'"
+  [class.app-button-login-submit]="variant() === 'login-submit'"
+  [type]="type()"
+  [disabled]="disabled()"
+  [attr.aria-label]="ariaLabel()"
+  (click)="buttonClicked.emit()"
+>
+  <ng-content />
+</button>

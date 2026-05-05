@@ -31,21 +31,29 @@ describe('QI-Education API', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: 'teacher@qi-education.local',
-        password: 'Password123!'
-      })
+        password: 'Password123!',
+      }),
     });
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.user).toMatchObject({
       email: 'teacher@qi-education.local',
-      role: 'teacher'
+      role: 'teacher',
     });
     expect(body.permissions).toEqual({
       canCreateCourses: true,
-      hasAdminAccess: false
+      hasAdminAccess: false,
     });
     expect(body.token).toEqual(expect.any(String));
+  });
+
+  it('serves API routes under the Vercel /api prefix', async () => {
+    const response = await fetch(`${baseUrl}/api/health`);
+    const body = (await response.json()) as { status: string };
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('ok');
   });
 
   it('rejects invalid login credentials', async () => {
@@ -54,8 +62,8 @@ describe('QI-Education API', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: 'teacher@qi-education.local',
-        password: 'wrong-password'
-      })
+        password: 'wrong-password',
+      }),
     });
     const body = await response.json();
 
@@ -67,19 +75,19 @@ describe('QI-Education API', () => {
     const token = await loginAs('admin@qi-education.local');
     const response = await fetch(`${baseUrl}/auth/me`, {
       headers: {
-        authorization: `Bearer ${token}`
-      }
+        authorization: `Bearer ${token}`,
+      },
     });
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.user).toMatchObject({
       email: 'admin@qi-education.local',
-      role: 'admin'
+      role: 'admin',
     });
     expect(body.permissions).toEqual({
       canCreateCourses: true,
-      hasAdminAccess: true
+      hasAdminAccess: true,
     });
   });
 
@@ -90,7 +98,7 @@ describe('QI-Education API', () => {
     expect(response.status).toBe(200);
     expect(body[0]).toMatchObject({
       title: 'Career Discovery Workshop',
-      status: 'published'
+      status: 'published',
     });
   });
 
@@ -100,9 +108,9 @@ describe('QI-Education API', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        authorization: `Bearer ${token}`
+        authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(validCourse())
+      body: JSON.stringify(validCourse()),
     });
     const body = await response.json();
 
@@ -116,17 +124,55 @@ describe('QI-Education API', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        authorization: `Bearer ${token}`
+        authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(validCourse())
+      body: JSON.stringify(validCourse()),
     });
     const body = await response.json();
 
     expect(response.status).toBe(201);
     expect(body).toMatchObject({
       title: 'API Automation Foundations',
-      status: 'draft'
+      status: 'draft',
     });
+  });
+
+  it('captures authenticated feedback', async () => {
+    const token = await loginAs('student@qi-education.local');
+    const response = await fetch(`${baseUrl}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        page: 'Home',
+        rating: 'great',
+        message: 'The dashboard is clear.',
+        userAgent: 'vitest',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.id).toEqual(expect.any(String));
+    expect(body.createdAt).toEqual(expect.any(String));
+  });
+
+  it('rejects unauthenticated feedback', async () => {
+    const response = await fetch(`${baseUrl}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page: 'Home',
+        rating: 'great',
+        message: 'Anonymous feedback',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.message).toBe('Authentication required');
   });
 
   it('rejects invalid course input', async () => {
@@ -135,9 +181,9 @@ describe('QI-Education API', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        authorization: `Bearer ${token}`
+        authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ title: 'No' })
+      body: JSON.stringify({ title: 'No' }),
     });
     const body = await response.json();
 
@@ -151,8 +197,8 @@ describe('QI-Education API', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
-        password: 'Password123!'
-      })
+        password: 'Password123!',
+      }),
     });
     const body = await response.json();
 
@@ -167,6 +213,6 @@ function validCourse() {
     level: 'Intermediate',
     teacher: 'Teacher Demo',
     careerGoals: ['Automation', 'API testing'],
-    status: 'draft'
+    status: 'draft',
   };
 }

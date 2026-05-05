@@ -1,0 +1,105 @@
+:host {
+  display: inline-flex;
+}
+
+:host(.fill) {
+  display: flex;
+  width: 100%;
+}
+
+.app-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.app-button:disabled {
+  cursor: not-allowed;
+}
+
+.app-button-outline {
+  border-color: rgba(108, 101, 88, 0.28);
+  border-radius: 6px;
+  color: #6c6558;
+  background: rgba(255, 255, 255, 0.42);
+  padding: 8px 12px;
+}
+
+.app-button-outline:hover {
+  border-color: #d97706;
+  color: #78350f;
+  background: #fff7e8;
+}
+
+.app-button-outline svg {
+  width: 16px;
+  height: 16px;
+}
+
+.app-button-outline path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.app-button-primary {
+  border-color: #f59e0b;
+  border-radius: 8px;
+  color: #fff;
+  background: #f59e0b;
+  padding: 8px 12px;
+}
+
+.app-button-primary:hover {
+  border-color: #d97706;
+  background: #d97706;
+}
+
+.app-button-ghost {
+  border: 0;
+  color: #171b4a;
+  background: transparent;
+  padding: 4px;
+  font-size: 14px;
+}
+
+.app-button-ghost:hover {
+  color: #78350f;
+}
+
+.app-button-login-submit {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0 24px;
+  color: #fff;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-deep) 100%);
+  box-shadow: 0 16px 30px rgba(120, 53, 15, 0.18);
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.app-button-login-submit:hover {
+  filter: brightness(1.03);
+}
+
+.app-button-login-submit:disabled {
+  background: var(--button-disabled);
+  box-shadow: none;
+  filter: none;
+}

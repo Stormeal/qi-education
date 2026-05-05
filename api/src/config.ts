@@ -10,7 +10,11 @@ if (process.env.NODE_ENV !== 'test') {
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
-  CORS_ORIGIN: z.string().default('http://localhost:4200,http://127.0.0.1:4200'),
+  CORS_ORIGIN: z
+    .string()
+    .default(
+      'http://localhost:4200,http://127.0.0.1:4200,https://stormeal.github.io,https://qi-education.vercel.app',
+    ),
   AUTH_TOKEN_SECRET: z.string().min(16).default('local-dev-auth-secret'),
   GOOGLE_SHEET_ID: z.string().min(1).optional(),
   GOOGLE_SHEETS_COURSES: z.string().min(1).optional(),
@@ -19,7 +23,8 @@ const envSchema = z.object({
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.email().optional(),
   GOOGLE_PRIVATE_KEY: z.string().min(1).optional(),
   GOOGLE_SHEETS_COURSES_RANGE: z.string().optional(),
-  GOOGLE_SHEETS_USERS_RANGE: z.string().optional()
+  GOOGLE_SHEETS_USERS_RANGE: z.string().optional(),
+  GOOGLE_SHEETS_FEEDBACK_RANGE: z.string().optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -33,7 +38,12 @@ export const apiConfig = {
   GOOGLE_SHEETS_COURSES_RANGE:
     coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:H',
   GOOGLE_SHEETS_USERS_RANGE:
-    usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:G'
+    usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:G',
+  GOOGLE_SHEETS_FEEDBACK_RANGE:
+    env.GOOGLE_SHEETS_FEEDBACK_RANGE &&
+    env.GOOGLE_SHEETS_FEEDBACK_RANGE !== 'GOOGLE_SHEETS_FEEDBACK_RANGE'
+      ? env.GOOGLE_SHEETS_FEEDBACK_RANGE
+      : 'Feedback!A:I',
 };
 
 function firstDefined(primary: string | undefined, fallback: string | undefined) {
@@ -51,8 +61,8 @@ export function hasGoogleSheetsConfig() {
 
   return Boolean(
     apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID &&
-      apiConfig.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      apiConfig.GOOGLE_PRIVATE_KEY
+    apiConfig.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
+    apiConfig.GOOGLE_PRIVATE_KEY,
   );
 }
 
