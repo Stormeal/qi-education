@@ -53,7 +53,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     });
   });
 
-  app.post('/auth/login', async (request, response, next) => {
+  app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
       const input = loginSchema.parse(request.body);
       const user = await auth.findByEmail(input.email);
@@ -78,7 +78,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   });
 
-  app.get('/auth/me', authenticateRequest(auth), (request, response) => {
+  app.get(['/auth/me', '/me'], authenticateRequest(auth), (request, response) => {
     const authenticatedRequest = request as AuthenticatedRequest;
 
     response.json({

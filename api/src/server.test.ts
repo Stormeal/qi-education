@@ -48,6 +48,25 @@ describe('QI-Education API', () => {
     expect(body.token).toEqual(expect.any(String));
   });
 
+  it('authenticates through the Vercel-safe login route', async () => {
+    const response = await fetch(`${baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: 'teacher@qi-education.local',
+        password: 'Password123!',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.user).toMatchObject({
+      email: 'teacher@qi-education.local',
+      role: 'teacher',
+    });
+    expect(body.token).toEqual(expect.any(String));
+  });
+
   it('serves API routes under the Vercel /api prefix', async () => {
     const response = await fetch(`${baseUrl}/api/health`);
     const body = (await response.json()) as { status: string };
