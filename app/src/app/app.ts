@@ -26,7 +26,7 @@ declare global {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  protected readonly appVersion = '0.1.7';
+  protected readonly appVersion = '0.1.8';
   protected readonly currentYear = new Date().getFullYear();
 
   protected readonly email = signal('');
@@ -180,7 +180,7 @@ export class App {
     this.loginError.set('');
 
     try {
-      const response = await this.fetchApi('/auth/login', {
+      const response = await this.fetchApi('/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
