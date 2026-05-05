@@ -19,11 +19,15 @@ Run the frontend:
 npm run app:dev
 ```
 
+This starts both the Angular dev server at `http://localhost:4200` and the local API at `http://localhost:3001`.
+
 Run the API:
 
 ```bash
 npm run api:dev
 ```
+
+Use `npm run app:dev:frontend` only when you intentionally want to run the Angular dev server without starting the local API.
 
 ## Google Sheets Setup
 

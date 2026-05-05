@@ -1,9 +1,10 @@
 {
   "name": "qi-education",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "scripts": {
-    "app:dev": "npm --prefix app start",
+    "app:dev": "concurrently -k -n api,app -c blue,green \"npm run api:dev\" \"npm run app:dev:frontend\"",
+    "app:dev:frontend": "npm --prefix app start",
     "app:build": "npm --prefix app run build",
     "app:build:pages": "npm --prefix app run build -- --base-href /qi-education/ --deploy-url /qi-education/",
     "app:test": "npm --prefix app test",
@@ -15,5 +16,8 @@
   "workspaces": [
     "app",
     "api"
-  ]
+  ],
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }
