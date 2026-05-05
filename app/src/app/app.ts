@@ -26,7 +26,7 @@ declare global {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  protected readonly appVersion = '0.1.6';
+  protected readonly appVersion = '0.1.7';
   protected readonly currentYear = new Date().getFullYear();
 
   protected readonly email = signal('');
@@ -180,7 +180,7 @@ export class App {
     this.loginError.set('');
 
     try {
-      const response = await fetch(`${this.apiBaseUrl()}/auth/login`, {
+      const response = await this.fetchApi('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,9 +214,7 @@ export class App {
     } catch {
       this.loginState.set(null);
       this.clearStoredSession();
-      this.loginError.set(
-        'Unable to reach the API. Make sure the backend is running on port 3001.',
-      );
+      this.loginError.set('Unable to reach the API. Please try again shortly.');
     } finally {
       this.isSubmitting.set(false);
     }
@@ -267,7 +265,7 @@ export class App {
     this.feedbackError.set('');
 
     try {
-      const response = await fetch(`${this.apiBaseUrl()}/feedback`, {
+      const response = await this.fetchApi('/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -296,23 +294,44 @@ export class App {
     }
   }
 
-  private apiBaseUrl(): string {
+  private async fetchApi(path: string, init: RequestInit): Promise<Response> {
+    const apiBaseUrls = this.apiBaseUrls();
+    let lastError: unknown;
+
+    for (const apiBaseUrl of apiBaseUrls) {
+      try {
+        return await fetch(`${apiBaseUrl}${path}`, init);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  }
+
+  private apiBaseUrls(): string[] {
     const configuredApiBaseUrl = window.qiEducationConfig?.apiBaseUrl?.trim().replace(/\/+$/, '');
 
     if (configuredApiBaseUrl) {
-      return configuredApiBaseUrl;
+      return [configuredApiBaseUrl];
     }
 
+    const hostedApiBaseUrl = 'https://qi-education.vercel.app/api';
+
     if (window.location.hostname === 'stormeal.github.io') {
-      return 'https://qi-education.vercel.app/api';
+      return [hostedApiBaseUrl];
     }
 
     if (window.location.hostname.endsWith('.vercel.app')) {
-      return `${window.location.origin}/api`;
+      return [`${window.location.origin}/api`];
+    }
+
+    if (!window.location.hostname) {
+      return [hostedApiBaseUrl];
     }
 
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    return `${protocol}//${window.location.hostname}:3001`;
+    return [`${protocol}//${window.location.hostname}:3001`, hostedApiBaseUrl];
   }
 
   private storeSession(login: LoginResponse): void {
