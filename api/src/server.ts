@@ -9,16 +9,19 @@ import {
   toAuthenticatedUser,
   verifyPassword,
   verifySessionToken,
-  type AuthenticatedUser
+  type AuthenticatedUser,
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig } from './config.js';
 import { createCourseSchema } from './course.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
+import { createFeedbackSchema } from './feedback.js';
+import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
   courseRepository?: CourseRepository;
+  feedbackRepository?: FeedbackRepository;
 };
 
 type AuthenticatedRequest = Request & {
@@ -29,14 +32,24 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
   const courses = dependencies.courseRepository ?? createCourseRepository();
+  const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
 
   app.use(cors({ origin: getCorsOrigins() }));
   app.use(express.json());
+  app.use((request, _response, next) => {
+    if (request.url === '/api') {
+      request.url = '/';
+    } else if (request.url.startsWith('/api/')) {
+      request.url = request.url.slice('/api'.length);
+    }
+
+    next();
+  });
 
   app.get('/health', (_request, response) => {
     response.json({
       status: 'ok',
-      storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory'
+      storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
     });
   });
 
@@ -58,7 +71,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       response.json({
         token: createSessionToken(user, apiConfig.AUTH_TOKEN_SECRET),
         user: toAuthenticatedUser(user),
-        permissions: getRolePermissions(user.role)
+        permissions: getRolePermissions(user.role),
       });
     } catch (error) {
       next(error);
@@ -70,7 +83,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
     response.json({
       user: authenticatedRequest.user,
-      permissions: getRolePermissions(authenticatedRequest.user.role)
+      permissions: getRolePermissions(authenticatedRequest.user.role),
     });
   });
 
@@ -82,10 +95,30 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   });
 
-  app.post('/courses', authenticateRequest(auth), requireCourseCreator, async (request, response, next) => {
+  app.post(
+    '/courses',
+    authenticateRequest(auth),
+    requireCourseCreator,
+    async (request, response, next) => {
+      try {
+        const input = createCourseSchema.parse(request.body);
+        response.status(201).json(await courses.createCourse(input));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.post('/feedback', authenticateRequest(auth), async (request, response, next) => {
     try {
-      const input = createCourseSchema.parse(request.body);
-      response.status(201).json(await courses.createCourse(input));
+      const input = createFeedbackSchema.parse(request.body);
+      const authenticatedRequest = request as AuthenticatedRequest;
+      const createdFeedback = await feedback.createFeedback(input, authenticatedRequest.user);
+
+      response.status(201).json({
+        id: createdFeedback.id,
+        createdAt: createdFeedback.createdAt,
+      });
     } catch (error) {
       next(error);
     }

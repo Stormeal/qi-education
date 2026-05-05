@@ -39,6 +39,12 @@ Authentication uses a separate `Users` worksheet. Add this header row:
 id,email,displayName,passwordHash,role,status,createdAt
 ```
 
+Feedback submissions use a `Feedback` worksheet. The API will create it automatically when Google Sheets is configured. It stores:
+
+```text
+ID,Created At,User ID,User Email,User Role,Page,Rating,Message,User Agent
+```
+
 Supported roles:
 
 - `student`: regular learner access.
@@ -68,6 +74,8 @@ Share the sheet with the configured Google service account email.
 
 Set an `AUTH_TOKEN_SECRET` value in the API environment before using login in shared or production environments.
 
+The feedback worksheet range defaults to `Feedback!A:I`; override it with `GOOGLE_SHEETS_FEEDBACK_RANGE` if needed.
+
 ## Demo Authentication
 
 When Google Sheets is not configured, the API falls back to in-memory demo users so the login flow can still be developed locally:
@@ -89,3 +97,5 @@ Merges to `main` deploy the Angular app to GitHub Pages from the `app/dist/qi-ed
 The published site will be available at `https://stormeal.github.io/qi-education/` once GitHub Pages is enabled for the repository.
 
 The API still uses Vercel environment variables for local development through `npm run env:pull`, but the site itself is now deployed through GitHub Pages.
+
+The GitHub Pages build calls `https://qi-education.vercel.app/api` for login and course data. The Vercel deployment exposes the Express API through `api/[...path].ts`, so make sure the Vercel project has the same Google Sheets and auth environment variables configured for production.

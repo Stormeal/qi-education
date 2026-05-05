@@ -1,35 +1,32 @@
-import { Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import {
+  CourseSummary,
+  FeedbackOption,
+  LoginResponse,
+  LoginState,
+  NextAction,
+  UserRole,
+} from './app.models';
+import { DashboardPage } from './pages/dashboard-page/dashboard-page';
+import { LoginPage } from './pages/login-page/login-page';
 
-type UserRole = 'student' | 'teacher' | 'admin';
-
-type LoginResponse = {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    displayName: string;
-    role: UserRole;
-    status: 'active' | 'disabled';
-    createdAt: string;
-  };
-  permissions: {
-    canCreateCourses: boolean;
-    hasAdminAccess: boolean;
-  };
-};
-
-type LoginState = {
-  user: LoginResponse['user'];
-  permissions: LoginResponse['permissions'];
-};
+declare global {
+  interface Window {
+    qiEducationConfig?: {
+      apiBaseUrl?: string;
+    };
+  }
+}
 
 @Component({
   selector: 'app-root',
+  imports: [DashboardPage, LoginPage],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-  protected readonly appVersion = '0.1.5';
+  protected readonly appVersion = '0.1.6';
   protected readonly currentYear = new Date().getFullYear();
 
   protected readonly email = signal('');
@@ -45,12 +42,15 @@ export class App {
   protected readonly feedbackRating = signal('great');
   protected readonly feedbackText = signal('');
   protected readonly feedbackSubmitted = signal(false);
+  protected readonly feedbackSubmitting = signal(false);
+  protected readonly feedbackError = signal('');
 
   protected readonly canSubmit = computed(
-    () => this.email().trim().length > 0 && this.password().trim().length > 0 && !this.isSubmitting(),
+    () =>
+      this.email().trim().length > 0 && this.password().trim().length > 0 && !this.isSubmitting(),
   );
 
-  protected readonly feedbackOptions = [
+  protected readonly feedbackOptions: FeedbackOption[] = [
     { value: 'great', icon: ':)', label: 'Great' },
     { value: 'okay', icon: ':|', label: 'Okay' },
     { value: 'needs-work', icon: ':(', label: 'Needs work' },
@@ -69,7 +69,7 @@ export class App {
     pathProgress: this.pathProgressValue(this.loginState()?.user.role),
   }));
 
-  protected readonly courses = signal([
+  protected readonly courses = signal<CourseSummary[]>([
     {
       title: 'ISTQB Foundation 4.0',
       teacher: 'Testhuset',
@@ -99,9 +99,9 @@ export class App {
     },
   ]);
 
-  protected readonly nextActions = computed(() => {
+  protected readonly nextActions = computed<NextAction[]>(() => {
     const role = this.loginState()?.user.role;
-    const roleSpecificAction =
+    const roleSpecificAction: NextAction =
       role === 'admin'
         ? {
             title: 'Review platform administration',
@@ -203,6 +203,7 @@ export class App {
 
       const login = body as LoginResponse;
       this.loginState.set({
+        token: login.token,
         user: login.user,
         permissions: login.permissions,
       });
@@ -232,11 +233,13 @@ export class App {
   protected openFeedback(): void {
     this.feedbackPage.set(this.currentPageLabel());
     this.feedbackSubmitted.set(false);
+    this.feedbackError.set('');
     this.isFeedbackOpen.set(true);
   }
 
   protected closeFeedback(): void {
     this.isFeedbackOpen.set(false);
+    this.feedbackSubmitting.set(false);
   }
 
   protected selectFeedbackRating(rating: string): void {
@@ -245,13 +248,69 @@ export class App {
 
   protected updateFeedbackText(text: string): void {
     this.feedbackText.set(text);
+    this.feedbackError.set('');
   }
 
-  protected submitFeedback(): void {
-    this.feedbackSubmitted.set(true);
+  protected async submitFeedback(): Promise<void> {
+    if (this.feedbackSubmitting()) {
+      return;
+    }
+
+    const token = this.loginState()?.token;
+
+    if (!token) {
+      this.feedbackError.set('Please log in again before sending feedback.');
+      return;
+    }
+
+    this.feedbackSubmitting.set(true);
+    this.feedbackError.set('');
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl()}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          page: this.feedbackPage(),
+          rating: this.feedbackRating(),
+          message: this.feedbackText(),
+          userAgent: window.navigator.userAgent,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { message?: string };
+        this.feedbackError.set(body.message ?? 'Unable to send feedback right now.');
+        return;
+      }
+
+      this.feedbackText.set('');
+      this.feedbackSubmitted.set(true);
+    } catch {
+      this.feedbackError.set('Unable to reach the API. Please try again.');
+    } finally {
+      this.feedbackSubmitting.set(false);
+    }
   }
 
   private apiBaseUrl(): string {
+    const configuredApiBaseUrl = window.qiEducationConfig?.apiBaseUrl?.trim().replace(/\/+$/, '');
+
+    if (configuredApiBaseUrl) {
+      return configuredApiBaseUrl;
+    }
+
+    if (window.location.hostname === 'stormeal.github.io') {
+      return 'https://qi-education.vercel.app/api';
+    }
+
+    if (window.location.hostname.endsWith('.vercel.app')) {
+      return `${window.location.origin}/api`;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     return `${protocol}//${window.location.hostname}:3001`;
   }
@@ -287,11 +346,18 @@ export class App {
 
     try {
       const session = JSON.parse(rawSession) as {
+        token?: string;
         user: LoginResponse['user'];
         permissions: LoginResponse['permissions'];
       };
 
+      if (!session.token) {
+        this.clearStoredSession();
+        return null;
+      }
+
       return {
+        token: session.token,
         user: session.user,
         permissions: session.permissions,
       };

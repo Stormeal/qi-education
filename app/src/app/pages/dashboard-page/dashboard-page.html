@@ -1,0 +1,176 @@
+<main class="page-shell">
+  <nav class="topbar" aria-label="Primary navigation">
+    <app-brand-link />
+    <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
+    <div class="tabs" aria-label="Site sections">
+      <a class="active" href="/">Home</a>
+      <a href="#actions">About</a>
+      <a class="with-chevron" href="#actions">
+        Courses
+        <span class="nav-chevron" aria-hidden="true"></span>
+      </a>
+      <a class="with-chevron" href="#actions">
+        Other Pages
+        <span class="nav-chevron" aria-hidden="true"></span>
+      </a>
+    </div>
+    <app-profile-menu
+      [displayName]="student().name"
+      [email]="userEmail()"
+      [roleLabel]="userRoleLabel()"
+      (loggedOut)="loggedOut.emit()"
+    />
+  </nav>
+
+  <header class="overview-header">
+    <div>
+      <p class="eyebrow">Student overview</p>
+      <h1>Welcome back, {{ student().name }}</h1>
+      <p>Testing career path: {{ student().currentRole }} to {{ student().targetRole }}</p>
+    </div>
+    <app-button variant="primary">Adjust track</app-button>
+  </header>
+
+  <section class="summary-grid" aria-label="Learning summary">
+    <article class="summary-card featured">
+      <span>Career path</span>
+      <strong>{{ student().pathProgress }}%</strong>
+      <div class="progress-track" aria-label="Career path progress">
+        <span [style.width.%]="student().pathProgress"></span>
+      </div>
+      <p>Next milestone: choose a specialization after ISTQB Foundation.</p>
+    </article>
+
+    <article class="summary-card">
+      <span>Active course</span>
+      <strong>{{ activeCourse().title }}</strong>
+      <p>{{ activeCourse().progress }}% complete</p>
+    </article>
+
+    <article class="summary-card">
+      <span>Recommended</span>
+      <strong>{{ recommendedCourses().length }}</strong>
+      <p>Testing courses matched to your goal.</p>
+    </article>
+  </section>
+
+  <section class="dashboard-grid">
+    <div class="section-block" id="actions">
+      <div class="section-heading">
+        <p class="eyebrow">Next actions</p>
+        <h2>Keep the certification path moving</h2>
+      </div>
+      <div class="action-list">
+        @for (action of nextActions(); track action.title) {
+          <article
+            class="action-row"
+            [class.is-complete]="action.state === 'complete'"
+            [class.is-current]="action.state === 'current'"
+            [class.is-next]="action.state === 'next'"
+          >
+            <span class="action-state-icon" aria-hidden="true">
+              @if (action.state === 'complete') {
+                <svg viewBox="0 0 16 16" focusable="false">
+                  <path d="M3.2 8.2 6.6 11.4 12.8 4.6" />
+                </svg>
+              }
+            </span>
+            <div class="action-content">
+              <div class="action-title-row">
+                <div class="action-heading">
+                  <span class="action-chapter">{{ action.chapter }}</span>
+                  <h3>{{ action.title }}</h3>
+                </div>
+                <span class="action-status">{{ action.state }}</span>
+              </div>
+              <p>{{ action.meta }}</p>
+              <div class="action-progress" [attr.aria-label]="action.title + ' progress'">
+                <span [style.width.%]="action.progress"></span>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <div class="feedback-overlay" role="presentation" (click)="feedbackClosed.emit()">
+    <section
+      class="feedback-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="feedback-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="feedback-modal-header">
+        <span>Share Feedback</span>
+        <app-button
+          variant="ghost"
+          ariaLabel="Close feedback"
+          (buttonClicked)="feedbackClosed.emit()"
+        >
+          X
+        </app-button>
+      </div>
+
+      @if (feedbackSubmitted()) {
+        <div class="feedback-thanks">
+          <h2 id="feedback-title">Thank you for the feedback</h2>
+          <p>We captured this feedback for {{ feedbackPage() }}.</p>
+          <app-button variant="primary" (buttonClicked)="feedbackClosed.emit()"> Done </app-button>
+        </div>
+      } @else {
+        <div class="feedback-body">
+          <h2 id="feedback-title">How was your experience?</h2>
+          <p>Your feedback helps us improve QI-Education before we invite more testers.</p>
+          <p class="feedback-page">Page: {{ feedbackPage() }}</p>
+
+          <div class="rating-options" aria-label="Experience rating">
+            @for (option of feedbackOptions(); track option.value) {
+              <button
+                type="button"
+                class="rating-option"
+                [class.selected]="feedbackRating() === option.value"
+                (click)="feedbackRatingSelected.emit(option.value)"
+              >
+                <span>{{ option.icon }}</span>
+                <strong>{{ option.label }}</strong>
+              </button>
+            }
+          </div>
+
+          <textarea
+            class="feedback-text"
+            rows="4"
+            placeholder="Share feedback..."
+            [value]="feedbackText()"
+            [disabled]="feedbackSubmitting()"
+            (input)="feedbackTextChanged.emit($any($event.target).value)"
+          ></textarea>
+
+          @if (feedbackError()) {
+            <p class="feedback-error" role="alert">{{ feedbackError() }}</p>
+          }
+
+          <app-button
+            variant="primary"
+            [disabled]="feedbackSubmitting()"
+            (buttonClicked)="feedbackSubmittedClicked.emit()"
+          >
+            {{ feedbackSubmitting() ? 'Submitting...' : 'Submit Feedback' }}
+          </app-button>
+        </div>
+      }
+    </section>
+  </div>
+}

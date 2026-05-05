@@ -1,0 +1,54 @@
+:host {
+  display: inline-flex;
+  width: fit-content;
+}
+
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 216px;
+  color: #6c6558;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.brand-link-light {
+  gap: 12px;
+  min-width: 0;
+  color: #fff;
+}
+
+.brand-link-large {
+  font-size: 31px;
+  font-weight: 800;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 36px;
+  flex: 0 0 auto;
+}
+
+.brand-link-large .brand-mark {
+  width: 56px;
+  height: 42px;
+}
+
+.brand-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-width: 4.4;
+}
+
+.brand-accent {
+  fill: none;
+  stroke: #ff8a1c;
+  stroke-linecap: round;
+  stroke-linejoin: miter;
+  stroke-width: 4.4;
+}
