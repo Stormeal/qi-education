@@ -1,0 +1,34 @@
+.course-card {
+  cursor: pointer;
+}
+
+.course-card:focus-visible {
+  outline: 3px solid rgba(245, 158, 11, 0.34);
+  outline-offset: 3px;
+}
+
+.course-card-art {
+  display: grid;
+  align-content: end;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  color: #fff7e8;
+  background:
+    linear-gradient(135deg, rgba(47, 79, 67, 0.9), rgba(128, 89, 47, 0.82)),
+    repeating-linear-gradient(135deg, transparent 0 18px, rgba(255, 247, 232, 0.1) 18px 20px);
+  padding: 18px 18px 62px;
+}
+
+.course-card-art span {
+  color: #ffd08e;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.course-card-art strong {
+  max-width: 75%;
+  font-size: 18px;
+  line-height: 1.2;
+}

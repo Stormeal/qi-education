@@ -3,12 +3,12 @@
     <app-brand-link />
     <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
     <div class="tabs" aria-label="Site sections">
-      <a class="active" href="/">Home</a>
+      <button type="button" class="tab-link active" (click)="homeClicked.emit()">Home</button>
       <a href="#actions">About</a>
-      <a class="with-chevron" href="#actions">
+      <button type="button" class="tab-link with-chevron" (click)="coursesClicked.emit()">
         Courses
         <span class="nav-chevron" aria-hidden="true"></span>
-      </a>
+      </button>
       <a class="with-chevron" href="#actions">
         Other Pages
         <span class="nav-chevron" aria-hidden="true"></span>
@@ -18,7 +18,9 @@
       [displayName]="student().name"
       [email]="userEmail()"
       [roleLabel]="userRoleLabel()"
+      [canAccessAdmin]="canAccessAdmin()"
       (loggedOut)="loggedOut.emit()"
+      (adminSelected)="adminClicked.emit()"
     />
   </nav>
 
@@ -104,73 +106,17 @@
 </main>
 
 @if (isFeedbackOpen()) {
-  <div class="feedback-overlay" role="presentation" (click)="feedbackClosed.emit()">
-    <section
-      class="feedback-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="feedback-title"
-      (click)="$event.stopPropagation()"
-    >
-      <div class="feedback-modal-header">
-        <span>Share Feedback</span>
-        <app-button
-          variant="ghost"
-          ariaLabel="Close feedback"
-          (buttonClicked)="feedbackClosed.emit()"
-        >
-          X
-        </app-button>
-      </div>
-
-      @if (feedbackSubmitted()) {
-        <div class="feedback-thanks">
-          <h2 id="feedback-title">Thank you for the feedback</h2>
-          <p>We captured this feedback for {{ feedbackPage() }}.</p>
-          <app-button variant="primary" (buttonClicked)="feedbackClosed.emit()"> Done </app-button>
-        </div>
-      } @else {
-        <div class="feedback-body">
-          <h2 id="feedback-title">How was your experience?</h2>
-          <p>Your feedback helps us improve QI-Education before we invite more testers.</p>
-          <p class="feedback-page">Page: {{ feedbackPage() }}</p>
-
-          <div class="rating-options" aria-label="Experience rating">
-            @for (option of feedbackOptions(); track option.value) {
-              <button
-                type="button"
-                class="rating-option"
-                [class.selected]="feedbackRating() === option.value"
-                (click)="feedbackRatingSelected.emit(option.value)"
-              >
-                <span>{{ option.icon }}</span>
-                <strong>{{ option.label }}</strong>
-              </button>
-            }
-          </div>
-
-          <textarea
-            class="feedback-text"
-            rows="4"
-            placeholder="Share feedback..."
-            [value]="feedbackText()"
-            [disabled]="feedbackSubmitting()"
-            (input)="feedbackTextChanged.emit($any($event.target).value)"
-          ></textarea>
-
-          @if (feedbackError()) {
-            <p class="feedback-error" role="alert">{{ feedbackError() }}</p>
-          }
-
-          <app-button
-            variant="primary"
-            [disabled]="feedbackSubmitting()"
-            (buttonClicked)="feedbackSubmittedClicked.emit()"
-          >
-            {{ feedbackSubmitting() ? 'Submitting...' : 'Submit Feedback' }}
-          </app-button>
-        </div>
-      }
-    </section>
-  </div>
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
 }

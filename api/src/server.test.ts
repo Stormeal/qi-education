@@ -152,7 +152,43 @@ describe('QI-Education API', () => {
     expect(response.status).toBe(201);
     expect(body).toMatchObject({
       title: 'API Automation Foundations',
+      requirements: ['Basic testing experience', 'Comfort reading API documentation'],
+      audience: 'QA professionals moving into API automation.',
       status: 'draft',
+    });
+  });
+
+  it('allows a teacher to update a course', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+
+    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        ...validCourse(),
+        title: 'API Automation Foundations, Revised',
+        status: 'published',
+      }),
+    });
+    const updated = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      id: created.id,
+      title: 'API Automation Foundations, Revised',
+      status: 'published',
     });
   });
 
@@ -176,6 +212,103 @@ describe('QI-Education API', () => {
     expect(response.status).toBe(201);
     expect(body.id).toEqual(expect.any(String));
     expect(body.createdAt).toEqual(expect.any(String));
+  });
+
+  it('allows an admin to list received feedback', async () => {
+    const studentToken = await loginAs('student@qi-education.local');
+    await fetch(`${baseUrl}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${studentToken}`,
+      },
+      body: JSON.stringify({
+        page: 'Courses',
+        rating: 'okay',
+        message: 'Course list needs filters.',
+        userAgent: 'vitest',
+      }),
+    });
+
+    const adminToken = await loginAs('admin@qi-education.local');
+    const response = await fetch(`${baseUrl}/feedback`, {
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+      },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body[0]).toMatchObject({
+      page: 'Courses',
+      rating: 'okay',
+      message: 'Course list needs filters.',
+      userEmail: 'student@qi-education.local',
+    });
+  });
+
+  it('allows an admin to update feedback triage', async () => {
+    const studentToken = await loginAs('student@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${studentToken}`,
+      },
+      body: JSON.stringify({
+        page: 'Home',
+        rating: 'needs-work',
+        message: 'The overview needs clearer next steps.',
+      }),
+    });
+    const created = await createResponse.json();
+    const adminToken = await loginAs('admin@qi-education.local');
+
+    const updateResponse = await fetch(`${baseUrl}/feedback/${created.id}/triage`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        workStatus: 'work',
+        priority: 'high',
+      }),
+    });
+    const updated = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      id: created.id,
+      workStatus: 'work',
+      priority: 'high',
+    });
+
+    const listResponse = await fetch(`${baseUrl}/feedback`, {
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+      },
+    });
+    const feedback = await listResponse.json();
+
+    expect(feedback[0]).toMatchObject({
+      id: created.id,
+      workStatus: 'work',
+      priority: 'high',
+    });
+  });
+
+  it('blocks non-admin users from listing feedback', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const response = await fetch(`${baseUrl}/feedback`, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.message).toBe('Admin access is required');
   });
 
   it('rejects unauthenticated feedback', async () => {
@@ -229,6 +362,8 @@ function validCourse() {
   return {
     title: 'API Automation Foundations',
     description: 'Learn how API-based test automation fits into modern QA workflows.',
+    requirements: ['Basic testing experience', 'Comfort reading API documentation'],
+    audience: 'QA professionals moving into API automation.',
     level: 'Intermediate',
     teacher: 'Teacher Demo',
     careerGoals: ['Automation', 'API testing'],

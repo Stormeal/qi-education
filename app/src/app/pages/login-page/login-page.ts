@@ -23,4 +23,10 @@ export class LoginPage {
   readonly rememberMeToggled = output<void>();
   readonly passwordVisibilityToggled = output<void>();
   readonly loginSubmitted = output<void>();
+
+  protected inputValue(event: Event): string {
+    const input = event.target;
+
+    return input instanceof HTMLInputElement ? input.value : '';
+  }
 }

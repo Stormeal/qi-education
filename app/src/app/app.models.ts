@@ -39,6 +39,32 @@ export type CourseSummary = {
   goals: string[];
 };
 
+export type CourseStatus = 'draft' | 'published' | 'archived';
+
+export type CourseListItem = {
+  id: string;
+  title: string;
+  description: string;
+  requirements: string[];
+  audience: string;
+  level: string;
+  teacher: string;
+  careerGoals: string[];
+  status: CourseStatus;
+  createdAt: string;
+};
+
+export type CourseCreateDraft = {
+  title: string;
+  description: string;
+  requirements: string;
+  audience: string;
+  level: string;
+  teacher: string;
+  careerGoals: string;
+  status: CourseStatus;
+};
+
 export type NextAction = {
   title: string;
   chapter: string;
@@ -51,4 +77,24 @@ export type FeedbackOption = {
   value: string;
   icon: string;
   label: string;
+};
+
+export type FeedbackEntry = {
+  id: string;
+  createdAt: string;
+  userId: string;
+  userEmail: string;
+  userRole: string;
+  page: string;
+  rating: 'great' | 'okay' | 'needs-work';
+  message: string;
+  userAgent?: string;
+  workStatus?: 'work' | 'completed' | 'wont-do';
+  priority?: 'low' | 'medium' | 'high';
+};
+
+export type FeedbackTriageUpdate = {
+  id: string;
+  workStatus: NonNullable<FeedbackEntry['workStatus']>;
+  priority?: FeedbackEntry['priority'];
 };

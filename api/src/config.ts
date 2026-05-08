@@ -15,7 +15,7 @@ const envSchema = z.object({
     .default(
       'http://localhost:4200,http://127.0.0.1:4200,https://stormeal.github.io,https://qi-education.vercel.app',
     ),
-  AUTH_TOKEN_SECRET: z.string().min(16).default('local-dev-auth-secret'),
+  AUTH_TOKEN_SECRET: z.string().min(16).optional(),
   GOOGLE_SHEET_ID: z.string().min(1).optional(),
   GOOGLE_SHEETS_COURSES: z.string().min(1).optional(),
   GOOGLE_SHEETS_USERS: z.string().min(1).optional(),
@@ -28,15 +28,17 @@ const envSchema = z.object({
 });
 
 const env = envSchema.parse(process.env);
+const authTokenSecret = resolveAuthTokenSecret(env.AUTH_TOKEN_SECRET);
 const coursesRange = firstDefined(env.GOOGLE_SHEETS_COURSES_RANGE, env.GOOGLE_SHEETS_COURSES);
 const usersRange = firstDefined(env.GOOGLE_SHEETS_USERS_RANGE, env.GOOGLE_SHEETS_USERS);
 const spreadsheetId = firstDefined(env.GOOGLE_SHEETS_SPREADSHEET_ID, env.GOOGLE_SHEET_ID);
 
 export const apiConfig = {
   ...env,
+  AUTH_TOKEN_SECRET: authTokenSecret,
   GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
   GOOGLE_SHEETS_COURSES_RANGE:
-    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:H',
+    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:J',
   GOOGLE_SHEETS_USERS_RANGE:
     usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:G',
   GOOGLE_SHEETS_FEEDBACK_RANGE:
@@ -45,6 +47,18 @@ export const apiConfig = {
       ? env.GOOGLE_SHEETS_FEEDBACK_RANGE
       : 'Feedback!A:I',
 };
+
+export function resolveAuthTokenSecret(secret: string | undefined, nodeEnv = process.env.NODE_ENV): string {
+  if (secret) {
+    return secret;
+  }
+
+  if (nodeEnv === 'production') {
+    throw new Error('AUTH_TOKEN_SECRET is required in production');
+  }
+
+  return 'local-dev-auth-secret';
+}
 
 function firstDefined(primary: string | undefined, fallback: string | undefined) {
   if (primary !== undefined) {
