@@ -1,0 +1,339 @@
+.admin-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(47, 79, 67, 0.16);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(47, 79, 67, 0.09), rgba(255, 247, 232, 0.94)),
+    #fff;
+  padding: 18px 20px;
+}
+
+.admin-hero h1 {
+  color: #171b4a;
+  font-size: 24px;
+}
+
+.admin-hero p:not(.eyebrow) {
+  color: #6c6558;
+  font-size: 13px;
+}
+
+.admin-hero-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.admin-stats article {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(108, 101, 88, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px 14px;
+}
+
+.admin-stats span,
+.admin-stats small {
+  color: #6c6558;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-stats strong {
+  color: #171b4a;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.admin-stats small {
+  font-weight: 600;
+  text-transform: none;
+}
+
+.admin-panel {
+  min-height: 0;
+  overflow: auto;
+  margin-bottom: 12px;
+  border: 1px solid rgba(108, 101, 88, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgba(57, 57, 58, 0.07);
+}
+
+.admin-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-panel-header h2 {
+  margin-bottom: 0;
+  color: #171b4a;
+}
+
+.admin-result-count {
+  border-radius: 999px;
+  color: #2f4f43;
+  background: rgba(47, 79, 67, 0.08);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-feedback-list {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-feedback-card {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(108, 101, 88, 0.16);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.card-great {
+  background: linear-gradient(135deg, #fff 0%, rgba(47, 111, 76, 0.34) 100%);
+}
+
+.card-okay {
+  background: linear-gradient(135deg, #fff 0%, rgba(245, 158, 11, 0.2) 100%);
+}
+
+.card-bad {
+  background: linear-gradient(135deg, #fff 0%, rgba(153, 27, 27, 0.16) 100%);
+}
+
+.admin-feedback-card.is-selected {
+  border-color: rgba(47, 79, 67, 0.46);
+  box-shadow: inset 0 0 0 1px rgba(47, 79, 67, 0.16);
+}
+
+.admin-feedback-card.is-completed::after,
+.admin-feedback-card.is-wont-do::after {
+  position: absolute;
+  top: 14px;
+  right: 24px;
+  z-index: 0;
+  font-size: 112px;
+  line-height: 1;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.admin-feedback-card.is-completed::after {
+  content: '✓';
+  color: rgba(47, 79, 67, 0.16);
+}
+
+.admin-feedback-card.is-wont-do::after {
+  content: '×';
+  color: rgba(153, 27, 27, 0.14);
+}
+
+.admin-feedback-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.admin-feedback-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-feedback-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-feedback-actions {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.admin-feedback-card-header strong {
+  color: #171b4a;
+  font-size: 14px;
+}
+
+.admin-feedback-card-header time {
+  flex: 0 0 auto;
+  color: #6c6558;
+  font-size: 12px;
+}
+
+.admin-feedback-user {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #6c6558;
+  font-size: 12px;
+}
+
+.feedback-rating {
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.rating-great {
+  color: #2f4f43;
+  background: rgba(47, 79, 67, 0.1);
+}
+
+.rating-okay {
+  color: #78350f;
+  background: #fff0d3;
+}
+
+.rating-needs-work {
+  color: #991b1b;
+  background: rgba(153, 27, 27, 0.08);
+}
+
+.admin-feedback-message {
+  color: #39393a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.admin-user-avatar {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #2f4f43;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-feedback-user small {
+  border-radius: 999px;
+  color: #6c6558;
+  background: #fff;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-triage {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.admin-triage button,
+.priority-picker button {
+  border: 1px solid rgba(108, 101, 88, 0.18);
+  border-radius: 999px;
+  color: #6c6558;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-triage button:hover,
+.admin-triage button.active,
+.priority-picker button:hover,
+.priority-picker button.active {
+  border-color: rgba(47, 79, 67, 0.34);
+  color: #2f4f43;
+  background: rgba(47, 79, 67, 0.1);
+}
+
+.admin-triage button.status-completed.active {
+  color: #fff;
+  background: #2f4f43;
+}
+
+.admin-triage button.status-wont-do.active {
+  border-color: rgba(108, 101, 88, 0.3);
+  color: #39393a;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.priority-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.priority-picker button.priority-high.active {
+  border-color: rgba(153, 27, 27, 0.3);
+  color: #991b1b;
+  background: rgba(153, 27, 27, 0.08);
+}
+
+.admin-empty {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-empty strong {
+  color: #171b4a;
+  font-size: 14px;
+}
+
+.admin-empty span {
+  color: #6c6558;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .admin-hero,
+  .admin-feedback-card-header {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-hero,
+  .admin-feedback-card-header {
+    display: grid;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-hero-actions {
+    justify-content: flex-start;
+  }
+
+  .admin-feedback-actions {
+    justify-items: start;
+  }
+}

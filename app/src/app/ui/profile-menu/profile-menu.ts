@@ -10,10 +10,12 @@ export class ProfileMenu {
   readonly displayName = input.required<string>();
   readonly email = input.required<string>();
   readonly roleLabel = input.required<string>();
+  readonly canAccessAdmin = input(false);
 
   readonly loggedOut = output<void>();
   readonly profileSelected = output<void>();
   readonly settingsSelected = output<void>();
+  readonly adminSelected = output<void>();
 
   protected readonly isOpen = signal(false);
   protected readonly initials = computed(() =>
@@ -40,6 +42,11 @@ export class ProfileMenu {
 
   protected selectSettings(): void {
     this.settingsSelected.emit();
+    this.closeMenu();
+  }
+
+  protected selectAdmin(): void {
+    this.adminSelected.emit();
     this.closeMenu();
   }
 

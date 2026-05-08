@@ -1,0 +1,789 @@
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
+import {
+  CourseCreateDraft,
+  CourseListItem,
+  CourseSummary,
+  FeedbackEntry,
+  FeedbackOption,
+  FeedbackTriageUpdate,
+  LoginState,
+  NextAction,
+  UserRole,
+} from '../app.models';
+import { AuthService } from './auth.service';
+import { CourseService } from './course.service';
+import { FeedbackService } from './feedback.service';
+import { SessionService } from './session.service';
+
+@Injectable({ providedIn: 'root' })
+export class AppStateService {
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly courseService = inject(CourseService);
+  private readonly feedbackService = inject(FeedbackService);
+  private readonly sessionService = inject(SessionService);
+
+  readonly appVersion = '0.1.10';
+  readonly currentYear = new Date().getFullYear();
+
+  readonly email = signal('');
+  readonly password = signal('');
+  readonly rememberMe = signal(true);
+  readonly passwordVisible = signal(false);
+  readonly isSubmitting = signal(false);
+  readonly isSessionRestoring = signal(false);
+  readonly loginError = signal('');
+  readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
+  readonly currentPath = signal(this.normalizePath(this.router.url));
+
+  readonly isFeedbackOpen = signal(false);
+  readonly feedbackPage = signal('');
+  readonly feedbackRating = signal('great');
+  readonly feedbackText = signal('');
+  readonly feedbackSubmitted = signal(false);
+  readonly feedbackSubmitting = signal(false);
+  readonly feedbackError = signal('');
+  readonly coursesLoading = signal(false);
+  readonly coursesError = signal('');
+  readonly availableCourses = signal<CourseListItem[]>([]);
+  readonly adminFeedbackLoading = signal(false);
+  readonly adminFeedbackError = signal('');
+  readonly adminFeedback = signal<FeedbackEntry[]>([]);
+  readonly adminFeedbackSaving = signal(false);
+  readonly courseSubmitting = signal(false);
+  readonly courseCreateError = signal('');
+  readonly courseDraft = signal<CourseCreateDraft>({
+    title: '',
+    description: '',
+    requirements: '',
+    audience: '',
+    level: '',
+    teacher: '',
+    careerGoals: '',
+    status: 'draft',
+  });
+
+  readonly canSubmit = computed(
+    () =>
+      this.email().trim().length > 0 && this.password().trim().length > 0 && !this.isSubmitting(),
+  );
+
+  readonly feedbackOptions: FeedbackOption[] = [
+    { value: 'great', icon: ':)', label: 'Great' },
+    { value: 'okay', icon: ':|', label: 'Okay' },
+    { value: 'needs-work', icon: ':(', label: 'Bad' },
+  ];
+
+  readonly learningHighlights = [
+    'Career paths for manual, agile, and advanced testing roles.',
+    'Structured courses built around ISTQB and practical training.',
+    'One place for learning progress, certifications, and follow-up.',
+  ];
+
+  readonly student = computed(() => ({
+    name: this.loginState()?.user.displayName || 'Alex',
+    currentRole: this.currentRoleLabel(this.loginState()?.user.role),
+    targetRole: this.targetRoleLabel(this.loginState()?.user.role),
+    pathProgress: this.pathProgressValue(this.loginState()?.user.role),
+  }));
+
+  readonly courses = signal<CourseSummary[]>([
+    {
+      title: 'ISTQB Foundation 4.0',
+      teacher: 'Testhuset',
+      level: 'Foundation',
+      status: 'In progress',
+      progress: 62,
+      nextLesson: 'Test techniques overview',
+      goals: ['Core testing', 'Certification'],
+    },
+    {
+      title: 'Agile Tester Extension',
+      teacher: 'Testhuset',
+      level: 'Specialist',
+      status: 'Recommended',
+      progress: 0,
+      nextLesson: 'Agile testing mindset',
+      goals: ['Agile projects', 'Team quality'],
+    },
+    {
+      title: 'Test Management Basics',
+      teacher: 'Testhuset',
+      level: 'Management',
+      status: 'Recommended',
+      progress: 0,
+      nextLesson: 'Planning risk-based test work',
+      goals: ['Risk', 'Leadership'],
+    },
+  ]);
+
+  readonly nextActions = computed<NextAction[]>(() => {
+    const role = this.loginState()?.user.role;
+    const roleSpecificAction: NextAction =
+      role === 'admin'
+        ? {
+            title: 'Review platform administration',
+            chapter: 'Admin',
+            meta: 'Check user roles, access levels, and learning operations.',
+            state: 'next',
+            progress: 0,
+          }
+        : role === 'teacher'
+          ? {
+              title: 'Create a new course draft',
+              chapter: 'Teacher tools',
+              meta: 'Build the next Testhuset learning module.',
+              state: 'next',
+              progress: 0,
+            }
+          : {
+              title: 'Pick a specialization track',
+              chapter: 'Next step',
+              meta: 'Agile, technical, or management.',
+              state: 'next',
+              progress: 0,
+            };
+
+    return [
+      {
+        title: 'Test analysis and design',
+        chapter: 'Chapter 3',
+        meta: 'Finished before the current chapter.',
+        state: 'complete',
+        progress: 100,
+      },
+      {
+        title: 'Test design techniques',
+        chapter: 'Chapter 4',
+        meta: 'Current chapter in ISTQB Foundation 4.0.',
+        state: 'current',
+        progress: 62,
+      },
+      roleSpecificAction,
+    ];
+  });
+
+  readonly activeCourse = computed(
+    () => this.courses().find((course) => course.status === 'In progress') ?? this.courses()[0],
+  );
+
+  readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
+  readonly isCourseEditorPage = computed(() => {
+    const path = this.currentPath();
+
+    return path === '/courses/new' || /^\/courses\/[^/]+\/edit$/.test(path);
+  });
+  readonly isCourseViewPage = computed(() => this.courseViewIdFromPath(this.currentPath()) !== null);
+  readonly selectedCourse = computed(() => {
+    const courseId = this.courseViewIdFromPath(this.currentPath());
+
+    return courseId ? (this.availableCourses().find((course) => course.id === courseId) ?? null) : null;
+  });
+  readonly isAdminPage = computed(
+    () => this.currentPath() === '/admin' && !!this.loginState()?.permissions.hasAdminAccess,
+  );
+  readonly courseFormMode = computed<'create' | 'edit'>(() => {
+    const path = this.currentPath();
+
+    if (path === '/courses/new') {
+      return 'create';
+    }
+
+    return this.isCourseEditPath(path) ? 'edit' : 'create';
+  });
+  readonly courseEditingId = computed(() => this.courseEditIdFromPath(this.currentPath()));
+
+  readonly recommendedCourses = computed(() =>
+    this.courses().filter((course) => course.status === 'Recommended'),
+  );
+
+  constructor() {
+    this.sessionService.onUnauthorized(() => {
+      this.loginState.set(null);
+      this.password.set('');
+      this.loginError.set('Please log in again.');
+      this.isFeedbackOpen.set(false);
+      void this.navigateHome();
+    });
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe((event) => {
+        this.currentPath.set(this.normalizePath(event.urlAfterRedirects));
+        this.syncCourseEditorDraftFromPath();
+        this.loadCoursesWhenNeeded();
+        this.loadAdminFeedbackWhenNeeded();
+      });
+
+    this.syncCourseEditorDraftFromPath();
+    this.restoreStoredSession();
+  }
+
+  updateEmail(value: string): void {
+    this.email.set(value);
+    this.loginError.set('');
+  }
+
+  updatePassword(value: string): void {
+    this.password.set(value);
+    this.loginError.set('');
+  }
+
+  toggleRememberMe(): void {
+    this.rememberMe.update((value) => !value);
+  }
+
+  togglePasswordVisibility(): void {
+    this.passwordVisible.update((value) => !value);
+  }
+
+  async submitLogin(): Promise<void> {
+    if (!this.canSubmit()) {
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.loginError.set('');
+
+    try {
+      const result = await this.authService.login(this.email(), this.password());
+
+      if (!result.ok) {
+        this.loginState.set(null);
+        this.sessionService.clearStoredSession();
+        this.loginError.set(result.message);
+        return;
+      }
+
+      const login = result.login;
+      this.loginState.set({
+        token: login.token,
+        user: login.user,
+        permissions: login.permissions,
+      });
+      this.sessionService.storeSession(login, this.rememberMe());
+      this.password.set('');
+      this.feedbackSubmitted.set(false);
+      this.loadCoursesWhenNeeded();
+      this.loadAdminFeedbackWhenNeeded();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } catch {
+      this.loginState.set(null);
+      this.sessionService.clearStoredSession();
+      this.loginError.set('Unable to reach the API. Please try again shortly.');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  logout(): void {
+    this.loginState.set(null);
+    this.password.set('');
+    this.loginError.set('');
+    this.isFeedbackOpen.set(false);
+    this.courseCreateError.set('');
+    this.courseDraft.set(this.createCourseDraft());
+    this.adminFeedback.set([]);
+    this.adminFeedbackError.set('');
+    this.sessionService.clearStoredSession();
+    void this.navigateHome();
+  }
+
+  private async restoreStoredSession(): Promise<void> {
+    const restoredSession = this.loginState();
+
+    if (!restoredSession?.token) {
+      return;
+    }
+
+    this.isSessionRestoring.set(true);
+
+    try {
+      const restored = await this.authService.restoreSession(restoredSession.token);
+
+      if (!restored) {
+        this.loginState.set(null);
+        this.sessionService.clearStoredSession();
+        return;
+      }
+
+      this.loginState.set({
+        token: restoredSession.token,
+        user: restored.user,
+        permissions: restored.permissions,
+      });
+      this.loadCoursesWhenNeeded();
+      this.loadAdminFeedbackWhenNeeded();
+    } catch {
+      this.loginState.set(null);
+      this.sessionService.clearStoredSession();
+    } finally {
+      this.isSessionRestoring.set(false);
+    }
+  }
+
+  navigateHome(): void {
+    this.updatePath('/');
+  }
+
+  navigateCourses(): void {
+    this.updatePath('/courses');
+  }
+
+  openCourse(courseId: string): void {
+    this.updatePath(`/courses/${encodeURIComponent(courseId)}`);
+  }
+
+  navigateAdmin(): void {
+    if (!this.loginState()?.permissions.hasAdminAccess) {
+      return;
+    }
+
+    this.updatePath('/admin');
+  }
+
+  openFeedback(): void {
+    this.feedbackPage.set(this.currentPageLabel());
+    this.feedbackSubmitted.set(false);
+    this.feedbackError.set('');
+    this.isFeedbackOpen.set(true);
+  }
+
+  closeFeedback(): void {
+    this.isFeedbackOpen.set(false);
+    this.feedbackSubmitting.set(false);
+  }
+
+  selectFeedbackRating(rating: string): void {
+    this.feedbackRating.set(rating);
+  }
+
+  updateFeedbackText(text: string): void {
+    this.feedbackText.set(text);
+    this.feedbackError.set('');
+  }
+
+  async submitFeedback(): Promise<void> {
+    if (this.feedbackSubmitting()) {
+      return;
+    }
+
+    const token = this.loginState()?.token;
+
+    if (!token) {
+      this.feedbackError.set('Please log in again before sending feedback.');
+      return;
+    }
+
+    this.feedbackSubmitting.set(true);
+    this.feedbackError.set('');
+
+    try {
+      const result = await this.feedbackService.submitFeedback(
+        token,
+        this.feedbackPage(),
+        this.feedbackRating(),
+        this.feedbackText(),
+      );
+
+      if (!result.ok) {
+        this.feedbackError.set(result.message);
+        return;
+      }
+
+      this.feedbackText.set('');
+      this.feedbackSubmitted.set(true);
+    } catch {
+      this.feedbackError.set('Unable to reach the API. Please try again.');
+    } finally {
+      this.feedbackSubmitting.set(false);
+    }
+  }
+
+  openCreateCourse(): void {
+    this.courseDraft.set(this.createCourseDraft());
+    this.courseCreateError.set('');
+    void this.updatePath('/courses/new');
+  }
+
+  cancelCreateCourse(): void {
+    if (this.courseSubmitting()) {
+      return;
+    }
+
+    this.courseCreateError.set('');
+    void this.navigateCourses();
+  }
+
+  openEditCourse(courseId: string): void {
+    const course = this.availableCourses().find((item) => item.id === courseId);
+
+    if (!course) {
+      return;
+    }
+
+    this.courseDraft.set({
+      title: course.title,
+      description: course.description,
+      requirements: course.requirements.join('\n'),
+      audience: course.audience,
+      level: course.level,
+      teacher: course.teacher,
+      careerGoals: course.careerGoals.join(', '),
+      status: course.status,
+    });
+    this.courseCreateError.set('');
+    void this.updatePath(`/courses/${encodeURIComponent(course.id)}/edit`);
+  }
+
+  updateCourseTitle(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, title: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseDescription(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, description: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseRequirements(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, requirements: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseAudience(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, audience: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseLevel(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, level: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseCareerGoals(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, careerGoals: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseTeacher(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, teacher: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseStatus(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, status: value as CourseCreateDraft['status'] }));
+    this.courseCreateError.set('');
+  }
+
+  async submitCourse(): Promise<void> {
+    if (this.courseSubmitting()) {
+      return;
+    }
+
+    const token = this.loginState()?.token;
+    const user = this.loginState()?.user;
+
+    if (!token || !user) {
+      this.courseCreateError.set('Please log in again before creating a course.');
+      return;
+    }
+
+    if (!this.loginState()?.permissions.canCreateCourses) {
+      this.courseCreateError.set('Teacher or admin access is required.');
+      return;
+    }
+
+    const draft = this.courseDraft();
+    const mode = this.courseFormMode();
+    const courseId = this.courseEditingId();
+
+    if (mode === 'edit' && !courseId) {
+      this.courseCreateError.set('Select a course to edit before saving.');
+      return;
+    }
+
+    this.courseSubmitting.set(true);
+    this.courseCreateError.set('');
+
+    try {
+      const result = await this.courseService.saveCourse(mode, draft, token, user.displayName, courseId);
+
+      if (!result.ok) {
+        this.courseCreateError.set(result.message);
+        return;
+      }
+
+      if (mode === 'edit') {
+        this.availableCourses.update((courses) =>
+          courses.map((course) => (course.id === result.course.id ? result.course : course)),
+        );
+      } else {
+        this.availableCourses.update((courses) => [result.course, ...courses]);
+      }
+
+      void this.navigateCourses();
+    } catch {
+      this.courseCreateError.set(
+        mode === 'edit'
+          ? 'Unable to reach the API while saving. Please try again.'
+          : 'Unable to reach the API. Please try again.',
+      );
+    } finally {
+      this.courseSubmitting.set(false);
+    }
+  }
+
+  reloadAdminFeedback(): void {
+    void this.loadAdminFeedback(true);
+  }
+
+  async updateAdminFeedbackTriage(update: FeedbackTriageUpdate): Promise<void> {
+    const token = this.loginState()?.token;
+
+    if (!token || !this.loginState()?.permissions.hasAdminAccess || this.adminFeedbackSaving()) {
+      return;
+    }
+
+    const previousFeedback = this.adminFeedback();
+    this.adminFeedbackSaving.set(true);
+    this.adminFeedbackError.set('');
+    this.adminFeedback.update((feedback) =>
+      feedback.map((item) =>
+        item.id === update.id
+          ? { ...item, workStatus: update.workStatus, priority: update.priority }
+          : item,
+      ),
+    );
+
+    try {
+      const result = await this.feedbackService.updateTriage(token, update);
+
+      if (!result.ok) {
+        this.adminFeedback.set(previousFeedback);
+        this.adminFeedbackError.set(result.message);
+        return;
+      }
+
+      this.adminFeedback.update((feedback) =>
+        feedback.map((item) => (item.id === result.feedback.id ? result.feedback : item)),
+      );
+    } catch {
+      this.adminFeedback.set(previousFeedback);
+      this.adminFeedbackError.set('Unable to reach the API. Please try again.');
+    } finally {
+      this.adminFeedbackSaving.set(false);
+    }
+  }
+
+  private async loadCoursesWhenNeeded(): Promise<void> {
+    if (!this.loginState() || !this.currentPath().startsWith('/courses') || this.coursesLoading()) {
+      return;
+    }
+
+    this.coursesLoading.set(true);
+    this.coursesError.set('');
+
+    try {
+      this.availableCourses.set(await this.courseService.listCourses());
+      this.syncCourseEditorDraftFromPath(true);
+    } catch (error) {
+      this.coursesError.set(error instanceof Error ? error.message : 'Unable to reach the API. Please try again.');
+    } finally {
+      this.coursesLoading.set(false);
+    }
+  }
+
+  private async loadAdminFeedbackWhenNeeded(): Promise<void> {
+    if (!this.loginState() || !this.isAdminPage() || this.adminFeedbackLoading()) {
+      return;
+    }
+
+    await this.loadAdminFeedback(false);
+  }
+
+  private async loadAdminFeedback(force: boolean): Promise<void> {
+    const token = this.loginState()?.token;
+
+    if (!token || !this.loginState()?.permissions.hasAdminAccess) {
+      this.adminFeedbackError.set('Admin access is required.');
+      return;
+    }
+
+    if (this.adminFeedbackLoading() || (!force && this.adminFeedback().length > 0)) {
+      return;
+    }
+
+    this.adminFeedbackLoading.set(true);
+    this.adminFeedbackError.set('');
+
+    try {
+      this.adminFeedback.set(await this.feedbackService.listFeedback(token, force));
+    } catch (error) {
+      this.adminFeedbackError.set(
+        error instanceof Error ? error.message : 'Unable to reach the API. Please try again.',
+      );
+    } finally {
+      this.adminFeedbackLoading.set(false);
+    }
+  }
+
+  private createCourseDraft(displayName = this.loginState()?.user.displayName ?? ''): CourseCreateDraft {
+    return {
+      title: '',
+      description: '',
+      requirements: '',
+      audience: '',
+      level: '',
+      teacher: displayName,
+      careerGoals: '',
+      status: 'draft',
+    };
+  }
+
+  private syncCourseEditorDraftFromPath(allowMissingCourseError = false): void {
+    const path = this.currentPath();
+
+    if (path === '/courses/new') {
+      this.courseCreateError.set('');
+      this.courseDraft.set(this.createCourseDraft());
+      return;
+    }
+
+    const editId = this.courseEditIdFromPath(path);
+
+    if (!editId) {
+      return;
+    }
+
+    const course = this.availableCourses().find((item) => item.id === editId);
+
+    if (!course) {
+      if (allowMissingCourseError && !this.coursesLoading()) {
+        this.courseCreateError.set('Course not found.');
+      }
+
+      return;
+    }
+
+    this.courseCreateError.set('');
+    this.courseDraft.set({
+      title: course.title,
+      description: course.description,
+      requirements: course.requirements.join('\n'),
+      audience: course.audience,
+      level: course.level,
+      teacher: course.teacher,
+      careerGoals: course.careerGoals.join(', '),
+      status: course.status,
+    });
+  }
+
+  private courseEditIdFromPath(path: string): string | null {
+    const match = path.match(/^\/courses\/([^/]+)\/edit$/);
+
+    if (!match) {
+      return null;
+    }
+
+    return decodeURIComponent(match[1]);
+  }
+
+  private courseViewIdFromPath(path: string): string | null {
+    const match = path.match(/^\/courses\/([^/]+)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    return decodeURIComponent(match[1]);
+  }
+
+  private isCourseEditPath(path: string): boolean {
+    return this.courseEditIdFromPath(path) !== null;
+  }
+
+  private updatePath(path: string): void {
+    if (this.currentPath() === path) {
+      return;
+    }
+
+    void this.router.navigateByUrl(path).then((navigated) => {
+      if (navigated) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    });
+  }
+
+  private currentPageLabel(): string {
+    if (!this.loginState()) {
+      return 'Login';
+    }
+
+    if (this.isAdminPage()) {
+      return 'Admin';
+    }
+
+    return this.isCoursesPage() || this.isCourseEditorPage() || this.isCourseViewPage()
+      ? 'Courses'
+      : 'Home';
+  }
+
+  private normalizePath(path: string): string {
+    const withoutQuery = path.split('?')[0]?.split('#')[0] || '/';
+
+    if (withoutQuery === '/courses' || withoutQuery === '/courses/new') {
+      return withoutQuery;
+    }
+
+    if (/^\/courses\/[^/]+(?:\/edit)?$/.test(withoutQuery)) {
+      return withoutQuery;
+    }
+
+    if (withoutQuery.endsWith('/admin')) {
+      return '/admin';
+    }
+
+    return withoutQuery.endsWith('/courses') ? '/courses' : '/';
+  }
+
+  private currentRoleLabel(role: UserRole | undefined): string {
+    switch (role) {
+      case 'admin':
+        return 'Platform admin';
+      case 'teacher':
+        return 'Teacher';
+      default:
+        return 'Student';
+    }
+  }
+
+  private targetRoleLabel(role: UserRole | undefined): string {
+    switch (role) {
+      case 'admin':
+        return 'Full platform oversight';
+      case 'teacher':
+        return 'Course creator';
+      default:
+        return 'ISTQB Advanced Test Analyst';
+    }
+  }
+
+  private pathProgressValue(role: UserRole | undefined): number {
+    switch (role) {
+      case 'admin':
+        return 92;
+      case 'teacher':
+        return 74;
+      default:
+        return 38;
+    }
+  }
+}
+

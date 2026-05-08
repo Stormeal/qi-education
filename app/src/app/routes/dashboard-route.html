@@ -1,0 +1,55 @@
+@if (state.isSessionRestoring()) {
+  <main class="page-shell">
+    <section class="summary-grid" aria-label="Session restore">
+      <article class="summary-card">
+        <span>Session</span>
+        <strong>Restoring your session...</strong>
+      </article>
+    </section>
+  </main>
+} @else if (state.loginState()) {
+  <app-dashboard-page
+    [appVersion]="state.appVersion"
+    [currentYear]="state.currentYear"
+    [student]="state.student()"
+    [userEmail]="state.loginState()?.user?.email ?? ''"
+    [userRoleLabel]="state.student().currentRole"
+    [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
+    [activeCourse]="state.activeCourse()"
+    [recommendedCourses]="state.recommendedCourses()"
+    [nextActions]="state.nextActions()"
+    [isFeedbackOpen]="state.isFeedbackOpen()"
+    [feedbackSubmitted]="state.feedbackSubmitted()"
+    [feedbackPage]="state.feedbackPage()"
+    [feedbackRating]="state.feedbackRating()"
+    [feedbackText]="state.feedbackText()"
+    [feedbackSubmitting]="state.feedbackSubmitting()"
+    [feedbackError]="state.feedbackError()"
+    [feedbackOptions]="state.feedbackOptions"
+    (homeClicked)="state.navigateHome()"
+    (coursesClicked)="state.navigateCourses()"
+    (feedbackOpened)="state.openFeedback()"
+    (loggedOut)="state.logout()"
+    (feedbackClosed)="state.closeFeedback()"
+    (feedbackRatingSelected)="state.selectFeedbackRating($event)"
+    (feedbackTextChanged)="state.updateFeedbackText($event)"
+    (feedbackSubmittedClicked)="state.submitFeedback()"
+    (adminClicked)="state.navigateAdmin()"
+  />
+} @else {
+  <app-login-page
+    [email]="state.email()"
+    [password]="state.password()"
+    [rememberMe]="state.rememberMe()"
+    [passwordVisible]="state.passwordVisible()"
+    [isSubmitting]="state.isSubmitting()"
+    [loginError]="state.loginError()"
+    [canSubmit]="state.canSubmit()"
+    [learningHighlights]="state.learningHighlights"
+    (emailChanged)="state.updateEmail($event)"
+    (passwordChanged)="state.updatePassword($event)"
+    (rememberMeToggled)="state.toggleRememberMe()"
+    (passwordVisibilityToggled)="state.togglePasswordVisibility()"
+    (loginSubmitted)="state.submitLogin()"
+  />
+}

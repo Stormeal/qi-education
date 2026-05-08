@@ -37,6 +37,17 @@
         </svg>
         Settings
       </button>
+      @if (canAccessAdmin()) {
+        <button type="button" role="menuitem" class="profile-menu-item" (click)="selectAdmin()">
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M4 5.5h12" />
+            <path d="M5.5 5.5v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-9" />
+            <path d="M7.5 9h5" />
+            <path d="M7.5 12h3" />
+          </svg>
+          Admin
+        </button>
+      }
       <button type="button" role="menuitem" class="profile-menu-item danger" (click)="logout()">
         <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
           <path d="M8 4H4v12h4" />

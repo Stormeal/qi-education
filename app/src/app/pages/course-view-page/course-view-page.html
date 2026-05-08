@@ -1,0 +1,187 @@
+<main class="course-view-shell">
+  <nav class="topbar course-view-topbar" aria-label="Primary navigation">
+    <app-brand-link />
+    <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
+    <div class="tabs" aria-label="Site sections">
+      <button type="button" class="tab-link" (click)="homeClicked.emit()">Home</button>
+      <button type="button" class="tab-link active with-chevron" (click)="coursesClicked.emit()">
+        Courses
+        <span class="nav-chevron" aria-hidden="true"></span>
+      </button>
+      <a href="#course-content">Content</a>
+      <a href="#course-description">Description</a>
+    </div>
+    <app-profile-menu
+      [displayName]="student().name"
+      [email]="userEmail()"
+      [roleLabel]="userRoleLabel()"
+      [canAccessAdmin]="canAccessAdmin()"
+      (loggedOut)="loggedOut.emit()"
+      (adminSelected)="adminClicked.emit()"
+    />
+  </nav>
+
+  @if (coursesLoading()) {
+    <section class="course-view-empty">
+      <p class="course-empty">Loading course...</p>
+    </section>
+  } @else if (coursesError()) {
+    <section class="course-view-empty">
+      <p class="course-error" role="alert">{{ coursesError() }}</p>
+    </section>
+  } @else if (!course()) {
+    <section class="course-view-empty">
+      <p class="course-empty">Course not found.</p>
+      <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Back to courses</app-button>
+    </section>
+  } @else {
+    @let currentCourse = course()!;
+    <section class="course-view-hero">
+      <div class="course-view-hero-content">
+        <button type="button" class="course-back-link" (click)="coursesClicked.emit()">Courses</button>
+        <p class="eyebrow">{{ currentCourse.level }} course</p>
+        <h1>{{ currentCourse.title }}</h1>
+        <p class="course-view-lede">{{ currentCourse.description }}</p>
+
+        <div class="course-view-meta" aria-label="Course metadata">
+          <span class="rating-chip">New course</span>
+          <span>{{ currentCourse.status }}</span>
+          <span>Created by {{ currentCourse.teacher }}</span>
+          <span>Updated {{ currentCourse.createdAt | date: 'MMM yyyy' }}</span>
+        </div>
+
+        @if (currentCourse.careerGoals.length > 0) {
+          <div class="course-topic-row" aria-label="Career goals">
+            @for (goal of currentCourse.careerGoals; track goal) {
+              <span>{{ goal }}</span>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <div class="course-view-layout">
+      <article class="course-view-main">
+        <section class="course-view-card" aria-labelledby="learn-title">
+          <h2 id="learn-title">What you'll learn</h2>
+          <div class="learn-grid">
+            @for (outcome of learningOutcomes(currentCourse); track outcome) {
+              <p>{{ outcome }}</p>
+            }
+          </div>
+        </section>
+
+        <section class="course-view-card" id="course-content" aria-labelledby="content-title">
+          <div class="course-section-header">
+            <div>
+              <h2 id="content-title">Course content</h2>
+              <p>3 sections • 10 lessons • Self-paced</p>
+            </div>
+            <span>{{ currentCourse.level }}</span>
+          </div>
+
+          <div class="curriculum-list">
+            @for (section of curriculumSections(currentCourse); track section.title) {
+              <section class="curriculum-section">
+                <header>
+                  <h3>{{ section.title }}</h3>
+                  <span>{{ section.meta }}</span>
+                </header>
+                <ul>
+                  @for (lesson of section.lessons; track lesson) {
+                    <li>{{ lesson }}</li>
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+        </section>
+
+        @if (currentCourse.requirements.length > 0) {
+          <section class="course-view-card" aria-labelledby="requirements-title">
+            <h2 id="requirements-title">Requirements</h2>
+            <ul class="course-view-list">
+              @for (requirement of currentCourse.requirements; track requirement) {
+                <li>{{ requirement }}</li>
+              }
+            </ul>
+          </section>
+        }
+
+        <section class="course-view-card" id="course-description" aria-labelledby="description-title">
+          <h2 id="description-title">Description</h2>
+          <p>{{ currentCourse.description }}</p>
+        </section>
+
+        @if (currentCourse.audience) {
+          <section class="course-view-card" aria-labelledby="audience-title">
+            <h2 id="audience-title">Who this course is for</h2>
+            <p>{{ currentCourse.audience }}</p>
+          </section>
+        }
+      </article>
+
+      <aside class="course-enroll-card" aria-label="Course enrollment">
+        <div class="course-preview-media">
+          <div class="course-preview-art" aria-hidden="true">
+            <span>{{ currentCourse.level }}</span>
+            <strong>{{ currentCourse.title }}</strong>
+          </div>
+          <span>Preview this course</span>
+        </div>
+
+        <div class="course-enroll-body">
+          <p class="course-price">Free</p>
+          <app-button variant="primary">Start learning</app-button>
+          @if (canCreateCourses()) {
+            <app-button variant="outline" (buttonClicked)="courseEdited.emit(currentCourse.id)">
+              Edit course
+            </app-button>
+          }
+
+          <div class="course-includes">
+            <h3>This course includes</h3>
+            <ul>
+              <li>Self-paced lessons</li>
+              <li>Practical exercises</li>
+              <li>Progress tracking</li>
+              <li>QI-Education access</li>
+            </ul>
+          </div>
+
+          <div class="instructor-card">
+            <span class="course-avatar" aria-hidden="true">{{ teacherInitials(currentCourse.teacher) }}</span>
+            <div>
+              <small>Instructor</small>
+              <strong>{{ currentCourse.teacher }}</strong>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
+}

@@ -1,0 +1,177 @@
+<main class="page-shell">
+  <nav class="topbar" aria-label="Primary navigation">
+    <app-brand-link />
+    <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
+    <div class="tabs" aria-label="Site sections">
+      <button type="button" class="tab-link" (click)="homeClicked.emit()">Home</button>
+      <a href="#admin-feedback">About</a>
+      <button type="button" class="tab-link with-chevron" (click)="coursesClicked.emit()">
+        Courses
+        <span class="nav-chevron" aria-hidden="true"></span>
+      </button>
+      <span class="tab-link active">Admin</span>
+    </div>
+    <app-profile-menu
+      [displayName]="student().name"
+      [email]="userEmail()"
+      [roleLabel]="userRoleLabel()"
+      [canAccessAdmin]="true"
+      (loggedOut)="loggedOut.emit()"
+      (adminSelected)="adminClicked.emit()"
+    />
+  </nav>
+
+  <header class="admin-hero">
+    <div class="admin-hero-copy">
+      <p class="eyebrow">Admin</p>
+      <h1>Feedback inbox</h1>
+      <p>Review user feedback, spot friction, and prioritize follow-up work.</p>
+    </div>
+
+    <div class="admin-hero-actions">
+      <app-button
+        variant="primary"
+        [disabled]="feedbackLoading()"
+        (buttonClicked)="feedbackReloaded.emit()"
+      >
+        {{ feedbackLoading() ? 'Refreshing...' : 'Refresh' }}
+      </app-button>
+    </div>
+  </header>
+
+  <section class="admin-stats" aria-label="Feedback summary">
+    <article>
+      <span>Total</span>
+      <strong>{{ feedbackTotal() }}</strong>
+      <small>Submissions</small>
+    </article>
+    <article>
+      <span>Bad</span>
+      <strong>{{ needsWorkTotal() }}</strong>
+      <small>Follow-up items</small>
+    </article>
+    <article>
+      <span>Pages</span>
+      <strong>{{ activePagesTotal() }}</strong>
+      <small>With feedback</small>
+    </article>
+  </section>
+
+  <section class="admin-panel" id="admin-feedback">
+    <div class="admin-panel-header">
+      <div>
+        <p class="eyebrow">Feedback</p>
+        <h2>Received feedback</h2>
+      </div>
+      @if (!feedbackLoading() && !feedbackError() && feedback().length > 0) {
+        <span class="admin-result-count">{{ feedback().length }} items</span>
+      }
+    </div>
+
+    @if (feedbackLoading()) {
+      <div class="admin-empty">
+        <strong>Loading feedback</strong>
+        <span>Fetching the latest submissions.</span>
+      </div>
+    } @else if (feedbackError()) {
+      <p class="course-error" role="alert">{{ feedbackError() }}</p>
+    } @else if (feedback().length === 0) {
+      <div class="admin-empty">
+        <strong>No feedback yet</strong>
+        <span>New submissions will appear here as users send them.</span>
+      </div>
+    } @else {
+      <div class="admin-feedback-list">
+        @for (item of feedback(); track item.id) {
+          <article
+            class="admin-feedback-card"
+            [class.card-great]="item.rating === 'great'"
+            [class.card-okay]="item.rating === 'okay'"
+            [class.card-bad]="item.rating === 'needs-work'"
+            [class.is-selected]="isSelected(item)"
+            [class.is-completed]="isCompleted(item)"
+            [class.is-wont-do]="isWontDo(item)"
+          >
+            <div class="admin-feedback-card-header">
+              <div class="admin-feedback-title">
+                <span
+                  class="feedback-rating"
+                  [class.rating-great]="item.rating === 'great'"
+                  [class.rating-okay]="item.rating === 'okay'"
+                  [class.rating-needs-work]="item.rating === 'needs-work'"
+                >
+                  {{ ratingLabel(item.rating) }}
+                </span>
+                <strong>{{ item.page }}</strong>
+              </div>
+              <div class="admin-feedback-actions">
+                <time [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
+                <div class="admin-triage" aria-label="Feedback status">
+                  @for (status of workStatusOptions; track status.value) {
+                    <button
+                      type="button"
+                      [class.active]="selectedStatus(item) === status.value"
+                      [class.status-completed]="status.value === 'completed'"
+                      [class.status-wont-do]="status.value === 'wont-do'"
+                      (click)="selectStatus(item, status.value)"
+                    >
+                      {{ status.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+            <p class="admin-feedback-message">
+              {{ item.message || 'No written message.' }}
+            </p>
+            <div class="admin-feedback-user">
+              <span class="admin-user-avatar" aria-hidden="true">
+                {{ item.userEmail.slice(0, 1).toUpperCase() }}
+              </span>
+              <span>{{ item.userEmail }}</span>
+              <small>{{ item.userRole }}</small>
+            </div>
+            @if (selectedStatus(item) === 'work') {
+              <div class="priority-picker" aria-label="Priority">
+                @for (priority of priorityOptions; track priority.value) {
+                  <button
+                    type="button"
+                    [class.active]="selectedPriority(item) === priority.value"
+                    [class.priority-high]="priority.value === 'high'"
+                    (click)="selectPriority(item, priority.value)"
+                  >
+                    {{ priority.label }}
+                  </button>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackSubmitError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
+}

@@ -13,9 +13,9 @@ import {
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig } from './config.js';
-import { createCourseSchema } from './course.js';
+import { createCourseSchema, updateCourseSchema } from './course.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
-import { createFeedbackSchema } from './feedback.js';
+import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
 
 type ServerDependencies = {
@@ -109,6 +109,28 @@ export function createServer(dependencies: ServerDependencies = {}) {
     },
   );
 
+  app.patch(
+    '/courses/:id',
+    authenticateRequest(auth),
+    requireCourseCreator,
+    async (request, response, next) => {
+      try {
+        const input = updateCourseSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const updatedCourse = await courses.updateCourse(courseId, input);
+
+        if (!updatedCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        response.json(updatedCourse);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   app.post('/feedback', authenticateRequest(auth), async (request, response, next) => {
     try {
       const input = createFeedbackSchema.parse(request.body);
@@ -123,6 +145,36 @@ export function createServer(dependencies: ServerDependencies = {}) {
       next(error);
     }
   });
+
+  app.get('/feedback', authenticateRequest(auth), requireAdmin, async (_request, response, next) => {
+    try {
+      response.json(await feedback.listFeedback());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch(
+    '/feedback/:id/triage',
+    authenticateRequest(auth),
+    requireAdmin,
+    async (request, response, next) => {
+      try {
+        const input = updateFeedbackTriageSchema.parse(request.body);
+        const feedbackId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const updatedFeedback = await feedback.updateFeedbackTriage(feedbackId, input);
+
+        if (!updatedFeedback) {
+          response.status(404).json({ message: 'Feedback not found' });
+          return;
+        }
+
+        response.json(updatedFeedback);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
     if (error instanceof ZodError) {
@@ -175,6 +227,17 @@ function requireCourseCreator(request: Request, response: Response, next: NextFu
 
   if (!roleCanCreateCourses(user.role)) {
     response.status(403).json({ message: 'Teacher or admin access is required' });
+    return;
+  }
+
+  next();
+}
+
+function requireAdmin(request: Request, response: Response, next: NextFunction) {
+  const { user } = request as AuthenticatedRequest;
+
+  if (user.role !== 'admin') {
+    response.status(403).json({ message: 'Admin access is required' });
     return;
   }
 

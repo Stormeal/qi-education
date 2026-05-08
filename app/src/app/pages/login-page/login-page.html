@@ -151,7 +151,7 @@
                 class="w-full border-0 bg-transparent text-[16px] text-[var(--form-ink)] outline-none placeholder:text-[var(--placeholder)]"
                 placeholder="alex@testhuset.dk"
                 [value]="email()"
-                (input)="emailChanged.emit($any($event.target).value)"
+                (input)="emailChanged.emit(inputValue($event))"
               />
             </div>
           </div>
@@ -194,7 +194,7 @@
                 class="w-full border-0 bg-transparent text-[16px] text-[var(--form-ink)] outline-none placeholder:text-[var(--placeholder)]"
                 placeholder="Enter your password"
                 [value]="password()"
-                (input)="passwordChanged.emit($any($event.target).value)"
+                (input)="passwordChanged.emit(inputValue($event))"
               />
               <button
                 type="button"
@@ -237,7 +237,7 @@
 
             <a
               class="font-semibold text-[var(--form-ink)] transition hover:text-[var(--accent-deep)]"
-              href="/"
+              href="mailto:support@qi-education.local"
             >
               Forgot password?
             </a>
