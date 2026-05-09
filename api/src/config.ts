@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { config as loadEnv } from 'dotenv';
 import { z } from 'zod';
 
+const defaultCorsOrigin = 'http://localhost:4200,http://127.0.0.1:4200,https://stormeal.github.io,https://qi-education.vercel.app';
+
 if (process.env.NODE_ENV !== 'test') {
   const apiRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   loadEnv({ path: resolve(apiRoot, '.env'), quiet: true });
@@ -10,12 +12,9 @@ if (process.env.NODE_ENV !== 'test') {
 
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
-  CORS_ORIGIN: z
-    .string()
-    .default(
-      'http://localhost:4200,http://127.0.0.1:4200,https://stormeal.github.io,https://qi-education.vercel.app',
-    ),
+  CORS_ORIGIN: z.string().default(defaultCorsOrigin),
   AUTH_TOKEN_SECRET: z.string().min(16).optional(),
+  SESSION_SECRET: z.string().min(16).optional(),
   GOOGLE_SHEET_ID: z.string().min(1).optional(),
   GOOGLE_SHEETS_COURSES: z.string().min(1).optional(),
   GOOGLE_SHEETS_USERS: z.string().min(1).optional(),
@@ -28,7 +27,7 @@ const envSchema = z.object({
 });
 
 const env = envSchema.parse(process.env);
-const authTokenSecret = resolveAuthTokenSecret(env.AUTH_TOKEN_SECRET);
+const authTokenSecret = resolveAuthTokenSecret(env.AUTH_TOKEN_SECRET, env.SESSION_SECRET);
 const coursesRange = firstDefined(env.GOOGLE_SHEETS_COURSES_RANGE, env.GOOGLE_SHEETS_COURSES);
 const usersRange = firstDefined(env.GOOGLE_SHEETS_USERS_RANGE, env.GOOGLE_SHEETS_USERS);
 const spreadsheetId = firstDefined(env.GOOGLE_SHEETS_SPREADSHEET_ID, env.GOOGLE_SHEET_ID);
@@ -48,9 +47,17 @@ export const apiConfig = {
       : 'Feedback!A:I',
 };
 
-export function resolveAuthTokenSecret(secret: string | undefined, nodeEnv = process.env.NODE_ENV): string {
+export function resolveAuthTokenSecret(
+  secret: string | undefined,
+  legacySessionSecret?: string,
+  nodeEnv = process.env.NODE_ENV,
+): string {
   if (secret) {
     return secret;
+  }
+
+  if (legacySessionSecret) {
+    return legacySessionSecret;
   }
 
   if (nodeEnv === 'production') {
@@ -81,7 +88,10 @@ export function hasGoogleSheetsConfig() {
 }
 
 export function getCorsOrigins() {
-  return apiConfig.CORS_ORIGIN.split(',')
+  const corsOrigin = apiConfig.CORS_ORIGIN.trim() ? apiConfig.CORS_ORIGIN : defaultCorsOrigin;
+
+  return corsOrigin
+    .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 }
