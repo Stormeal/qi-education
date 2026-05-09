@@ -42,6 +42,9 @@ jobs:
       - name: Test API
         run: npm run api:test
 
+      - name: Verify hosted auth API
+        run: curl --fail --silent --show-error https://qi-education.vercel.app/api/health/auth
+
       - name: Build GitHub Pages bundle
         run: npm run app:build:pages
 

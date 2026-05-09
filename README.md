@@ -103,3 +103,5 @@ The published site will be available at `https://stormeal.github.io/qi-education
 The API still uses Vercel environment variables for local development through `npm run env:pull`, but the site itself is now deployed through GitHub Pages.
 
 The GitHub Pages build calls `https://qi-education.vercel.app/api` for login and course data. The Vercel deployment exposes the Express API through `api/[...path].ts`, so make sure the Vercel project has the same Google Sheets and auth environment variables configured for production.
+
+The Pages deployment workflow checks `https://qi-education.vercel.app/api/health/auth` before publishing. If that check fails, fix or redeploy the Vercel API first so GitHub Pages does not publish a frontend that cannot sign users in.

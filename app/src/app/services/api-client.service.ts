@@ -135,25 +135,31 @@ export class ApiClientService {
   private apiBaseUrls(): string[] {
     const configuredApiBaseUrl = window.qiEducationConfig?.apiBaseUrl?.trim().replace(/\/+$/, '');
 
-    if (configuredApiBaseUrl) {
-      return [configuredApiBaseUrl];
-    }
-
-    const hostedApiBaseUrl = 'https://qi-education.vercel.app/api';
-
-    if (window.location.hostname === 'stormeal.github.io') {
-      return [hostedApiBaseUrl];
-    }
-
-    if (window.location.hostname.endsWith('.vercel.app')) {
-      return [`${window.location.origin}/api`];
-    }
-
-    if (!window.location.hostname) {
-      return [hostedApiBaseUrl];
-    }
-
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    return [`${protocol}//${window.location.hostname}:3001`, hostedApiBaseUrl];
+    return resolveApiBaseUrls(window.location, configuredApiBaseUrl);
   }
+}
+
+type ApiLocation = Pick<Location, 'hostname' | 'origin' | 'protocol'>;
+
+export function resolveApiBaseUrls(location: ApiLocation, configuredApiBaseUrl?: string): string[] {
+  if (configuredApiBaseUrl) {
+    return [configuredApiBaseUrl];
+  }
+
+  const hostedApiBaseUrl = 'https://qi-education.vercel.app/api';
+
+  if (location.hostname.endsWith('.github.io')) {
+    return [hostedApiBaseUrl];
+  }
+
+  if (location.hostname.endsWith('.vercel.app')) {
+    return [`${location.origin}/api`];
+  }
+
+  if (!location.hostname) {
+    return [hostedApiBaseUrl];
+  }
+
+  const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
+  return [`${protocol}//${location.hostname}:3001`, hostedApiBaseUrl];
 }

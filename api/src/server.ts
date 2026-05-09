@@ -53,8 +53,27 @@ export function createServer(dependencies: ServerDependencies = {}) {
     });
   });
 
+  app.get('/health/auth', (_request, response) => {
+    if (!apiConfig.AUTH_TOKEN_SECRET) {
+      response.status(503).json({
+        status: 'unavailable',
+        message: 'AUTH_TOKEN_SECRET is required for authentication.',
+      });
+      return;
+    }
+
+    response.json({ status: 'ok' });
+  });
+
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
+      const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
+
+      if (!authTokenSecret) {
+        response.status(503).json({ message: 'Authentication is temporarily unavailable.' });
+        return;
+      }
+
       const input = loginSchema.parse(request.body);
       const user = await auth.findByEmail(input.email);
 
@@ -69,7 +88,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
 
       response.json({
-        token: createSessionToken(user, apiConfig.AUTH_TOKEN_SECRET),
+        token: createSessionToken(user, authTokenSecret),
         user: toAuthenticatedUser(user),
         permissions: getRolePermissions(user.role),
       });
@@ -192,6 +211,13 @@ export function createServer(dependencies: ServerDependencies = {}) {
 function authenticateRequest(authRepository: AuthRepository) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
+      const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
+
+      if (!authTokenSecret) {
+        response.status(503).json({ message: 'Authentication is temporarily unavailable.' });
+        return;
+      }
+
       const authorization = request.header('authorization');
 
       if (!authorization?.startsWith('Bearer ')) {
@@ -200,7 +226,7 @@ function authenticateRequest(authRepository: AuthRepository) {
       }
 
       const token = authorization.slice('Bearer '.length);
-      const session = verifySessionToken(token, apiConfig.AUTH_TOKEN_SECRET);
+      const session = verifySessionToken(token, authTokenSecret);
 
       if (!session) {
         response.status(401).json({ message: 'Invalid or expired session token' });

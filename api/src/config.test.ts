@@ -11,10 +11,8 @@ describe('API config', () => {
     expect(resolveAuthTokenSecret(undefined, 'test')).toBe('local-dev-auth-secret');
   });
 
-  it('requires an explicit auth token secret in production', () => {
-    expect(() => resolveAuthTokenSecret(undefined, 'production')).toThrow(
-      'AUTH_TOKEN_SECRET is required in production',
-    );
+  it('leaves production auth unavailable when the secret is missing', () => {
+    expect(resolveAuthTokenSecret(undefined, 'production')).toBe('');
   });
 
   it('uses an explicit auth token secret when provided', () => {

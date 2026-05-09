@@ -75,6 +75,14 @@ describe('QI-Education API', () => {
     expect(body.status).toBe('ok');
   });
 
+  it('reports auth readiness under the Vercel /api prefix', async () => {
+    const response = await fetch(`${baseUrl}/api/health/auth`);
+    const body = (await response.json()) as { status: string };
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe('ok');
+  });
+
   it('rejects invalid login credentials', async () => {
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
