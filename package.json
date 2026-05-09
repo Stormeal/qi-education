@@ -1,6 +1,6 @@
 {
   "name": "qi-education",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "scripts": {
     "app:dev": "concurrently -k -n api,app -c blue,green \"npm run api:dev\" \"npm run app:dev:frontend\"",
