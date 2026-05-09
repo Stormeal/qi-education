@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiConfig, resolveAuthTokenSecret } from './config.js';
+import { apiConfig, getCorsOrigins, resolveAuthTokenSecret } from './config.js';
 
 describe('API config', () => {
   it('uses a course sheet range that includes all course columns by default', () => {
@@ -25,5 +25,9 @@ describe('API config', () => {
     expect(resolveAuthTokenSecret('a-production-grade-secret', 'a-legacy-session-secret', 'production')).toBe(
       'a-production-grade-secret',
     );
+  });
+
+  it('includes GitHub Pages in the default CORS origins', () => {
+    expect(getCorsOrigins()).toContain('https://stormeal.github.io');
   });
 });
