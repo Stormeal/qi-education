@@ -7,16 +7,15 @@ import {
   StudentSummary,
 } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
-import { BrandLink } from '../../ui/brand-link/brand-link';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
-import { ProfileMenu } from '../../ui/profile-menu/profile-menu';
+import { PageHeader } from '../../ui/page-header/page-header';
 
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, AppButton, BrandLink, FeedbackDialog, ProfileMenu],
+  imports: [DatePipe, AppButton, FeedbackDialog, PageHeader],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
