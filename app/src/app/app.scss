@@ -28,8 +28,8 @@
   --input-border-strong: rgba(140, 121, 96, 0.24);
 
   display: block;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: visible;
   color: #39393a;
   background: linear-gradient(135deg, #fff7e8, #fbfaf7 45%, #e0e0d0);
   font-family:
@@ -101,9 +101,9 @@ p {
   display: flex;
   flex-direction: column;
   width: min(1240px, calc(100% - 32px));
-  height: 100vh;
+  min-height: 100vh;
   margin: 0 auto;
-  overflow: hidden;
+  overflow: visible;
   padding: 16px 0;
 }
 
@@ -338,7 +338,7 @@ p {
   gap: 18px;
   min-height: 0;
   margin-bottom: 12px;
-  overflow: auto;
+  overflow: visible;
   padding-bottom: 8px;
 }
 
@@ -549,12 +549,6 @@ p {
 
 .course-form select {
   appearance: none;
-}
-
-.course-card-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 2px;
 }
 
 .section-heading {

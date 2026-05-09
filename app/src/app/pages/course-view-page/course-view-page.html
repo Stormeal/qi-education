@@ -1,25 +1,20 @@
 <main class="course-view-shell">
-  <nav class="topbar course-view-topbar" aria-label="Primary navigation">
-    <app-brand-link />
-    <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
-    <div class="tabs" aria-label="Site sections">
-      <button type="button" class="tab-link" (click)="homeClicked.emit()">Home</button>
-      <button type="button" class="tab-link active with-chevron" (click)="coursesClicked.emit()">
-        Courses
-        <span class="nav-chevron" aria-hidden="true"></span>
-      </button>
-      <a href="#course-content">Content</a>
-      <a href="#course-description">Description</a>
-    </div>
-    <app-profile-menu
+  <div class="course-view-nav-frame">
+    <app-page-header
+      activeSection="courses"
+      aboutHref="#course-content"
+      otherPagesHref="#course-description"
       [displayName]="student().name"
       [email]="userEmail()"
       [roleLabel]="userRoleLabel()"
       [canAccessAdmin]="canAccessAdmin()"
+      (homeClicked)="homeClicked.emit()"
+      (coursesClicked)="coursesClicked.emit()"
+      (feedbackOpened)="feedbackOpened.emit()"
       (loggedOut)="loggedOut.emit()"
-      (adminSelected)="adminClicked.emit()"
+      (adminClicked)="adminClicked.emit()"
     />
-  </nav>
+  </div>
 
   @if (coursesLoading()) {
     <section class="course-view-empty">
@@ -38,7 +33,11 @@
     @let currentCourse = course()!;
     <section class="course-view-hero">
       <div class="course-view-hero-content">
-        <button type="button" class="course-back-link" (click)="coursesClicked.emit()">Courses</button>
+        <nav class="course-breadcrumb" aria-label="Course breadcrumbs">
+          <button type="button" (click)="coursesClicked.emit()">Courses</button>
+          <span aria-hidden="true">/</span>
+          <span>{{ currentCourse.level }}</span>
+        </nav>
         <p class="eyebrow">{{ currentCourse.level }} course</p>
         <h1>{{ currentCourse.title }}</h1>
         <p class="course-view-lede">{{ currentCourse.description }}</p>
@@ -46,7 +45,7 @@
         <div class="course-view-meta" aria-label="Course metadata">
           <span class="rating-chip">New course</span>
           <span>{{ currentCourse.status }}</span>
-          <span>Created by {{ currentCourse.teacher }}</span>
+          <span>Created by <strong>{{ currentCourse.teacher }}</strong></span>
           <span>Updated {{ currentCourse.createdAt | date: 'MMM yyyy' }}</span>
         </div>
 
@@ -62,6 +61,21 @@
 
     <div class="course-view-layout">
       <article class="course-view-main">
+        <section class="course-proof-card" aria-label="Course highlights">
+          <div>
+            <span>Level</span>
+            <strong>{{ currentCourse.level }}</strong>
+          </div>
+          <div>
+            <span>Format</span>
+            <strong>Self-paced</strong>
+          </div>
+          <div>
+            <span>Lessons</span>
+            <strong>10</strong>
+          </div>
+        </section>
+
         <section class="course-view-card" aria-labelledby="learn-title">
           <h2 id="learn-title">What you'll learn</h2>
           <div class="learn-grid">
@@ -121,39 +135,35 @@
         }
       </article>
 
-      <aside class="course-enroll-card" aria-label="Course enrollment">
-        <div class="course-preview-media">
-          <div class="course-preview-art" aria-hidden="true">
-            <span>{{ currentCourse.level }}</span>
-            <strong>{{ currentCourse.title }}</strong>
-          </div>
-          <span>Preview this course</span>
-        </div>
+      <aside class="course-enroll-column" aria-label="Course enrollment">
+        <div class="course-enroll-card">
+          <div class="course-enroll-body">
+            <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
+            <h2>{{ currentCourse.title }}</h2>
+            <p class="course-price">Free</p>
+            <app-button class="fill" variant="primary">Start learning</app-button>
+            @if (canCreateCourses()) {
+              <app-button class="fill" variant="outline" (buttonClicked)="courseEdited.emit(currentCourse.id)">
+                Edit course
+              </app-button>
+            }
 
-        <div class="course-enroll-body">
-          <p class="course-price">Free</p>
-          <app-button variant="primary">Start learning</app-button>
-          @if (canCreateCourses()) {
-            <app-button variant="outline" (buttonClicked)="courseEdited.emit(currentCourse.id)">
-              Edit course
-            </app-button>
-          }
+            <div class="course-includes">
+              <h3>This course includes</h3>
+              <ul>
+                <li>Self-paced lessons</li>
+                <li>Practical exercises</li>
+                <li>Progress tracking</li>
+                <li>QI-Education access</li>
+              </ul>
+            </div>
 
-          <div class="course-includes">
-            <h3>This course includes</h3>
-            <ul>
-              <li>Self-paced lessons</li>
-              <li>Practical exercises</li>
-              <li>Progress tracking</li>
-              <li>QI-Education access</li>
-            </ul>
-          </div>
-
-          <div class="instructor-card">
-            <span class="course-avatar" aria-hidden="true">{{ teacherInitials(currentCourse.teacher) }}</span>
-            <div>
-              <small>Instructor</small>
-              <strong>{{ currentCourse.teacher }}</strong>
+            <div class="instructor-card">
+              <span class="course-avatar" aria-hidden="true">{{ teacherInitials(currentCourse.teacher) }}</span>
+              <div>
+                <small>Instructor</small>
+                <strong>{{ currentCourse.teacher }}</strong>
+              </div>
             </div>
           </div>
         </div>

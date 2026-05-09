@@ -1,28 +1,18 @@
 <main class="page-shell">
-  <nav class="topbar" aria-label="Primary navigation">
-    <app-brand-link />
-    <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
-    <div class="tabs" aria-label="Site sections">
-      <button type="button" class="tab-link" (click)="homeClicked.emit()">Home</button>
-      <button type="button" class="tab-link with-chevron" (click)="coursesClicked.emit()">
-        Courses
-        <span class="nav-chevron" aria-hidden="true"></span>
-      </button>
-      <span class="tab-link active">Course editor</span>
-      <a class="with-chevron" href="#course-editor-form">
-        Edit page
-        <span class="nav-chevron" aria-hidden="true"></span>
-      </a>
-    </div>
-    <app-profile-menu
-      [displayName]="student().name"
-      [email]="userEmail()"
-      [roleLabel]="userRoleLabel()"
-      [canAccessAdmin]="canAccessAdmin()"
-      (loggedOut)="loggedOut.emit()"
-      (adminSelected)="adminClicked.emit()"
-    />
-  </nav>
+  <app-page-header
+    activeSection="editor"
+    aboutHref="#course-editor-form"
+    otherPagesHref="#course-editor-form"
+    [displayName]="student().name"
+    [email]="userEmail()"
+    [roleLabel]="userRoleLabel()"
+    [canAccessAdmin]="canAccessAdmin()"
+    (homeClicked)="homeClicked.emit()"
+    (coursesClicked)="coursesClicked.emit()"
+    (feedbackOpened)="feedbackOpened.emit()"
+    (loggedOut)="loggedOut.emit()"
+    (adminClicked)="adminClicked.emit()"
+  />
 
   <header class="course-editor-hero">
     <div>

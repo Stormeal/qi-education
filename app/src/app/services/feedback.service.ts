@@ -66,7 +66,6 @@ export class FeedbackService {
           authorization: `Bearer ${token}`,
         },
       },
-      undefined,
       force,
     );
 

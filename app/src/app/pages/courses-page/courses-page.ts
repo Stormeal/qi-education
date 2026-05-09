@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
-import { BrandLink } from '../../ui/brand-link/brand-link';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
-import { ProfileMenu } from '../../ui/profile-menu/profile-menu';
+import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-courses-page',
-  imports: [AppButton, BrandLink, FeedbackDialog, ProfileMenu],
+  imports: [AppButton, FeedbackDialog, PageHeader, RouterLink],
   templateUrl: './courses-page.html',
   styleUrls: ['../../app.scss', './courses-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,8 +37,6 @@ export class CoursesPage {
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly createCourseOpened = output<void>();
-  readonly courseOpened = output<string>();
-  readonly editCourseOpened = output<string>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();

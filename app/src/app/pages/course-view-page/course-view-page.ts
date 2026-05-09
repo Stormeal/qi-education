@@ -2,13 +2,12 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { DatePipe } from '@angular/common';
 import { CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
-import { BrandLink } from '../../ui/brand-link/brand-link';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
-import { ProfileMenu } from '../../ui/profile-menu/profile-menu';
+import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [AppButton, BrandLink, DatePipe, FeedbackDialog, ProfileMenu],
+  imports: [AppButton, DatePipe, FeedbackDialog, PageHeader],
   templateUrl: './course-view-page.html',
   styleUrls: ['../../app.scss', './course-view-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

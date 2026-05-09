@@ -9,7 +9,6 @@ declare global {
 }
 
 type ApiJsonCacheEntry = {
-  expiresAt: number;
   value: unknown;
 };
 
@@ -23,7 +22,6 @@ export type ApiJsonResult<T> = {
 export class ApiClientService {
   private readonly apiJsonCache = new Map<string, ApiJsonCacheEntry>();
   private readonly unauthorizedHandlers = new Set<() => void>();
-  private readonly apiCacheTtlMs = 5 * 60 * 1000;
 
   async fetch(path: string, init: RequestInit): Promise<Response> {
     const apiBaseUrls = this.apiBaseUrls();
@@ -49,13 +47,12 @@ export class ApiClientService {
   async fetchJson<T>(
     path: string,
     init: RequestInit = {},
-    ttlMs = this.apiCacheTtlMs,
     bypassCache = false,
   ): Promise<ApiJsonResult<T>> {
     const cacheKey = this.apiCacheKey(path, init);
     const cached = this.apiJsonCache.get(cacheKey);
 
-    if (!bypassCache && cached && cached.expiresAt > Date.now()) {
+    if (!bypassCache && cached) {
       return {
         ok: true,
         status: 200,
@@ -72,7 +69,6 @@ export class ApiClientService {
 
     if (response.ok) {
       this.apiJsonCache.set(cacheKey, {
-        expiresAt: Date.now() + ttlMs,
         value: body,
       });
     }
