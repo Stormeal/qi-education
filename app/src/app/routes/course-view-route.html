@@ -1,5 +1,5 @@
 @if (state.isSessionRestoring()) {
-  <main class="page-shell"><section class="summary-grid" aria-label="Session restore"><article class="summary-card"><span>Session</span><strong>Restoring your session...</strong></article></section></main>
+  <app-session-restore-state />
 } @else if (state.loginState()) {
   <app-course-view-page
     [appVersion]="state.appVersion"
