@@ -1,0 +1,140 @@
+:host {
+  display: block;
+}
+
+.session-restore-shell {
+  min-height: 100vh;
+  padding: 32px 20px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at top left, rgb(212 180 123 / 0.24), transparent 36%),
+    radial-gradient(circle at bottom right, rgb(92 143 126 / 0.18), transparent 30%),
+    linear-gradient(180deg, #f8f4ed 0%, #f3ede2 100%);
+}
+
+.session-restore-card {
+  width: min(100%, 560px);
+  padding: 32px;
+  border: 1px solid rgb(97 75 29 / 0.12);
+  border-radius: 24px;
+  background: rgb(255 253 248 / 0.88);
+  box-shadow: 0 24px 60px rgb(78 58 28 / 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.session-restore-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(125 92 35 / 0.08);
+  color: #785225;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.session-restore-eyebrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #b57a3f, #4f8b76);
+  box-shadow: 0 0 0 6px rgb(79 139 118 / 0.12);
+}
+
+.session-restore-card h1 {
+  margin: 18px 0 10px;
+  color: #1f1b16;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+  line-height: 1.05;
+}
+
+.session-restore-card p {
+  margin: 0;
+  color: #61564a;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.session-restore-progress {
+  margin-top: 28px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(123 91 37 / 0.08);
+}
+
+.session-restore-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8f6230 0%, #d6ab61 48%, #4f8b76 100%);
+  animation: session-restore-progress 1.4s ease-in-out infinite;
+}
+
+.session-restore-preview {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgb(97 75 29 / 0.1);
+  display: grid;
+  gap: 12px;
+}
+
+.preview-line,
+.preview-pill {
+  display: block;
+  background: linear-gradient(90deg, rgb(184 160 121 / 0.2), rgb(255 255 255 / 0.72), rgb(184 160 121 / 0.2));
+  background-size: 200% 100%;
+  animation: session-restore-shimmer 1.8s linear infinite;
+}
+
+.preview-line {
+  height: 14px;
+  border-radius: 999px;
+}
+
+.preview-line-wide {
+  width: 100%;
+}
+
+.preview-line-medium {
+  width: 72%;
+}
+
+.preview-pill {
+  width: 120px;
+  height: 36px;
+  border-radius: 999px;
+}
+
+@keyframes session-restore-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+@keyframes session-restore-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .session-restore-card {
+    padding: 24px;
+    border-radius: 20px;
+  }
+}

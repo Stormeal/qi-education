@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 type BrandLinkAppearance = 'dark' | 'light';
 type BrandLinkSize = 'default' | 'large';
 
 @Component({
   selector: 'app-brand-link',
+  imports: [RouterLink],
   templateUrl: './brand-link.html',
   styleUrl: './brand-link.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
