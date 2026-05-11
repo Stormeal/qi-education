@@ -29,7 +29,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.15';
+  readonly appVersion = '0.1.16';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -62,6 +62,9 @@ export class AppStateService {
   readonly courseContentLoading = signal(false);
   readonly courseContentSaving = signal(false);
   readonly courseContentError = signal('');
+  readonly coursePriceSaving = signal(false);
+  readonly coursePriceNotice = signal('');
+  readonly coursePriceNoticeError = signal(false);
   readonly courseContent = signal<CourseContentDocument | null>(null);
   readonly initialCourseDraftSnapshot = signal('');
   readonly initialCourseContentSnapshot = signal('');
@@ -69,11 +72,14 @@ export class AppStateService {
     title: '',
     description: '',
     requirements: '',
+    whatYoullLearn: '',
     audience: '',
     level: '',
+    partOfCareer: '',
     teacher: '',
     careerGoals: '',
     status: 'draft',
+    priceDkk: null,
   });
 
   readonly canSubmit = computed(
@@ -216,6 +222,7 @@ export class AppStateService {
   });
   readonly loadedCourseContentId = signal<string | null>(null);
   private courseSaveNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private coursePriceNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
 
   readonly recommendedCourses = computed(() =>
     this.courses().filter((course) => course.status === 'Recommended'),
@@ -473,12 +480,15 @@ export class AppStateService {
     this.courseDraft.set({
       title: course.title,
       description: course.description,
-      requirements: course.requirements.join('\n'),
+      requirements: this.formatBulletList(course.requirements),
+      whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
       audience: course.audience,
       level: course.level,
+      partOfCareer: course.partOfCareer,
       teacher: course.teacher,
       careerGoals: course.careerGoals.join(', '),
       status: course.status,
+      priceDkk: course.priceDkk,
     });
     this.courseCreateError.set('');
     this.courseContentError.set('');
@@ -500,7 +510,12 @@ export class AppStateService {
   }
 
   updateCourseRequirements(value: string): void {
-    this.courseDraft.update((draft) => ({ ...draft, requirements: value }));
+    this.courseDraft.update((draft) => ({ ...draft, requirements: this.normalizeBulletListValue(value) }));
+    this.courseCreateError.set('');
+  }
+
+  updateCourseWhatYoullLearn(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, whatYoullLearn: this.normalizeBulletListValue(value) }));
     this.courseCreateError.set('');
   }
 
@@ -511,6 +526,11 @@ export class AppStateService {
 
   updateCourseLevel(value: string): void {
     this.courseDraft.update((draft) => ({ ...draft, level: value }));
+    this.courseCreateError.set('');
+  }
+
+  updateCoursePartOfCareer(value: string): void {
+    this.courseDraft.update((draft) => ({ ...draft, partOfCareer: value }));
     this.courseCreateError.set('');
   }
 
@@ -574,7 +594,7 @@ export class AppStateService {
     this.courseContentError.set('');
   }
 
-  addCourseComponent(sectionIndex: number): void {
+  addCourseComponent(sectionIndex: number, type: CourseComponentType): void {
     this.courseContent.update((content) =>
       content
         ? {
@@ -588,7 +608,7 @@ export class AppStateService {
                       {
                         id: this.createContentId('component'),
                         title: `New component ${section.components.length + 1}`,
-                        type: 'text',
+                        type,
                         durationMinutes: 0,
                         content: '',
                         resourceUrl: '',
@@ -779,12 +799,15 @@ export class AppStateService {
         ? {
             title: savedCourse.title,
             description: savedCourse.description,
-            requirements: savedCourse.requirements.join('\n'),
+            requirements: this.formatBulletList(savedCourse.requirements),
+            whatYoullLearn: this.formatBulletList(savedCourse.whatYoullLearn),
             audience: savedCourse.audience,
             level: savedCourse.level,
+            partOfCareer: savedCourse.partOfCareer,
             teacher: savedCourse.teacher,
             careerGoals: savedCourse.careerGoals.join(', '),
             status: savedCourse.status,
+            priceDkk: savedCourse.priceDkk,
           }
         : draft;
       this.courseDraft.set(finalDraft);
@@ -812,6 +835,38 @@ export class AppStateService {
 
   reloadAdminFeedback(): void {
     void this.loadAdminFeedback(true);
+  }
+
+  async saveCoursePrice(courseId: string, priceDkk: number | null): Promise<void> {
+    const token = this.loginState()?.token;
+
+    if (!token || !this.loginState()?.permissions.hasAdminAccess) {
+      return;
+    }
+
+    this.coursePriceSaving.set(true);
+    this.clearCoursePriceNotice();
+
+    try {
+      const result = await this.courseService.saveCoursePrice(courseId, priceDkk, token);
+
+      if (!result.ok) {
+        this.showCoursePriceNotice(result.message, true);
+        return;
+      }
+
+      this.availableCourses.update((courses) =>
+        courses.map((course) => (course.id === result.course.id ? result.course : course)),
+      );
+      this.courseDraft.update((draft) =>
+        this.courseEditingId() === result.course.id ? { ...draft, priceDkk: result.course.priceDkk } : draft,
+      );
+      this.showCoursePriceNotice('Course price saved.', false);
+    } catch {
+      this.showCoursePriceNotice('Unable to save course price. Please try again.', true);
+    } finally {
+      this.coursePriceSaving.set(false);
+    }
   }
 
   async updateAdminFeedbackTriage(update: FeedbackTriageUpdate): Promise<void> {
@@ -963,11 +1018,14 @@ export class AppStateService {
       title: '',
       description: '',
       requirements: '',
+      whatYoullLearn: '',
       audience: '',
       level: '',
+      partOfCareer: '',
       teacher: displayName,
       careerGoals: '',
       status: 'draft',
+      priceDkk: null,
     };
   }
 
@@ -1005,23 +1063,29 @@ export class AppStateService {
     this.courseDraft.set({
       title: course.title,
       description: course.description,
-      requirements: course.requirements.join('\n'),
+      requirements: this.formatBulletList(course.requirements),
+      whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
       audience: course.audience,
       level: course.level,
+      partOfCareer: course.partOfCareer,
       teacher: course.teacher,
       careerGoals: course.careerGoals.join(', '),
       status: course.status,
+      priceDkk: course.priceDkk,
     });
     this.initialCourseDraftSnapshot.set(
       this.serializeCourseDraft({
         title: course.title,
         description: course.description,
-        requirements: course.requirements.join('\n'),
+        requirements: this.formatBulletList(course.requirements),
+        whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
         audience: course.audience,
         level: course.level,
+        partOfCareer: course.partOfCareer,
         teacher: course.teacher,
         careerGoals: course.careerGoals.join(', '),
         status: course.status,
+        priceDkk: course.priceDkk,
       }),
     );
     if (this.loadedCourseContentId() !== course.id) {
@@ -1048,6 +1112,30 @@ export class AppStateService {
     }
 
     this.courseSaveNotice.set('');
+  }
+
+  private showCoursePriceNotice(message: string, isError: boolean): void {
+    if (this.coursePriceNoticeTimeout) {
+      clearTimeout(this.coursePriceNoticeTimeout);
+    }
+
+    this.coursePriceNotice.set(message);
+    this.coursePriceNoticeError.set(isError);
+    this.coursePriceNoticeTimeout = setTimeout(() => {
+      this.coursePriceNotice.set('');
+      this.coursePriceNoticeError.set(false);
+      this.coursePriceNoticeTimeout = null;
+    }, 4000);
+  }
+
+  private clearCoursePriceNotice(): void {
+    if (this.coursePriceNoticeTimeout) {
+      clearTimeout(this.coursePriceNoticeTimeout);
+      this.coursePriceNoticeTimeout = null;
+    }
+
+    this.coursePriceNotice.set('');
+    this.coursePriceNoticeError.set(false);
   }
 
   private courseSaveMessage(
@@ -1103,6 +1191,20 @@ export class AppStateService {
 
   private serializeCourseDraft(draft: CourseCreateDraft): string {
     return JSON.stringify(draft);
+  }
+
+  private formatBulletList(items: string[]): string {
+    return items.map((item) => `• ${item}`).join('\n');
+  }
+
+  private normalizeBulletListValue(value: string): string {
+    return value
+      .split(/\r?\n/)
+      .map((line) => {
+        const trimmed = line.replace(/^[•*-]\s*/, '').trim();
+        return trimmed ? `• ${trimmed}` : '';
+      })
+      .join('\n');
   }
 
   private serializeCourseContent(content: CourseContentDocument): string {

@@ -46,23 +46,29 @@ export type CourseListItem = {
   title: string;
   description: string;
   requirements: string[];
+  whatYoullLearn: string[];
   audience: string;
   level: string;
+  partOfCareer: string;
   teacher: string;
   careerGoals: string[];
   status: CourseStatus;
   createdAt: string;
+  priceDkk: number | null;
 };
 
 export type CourseCreateDraft = {
   title: string;
   description: string;
   requirements: string;
+  whatYoullLearn: string;
   audience: string;
   level: string;
+  partOfCareer: string;
   teacher: string;
   careerGoals: string;
   status: CourseStatus;
+  priceDkk: number | null;
 };
 
 export type CourseComponentType = 'video' | 'quiz' | 'text';

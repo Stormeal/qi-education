@@ -5,13 +5,15 @@
 } @else {
   <div class="content-toolbar">
     <span class="content-summary">{{ contentSummary() }}</span>
-    <app-button
-      variant="outline"
+    <button
+      type="button"
+      class="icon-action-button"
+      aria-label="Add section"
       [disabled]="courseContentSaving() || courseSubmitting()"
-      (buttonClicked)="courseSectionAdded.emit()"
+      (click)="courseSectionAdded.emit()"
     >
-      Add section
-    </app-button>
+      <ng-icon name="lucidePlus" size="18" aria-hidden="true" />
+    </button>
   </div>
 
   <div class="builder-stack">
@@ -28,7 +30,7 @@
             >
               <span class="chevron-icon" aria-hidden="true"></span>
             </button>
-            <span>{{ sectionIndex + 1 }}.</span>
+            <span class="builder-section-index">{{ sectionIndex + 1 }}</span>
             <span
               class="builder-section-title"
               [attr.contenteditable]="isSectionRenaming(sectionIndex)"
@@ -42,14 +44,21 @@
             </span>
             <a href="" class="rename-link" (click)="startSectionRename(sectionIndex, $event)">Rename</a>
           </div>
-          <div class="builder-actions">
-            <app-button
-              variant="outline"
+
+          <div class="builder-section-meta">
+            <span class="builder-duration-chip">
+              <ng-icon name="lucideClock3" size="15" aria-hidden="true" />
+              <span>{{ sectionDuration(sectionIndex) }}</span>
+            </span>
+            <button
+              type="button"
+              class="icon-action-button icon-action-button-danger"
+              aria-label="Remove section"
               [disabled]="courseContentSaving() || courseSubmitting()"
-              (buttonClicked)="courseSectionRemoved.emit(sectionIndex)"
+              (click)="courseSectionRemoved.emit(sectionIndex)"
             >
-              Remove section
-            </app-button>
+              <ng-icon name="lucideX" size="18" aria-hidden="true" />
+            </button>
           </div>
         </div>
 
@@ -57,129 +66,64 @@
           <div class="builder-component-list">
             @for (component of section.components; track component.id; let componentIndex = $index) {
               <section
-                class="builder-component"
+                class="builder-component-row"
                 draggable="true"
                 (dragstart)="dragComponentStarted(sectionIndex, componentIndex, $event)"
                 (dragover)="dragComponentAllowed($event)"
                 (drop)="dropComponent(sectionIndex, componentIndex, $event)"
                 (dragend)="dragComponentEnded()"
               >
-                <div class="builder-component-topline">
-                  <div class="builder-component-meta">
-                    <div class="builder-component-title-row">
-                      <button type="button" class="drag-handle" aria-label="Drag component">
-                        <span aria-hidden="true">::</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="chevron-button"
-                        [attr.aria-label]="componentToggleLabel(sectionIndex, componentIndex)"
-                        [class.is-collapsed]="isComponentCollapsed(sectionIndex, componentIndex)"
-                        (click)="toggleComponent(sectionIndex, componentIndex)"
-                      >
-                        <span class="chevron-icon" aria-hidden="true"></span>
-                      </button>
-                      <span
-                        class="builder-component-title"
-                        [attr.contenteditable]="isComponentRenaming(sectionIndex, componentIndex)"
-                        [class.is-editing]="isComponentRenaming(sectionIndex, componentIndex)"
-                        [attr.role]="isComponentRenaming(sectionIndex, componentIndex) ? 'textbox' : null"
-                        [attr.aria-label]="'Component title'"
-                        (blur)="courseComponentTitleChanged.emit({ sectionIndex, componentIndex, value: editableText($event) }); finishComponentRename()"
-                        (keydown)="renameKeydown($event)"
-                      >
-                        {{ component.title || 'Untitled component' }}
-                      </span>
-                      <a
-                        href=""
-                        class="rename-link"
-                        (click)="startComponentRename(sectionIndex, componentIndex, $event)"
-                      >
-                        Rename
-                      </a>
-                    </div>
-                    <span>{{ componentTypeDescription(component) }}</span>
-                  </div>
-                  <div class="builder-actions">
-                    <app-button
-                      variant="outline"
-                      [disabled]="courseContentSaving() || courseSubmitting()"
-                      (buttonClicked)="courseComponentRemoved.emit({ sectionIndex, componentIndex })"
-                    >
-                      Remove
-                    </app-button>
-                  </div>
+                <button type="button" class="drag-handle" aria-label="Drag component">
+                  <ng-icon name="lucideGripVertical" size="16" aria-hidden="true" />
+                </button>
+
+                <span
+                  class="builder-component-icon"
+                  [class]="componentTypeClass(component)"
+                  aria-hidden="true"
+                >
+                  <ng-icon [name]="componentTypeIconName(component)" size="18" aria-hidden="true" />
+                </span>
+
+                <div class="builder-component-copy">
+                  <strong>{{ component.title || 'Untitled component' }}</strong>
+                  <span>{{ componentTypeLabel(component) }}</span>
                 </div>
 
-                @if (!isComponentCollapsed(sectionIndex, componentIndex)) {
-                  <div class="builder-component-fields">
-                    <label class="field">
-                      <span>Component type</span>
-                      <select
-                        [value]="component.type"
-                        [disabled]="courseContentSaving() || courseSubmitting()"
-                        (change)="courseComponentTypeChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
-                      >
-                        <option value="video">Video</option>
-                        <option value="quiz">Quiz</option>
-                        <option value="text">Text</option>
-                      </select>
-                    </label>
+                <div class="builder-component-duration">
+                  <ng-icon name="lucideClock3" size="15" aria-hidden="true" />
+                  <span>{{ formatDuration(component) }}</span>
+                </div>
 
-                    <label class="field">
-                      <span>Duration (minutes)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        [value]="component.durationMinutes"
-                        [disabled]="courseContentSaving() || courseSubmitting()"
-                        (input)="courseComponentDurationChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
-                      />
-                    </label>
+                <button
+                  type="button"
+                  class="component-row-action"
+                  [disabled]="courseContentSaving() || courseSubmitting()"
+                  (click)="openComponentEditor(sectionIndex, componentIndex)"
+                >
+                  Edit
+                </button>
 
-                    @if (hasSupportingUrl(component)) {
-                      <label class="field wide">
-                        <span>Video URL</span>
-                        <input
-                          type="url"
-                          [value]="component.resourceUrl"
-                          placeholder="https://..."
-                          [disabled]="courseContentSaving() || courseSubmitting()"
-                          (input)="courseComponentUrlChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
-                        />
-                      </label>
-                    }
-
-                    <label class="field wide">
-                      <span>
-                        @if (component.type === 'quiz') {
-                          Quiz instructions
-                        } @else if (component.type === 'video') {
-                          Supporting notes
-                        } @else {
-                          Text content
-                        }
-                      </span>
-                      <textarea
-                        rows="4"
-                        [value]="component.content"
-                        [disabled]="courseContentSaving() || courseSubmitting()"
-                        (input)="courseComponentContentChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
-                      ></textarea>
-                    </label>
-                  </div>
-                }
+                <button
+                  type="button"
+                  class="component-row-action component-row-action-danger"
+                  [disabled]="courseContentSaving() || courseSubmitting()"
+                  (click)="removeComponent(sectionIndex, componentIndex)"
+                >
+                  Remove
+                </button>
               </section>
             }
           </div>
 
-          <app-button
-            variant="outline"
+          <button
+            type="button"
+            class="add-component-button"
             [disabled]="courseContentSaving() || courseSubmitting()"
-            (buttonClicked)="courseComponentAdded.emit({ sectionIndex })"
+            (click)="openComponentPicker(sectionIndex)"
           >
-            Add component
-          </app-button>
+            + Add New Component
+          </button>
         }
       </article>
     } @empty {
@@ -190,4 +134,172 @@
 
 @if (courseContentError()) {
   <p class="course-error" role="alert">{{ courseContentError() }}</p>
+}
+
+@if (editingComponent(); as component) {
+  <div class="builder-modal-overlay">
+    <section
+      class="builder-modal"
+      aria-labelledby="component-editor-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <header class="builder-modal-header">
+        <div>
+          <p class="builder-modal-kicker">{{ componentTypeLabel(component) }}</p>
+          <h3 id="component-editor-title">{{ component.title || 'Untitled component' }}</h3>
+        </div>
+
+        <button
+          type="button"
+          class="icon-action-button"
+          aria-label="Close editor"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (click)="closeComponentEditor()"
+        >
+          <ng-icon name="lucideX" size="18" aria-hidden="true" />
+        </button>
+      </header>
+
+      @if (activeEditor(); as editor) {
+        <div class="builder-modal-body">
+          <label class="builder-field">
+            <span>Component title</span>
+            <input
+              type="text"
+              [value]="component.title"
+              [disabled]="courseContentSaving() || courseSubmitting()"
+              (input)="courseComponentTitleChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+            />
+          </label>
+
+          <div class="builder-modal-grid">
+            <label class="builder-field">
+              <span>Component type</span>
+              <select
+                [value]="component.type"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (change)="courseComponentTypeChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              >
+                <option value="video">Video</option>
+                <option value="quiz">Quiz</option>
+                <option value="text">Text</option>
+              </select>
+            </label>
+
+            <label class="builder-field">
+              <span>Duration (minutes)</span>
+              <input
+                type="number"
+                min="0"
+                [value]="component.durationMinutes"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (input)="courseComponentDurationChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              />
+            </label>
+          </div>
+
+          @if (hasSupportingUrl(component)) {
+            <label class="builder-field">
+              <span>Video URL</span>
+              <input
+                type="url"
+                [value]="component.resourceUrl"
+                placeholder="https://..."
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (input)="courseComponentUrlChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              />
+            </label>
+          }
+
+          <label class="builder-field">
+            <span>{{ componentEditorLabel(component) }}</span>
+            <textarea
+              rows="7"
+              [value]="component.content"
+              [disabled]="courseContentSaving() || courseSubmitting()"
+              (input)="courseComponentContentChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+            ></textarea>
+          </label>
+        </div>
+      }
+
+      <footer class="builder-modal-footer">
+        <app-button
+          variant="primary"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (buttonClicked)="closeComponentEditor()"
+        >
+          Done
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (componentPicker(); as picker) {
+  <div class="builder-modal-overlay">
+    <section class="builder-modal builder-picker-modal" aria-labelledby="component-picker-title" role="dialog" aria-modal="true">
+      <header class="builder-modal-header">
+        <div>
+          <p class="builder-modal-kicker">New component</p>
+          <h3 id="component-picker-title">Choose a component type</h3>
+        </div>
+
+        <button
+          type="button"
+          class="icon-action-button"
+          aria-label="Close component picker"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (click)="closeComponentPicker()"
+        >
+          <ng-icon name="lucideX" size="18" aria-hidden="true" />
+        </button>
+      </header>
+
+      <div class="component-picker-body">
+        <div class="component-picker-tabs" aria-hidden="true">
+          <span class="is-active">New Components</span>
+          <span>Existing Components</span>
+        </div>
+
+        <div class="component-picker-group">
+          <p class="component-picker-label">Create</p>
+
+          @for (choice of componentChoices; track choice.type) {
+            <div class="component-picker-row">
+              <div class="component-picker-copy">
+                <span class="component-picker-icon">
+                  <ng-icon [name]="choice.icon" size="18" aria-hidden="true" />
+                </span>
+                <div>
+                  <strong>{{ choice.title }}</strong>
+                  <small>{{ choice.subtitle }}</small>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="component-picker-add"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (click)="addComponentOfType(choice.type)"
+              >
+                Add
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <footer class="builder-modal-footer">
+        <app-button
+          variant="outline"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (buttonClicked)="closeComponentPicker()"
+        >
+          Cancel
+        </app-button>
+      </footer>
+    </section>
+  </div>
 }

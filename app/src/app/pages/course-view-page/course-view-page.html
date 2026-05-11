@@ -49,9 +49,16 @@
 
         @if (currentCourse.careerGoals.length > 0) {
           <div class="course-topic-row" aria-label="Career goals">
+            @if (currentCourse.partOfCareer) {
+              <span>{{ currentCourse.partOfCareer }}</span>
+            }
             @for (goal of currentCourse.careerGoals; track goal) {
               <span>{{ goal }}</span>
             }
+          </div>
+        } @else if (currentCourse.partOfCareer) {
+          <div class="course-topic-row" aria-label="Career goals">
+            <span>{{ currentCourse.partOfCareer }}</span>
           </div>
         }
       </div>
@@ -89,7 +96,13 @@
               <h2 id="content-title">Course content</h2>
               <p>{{ contentSummary() }}</p>
             </div>
-            <span>{{ currentCourse.level }}</span>
+            @if (hasRealCurriculum()) {
+              <button type="button" class="curriculum-expand-button" (click)="toggleAllSections()">
+                {{ allSectionsExpanded() ? 'Collapse all sections' : 'Expand all sections' }}
+              </button>
+            } @else {
+              <span>{{ currentCourse.level }}</span>
+            }
           </div>
 
           @if (courseContentLoading()) {
@@ -97,21 +110,76 @@
           } @else if (courseContentError()) {
             <p class="course-content-note" role="alert">{{ courseContentError() }}</p>
           } @else if (hasRealCurriculum()) {
-            <div class="curriculum-list">
+            <div class="curriculum-accordion">
               @for (section of courseContent()!.sections; track section.id) {
-                <section class="curriculum-section">
-                  <header>
-                    <h3>{{ section.title }}</h3>
-                    <span>{{ section.components.length }} components</span>
-                  </header>
-                  <ul>
-                    @for (component of section.components; track component.id) {
-                      <li>
-                        {{ component.title }}
-                        <small>({{ componentMeta(component.durationMinutes, component.type) }})</small>
-                      </li>
-                    }
-                  </ul>
+                <section class="curriculum-panel" [class.is-open]="isSectionExpanded(section.id)">
+                  <button
+                    type="button"
+                    class="curriculum-panel-header"
+                    [attr.aria-expanded]="isSectionExpanded(section.id)"
+                    (click)="toggleSection(section.id)"
+                  >
+                    <span class="curriculum-panel-heading">
+                      <ng-icon
+                        [name]="isSectionExpanded(section.id) ? 'lucideChevronDown' : 'lucideChevronRight'"
+                        size="18"
+                        aria-hidden="true"
+                      />
+                      <span>{{ section.title }}</span>
+                    </span>
+                    <span class="curriculum-panel-meta">
+                      <ng-icon name="lucideClock3" size="14" aria-hidden="true" />
+                      <span>{{ sectionLectureMeta(section.components.length, sectionDurationMinutes(section)) }}</span>
+                    </span>
+                  </button>
+
+                  @if (isSectionExpanded(section.id)) {
+                    <div class="curriculum-panel-body">
+                      @for (component of section.components; track component.id) {
+                        <article class="curriculum-item" [class.has-details]="componentHasDetails(component)">
+                          <button
+                            type="button"
+                            class="curriculum-item-row"
+                            [class.is-open]="isComponentExpanded(component.id)"
+                            [disabled]="!componentHasDetails(component)"
+                            (click)="componentHasDetails(component) && toggleComponent(component.id)"
+                          >
+                            <span class="curriculum-item-main">
+                              <span class="curriculum-item-icon">
+                                <ng-icon [name]="componentIconName(component.type)" size="16" aria-hidden="true" />
+                              </span>
+                              <span class="curriculum-item-copy">
+                                <strong>{{ component.title }}</strong>
+                                <small>{{ componentTypeLabel(component.type) }}</small>
+                              </span>
+                            </span>
+                            <span class="curriculum-item-side">
+                              <span class="curriculum-item-duration">
+                                <ng-icon name="lucideClock3" size="14" aria-hidden="true" />
+                                <span>{{ componentDurationLabel(component.durationMinutes) }}</span>
+                              </span>
+                              @if (componentHasDetails(component)) {
+                                <ng-icon
+                                  [name]="isComponentExpanded(component.id) ? 'lucideChevronDown' : 'lucideChevronRight'"
+                                  size="16"
+                                  aria-hidden="true"
+                                />
+                              }
+                            </span>
+                          </button>
+
+                          @if (componentHasDetails(component) && isComponentExpanded(component.id)) {
+                            <div class="curriculum-item-preview">
+                              <p>{{ componentPreviewText(component) }}</p>
+                              @if (component.resourceUrl) {
+                                <a [href]="component.resourceUrl" target="_blank" rel="noreferrer">Open resource</a>
+                              }
+                            </div>
+                          }
+                        </article>
+                      }
+                    </div>
+                  }
                 </section>
               }
             </div>
@@ -163,13 +231,8 @@
           <div class="course-enroll-body">
             <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
             <h2>{{ currentCourse.title }}</h2>
-            <p class="course-price">Free</p>
+            <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
             <app-button class="fill" variant="primary">Start learning</app-button>
-            @if (canCreateCourses()) {
-              <app-button class="fill" variant="outline" (buttonClicked)="courseEdited.emit(currentCourse.id)">
-                Edit course
-              </app-button>
-            }
 
             <div class="course-includes">
               <h3>This course includes</h3>
@@ -189,6 +252,30 @@
               </div>
             </div>
           </div>
+
+          @if (canCreateCourses()) {
+            <div class="course-admin-panel" aria-label="Course management">
+              <button
+                type="button"
+                class="course-admin-action"
+                (click)="courseEdited.emit(currentCourse.id)"
+              >
+                <ng-icon name="lucidePencil" size="14" aria-hidden="true" />
+                <span>Edit course</span>
+              </button>
+
+              @if (canAccessAdmin()) {
+                <button
+                  type="button"
+                  class="course-admin-action"
+                  (click)="openPriceModal(currentCourse)"
+                >
+                  <ng-icon name="lucideBadgeDollarSign" size="14" aria-hidden="true" />
+                  <span>Set price</span>
+                </button>
+              }
+            </div>
+          }
         </div>
       </aside>
     </div>
@@ -217,4 +304,50 @@
     (textChanged)="feedbackTextChanged.emit($event)"
     (submittedClicked)="feedbackSubmittedClicked.emit()"
   />
+}
+
+@if (isPriceModalOpen()) {
+  <div class="price-modal-overlay">
+    <section class="price-modal" role="dialog" aria-modal="true" aria-labelledby="price-modal-title">
+      <header class="price-modal-header">
+        <div>
+          <p class="course-enroll-kicker">Admin</p>
+          <h2 id="price-modal-title">Set course price</h2>
+        </div>
+        <button type="button" class="price-modal-close" aria-label="Close price modal" (click)="closePriceModal()">
+          <ng-icon name="lucideX" size="18" aria-hidden="true" />
+        </button>
+      </header>
+
+      <label class="price-field">
+        <span>Price</span>
+        <input
+          type="number"
+          min="0"
+          [value]="priceDraft()"
+          placeholder="499"
+          (input)="updatePriceDraft(controlValue($event))"
+        />
+      </label>
+      <p class="price-field-note">Leave empty to keep the course free. All saved prices use DKK.</p>
+
+      <footer class="price-modal-actions">
+        <app-button variant="outline" [disabled]="priceSaving()" (buttonClicked)="closePriceModal()">Cancel</app-button>
+        <app-button variant="primary" [disabled]="priceSaving()" (buttonClicked)="applyPriceDraft(course()!.id)">
+          @if (priceSaving()) {
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span>Saving price...</span>
+          } @else {
+            <span>Save price</span>
+          }
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (priceSaveNotice()) {
+  <div class="save-toast" [class.save-toast-error]="priceSaveNoticeError()" role="status" aria-live="polite">
+    {{ priceSaveNotice() }}
+  </div>
 }

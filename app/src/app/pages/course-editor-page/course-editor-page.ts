@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { CourseContentDocument, CourseCreateDraft, FeedbackOption, StudentSummary } from '../../app.models';
+import { CourseComponentType, CourseContentDocument, CourseCreateDraft, FeedbackOption, StudentSummary } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -46,8 +46,10 @@ export class CourseEditorPage {
   readonly courseTitleChanged = output<string>();
   readonly courseDescriptionChanged = output<string>();
   readonly courseRequirementsChanged = output<string>();
+  readonly courseWhatYoullLearnChanged = output<string>();
   readonly courseAudienceChanged = output<string>();
   readonly courseLevelChanged = output<string>();
+  readonly coursePartOfCareerChanged = output<string>();
   readonly courseTeacherChanged = output<string>();
   readonly courseCareerGoalsChanged = output<string>();
   readonly courseStatusChanged = output<string>();
@@ -55,7 +57,7 @@ export class CourseEditorPage {
   readonly courseSectionAdded = output<void>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
-  readonly courseComponentAdded = output<{ sectionIndex: number }>();
+  readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();
   readonly courseComponentRemoved = output<{ sectionIndex: number; componentIndex: number }>();
   readonly courseComponentTitleChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
@@ -72,14 +74,6 @@ export class CourseEditorPage {
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
-
-  protected requirementItems(): string[] {
-    return this.courseDraft()
-      .requirements.split(/\r?\n/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-
   protected statusLabel(): string {
     switch (this.courseDraft().status) {
       case 'ready-for-review':

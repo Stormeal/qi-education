@@ -14,7 +14,7 @@ import {
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig } from './config.js';
-import { createCourseSchema, updateCourseSchema } from './course.js';
+import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema } from './course.js';
 import { updateCourseContentSchema } from './courseContent.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
@@ -195,6 +195,28 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const input = updateCourseSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const updatedCourse = await courses.updateCourse(courseId, input);
+
+        if (!updatedCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        response.json(updatedCourse);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.patch(
+    '/courses/:id/price',
+    authenticateRequest(auth),
+    requireAdmin,
+    async (request, response, next) => {
+      try {
+        const input = updateCoursePriceSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const updatedCourse = await courses.updateCoursePrice(courseId, input);
 
         if (!updatedCourse) {
           response.status(404).json({ message: 'Course not found' });

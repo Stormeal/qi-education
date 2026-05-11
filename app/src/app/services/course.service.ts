@@ -58,14 +58,17 @@ export class CourseService {
       title: draft.title.trim(),
       description: draft.description.trim(),
       requirements: this.splitMultilineList(draft.requirements),
+      whatYoullLearn: this.splitMultilineList(draft.whatYoullLearn),
       audience: draft.audience.trim(),
       level: draft.level.trim(),
+      partOfCareer: draft.partOfCareer.trim(),
       teacher: draft.teacher.trim() || fallbackTeacher,
       careerGoals: draft.careerGoals
         .split(',')
         .map((goal) => goal.trim())
         .filter(Boolean),
       status: draft.status,
+      priceDkk: draft.priceDkk,
     };
     const response = await this.apiClient.fetch(endpoint, {
       method,
@@ -141,10 +144,40 @@ export class CourseService {
     };
   }
 
+  async saveCoursePrice(
+    courseId: string,
+    priceDkk: number | null,
+    token: string,
+  ): Promise<CourseSaveResult> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/price`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ priceDkk }),
+    });
+    const body = (await response.json().catch(() => ({}))) as CourseListItem | { message?: string };
+
+    if (!response.ok || !('id' in body)) {
+      return {
+        ok: false,
+        message: 'message' in body && body.message ? body.message : 'Unable to save course price.',
+      };
+    }
+
+    this.apiClient.invalidateCache('/courses');
+
+    return {
+      ok: true,
+      course: body,
+    };
+  }
+
   private splitMultilineList(value: string): string[] {
     return value
       .split(/\r?\n/)
-      .map((item) => item.trim())
+      .map((item) => item.replace(/^[•*-]\s*/, '').trim())
       .filter(Boolean);
   }
 }

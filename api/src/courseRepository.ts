@@ -4,6 +4,7 @@ import {
   type Course,
   type CreateCourseInput,
   type UpdateCourseInput,
+  type UpdateCoursePriceInput,
   courseFromSheetRow,
   courseSheetHeaders,
   courseToSheetRow,
@@ -14,6 +15,7 @@ export interface CourseRepository {
   listCourses(): Promise<Course[]>;
   createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course>;
   updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null>;
+  updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null>;
 }
 
 export type CourseSeed = {
@@ -24,10 +26,9 @@ export type CourseSeed = {
 export class GoogleSheetsCourseRepository implements CourseRepository {
   async listCourses(): Promise<Course[]> {
     const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_COURSES_RANGE, [...courseSheetHeaders]);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE
+      range: courseSheetRange(),
     });
 
     const rows = response.data.values ?? [];
@@ -42,10 +43,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     };
 
     const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_COURSES_RANGE, [...courseSheetHeaders]);
+    await ensureWorksheetHeaders(courseSheetRange(), [...courseSheetHeaders]);
     await sheets.spreadsheets.values.append({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE,
+      range: courseSheetRange(),
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [courseToSheetRow(course)]
@@ -57,10 +58,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 
   async updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null> {
     const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_COURSES_RANGE, [...courseSheetHeaders]);
+    await ensureWorksheetHeaders(courseSheetRange(), [...courseSheetHeaders]);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE
+      range: courseSheetRange(),
     });
 
     const rows = response.data.values ?? [];
@@ -78,7 +79,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
       createdAt: existing.createdAt
     };
     const sheetRowNumber = rowIndex + 2;
-    const sheetTitle = apiConfig.GOOGLE_SHEETS_COURSES_RANGE.split('!')[0];
+    const sheetTitle = courseSheetRange().split('!')[0];
     const rowColumn = toColumnName(courseToSheetRow(course).length);
 
     await sheets.spreadsheets.values.update({
@@ -92,6 +93,42 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 
     return course;
   }
+
+  async updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null> {
+    const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(courseSheetRange(), [...courseSheetHeaders]);
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: courseSheetRange(),
+    });
+
+    const rows = response.data.values ?? [];
+    const rowIndex = rows.slice(1).findIndex((row) => (row as string[])[0] === id);
+
+    if (rowIndex < 0) {
+      return null;
+    }
+
+    const existing = courseFromSheetRow(rows[rowIndex + 1] as string[]);
+    const updated: Course = {
+      ...existing,
+      priceDkk: input.priceDkk,
+    };
+    const sheetRowNumber = rowIndex + 2;
+    const sheetTitle = courseSheetRange().split('!')[0];
+    const rowColumn = toColumnName(courseToSheetRow(updated).length);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [courseToSheetRow(updated)],
+      },
+    });
+
+    return updated;
+  }
 }
 
 export class InMemoryCourseRepository implements CourseRepository {
@@ -101,12 +138,15 @@ export class InMemoryCourseRepository implements CourseRepository {
       title: 'Career Discovery Workshop',
       description: 'Map existing strengths, learning gaps, and practical next steps.',
       requirements: ['An interest in structured learning', 'A current or target career goal'],
+      whatYoullLearn: ['How to evaluate a new career path', 'How to map skills to practical next steps'],
       audience: 'Learners who want a clear starting point for choosing a practical education path.',
       level: 'Beginner',
+      partOfCareer: 'QA Foundations',
       teacher: 'QI Education',
       careerGoals: ['Career change', 'Skill mapping'],
       status: 'published',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      priceDkk: null,
     }
   ];
 
@@ -143,6 +183,22 @@ export class InMemoryCourseRepository implements CourseRepository {
     this.courses[index] = updated;
     return updated;
   }
+
+  async updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null> {
+    const index = this.courses.findIndex((course) => course.id === id);
+
+    if (index < 0) {
+      return null;
+    }
+
+    const updated: Course = {
+      ...this.courses[index],
+      priceDkk: input.priceDkk,
+    };
+
+    this.courses[index] = updated;
+    return updated;
+  }
 }
 
 export function createCourseRepository(): CourseRepository {
@@ -160,4 +216,11 @@ function toColumnName(index: number) {
   }
 
   return columnName;
+}
+
+function courseSheetRange() {
+  const sheetTitle = apiConfig.GOOGLE_SHEETS_COURSES_RANGE.split('!')[0] ?? 'Courses';
+  const lastColumn = toColumnName(courseSheetHeaders.length);
+
+  return `${sheetTitle}!A:${lastColumn}`;
 }

@@ -1,20 +1,47 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { CourseComponent, CourseContentDocument } from '../../app.models';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideClipboardCheck,
+  lucideClock3,
+  lucideFileText,
+  lucideGripVertical,
+  lucidePlus,
+  lucideText,
+  lucideVideo,
+  lucideX,
+} from '@ng-icons/lucide';
+import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 
+type ComponentPickerState = {
+  sectionIndex: number;
+} | null;
+
 @Component({
   selector: 'app-course-builder',
-  imports: [AppButton, LoadingSkeleton],
+  imports: [AppButton, LoadingSkeleton, NgIcon],
+  providers: [
+    provideIcons({
+      lucideClipboardCheck,
+      lucideClock3,
+      lucideFileText,
+      lucideGripVertical,
+      lucidePlus,
+      lucideText,
+      lucideVideo,
+      lucideX,
+    }),
+  ],
   templateUrl: './course-builder.html',
-  styleUrls: ['../../app.scss', './course-builder.scss'],
+  styleUrl: './course-builder.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CourseBuilder {
   private readonly collapsedSections = new Set<number>();
-  private readonly collapsedComponents = new Set<string>();
   private editingSectionIndex: number | null = null;
-  private editingComponentKey: string | null = null;
+  protected readonly activeEditor = signal<{ sectionIndex: number; componentIndex: number } | null>(null);
+  protected readonly componentPicker = signal<ComponentPickerState>(null);
   private dragSource: { sectionIndex: number; componentIndex: number } | null = null;
 
   readonly courseContent = input.required<CourseContentDocument | null>();
@@ -26,7 +53,7 @@ export class CourseBuilder {
   readonly courseSectionAdded = output<void>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
-  readonly courseComponentAdded = output<{ sectionIndex: number }>();
+  readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();
   readonly courseComponentRemoved = output<{ sectionIndex: number; componentIndex: number }>();
   readonly courseComponentTitleChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
@@ -39,6 +66,43 @@ export class CourseBuilder {
   readonly courseComponentUrlChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
   readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number }>();
+
+  protected readonly editingComponent = computed(() => {
+    const editor = this.activeEditor();
+    const content = this.courseContent();
+
+    if (!editor || !content) {
+      return null;
+    }
+
+    return content.sections[editor.sectionIndex]?.components[editor.componentIndex] ?? null;
+  });
+
+  protected readonly componentChoices: Array<{
+    type: CourseComponentType;
+    title: string;
+    subtitle: string;
+    icon: string;
+  }> = [
+    {
+      type: 'text',
+      title: 'Text',
+      subtitle: 'Reading material, notes, and written instructions',
+      icon: 'lucideFileText',
+    },
+    {
+      type: 'quiz',
+      title: 'Quiz',
+      subtitle: 'Knowledge checks, prompts, and assessment tasks',
+      icon: 'lucideClipboardCheck',
+    },
+    {
+      type: 'video',
+      title: 'Video',
+      subtitle: 'Embedded lessons and supporting video resources',
+      icon: 'lucideVideo',
+    },
+  ];
 
   protected contentSummary(): string {
     const content = this.courseContent();
@@ -61,9 +125,42 @@ export class CourseBuilder {
     }
   }
 
-  protected componentTypeDescription(component: CourseComponent): string {
-    const duration = component.durationMinutes > 0 ? `${component.durationMinutes} min` : 'No duration';
-    return `${this.componentTypeLabel(component)} - ${duration}`;
+  protected componentTypeIconName(component: CourseComponent): string {
+    switch (component.type) {
+      case 'video':
+        return 'lucideVideo';
+      case 'quiz':
+        return 'lucideClipboardCheck';
+      default:
+        return 'lucideText';
+    }
+  }
+
+  protected componentTypeClass(component: CourseComponent): string {
+    return `component-icon-${component.type}`;
+  }
+
+  protected formatDuration(component: CourseComponent): string {
+    const minutes = Math.max(0, component.durationMinutes);
+    return `${minutes}:00`;
+  }
+
+  protected sectionDuration(sectionIndex: number): string {
+    const section = this.courseContent()?.sections[sectionIndex];
+    const minutes = section?.components.reduce((total, component) => total + component.durationMinutes, 0) ?? 0;
+    return `${Math.max(0, minutes)}:00`;
+  }
+
+  protected componentEditorLabel(component: CourseComponent): string {
+    if (component.type === 'quiz') {
+      return 'Quiz instructions';
+    }
+
+    if (component.type === 'video') {
+      return 'Supporting notes';
+    }
+
+    return 'Text content';
   }
 
   protected hasSupportingUrl(component: CourseComponent): boolean {
@@ -83,29 +180,8 @@ export class CourseBuilder {
     this.collapsedSections.add(sectionIndex);
   }
 
-  protected isComponentCollapsed(sectionIndex: number, componentIndex: number): boolean {
-    return this.collapsedComponents.has(this.componentKey(sectionIndex, componentIndex));
-  }
-
-  protected toggleComponent(sectionIndex: number, componentIndex: number): void {
-    const key = this.componentKey(sectionIndex, componentIndex);
-
-    if (this.collapsedComponents.has(key)) {
-      this.collapsedComponents.delete(key);
-      return;
-    }
-
-    this.collapsedComponents.add(key);
-  }
-
   protected sectionToggleLabel(sectionIndex: number): string {
     return this.isSectionCollapsed(sectionIndex) ? 'Expand section' : 'Collapse section';
-  }
-
-  protected componentToggleLabel(sectionIndex: number, componentIndex: number): string {
-    return this.isComponentCollapsed(sectionIndex, componentIndex)
-      ? 'Expand component'
-      : 'Collapse component';
   }
 
   protected isSectionRenaming(sectionIndex: number): boolean {
@@ -119,19 +195,6 @@ export class CourseBuilder {
 
   protected finishSectionRename(): void {
     this.editingSectionIndex = null;
-  }
-
-  protected isComponentRenaming(sectionIndex: number, componentIndex: number): boolean {
-    return this.editingComponentKey === this.componentKey(sectionIndex, componentIndex);
-  }
-
-  protected startComponentRename(sectionIndex: number, componentIndex: number, event?: MouseEvent): void {
-    event?.preventDefault();
-    this.editingComponentKey = this.componentKey(sectionIndex, componentIndex);
-  }
-
-  protected finishComponentRename(): void {
-    this.editingComponentKey = null;
   }
 
   protected editableText(event: Event): string {
@@ -149,6 +212,42 @@ export class CourseBuilder {
       event.preventDefault();
       (event.target as HTMLElement | null)?.blur();
     }
+  }
+
+  protected openComponentEditor(sectionIndex: number, componentIndex: number): void {
+    this.activeEditor.set({ sectionIndex, componentIndex });
+  }
+
+  protected closeComponentEditor(): void {
+    this.activeEditor.set(null);
+  }
+
+  protected removeComponent(sectionIndex: number, componentIndex: number): void {
+    this.courseComponentRemoved.emit({ sectionIndex, componentIndex });
+
+    const editor = this.activeEditor();
+    if (editor?.sectionIndex === sectionIndex && editor.componentIndex === componentIndex) {
+      this.closeComponentEditor();
+    }
+  }
+
+  protected openComponentPicker(sectionIndex: number): void {
+    this.componentPicker.set({ sectionIndex });
+  }
+
+  protected closeComponentPicker(): void {
+    this.componentPicker.set(null);
+  }
+
+  protected addComponentOfType(type: CourseComponentType): void {
+    const picker = this.componentPicker();
+
+    if (!picker) {
+      return;
+    }
+
+    this.courseComponentAdded.emit({ sectionIndex: picker.sectionIndex, type });
+    this.closeComponentPicker();
   }
 
   protected dragComponentStarted(sectionIndex: number, componentIndex: number, event: DragEvent): void {
@@ -200,9 +299,5 @@ export class CourseBuilder {
     }
 
     return '';
-  }
-
-  private componentKey(sectionIndex: number, componentIndex: number): string {
-    return `${sectionIndex}:${componentIndex}`;
   }
 }

@@ -67,7 +67,7 @@
         </div>
 
         <div class="editor-grid">
-          <label class="field wide">
+          <label class="field">
             <span>Course title</span>
             <input
               type="text"
@@ -75,6 +75,17 @@
               placeholder="ISTQB Foundation 4.0"
               [disabled]="courseSubmitting()"
               (input)="courseTitleChanged.emit(controlValue($event))"
+            />
+          </label>
+
+          <label class="field">
+            <span>Teacher</span>
+            <input
+              type="text"
+              [value]="courseDraft().teacher"
+              placeholder="QI Education"
+              [disabled]="courseSubmitting()"
+              (input)="courseTeacherChanged.emit(controlValue($event))"
             />
           </label>
 
@@ -90,13 +101,13 @@
           </label>
 
           <label class="field">
-            <span>Teacher</span>
+            <span>Part of Career</span>
             <input
               type="text"
-              [value]="courseDraft().teacher"
-              placeholder="QI Education"
+              [value]="courseDraft().partOfCareer"
+              placeholder="Automation Engineering"
               [disabled]="courseSubmitting()"
-              (input)="courseTeacherChanged.emit(controlValue($event))"
+              (input)="coursePartOfCareerChanged.emit(controlValue($event))"
             />
           </label>
         </div>
@@ -112,7 +123,7 @@
         </div>
 
         <div class="editor-grid">
-          <label class="field wide">
+          <label class="field">
             <span>Description</span>
             <textarea
               rows="4"
@@ -123,7 +134,7 @@
             ></textarea>
           </label>
 
-          <label class="field wide">
+          <label class="field">
             <span>Who this course is for</span>
             <textarea
               rows="4"
@@ -134,31 +145,27 @@
             ></textarea>
           </label>
 
-          <div class="requirements-layout wide">
-            <label class="field">
-              <span>Requirements</span>
-              <textarea
-                rows="5"
-                [value]="courseDraft().requirements"
-                placeholder="Basic testing experience&#10;Comfort reading requirements&#10;Access to the course materials"
-                [disabled]="courseSubmitting()"
-                (input)="courseRequirementsChanged.emit(controlValue($event))"
-              ></textarea>
-            </label>
+          <label class="field">
+            <span>Requirements</span>
+            <textarea
+              rows="5"
+              [value]="courseDraft().requirements"
+              placeholder="• Basic testing experience&#10;• Comfort reading requirements&#10;• Access to the course materials"
+              [disabled]="courseSubmitting()"
+              (input)="courseRequirementsChanged.emit(controlValue($event))"
+            ></textarea>
+          </label>
 
-            <aside class="requirements-preview" aria-label="Requirements preview">
-              <span>Bullet preview</span>
-              @if (requirementItems().length > 0) {
-                <ul>
-                  @for (requirement of requirementItems(); track requirement) {
-                    <li>{{ requirement }}</li>
-                  }
-                </ul>
-              } @else {
-                <p>No requirements added.</p>
-              }
-            </aside>
-          </div>
+          <label class="field">
+            <span>What you'll learn</span>
+            <textarea
+              rows="5"
+              [value]="courseDraft().whatYoullLearn"
+              placeholder="• Write maintainable test cases&#10;• Understand course concepts quickly&#10;• Apply the lessons in real work"
+              [disabled]="courseSubmitting()"
+              (input)="courseWhatYoullLearnChanged.emit(controlValue($event))"
+            ></textarea>
+          </label>
         </div>
       </section>
 
@@ -241,26 +248,26 @@
         <p class="course-error" role="alert">{{ courseCreateError() }}</p>
       }
     </div>
-  </section>
 
-  <div class="editor-action-bar">
-    <app-button [disabled]="courseSubmitting()" (buttonClicked)="courseCanceled.emit()">
-      Cancel
-    </app-button>
-    <app-button
-      variant="primary"
-      [disabled]="courseSubmitting()"
-      (buttonClicked)="courseSubmitted.emit()"
-    >
-      @if (courseSubmitting()) {
-        Saving...
-      } @else if (courseFormMode() === 'edit') {
-        Save changes
-      } @else {
-        Create course
-      }
-    </app-button>
-  </div>
+    <div class="editor-action-bar">
+      <app-button [disabled]="courseSubmitting()" (buttonClicked)="courseCanceled.emit()">
+        Cancel
+      </app-button>
+      <app-button
+        variant="primary"
+        [disabled]="courseSubmitting()"
+        (buttonClicked)="courseSubmitted.emit()"
+      >
+        @if (courseSubmitting()) {
+          Saving...
+        } @else if (courseFormMode() === 'edit') {
+          Save changes
+        } @else {
+          Create course
+        }
+      </app-button>
+    </div>
+  </section>
 
   <footer class="site-footer">
     <span class="footer-credit">

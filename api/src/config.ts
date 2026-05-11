@@ -40,7 +40,7 @@ export const apiConfig = {
   AUTH_TOKEN_SECRET: authTokenSecret,
   GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
   GOOGLE_SHEETS_COURSES_RANGE:
-    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:J',
+    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:M',
   GOOGLE_SHEETS_USERS_RANGE:
     usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:G',
   GOOGLE_SHEETS_FEEDBACK_RANGE:

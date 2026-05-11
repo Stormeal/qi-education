@@ -163,8 +163,11 @@ describe('QI-Education API', () => {
     expect(body).toMatchObject({
       title: 'API Automation Foundations',
       requirements: ['Basic testing experience', 'Comfort reading API documentation'],
+      whatYoullLearn: ['Write maintainable API tests', 'Understand modern API QA workflows'],
       audience: 'QA professionals moving into API automation.',
+      partOfCareer: 'Automation Engineering',
       status: 'draft',
+      priceDkk: null,
     });
 
     const contentResponse = await fetch(`${baseUrl}/courses/${body.id}/content`);
@@ -217,8 +220,70 @@ describe('QI-Education API', () => {
     expect(updated).toMatchObject({
       id: created.id,
       title: 'API Automation Foundations, Revised',
+      partOfCareer: 'Automation Engineering',
       status: 'published',
+      priceDkk: null,
     });
+  });
+
+  it('allows an admin to update course price in DKK', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+    const adminToken = await loginAs('admin@qi-education.local');
+
+    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}/price`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        priceDkk: 1499,
+      }),
+    });
+    const updated = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      id: created.id,
+      priceDkk: 1499,
+    });
+  });
+
+  it('blocks non-admin users from updating course price', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+
+    const response = await fetch(`${baseUrl}/courses/${created.id}/price`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify({
+        priceDkk: 999,
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.message).toBe('Admin access is required');
   });
 
   it('allows a teacher to update course content', async () => {
@@ -563,11 +628,14 @@ function validCourse() {
     title: 'API Automation Foundations',
     description: 'Learn how API-based test automation fits into modern QA workflows.',
     requirements: ['Basic testing experience', 'Comfort reading API documentation'],
+    whatYoullLearn: ['Write maintainable API tests', 'Understand modern API QA workflows'],
     audience: 'QA professionals moving into API automation.',
     level: 'Intermediate',
+    partOfCareer: 'Automation Engineering',
     teacher: 'Teacher Demo',
     careerGoals: ['Automation', 'API testing'],
     status: 'draft',
+    priceDkk: null,
   };
 }
 
