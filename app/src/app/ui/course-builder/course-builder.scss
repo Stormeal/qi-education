@@ -3,6 +3,19 @@
   background: #fff;
 }
 
+.inline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.inline-icon-muted {
+  color: #7b6650;
+}
+
 .content-toolbar,
 .builder-section-header,
 .builder-section-heading,
@@ -258,14 +271,6 @@
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
-}
-
-.icon-action-button ng-icon,
-.drag-handle ng-icon,
-.builder-component-icon ng-icon,
-.builder-duration-chip ng-icon,
-.builder-component-duration ng-icon {
-  display: block;
 }
 
 .icon-action-button:hover:not(:disabled) {

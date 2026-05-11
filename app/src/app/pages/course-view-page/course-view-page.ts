@@ -1,17 +1,5 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideBadgeDollarSign,
-  lucideChevronDown,
-  lucideChevronRight,
-  lucideClipboardCheck,
-  lucideClock3,
-  lucideFileText,
-  lucidePencil,
-  lucidePlayCircle,
-  lucideX,
-} from '@ng-icons/lucide';
 import { CourseContentDocument, CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -20,20 +8,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [AppButton, DatePipe, FeedbackDialog, LoadingSkeleton, NgIcon, PageHeader],
-  providers: [
-    provideIcons({
-      lucideBadgeDollarSign,
-      lucideChevronDown,
-      lucideChevronRight,
-      lucideClipboardCheck,
-      lucideClock3,
-      lucideFileText,
-      lucidePencil,
-      lucidePlayCircle,
-      lucideX,
-    }),
-  ],
+  imports: [AppButton, DatePipe, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './course-view-page.html',
   styleUrls: ['../../app.scss', './course-view-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -278,14 +253,14 @@ export class CourseViewPage {
     }
   }
 
-  protected componentIconName(type: string): string {
+  protected componentIconGlyph(type: string): string {
     switch (type) {
       case 'video':
-        return 'lucidePlayCircle';
+        return '▶';
       case 'quiz':
-        return 'lucideClipboardCheck';
+        return '✓';
       default:
-        return 'lucideFileText';
+        return '≡';
     }
   }
 

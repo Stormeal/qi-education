@@ -29,7 +29,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.16';
+  readonly appVersion = '0.1.17';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');

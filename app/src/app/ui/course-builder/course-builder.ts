@@ -1,15 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideClipboardCheck,
-  lucideClock3,
-  lucideFileText,
-  lucideGripVertical,
-  lucidePlus,
-  lucideText,
-  lucideVideo,
-  lucideX,
-} from '@ng-icons/lucide';
 import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
@@ -20,19 +9,7 @@ type ComponentPickerState = {
 
 @Component({
   selector: 'app-course-builder',
-  imports: [AppButton, LoadingSkeleton, NgIcon],
-  providers: [
-    provideIcons({
-      lucideClipboardCheck,
-      lucideClock3,
-      lucideFileText,
-      lucideGripVertical,
-      lucidePlus,
-      lucideText,
-      lucideVideo,
-      lucideX,
-    }),
-  ],
+  imports: [AppButton, LoadingSkeleton],
   templateUrl: './course-builder.html',
   styleUrl: './course-builder.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -88,19 +65,19 @@ export class CourseBuilder {
       type: 'text',
       title: 'Text',
       subtitle: 'Reading material, notes, and written instructions',
-      icon: 'lucideFileText',
+      icon: '≡',
     },
     {
       type: 'quiz',
       title: 'Quiz',
       subtitle: 'Knowledge checks, prompts, and assessment tasks',
-      icon: 'lucideClipboardCheck',
+      icon: '✓',
     },
     {
       type: 'video',
       title: 'Video',
       subtitle: 'Embedded lessons and supporting video resources',
-      icon: 'lucideVideo',
+      icon: '▶',
     },
   ];
 
@@ -125,14 +102,14 @@ export class CourseBuilder {
     }
   }
 
-  protected componentTypeIconName(component: CourseComponent): string {
+  protected componentTypeIconGlyph(component: CourseComponent): string {
     switch (component.type) {
       case 'video':
-        return 'lucideVideo';
+        return '▶';
       case 'quiz':
-        return 'lucideClipboardCheck';
+        return '✓';
       default:
-        return 'lucideText';
+        return '≡';
     }
   }
 

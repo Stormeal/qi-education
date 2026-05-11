@@ -12,7 +12,7 @@
       [disabled]="courseContentSaving() || courseSubmitting()"
       (click)="courseSectionAdded.emit()"
     >
-      <ng-icon name="lucidePlus" size="18" aria-hidden="true" />
+      <span class="inline-icon" aria-hidden="true">+</span>
     </button>
   </div>
 
@@ -47,7 +47,7 @@
 
           <div class="builder-section-meta">
             <span class="builder-duration-chip">
-              <ng-icon name="lucideClock3" size="15" aria-hidden="true" />
+              <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
               <span>{{ sectionDuration(sectionIndex) }}</span>
             </span>
             <button
@@ -57,7 +57,7 @@
               [disabled]="courseContentSaving() || courseSubmitting()"
               (click)="courseSectionRemoved.emit(sectionIndex)"
             >
-              <ng-icon name="lucideX" size="18" aria-hidden="true" />
+              <span class="inline-icon" aria-hidden="true">×</span>
             </button>
           </div>
         </div>
@@ -74,7 +74,7 @@
                 (dragend)="dragComponentEnded()"
               >
                 <button type="button" class="drag-handle" aria-label="Drag component">
-                  <ng-icon name="lucideGripVertical" size="16" aria-hidden="true" />
+                  <span class="inline-icon" aria-hidden="true">⋮⋮</span>
                 </button>
 
                 <span
@@ -82,7 +82,7 @@
                   [class]="componentTypeClass(component)"
                   aria-hidden="true"
                 >
-                  <ng-icon [name]="componentTypeIconName(component)" size="18" aria-hidden="true" />
+                  <span class="inline-icon" aria-hidden="true">{{ componentTypeIconGlyph(component) }}</span>
                 </span>
 
                 <div class="builder-component-copy">
@@ -91,7 +91,7 @@
                 </div>
 
                 <div class="builder-component-duration">
-                  <ng-icon name="lucideClock3" size="15" aria-hidden="true" />
+                  <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
                   <span>{{ formatDuration(component) }}</span>
                 </div>
 
@@ -157,7 +157,7 @@
           [disabled]="courseContentSaving() || courseSubmitting()"
           (click)="closeComponentEditor()"
         >
-          <ng-icon name="lucideX" size="18" aria-hidden="true" />
+          <span class="inline-icon" aria-hidden="true">×</span>
         </button>
       </header>
 
@@ -253,7 +253,7 @@
           [disabled]="courseContentSaving() || courseSubmitting()"
           (click)="closeComponentPicker()"
         >
-          <ng-icon name="lucideX" size="18" aria-hidden="true" />
+          <span class="inline-icon" aria-hidden="true">×</span>
         </button>
       </header>
 
@@ -270,7 +270,7 @@
             <div class="component-picker-row">
               <div class="component-picker-copy">
                 <span class="component-picker-icon">
-                  <ng-icon [name]="choice.icon" size="18" aria-hidden="true" />
+                  <span class="inline-icon" aria-hidden="true">{{ choice.icon }}</span>
                 </span>
                 <div>
                   <strong>{{ choice.title }}</strong>

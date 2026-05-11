@@ -282,6 +282,19 @@
   gap: 10px;
 }
 
+.inline-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.inline-icon-muted {
+  color: #7b6650;
+}
+
 .curriculum-panel-heading {
   color: #171b4a;
   font-size: 18px;

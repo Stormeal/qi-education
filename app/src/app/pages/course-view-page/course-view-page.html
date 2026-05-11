@@ -120,15 +120,11 @@
                     (click)="toggleSection(section.id)"
                   >
                     <span class="curriculum-panel-heading">
-                      <ng-icon
-                        [name]="isSectionExpanded(section.id) ? 'lucideChevronDown' : 'lucideChevronRight'"
-                        size="18"
-                        aria-hidden="true"
-                      />
+                      <span class="inline-icon" aria-hidden="true">{{ isSectionExpanded(section.id) ? '▾' : '▸' }}</span>
                       <span>{{ section.title }}</span>
                     </span>
                     <span class="curriculum-panel-meta">
-                      <ng-icon name="lucideClock3" size="14" aria-hidden="true" />
+                      <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
                       <span>{{ sectionLectureMeta(section.components.length, sectionDurationMinutes(section)) }}</span>
                     </span>
                   </button>
@@ -146,7 +142,7 @@
                           >
                             <span class="curriculum-item-main">
                               <span class="curriculum-item-icon">
-                                <ng-icon [name]="componentIconName(component.type)" size="16" aria-hidden="true" />
+                                <span class="inline-icon" aria-hidden="true">{{ componentIconGlyph(component.type) }}</span>
                               </span>
                               <span class="curriculum-item-copy">
                                 <strong>{{ component.title }}</strong>
@@ -155,15 +151,11 @@
                             </span>
                             <span class="curriculum-item-side">
                               <span class="curriculum-item-duration">
-                                <ng-icon name="lucideClock3" size="14" aria-hidden="true" />
+                                <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
                                 <span>{{ componentDurationLabel(component.durationMinutes) }}</span>
                               </span>
                               @if (componentHasDetails(component)) {
-                                <ng-icon
-                                  [name]="isComponentExpanded(component.id) ? 'lucideChevronDown' : 'lucideChevronRight'"
-                                  size="16"
-                                  aria-hidden="true"
-                                />
+                                <span class="inline-icon" aria-hidden="true">{{ isComponentExpanded(component.id) ? '▾' : '▸' }}</span>
                               }
                             </span>
                           </button>
@@ -260,7 +252,7 @@
                 class="course-admin-action"
                 (click)="courseEdited.emit(currentCourse.id)"
               >
-                <ng-icon name="lucidePencil" size="14" aria-hidden="true" />
+                <span class="inline-icon" aria-hidden="true">✎</span>
                 <span>Edit course</span>
               </button>
 
@@ -270,7 +262,7 @@
                   class="course-admin-action"
                   (click)="openPriceModal(currentCourse)"
                 >
-                  <ng-icon name="lucideBadgeDollarSign" size="14" aria-hidden="true" />
+                  <span class="inline-icon" aria-hidden="true">kr</span>
                   <span>Set price</span>
                 </button>
               }
@@ -315,7 +307,7 @@
           <h2 id="price-modal-title">Set course price</h2>
         </div>
         <button type="button" class="price-modal-close" aria-label="Close price modal" (click)="closePriceModal()">
-          <ng-icon name="lucideX" size="18" aria-hidden="true" />
+          <span class="inline-icon" aria-hidden="true">×</span>
         </button>
       </header>
 
