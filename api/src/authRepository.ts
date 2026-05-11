@@ -2,11 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import {
   type AuthUser,
-  authSheetHeaders,
   authUserFromSheetRow,
   hashPassword
 } from './auth.js';
-import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
+import { createSheetsClient } from './googleSheets.js';
 
 export interface AuthRepository {
   findByEmail(email: string): Promise<AuthUser | null>;
@@ -26,7 +25,6 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
 
   private async listUsers(): Promise<AuthUser[]> {
     const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_USERS_RANGE, [...authSheetHeaders]);
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,

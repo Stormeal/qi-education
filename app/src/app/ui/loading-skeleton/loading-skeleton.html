@@ -1,0 +1,144 @@
+@switch (variant()) {
+  @case ('course-card') {
+    <div class="skeleton-grid skeleton-grid-courses" aria-hidden="true">
+      @for (item of items(); track item) {
+        <article class="skeleton-frame skeleton-course-card">
+          <div class="skeleton-course-media skeleton-shimmer"></div>
+          <div class="skeleton-course-body">
+            <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+            <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+            <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+            <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+            <div class="skeleton-course-teacher">
+              <div class="skeleton-avatar skeleton-shimmer"></div>
+              <div class="skeleton-stack">
+                <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+                <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  @case ('feedback-card') {
+    <div class="skeleton-grid skeleton-grid-feedback" aria-hidden="true">
+      @for (item of items(); track item) {
+        <article class="skeleton-frame skeleton-feedback-card">
+          <div class="skeleton-feedback-header">
+            <div class="skeleton-stack">
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-line skeleton-line-meta skeleton-shimmer"></div>
+          </div>
+          <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+          <div class="skeleton-feedback-footer">
+            <div class="skeleton-avatar skeleton-shimmer"></div>
+            <div class="skeleton-stack">
+              <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  @case ('stat-card') {
+    <div class="skeleton-grid skeleton-grid-stats" aria-hidden="true">
+      @for (item of items(); track item) {
+        <article class="skeleton-frame skeleton-stat-card">
+          <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+          <div class="skeleton-block skeleton-stat-value skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+        </article>
+      }
+    </div>
+  }
+
+  @case ('course-detail') {
+    <div class="skeleton-detail" aria-hidden="true">
+      <section class="skeleton-detail-hero">
+        <div class="skeleton-stack">
+          <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-hero skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+        </div>
+      </section>
+      <div class="skeleton-detail-layout">
+        <div class="skeleton-detail-main">
+          <article class="skeleton-frame skeleton-proof-card">
+            <div class="skeleton-proof-cell">
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-proof-cell">
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-proof-cell">
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+            </div>
+          </article>
+          <article class="skeleton-frame skeleton-text-panel">
+            <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+            <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+            <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+            <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+          </article>
+          <article class="skeleton-frame skeleton-text-panel">
+            <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+            <div class="skeleton-block skeleton-curriculum-block skeleton-shimmer"></div>
+          </article>
+        </div>
+        <aside class="skeleton-frame skeleton-detail-aside">
+          <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+          <div class="skeleton-block skeleton-price-block skeleton-shimmer"></div>
+          <div class="skeleton-block skeleton-button-block skeleton-shimmer"></div>
+          <div class="skeleton-block skeleton-button-block skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+          <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+        </aside>
+      </div>
+    </div>
+  }
+
+  @case ('course-content') {
+    <div class="skeleton-grid skeleton-grid-content" aria-hidden="true">
+      @for (item of items(); track item) {
+        <article class="skeleton-frame skeleton-content-panel">
+          <div class="skeleton-content-header">
+            <div class="skeleton-stack">
+              <div class="skeleton-line skeleton-line-title skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+            </div>
+            <div class="skeleton-circle-button skeleton-shimmer"></div>
+          </div>
+          <div class="skeleton-content-row">
+            <div class="skeleton-circle-button skeleton-shimmer"></div>
+            <div class="skeleton-stack skeleton-stack-grow">
+              <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-short skeleton-shimmer"></div>
+            </div>
+          </div>
+          <div class="skeleton-content-row">
+            <div class="skeleton-circle-button skeleton-shimmer"></div>
+            <div class="skeleton-stack skeleton-stack-grow">
+              <div class="skeleton-line skeleton-line-full skeleton-shimmer"></div>
+              <div class="skeleton-line skeleton-line-medium skeleton-shimmer"></div>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  }
+}

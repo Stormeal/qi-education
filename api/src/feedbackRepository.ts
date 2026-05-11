@@ -37,8 +37,6 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
 
   async listFeedback(): Promise<FeedbackEntry[]> {
     const sheets = createSheetsClient();
-
-    await ensureFeedbackHeaders();
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: feedbackDataRange(),

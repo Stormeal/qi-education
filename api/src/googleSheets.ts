@@ -43,10 +43,20 @@ export async function ensureWorksheetHeaders(range: string, headers: string[]) {
         ]
       }
     });
+  }
 
+  const headerRange = `${sheetTitle}!A1:${toColumnName(headers.length)}1`;
+  const headerResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: headerRange
+  });
+  const existingHeaders = (headerResponse.data.values?.[0] as string[] | undefined) ?? [];
+  const headersMatch = headers.every((header, index) => (existingHeaders[index] ?? '') === header);
+
+  if (existingHeaders.length < headers.length || !headersMatch) {
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${sheetTitle}!A1:${toColumnName(headers.length)}1`,
+      range: headerRange,
       valueInputOption: 'RAW',
       requestBody: {
         values: [headers]

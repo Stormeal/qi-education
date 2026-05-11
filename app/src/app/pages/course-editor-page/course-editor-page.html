@@ -25,12 +25,18 @@
         }
       </h1>
       <p>
-        Keep the course details in one place. Update the title, level, teacher, status, and
-        career goals from this page.
+        Keep the course details in one place. Update the title, level, teacher, publishing stage,
+        and career goals from this page.
       </p>
     </div>
 
-    <app-button variant="outline" (buttonClicked)="courseCanceled.emit()">Back to courses</app-button>
+    <app-button variant="outline" (buttonClicked)="courseCanceled.emit()">
+      @if (courseFormMode() === 'edit') {
+        Back to course
+      } @else {
+        Back to courses
+      }
+    </app-button>
   </header>
 
   <section class="course-create-panel" aria-labelledby="course-editor-title" id="course-editor-form">
@@ -61,7 +67,7 @@
         </div>
 
         <div class="editor-grid">
-          <label class="field wide">
+          <label class="field">
             <span>Course title</span>
             <input
               type="text"
@@ -69,6 +75,17 @@
               placeholder="ISTQB Foundation 4.0"
               [disabled]="courseSubmitting()"
               (input)="courseTitleChanged.emit(controlValue($event))"
+            />
+          </label>
+
+          <label class="field">
+            <span>Teacher</span>
+            <input
+              type="text"
+              [value]="courseDraft().teacher"
+              placeholder="QI Education"
+              [disabled]="courseSubmitting()"
+              (input)="courseTeacherChanged.emit(controlValue($event))"
             />
           </label>
 
@@ -84,13 +101,13 @@
           </label>
 
           <label class="field">
-            <span>Teacher</span>
+            <span>Part of Career</span>
             <input
               type="text"
-              [value]="courseDraft().teacher"
-              placeholder="QI Education"
+              [value]="courseDraft().partOfCareer"
+              placeholder="Automation Engineering"
               [disabled]="courseSubmitting()"
-              (input)="courseTeacherChanged.emit(controlValue($event))"
+              (input)="coursePartOfCareerChanged.emit(controlValue($event))"
             />
           </label>
         </div>
@@ -106,7 +123,7 @@
         </div>
 
         <div class="editor-grid">
-          <label class="field wide">
+          <label class="field">
             <span>Description</span>
             <textarea
               rows="4"
@@ -117,7 +134,7 @@
             ></textarea>
           </label>
 
-          <label class="field wide">
+          <label class="field">
             <span>Who this course is for</span>
             <textarea
               rows="4"
@@ -128,31 +145,27 @@
             ></textarea>
           </label>
 
-          <div class="requirements-layout wide">
-            <label class="field">
-              <span>Requirements</span>
-              <textarea
-                rows="5"
-                [value]="courseDraft().requirements"
-                placeholder="Basic testing experience&#10;Comfort reading requirements&#10;Access to the course materials"
-                [disabled]="courseSubmitting()"
-                (input)="courseRequirementsChanged.emit(controlValue($event))"
-              ></textarea>
-            </label>
+          <label class="field">
+            <span>Requirements</span>
+            <textarea
+              rows="5"
+              [value]="courseDraft().requirements"
+              placeholder="• Basic testing experience&#10;• Comfort reading requirements&#10;• Access to the course materials"
+              [disabled]="courseSubmitting()"
+              (input)="courseRequirementsChanged.emit(controlValue($event))"
+            ></textarea>
+          </label>
 
-            <aside class="requirements-preview" aria-label="Requirements preview">
-              <span>Bullet preview</span>
-              @if (requirementItems().length > 0) {
-                <ul>
-                  @for (requirement of requirementItems(); track requirement) {
-                    <li>{{ requirement }}</li>
-                  }
-                </ul>
-              } @else {
-                <p>No requirements added.</p>
-              }
-            </aside>
-          </div>
+          <label class="field">
+            <span>What you'll learn</span>
+            <textarea
+              rows="5"
+              [value]="courseDraft().whatYoullLearn"
+              placeholder="• Write maintainable test cases&#10;• Understand course concepts quickly&#10;• Apply the lessons in real work"
+              [disabled]="courseSubmitting()"
+              (input)="courseWhatYoullLearnChanged.emit(controlValue($event))"
+            ></textarea>
+          </label>
         </div>
       </section>
 
@@ -161,23 +174,31 @@
           <span class="section-step">3</span>
           <div>
             <h3 id="course-publishing-title">Publishing</h3>
-            <p>Visibility and outcome tags for discovery.</p>
+            <p>Manage the review stage and outcome tags for discovery.</p>
           </div>
         </div>
 
         <div class="editor-grid">
-          <label class="field">
-            <span>Status</span>
-            <select
-              [value]="courseDraft().status"
-              [disabled]="courseSubmitting()"
-              (change)="courseStatusChanged.emit(controlValue($event))"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </select>
-          </label>
+          @if (courseFormMode() === 'edit') {
+            <label class="field">
+              <span>Status</span>
+              <select
+                [value]="courseDraft().status"
+                [disabled]="courseSubmitting()"
+                (change)="courseStatusChanged.emit(controlValue($event))"
+              >
+                <option value="draft">Draft</option>
+                <option value="ready-for-review">Ready for review</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+          } @else {
+            <div class="field">
+              <span>Status</span>
+              <input type="text" value="Draft" disabled />
+            </div>
+          }
 
           <label class="field">
             <span>Career goals</span>
@@ -192,30 +213,61 @@
         </div>
       </section>
 
+      @if (courseFormMode() === 'edit') {
+        <section class="editor-section" aria-labelledby="course-content-editor-title">
+          <div class="editor-section-heading">
+            <span class="section-step">4</span>
+            <div>
+              <h3 id="course-content-editor-title">Course content</h3>
+              <p>Build the actual learning material stored in MongoDB.</p>
+            </div>
+          </div>
+
+          <app-course-builder
+            [courseContent]="courseContent()"
+            [courseContentLoading]="courseContentLoading()"
+            [courseContentSaving]="courseContentSaving()"
+            [courseSubmitting]="courseSubmitting()"
+            [courseContentError]="courseContentError()"
+            (courseSectionAdded)="courseSectionAdded.emit()"
+            (courseSectionRemoved)="courseSectionRemoved.emit($event)"
+            (courseSectionTitleChanged)="courseSectionTitleChanged.emit($event)"
+            (courseComponentAdded)="courseComponentAdded.emit($event)"
+            (courseComponentRemoved)="courseComponentRemoved.emit($event)"
+            (courseComponentTitleChanged)="courseComponentTitleChanged.emit($event)"
+            (courseComponentTypeChanged)="courseComponentTypeChanged.emit($event)"
+            (courseComponentDurationChanged)="courseComponentDurationChanged.emit($event)"
+            (courseComponentContentChanged)="courseComponentContentChanged.emit($event)"
+            (courseComponentUrlChanged)="courseComponentUrlChanged.emit($event)"
+            (courseComponentMoved)="courseComponentMoved.emit($event)"
+          />
+        </section>
+      }
+
       @if (courseCreateError()) {
         <p class="course-error" role="alert">{{ courseCreateError() }}</p>
       }
     </div>
-  </section>
 
-  <div class="editor-action-bar">
-    <app-button [disabled]="courseSubmitting()" (buttonClicked)="courseCanceled.emit()">
-      Cancel
-    </app-button>
-    <app-button
-      variant="primary"
-      [disabled]="courseSubmitting()"
-      (buttonClicked)="courseSubmitted.emit()"
-    >
-      @if (courseSubmitting()) {
-        Saving...
-      } @else if (courseFormMode() === 'edit') {
-        Save changes
-      } @else {
-        Create course
-      }
-    </app-button>
-  </div>
+    <div class="editor-action-bar">
+      <app-button [disabled]="courseSubmitting()" (buttonClicked)="courseCanceled.emit()">
+        Cancel
+      </app-button>
+      <app-button
+        variant="primary"
+        [disabled]="courseSubmitting()"
+        (buttonClicked)="courseSubmitted.emit()"
+      >
+        @if (courseSubmitting()) {
+          Saving...
+        } @else if (courseFormMode() === 'edit') {
+          Save changes
+        } @else {
+          Create course
+        }
+      </app-button>
+    </div>
+  </section>
 
   <footer class="site-footer">
     <span class="footer-credit">
@@ -225,6 +277,12 @@
     <span class="footer-version">Version {{ appVersion() }}</span>
   </footer>
 </main>
+
+@if (courseSaveNotice()) {
+  <div class="save-toast" role="status" aria-live="polite">
+    {{ courseSaveNotice() }}
+  </div>
+}
 
 @if (isFeedbackOpen()) {
   <app-feedback-dialog

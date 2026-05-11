@@ -1,4 +1,5 @@
 import cors from 'cors';
+import { randomUUID } from 'node:crypto';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { ZodError } from 'zod';
 import {
@@ -13,15 +14,21 @@ import {
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig } from './config.js';
-import { createCourseSchema, updateCourseSchema } from './course.js';
+import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema } from './course.js';
+import { updateCourseContentSchema } from './courseContent.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
+import {
+  createCourseContentRepository,
+  type CourseContentRepository,
+} from './courseContentRepository.js';
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
   courseRepository?: CourseRepository;
   feedbackRepository?: FeedbackRepository;
+  courseContentRepository?: CourseContentRepository;
 };
 
 type AuthenticatedRequest = Request & {
@@ -33,6 +40,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const auth = dependencies.authRepository ?? createAuthRepository();
   const courses = dependencies.courseRepository ?? createCourseRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
+  const courseContent = dependencies.courseContentRepository ?? createCourseContentRepository();
 
   app.use(cors({ origin: getCorsOrigins() }));
   app.use(express.json());
@@ -121,7 +129,57 @@ export function createServer(dependencies: ServerDependencies = {}) {
     async (request, response, next) => {
       try {
         const input = createCourseSchema.parse(request.body);
-        response.status(201).json(await courses.createCourse(input));
+        const seed = {
+          id: randomUUID(),
+          createdAt: new Date().toISOString(),
+        };
+
+        await courseContent.createEmptyCourseContent(seed.id, seed.createdAt);
+
+        try {
+          response.status(201).json(await courses.createCourse(input, seed));
+        } catch (error) {
+          await courseContent.deleteCourseContent(seed.id);
+          throw error;
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.get('/courses/:id/content', async (request, response, next) => {
+    try {
+      const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+      const content = await courseContent.getCourseContent(courseId);
+
+      if (!content) {
+        response.status(404).json({ message: 'Course content not found' });
+        return;
+      }
+
+      response.json(content);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch(
+    '/courses/:id/content',
+    authenticateRequest(auth),
+    requireCourseCreator,
+    async (request, response, next) => {
+      try {
+        const input = updateCourseContentSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        response.json(await courseContent.updateCourseContent(courseId, input.sections));
       } catch (error) {
         next(error);
       }
@@ -137,6 +195,28 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const input = updateCourseSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const updatedCourse = await courses.updateCourse(courseId, input);
+
+        if (!updatedCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        response.json(updatedCourse);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.patch(
+    '/courses/:id/price',
+    authenticateRequest(auth),
+    requireAdmin,
+    async (request, response, next) => {
+      try {
+        const input = updateCoursePriceSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const updatedCourse = await courses.updateCoursePrice(courseId, input);
 
         if (!updatedCourse) {
           response.status(404).json({ message: 'Course not found' });

@@ -8,6 +8,7 @@ import {
 } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
+import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 type FeedbackPriority = 'low' | 'medium' | 'high';
@@ -15,7 +16,7 @@ type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, AppButton, FeedbackDialog, PageHeader],
+  imports: [DatePipe, AppButton, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

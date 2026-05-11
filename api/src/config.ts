@@ -15,6 +15,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default(defaultCorsOrigin),
   AUTH_TOKEN_SECRET: z.string().min(16).optional(),
   SESSION_SECRET: z.string().min(16).optional(),
+  MONGODB_URI: z.string().min(1).optional(),
+  MONGODB_DB_NAME: z.string().min(1).optional(),
+  MONGODB_COURSE_CONTENT_COLLECTION: z.string().min(1).optional(),
   GOOGLE_SHEET_ID: z.string().min(1).optional(),
   GOOGLE_SHEETS_COURSES: z.string().min(1).optional(),
   GOOGLE_SHEETS_USERS: z.string().min(1).optional(),
@@ -37,7 +40,7 @@ export const apiConfig = {
   AUTH_TOKEN_SECRET: authTokenSecret,
   GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
   GOOGLE_SHEETS_COURSES_RANGE:
-    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:J',
+    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:M',
   GOOGLE_SHEETS_USERS_RANGE:
     usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:G',
   GOOGLE_SHEETS_FEEDBACK_RANGE:
@@ -85,6 +88,26 @@ export function hasGoogleSheetsConfig() {
     apiConfig.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
     apiConfig.GOOGLE_PRIVATE_KEY,
   );
+}
+
+export function hasMongoConfig() {
+  if (process.env.NODE_ENV === 'test') {
+    return false;
+  }
+
+  return hasMongoConfigValues(
+    apiConfig.MONGODB_URI,
+    apiConfig.MONGODB_DB_NAME,
+    apiConfig.MONGODB_COURSE_CONTENT_COLLECTION,
+  );
+}
+
+export function hasMongoConfigValues(
+  mongoUri: string | undefined,
+  databaseName: string | undefined,
+  collectionName: string | undefined,
+) {
+  return Boolean(mongoUri && databaseName && collectionName);
 }
 
 export function getCorsOrigins() {

@@ -32,7 +32,7 @@
 
   <section class="courses-layout" id="courses-list">
     @if (coursesLoading()) {
-      <p class="course-empty">Loading courses...</p>
+      <app-loading-skeleton variant="course-card" [count]="6" />
     } @else if (coursesError()) {
       <p class="course-error" role="alert">{{ coursesError() }}</p>
     } @else if (courses().length === 0) {

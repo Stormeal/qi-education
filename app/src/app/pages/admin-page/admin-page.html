@@ -32,23 +32,27 @@
     </div>
   </header>
 
-  <section class="admin-stats" aria-label="Feedback summary">
-    <article>
-      <span>Total</span>
-      <strong>{{ feedbackTotal() }}</strong>
-      <small>Submissions</small>
-    </article>
-    <article>
-      <span>Bad</span>
-      <strong>{{ needsWorkTotal() }}</strong>
-      <small>Follow-up items</small>
-    </article>
-    <article>
-      <span>Pages</span>
-      <strong>{{ activePagesTotal() }}</strong>
-      <small>With feedback</small>
-    </article>
-  </section>
+  @if (feedbackLoading()) {
+    <app-loading-skeleton variant="stat-card" [count]="3" />
+  } @else {
+    <section class="admin-stats" aria-label="Feedback summary">
+      <article>
+        <span>Total</span>
+        <strong>{{ feedbackTotal() }}</strong>
+        <small>Submissions</small>
+      </article>
+      <article>
+        <span>Bad</span>
+        <strong>{{ needsWorkTotal() }}</strong>
+        <small>Follow-up items</small>
+      </article>
+      <article>
+        <span>Pages</span>
+        <strong>{{ activePagesTotal() }}</strong>
+        <small>With feedback</small>
+      </article>
+    </section>
+  }
 
   <section class="admin-panel" id="admin-feedback">
     <div class="admin-panel-header">
@@ -62,10 +66,7 @@
     </div>
 
     @if (feedbackLoading()) {
-      <div class="admin-empty">
-        <strong>Loading feedback</strong>
-        <span>Fetching the latest submissions.</span>
-      </div>
+      <app-loading-skeleton variant="feedback-card" [count]="4" />
     } @else if (feedbackError()) {
       <p class="course-error" role="alert">{{ feedbackError() }}</p>
     } @else if (feedback().length === 0) {

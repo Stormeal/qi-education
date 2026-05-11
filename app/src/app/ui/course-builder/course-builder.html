@@ -1,0 +1,305 @@
+@if (courseContentLoading()) {
+  <app-loading-skeleton variant="course-content" [count]="2" />
+} @else if (!courseContent()) {
+  <p class="course-content-empty">Course content is not available yet.</p>
+} @else {
+  <div class="content-toolbar">
+    <span class="content-summary">{{ contentSummary() }}</span>
+    <button
+      type="button"
+      class="icon-action-button"
+      aria-label="Add section"
+      [disabled]="courseContentSaving() || courseSubmitting()"
+      (click)="courseSectionAdded.emit()"
+    >
+      <span class="inline-icon" aria-hidden="true">+</span>
+    </button>
+  </div>
+
+  <div class="builder-stack">
+    @for (section of courseContent()!.sections; track section.id; let sectionIndex = $index) {
+      <article class="builder-section">
+        <div class="builder-section-header">
+          <div class="builder-section-heading">
+            <button
+              type="button"
+              class="chevron-button"
+              [attr.aria-label]="sectionToggleLabel(sectionIndex)"
+              [class.is-collapsed]="isSectionCollapsed(sectionIndex)"
+              (click)="toggleSection(sectionIndex)"
+            >
+              <span class="chevron-icon" aria-hidden="true"></span>
+            </button>
+            <span class="builder-section-index">{{ sectionIndex + 1 }}</span>
+            <span
+              class="builder-section-title"
+              [attr.contenteditable]="isSectionRenaming(sectionIndex)"
+              [class.is-editing]="isSectionRenaming(sectionIndex)"
+              [attr.role]="isSectionRenaming(sectionIndex) ? 'textbox' : null"
+              [attr.aria-label]="'Section title'"
+              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); finishSectionRename()"
+              (keydown)="renameKeydown($event)"
+            >
+              {{ section.title }}
+            </span>
+            <a href="" class="rename-link" (click)="startSectionRename(sectionIndex, $event)">Rename</a>
+          </div>
+
+          <div class="builder-section-meta">
+            <span class="builder-duration-chip">
+              <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
+              <span>{{ sectionDuration(sectionIndex) }}</span>
+            </span>
+            <button
+              type="button"
+              class="icon-action-button icon-action-button-danger"
+              aria-label="Remove section"
+              [disabled]="courseContentSaving() || courseSubmitting()"
+              (click)="courseSectionRemoved.emit(sectionIndex)"
+            >
+              <span class="inline-icon" aria-hidden="true">×</span>
+            </button>
+          </div>
+        </div>
+
+        @if (!isSectionCollapsed(sectionIndex)) {
+          <div class="builder-component-list">
+            @for (component of section.components; track component.id; let componentIndex = $index) {
+              <section
+                class="builder-component-row"
+                draggable="true"
+                (dragstart)="dragComponentStarted(sectionIndex, componentIndex, $event)"
+                (dragover)="dragComponentAllowed($event)"
+                (drop)="dropComponent(sectionIndex, componentIndex, $event)"
+                (dragend)="dragComponentEnded()"
+              >
+                <button type="button" class="drag-handle" aria-label="Drag component">
+                  <span class="inline-icon" aria-hidden="true">⋮⋮</span>
+                </button>
+
+                <span
+                  class="builder-component-icon"
+                  [class]="componentTypeClass(component)"
+                  aria-hidden="true"
+                >
+                  <span class="inline-icon" aria-hidden="true">{{ componentTypeIconGlyph(component) }}</span>
+                </span>
+
+                <div class="builder-component-copy">
+                  <strong>{{ component.title || 'Untitled component' }}</strong>
+                  <span>{{ componentTypeLabel(component) }}</span>
+                </div>
+
+                <div class="builder-component-duration">
+                  <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
+                  <span>{{ formatDuration(component) }}</span>
+                </div>
+
+                <button
+                  type="button"
+                  class="component-row-action"
+                  [disabled]="courseContentSaving() || courseSubmitting()"
+                  (click)="openComponentEditor(sectionIndex, componentIndex)"
+                >
+                  Edit
+                </button>
+
+                <button
+                  type="button"
+                  class="component-row-action component-row-action-danger"
+                  [disabled]="courseContentSaving() || courseSubmitting()"
+                  (click)="removeComponent(sectionIndex, componentIndex)"
+                >
+                  Remove
+                </button>
+              </section>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="add-component-button"
+            [disabled]="courseContentSaving() || courseSubmitting()"
+            (click)="openComponentPicker(sectionIndex)"
+          >
+            + Add New Component
+          </button>
+        }
+      </article>
+    } @empty {
+      <p class="course-content-empty">No sections yet. Add the first section to start building the course.</p>
+    }
+  </div>
+}
+
+@if (courseContentError()) {
+  <p class="course-error" role="alert">{{ courseContentError() }}</p>
+}
+
+@if (editingComponent(); as component) {
+  <div class="builder-modal-overlay">
+    <section
+      class="builder-modal"
+      aria-labelledby="component-editor-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <header class="builder-modal-header">
+        <div>
+          <p class="builder-modal-kicker">{{ componentTypeLabel(component) }}</p>
+          <h3 id="component-editor-title">{{ component.title || 'Untitled component' }}</h3>
+        </div>
+
+        <button
+          type="button"
+          class="icon-action-button"
+          aria-label="Close editor"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (click)="closeComponentEditor()"
+        >
+          <span class="inline-icon" aria-hidden="true">×</span>
+        </button>
+      </header>
+
+      @if (activeEditor(); as editor) {
+        <div class="builder-modal-body">
+          <label class="builder-field">
+            <span>Component title</span>
+            <input
+              type="text"
+              [value]="component.title"
+              [disabled]="courseContentSaving() || courseSubmitting()"
+              (input)="courseComponentTitleChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+            />
+          </label>
+
+          <div class="builder-modal-grid">
+            <label class="builder-field">
+              <span>Component type</span>
+              <select
+                [value]="component.type"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (change)="courseComponentTypeChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              >
+                <option value="video">Video</option>
+                <option value="quiz">Quiz</option>
+                <option value="text">Text</option>
+              </select>
+            </label>
+
+            <label class="builder-field">
+              <span>Duration (minutes)</span>
+              <input
+                type="number"
+                min="0"
+                [value]="component.durationMinutes"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (input)="courseComponentDurationChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              />
+            </label>
+          </div>
+
+          @if (hasSupportingUrl(component)) {
+            <label class="builder-field">
+              <span>Video URL</span>
+              <input
+                type="url"
+                [value]="component.resourceUrl"
+                placeholder="https://..."
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (input)="courseComponentUrlChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              />
+            </label>
+          }
+
+          <label class="builder-field">
+            <span>{{ componentEditorLabel(component) }}</span>
+            <textarea
+              rows="7"
+              [value]="component.content"
+              [disabled]="courseContentSaving() || courseSubmitting()"
+              (input)="courseComponentContentChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+            ></textarea>
+          </label>
+        </div>
+      }
+
+      <footer class="builder-modal-footer">
+        <app-button
+          variant="primary"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (buttonClicked)="closeComponentEditor()"
+        >
+          Done
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (componentPicker(); as picker) {
+  <div class="builder-modal-overlay">
+    <section class="builder-modal builder-picker-modal" aria-labelledby="component-picker-title" role="dialog" aria-modal="true">
+      <header class="builder-modal-header">
+        <div>
+          <p class="builder-modal-kicker">New component</p>
+          <h3 id="component-picker-title">Choose a component type</h3>
+        </div>
+
+        <button
+          type="button"
+          class="icon-action-button"
+          aria-label="Close component picker"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (click)="closeComponentPicker()"
+        >
+          <span class="inline-icon" aria-hidden="true">×</span>
+        </button>
+      </header>
+
+      <div class="component-picker-body">
+        <div class="component-picker-tabs" aria-hidden="true">
+          <span class="is-active">New Components</span>
+          <span>Existing Components</span>
+        </div>
+
+        <div class="component-picker-group">
+          <p class="component-picker-label">Create</p>
+
+          @for (choice of componentChoices; track choice.type) {
+            <div class="component-picker-row">
+              <div class="component-picker-copy">
+                <span class="component-picker-icon">
+                  <span class="inline-icon" aria-hidden="true">{{ choice.icon }}</span>
+                </span>
+                <div>
+                  <strong>{{ choice.title }}</strong>
+                  <small>{{ choice.subtitle }}</small>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="component-picker-add"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (click)="addComponentOfType(choice.type)"
+              >
+                Add
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <footer class="builder-modal-footer">
+        <app-button
+          variant="outline"
+          [disabled]="courseContentSaving() || courseSubmitting()"
+          (buttonClicked)="closeComponentPicker()"
+        >
+          Cancel
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
