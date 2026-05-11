@@ -10,7 +10,7 @@ describe('course sheet mapping', () => {
       level: 'Intermediate',
       teacher: 'Teacher Demo',
       careerGoals: ['Automation', 'API testing'],
-      status: 'published',
+      status: 'ready-for-review',
       createdAt: '2026-05-08T20:00:00.000Z',
       requirements: ['Basic testing experience', 'Comfort reading API documentation'],
       audience: 'QA professionals moving into API automation.',

@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
+import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-courses-page',
-  imports: [AppButton, FeedbackDialog, PageHeader, RouterLink],
+  imports: [AppButton, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink],
   templateUrl: './courses-page.html',
   styleUrls: ['../../app.scss', './courses-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,7 +45,14 @@ export class CoursesPage {
   readonly adminClicked = output<void>();
 
   protected courseBadge(course: CourseListItem): string {
-    return course.status === 'published' ? 'Free' : course.status;
+    switch (course.status) {
+      case 'published':
+        return 'Free';
+      case 'ready-for-review':
+        return 'Ready for review';
+      default:
+        return course.status;
+    }
   }
 
   protected teacherInitials(name: string): string {

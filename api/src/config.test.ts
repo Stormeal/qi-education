@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { apiConfig, getCorsOrigins, resolveAuthTokenSecret } from './config.js';
+import { apiConfig, getCorsOrigins, hasMongoConfigValues, resolveAuthTokenSecret } from './config.js';
 
 describe('API config', () => {
   it('uses a course sheet range that includes all course columns by default', () => {
@@ -29,5 +29,21 @@ describe('API config', () => {
 
   it('includes GitHub Pages in the default CORS origins', () => {
     expect(getCorsOrigins()).toContain('https://stormeal.github.io');
+  });
+
+  it('recognizes a complete MongoDB config set', () => {
+    expect(
+      hasMongoConfigValues(
+        'mongodb+srv://user:secret@example.mongodb.net/?retryWrites=true&w=majority',
+        'QIEducation',
+        'courseContent',
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects incomplete MongoDB config values', () => {
+    expect(hasMongoConfigValues(undefined, 'QIEducation', 'courseContent')).toBe(false);
+    expect(hasMongoConfigValues('mongodb+srv://example', undefined, 'courseContent')).toBe(false);
+    expect(hasMongoConfigValues('mongodb+srv://example', 'QIEducation', undefined)).toBe(false);
   });
 });

@@ -25,12 +25,18 @@
         }
       </h1>
       <p>
-        Keep the course details in one place. Update the title, level, teacher, status, and
-        career goals from this page.
+        Keep the course details in one place. Update the title, level, teacher, publishing stage,
+        and career goals from this page.
       </p>
     </div>
 
-    <app-button variant="outline" (buttonClicked)="courseCanceled.emit()">Back to courses</app-button>
+    <app-button variant="outline" (buttonClicked)="courseCanceled.emit()">
+      @if (courseFormMode() === 'edit') {
+        Back to course
+      } @else {
+        Back to courses
+      }
+    </app-button>
   </header>
 
   <section class="course-create-panel" aria-labelledby="course-editor-title" id="course-editor-form">
@@ -161,23 +167,31 @@
           <span class="section-step">3</span>
           <div>
             <h3 id="course-publishing-title">Publishing</h3>
-            <p>Visibility and outcome tags for discovery.</p>
+            <p>Manage the review stage and outcome tags for discovery.</p>
           </div>
         </div>
 
         <div class="editor-grid">
-          <label class="field">
-            <span>Status</span>
-            <select
-              [value]="courseDraft().status"
-              [disabled]="courseSubmitting()"
-              (change)="courseStatusChanged.emit(controlValue($event))"
-            >
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </select>
-          </label>
+          @if (courseFormMode() === 'edit') {
+            <label class="field">
+              <span>Status</span>
+              <select
+                [value]="courseDraft().status"
+                [disabled]="courseSubmitting()"
+                (change)="courseStatusChanged.emit(controlValue($event))"
+              >
+                <option value="draft">Draft</option>
+                <option value="ready-for-review">Ready for review</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+          } @else {
+            <div class="field">
+              <span>Status</span>
+              <input type="text" value="Draft" disabled />
+            </div>
+          }
 
           <label class="field">
             <span>Career goals</span>
@@ -191,6 +205,37 @@
           </label>
         </div>
       </section>
+
+      @if (courseFormMode() === 'edit') {
+        <section class="editor-section" aria-labelledby="course-content-editor-title">
+          <div class="editor-section-heading">
+            <span class="section-step">4</span>
+            <div>
+              <h3 id="course-content-editor-title">Course content</h3>
+              <p>Build the actual learning material stored in MongoDB.</p>
+            </div>
+          </div>
+
+          <app-course-builder
+            [courseContent]="courseContent()"
+            [courseContentLoading]="courseContentLoading()"
+            [courseContentSaving]="courseContentSaving()"
+            [courseSubmitting]="courseSubmitting()"
+            [courseContentError]="courseContentError()"
+            (courseSectionAdded)="courseSectionAdded.emit()"
+            (courseSectionRemoved)="courseSectionRemoved.emit($event)"
+            (courseSectionTitleChanged)="courseSectionTitleChanged.emit($event)"
+            (courseComponentAdded)="courseComponentAdded.emit($event)"
+            (courseComponentRemoved)="courseComponentRemoved.emit($event)"
+            (courseComponentTitleChanged)="courseComponentTitleChanged.emit($event)"
+            (courseComponentTypeChanged)="courseComponentTypeChanged.emit($event)"
+            (courseComponentDurationChanged)="courseComponentDurationChanged.emit($event)"
+            (courseComponentContentChanged)="courseComponentContentChanged.emit($event)"
+            (courseComponentUrlChanged)="courseComponentUrlChanged.emit($event)"
+            (courseComponentMoved)="courseComponentMoved.emit($event)"
+          />
+        </section>
+      }
 
       @if (courseCreateError()) {
         <p class="course-error" role="alert">{{ courseCreateError() }}</p>
@@ -225,6 +270,12 @@
     <span class="footer-version">Version {{ appVersion() }}</span>
   </footer>
 </main>
+
+@if (courseSaveNotice()) {
+  <div class="save-toast" role="status" aria-live="polite">
+    {{ courseSaveNotice() }}
+  </div>
+}
 
 @if (isFeedbackOpen()) {
   <app-feedback-dialog

@@ -5,19 +5,26 @@ import {
   type CreateCourseInput,
   type UpdateCourseInput,
   courseFromSheetRow,
+  courseSheetHeaders,
   courseToSheetRow,
 } from './course.js';
-import { createSheetsClient } from './googleSheets.js';
+import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 
 export interface CourseRepository {
   listCourses(): Promise<Course[]>;
-  createCourse(input: CreateCourseInput): Promise<Course>;
+  createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course>;
   updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null>;
 }
+
+export type CourseSeed = {
+  id: string;
+  createdAt: string;
+};
 
 export class GoogleSheetsCourseRepository implements CourseRepository {
   async listCourses(): Promise<Course[]> {
     const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_COURSES_RANGE, [...courseSheetHeaders]);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE
@@ -27,14 +34,15 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     return rows.slice(1).map((row) => courseFromSheetRow(row as string[]));
   }
 
-  async createCourse(input: CreateCourseInput): Promise<Course> {
+  async createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course> {
     const course: Course = {
       ...input,
-      id: randomUUID(),
-      createdAt: new Date().toISOString()
+      id: seed?.id ?? randomUUID(),
+      createdAt: seed?.createdAt ?? new Date().toISOString()
     };
 
     const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_COURSES_RANGE, [...courseSheetHeaders]);
     await sheets.spreadsheets.values.append({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE,
@@ -49,6 +57,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 
   async updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null> {
     const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(apiConfig.GOOGLE_SHEETS_COURSES_RANGE, [...courseSheetHeaders]);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: apiConfig.GOOGLE_SHEETS_COURSES_RANGE
@@ -105,11 +114,11 @@ export class InMemoryCourseRepository implements CourseRepository {
     return this.courses;
   }
 
-  async createCourse(input: CreateCourseInput): Promise<Course> {
+  async createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course> {
     const course: Course = {
       ...input,
-      id: randomUUID(),
-      createdAt: new Date().toISOString()
+      id: seed?.id ?? randomUUID(),
+      createdAt: seed?.createdAt ?? new Date().toISOString()
     };
 
     this.courses.push(course);

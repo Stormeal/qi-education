@@ -1,6 +1,8 @@
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { InMemoryCourseContentRepository } from './courseContentRepository.js';
+import { InMemoryCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createServer } from './server.js';
 
 describe('QI-Education API', () => {
@@ -164,6 +166,25 @@ describe('QI-Education API', () => {
       audience: 'QA professionals moving into API automation.',
       status: 'draft',
     });
+
+    const contentResponse = await fetch(`${baseUrl}/courses/${body.id}/content`);
+    const content = await contentResponse.json();
+
+    expect(contentResponse.status).toBe(200);
+    expect(content).toMatchObject({
+      _id: body.id,
+      sections: [],
+      createdAt: body.createdAt,
+      updatedAt: body.createdAt,
+    });
+  });
+
+  it('returns 404 when course content does not exist', async () => {
+    const response = await fetch(`${baseUrl}/courses/missing-course/content`);
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.message).toBe('Course content not found');
   });
 
   it('allows a teacher to update a course', async () => {
@@ -198,6 +219,144 @@ describe('QI-Education API', () => {
       title: 'API Automation Foundations, Revised',
       status: 'published',
     });
+  });
+
+  it('allows a teacher to update course content', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+    const sections = [
+      {
+        id: 'section-1',
+        title: 'Chapter 1',
+        components: [
+          {
+            id: 'component-1',
+            title: 'Intro video',
+            type: 'video',
+            durationMinutes: 5,
+            content: 'Welcome to the first lesson.',
+            resourceUrl: 'https://example.com/video',
+          },
+        ],
+      },
+    ];
+
+    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ sections }),
+    });
+    const updated = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      _id: created.id,
+      sections,
+      createdAt: created.createdAt,
+    });
+    expect(updated.updatedAt).toEqual(expect.any(String));
+
+    const getResponse = await fetch(`${baseUrl}/courses/${created.id}/content`);
+    const loaded = await getResponse.json();
+
+    expect(getResponse.status).toBe(200);
+    expect(loaded.sections).toEqual(sections);
+  });
+
+  it('blocks a student from updating course content', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+    const studentToken = await loginAs('student@qi-education.local');
+
+    const response = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${studentToken}`,
+      },
+      body: JSON.stringify({ sections: [] }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.message).toBe('Teacher or admin access is required');
+  });
+
+  it('returns 404 when updating content for a missing course', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const response = await fetch(`${baseUrl}/courses/missing-course/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ sections: [] }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.message).toBe('Course not found');
+  });
+
+  it('rejects invalid course content input', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+
+    const response = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        sections: [
+          {
+            id: 'section-1',
+            title: 'Broken section',
+            components: [
+              {
+                id: 'component-1',
+                title: 'Broken item',
+                type: 'html',
+                durationMinutes: 5,
+                content: 'invalid',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toBe('Invalid request body');
   });
 
   it('captures authenticated feedback', async () => {
@@ -351,8 +510,41 @@ describe('QI-Education API', () => {
     expect(body.message).toBe('Invalid request body');
   });
 
-  async function loginAs(email: string) {
-    const response = await fetch(`${baseUrl}/auth/login`, {
+  it('removes created content if course persistence fails', async () => {
+    const contentRepository = new InMemoryCourseContentRepository();
+    const failingCourseRepository = new FailingCreateCourseRepository();
+    const isolatedServer = createServer({
+      courseRepository: failingCourseRepository,
+      courseContentRepository: contentRepository,
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const response = await fetch(`${isolatedBaseUrl}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(validCourse()),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.message).toBe('Unexpected server error');
+      expect(failingCourseRepository.lastCreateId).toEqual(expect.any(String));
+      expect(
+        await contentRepository.getCourseContent(failingCourseRepository.lastCreateId!),
+      ).toBeNull();
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  async function loginAs(email: string, origin = baseUrl) {
+    const response = await fetch(`${origin}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -377,4 +569,13 @@ function validCourse() {
     careerGoals: ['Automation', 'API testing'],
     status: 'draft',
   };
+}
+
+class FailingCreateCourseRepository extends InMemoryCourseRepository implements CourseRepository {
+  lastCreateId: string | null = null;
+
+  override async createCourse(...args: Parameters<CourseRepository['createCourse']>) {
+    this.lastCreateId = args[1]?.id ?? null;
+    throw new Error('Sheets write failed');
+  }
 }

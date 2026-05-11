@@ -1,35 +1,34 @@
 import { Routes } from '@angular/router';
-import { AdminRoute } from './routes/admin-route';
-import { CourseEditorRoute } from './routes/course-editor-route';
-import { CourseViewRoute } from './routes/course-view-route';
-import { CoursesRoute } from './routes/courses-route';
-import { DashboardRoute } from './routes/dashboard-route';
 
 export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    component: DashboardRoute,
+    loadComponent: () =>
+      import('./routes/dashboard-route').then((module) => module.DashboardRoute),
   },
   {
     path: 'admin',
-    component: AdminRoute,
+    loadComponent: () => import('./routes/admin-route').then((module) => module.AdminRoute),
   },
   {
     path: 'courses',
-    component: CoursesRoute,
+    loadComponent: () => import('./routes/courses-route').then((module) => module.CoursesRoute),
   },
   {
     path: 'courses/new',
-    component: CourseEditorRoute,
+    loadComponent: () =>
+      import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),
   },
   {
     path: 'courses/:id',
-    component: CourseViewRoute,
+    loadComponent: () =>
+      import('./routes/course-view-route').then((module) => module.CourseViewRoute),
   },
   {
     path: 'courses/:id/edit',
-    component: CourseEditorRoute,
+    loadComponent: () =>
+      import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),
   },
   {
     path: '**',

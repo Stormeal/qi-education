@@ -1,0 +1,193 @@
+@if (courseContentLoading()) {
+  <app-loading-skeleton variant="course-content" [count]="2" />
+} @else if (!courseContent()) {
+  <p class="course-content-empty">Course content is not available yet.</p>
+} @else {
+  <div class="content-toolbar">
+    <span class="content-summary">{{ contentSummary() }}</span>
+    <app-button
+      variant="outline"
+      [disabled]="courseContentSaving() || courseSubmitting()"
+      (buttonClicked)="courseSectionAdded.emit()"
+    >
+      Add section
+    </app-button>
+  </div>
+
+  <div class="builder-stack">
+    @for (section of courseContent()!.sections; track section.id; let sectionIndex = $index) {
+      <article class="builder-section">
+        <div class="builder-section-header">
+          <div class="builder-section-heading">
+            <button
+              type="button"
+              class="chevron-button"
+              [attr.aria-label]="sectionToggleLabel(sectionIndex)"
+              [class.is-collapsed]="isSectionCollapsed(sectionIndex)"
+              (click)="toggleSection(sectionIndex)"
+            >
+              <span class="chevron-icon" aria-hidden="true"></span>
+            </button>
+            <span>{{ sectionIndex + 1 }}.</span>
+            <span
+              class="builder-section-title"
+              [attr.contenteditable]="isSectionRenaming(sectionIndex)"
+              [class.is-editing]="isSectionRenaming(sectionIndex)"
+              [attr.role]="isSectionRenaming(sectionIndex) ? 'textbox' : null"
+              [attr.aria-label]="'Section title'"
+              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); finishSectionRename()"
+              (keydown)="renameKeydown($event)"
+            >
+              {{ section.title }}
+            </span>
+            <a href="" class="rename-link" (click)="startSectionRename(sectionIndex, $event)">Rename</a>
+          </div>
+          <div class="builder-actions">
+            <app-button
+              variant="outline"
+              [disabled]="courseContentSaving() || courseSubmitting()"
+              (buttonClicked)="courseSectionRemoved.emit(sectionIndex)"
+            >
+              Remove section
+            </app-button>
+          </div>
+        </div>
+
+        @if (!isSectionCollapsed(sectionIndex)) {
+          <div class="builder-component-list">
+            @for (component of section.components; track component.id; let componentIndex = $index) {
+              <section
+                class="builder-component"
+                draggable="true"
+                (dragstart)="dragComponentStarted(sectionIndex, componentIndex, $event)"
+                (dragover)="dragComponentAllowed($event)"
+                (drop)="dropComponent(sectionIndex, componentIndex, $event)"
+                (dragend)="dragComponentEnded()"
+              >
+                <div class="builder-component-topline">
+                  <div class="builder-component-meta">
+                    <div class="builder-component-title-row">
+                      <button type="button" class="drag-handle" aria-label="Drag component">
+                        <span aria-hidden="true">::</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="chevron-button"
+                        [attr.aria-label]="componentToggleLabel(sectionIndex, componentIndex)"
+                        [class.is-collapsed]="isComponentCollapsed(sectionIndex, componentIndex)"
+                        (click)="toggleComponent(sectionIndex, componentIndex)"
+                      >
+                        <span class="chevron-icon" aria-hidden="true"></span>
+                      </button>
+                      <span
+                        class="builder-component-title"
+                        [attr.contenteditable]="isComponentRenaming(sectionIndex, componentIndex)"
+                        [class.is-editing]="isComponentRenaming(sectionIndex, componentIndex)"
+                        [attr.role]="isComponentRenaming(sectionIndex, componentIndex) ? 'textbox' : null"
+                        [attr.aria-label]="'Component title'"
+                        (blur)="courseComponentTitleChanged.emit({ sectionIndex, componentIndex, value: editableText($event) }); finishComponentRename()"
+                        (keydown)="renameKeydown($event)"
+                      >
+                        {{ component.title || 'Untitled component' }}
+                      </span>
+                      <a
+                        href=""
+                        class="rename-link"
+                        (click)="startComponentRename(sectionIndex, componentIndex, $event)"
+                      >
+                        Rename
+                      </a>
+                    </div>
+                    <span>{{ componentTypeDescription(component) }}</span>
+                  </div>
+                  <div class="builder-actions">
+                    <app-button
+                      variant="outline"
+                      [disabled]="courseContentSaving() || courseSubmitting()"
+                      (buttonClicked)="courseComponentRemoved.emit({ sectionIndex, componentIndex })"
+                    >
+                      Remove
+                    </app-button>
+                  </div>
+                </div>
+
+                @if (!isComponentCollapsed(sectionIndex, componentIndex)) {
+                  <div class="builder-component-fields">
+                    <label class="field">
+                      <span>Component type</span>
+                      <select
+                        [value]="component.type"
+                        [disabled]="courseContentSaving() || courseSubmitting()"
+                        (change)="courseComponentTypeChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
+                      >
+                        <option value="video">Video</option>
+                        <option value="quiz">Quiz</option>
+                        <option value="text">Text</option>
+                      </select>
+                    </label>
+
+                    <label class="field">
+                      <span>Duration (minutes)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        [value]="component.durationMinutes"
+                        [disabled]="courseContentSaving() || courseSubmitting()"
+                        (input)="courseComponentDurationChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
+                      />
+                    </label>
+
+                    @if (hasSupportingUrl(component)) {
+                      <label class="field wide">
+                        <span>Video URL</span>
+                        <input
+                          type="url"
+                          [value]="component.resourceUrl"
+                          placeholder="https://..."
+                          [disabled]="courseContentSaving() || courseSubmitting()"
+                          (input)="courseComponentUrlChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
+                        />
+                      </label>
+                    }
+
+                    <label class="field wide">
+                      <span>
+                        @if (component.type === 'quiz') {
+                          Quiz instructions
+                        } @else if (component.type === 'video') {
+                          Supporting notes
+                        } @else {
+                          Text content
+                        }
+                      </span>
+                      <textarea
+                        rows="4"
+                        [value]="component.content"
+                        [disabled]="courseContentSaving() || courseSubmitting()"
+                        (input)="courseComponentContentChanged.emit({ sectionIndex, componentIndex, value: controlValue($event) })"
+                      ></textarea>
+                    </label>
+                  </div>
+                }
+              </section>
+            }
+          </div>
+
+          <app-button
+            variant="outline"
+            [disabled]="courseContentSaving() || courseSubmitting()"
+            (buttonClicked)="courseComponentAdded.emit({ sectionIndex })"
+          >
+            Add component
+          </app-button>
+        }
+      </article>
+    } @empty {
+      <p class="course-content-empty">No sections yet. Add the first section to start building the course.</p>
+    }
+  </div>
+}
+
+@if (courseContentError()) {
+  <p class="course-error" role="alert">{{ courseContentError() }}</p>
+}

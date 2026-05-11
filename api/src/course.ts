@@ -1,6 +1,19 @@
 import { z } from 'zod';
 
-export const courseStatusSchema = z.enum(['draft', 'published', 'archived']);
+export const courseStatusSchema = z.enum(['draft', 'ready-for-review', 'published', 'archived']);
+
+export const courseSheetHeaders = [
+  'id',
+  'title',
+  'description',
+  'level',
+  'teacher',
+  'careerGoals',
+  'status',
+  'createdAt',
+  'requirements',
+  'audience',
+] as const;
 
 export const createCourseSchema = z.object({
   title: z.string().trim().min(3).max(120),

@@ -17,9 +17,7 @@
   </div>
 
   @if (coursesLoading()) {
-    <section class="course-view-empty">
-      <p class="course-empty">Loading course...</p>
-    </section>
+    <app-loading-skeleton variant="course-detail" />
   } @else if (coursesError()) {
     <section class="course-view-empty">
       <p class="course-error" role="alert">{{ coursesError() }}</p>
@@ -44,7 +42,7 @@
 
         <div class="course-view-meta" aria-label="Course metadata">
           <span class="rating-chip">New course</span>
-          <span>{{ currentCourse.status }}</span>
+          <span>{{ courseStatusLabel(currentCourse.status) }}</span>
           <span>Created by <strong>{{ currentCourse.teacher }}</strong></span>
           <span>Updated {{ currentCourse.createdAt | date: 'MMM yyyy' }}</span>
         </div>
@@ -71,8 +69,8 @@
             <strong>Self-paced</strong>
           </div>
           <div>
-            <span>Lessons</span>
-            <strong>10</strong>
+            <span>Components</span>
+            <strong>{{ totalLessonCount() || '--' }}</strong>
           </div>
         </section>
 
@@ -85,34 +83,59 @@
           </div>
         </section>
 
-        <section class="course-view-card" id="course-content" aria-labelledby="content-title">
+        <section class="course-text-section" id="course-content" aria-labelledby="content-title">
           <div class="course-section-header">
             <div>
               <h2 id="content-title">Course content</h2>
-              <p>3 sections • 10 lessons • Self-paced</p>
+              <p>{{ contentSummary() }}</p>
             </div>
             <span>{{ currentCourse.level }}</span>
           </div>
 
-          <div class="curriculum-list">
-            @for (section of curriculumSections(currentCourse); track section.title) {
-              <section class="curriculum-section">
-                <header>
-                  <h3>{{ section.title }}</h3>
-                  <span>{{ section.meta }}</span>
-                </header>
-                <ul>
-                  @for (lesson of section.lessons; track lesson) {
-                    <li>{{ lesson }}</li>
-                  }
-                </ul>
-              </section>
-            }
-          </div>
+          @if (courseContentLoading()) {
+            <app-loading-skeleton variant="course-content" [count]="2" />
+          } @else if (courseContentError()) {
+            <p class="course-content-note" role="alert">{{ courseContentError() }}</p>
+          } @else if (hasRealCurriculum()) {
+            <div class="curriculum-list">
+              @for (section of courseContent()!.sections; track section.id) {
+                <section class="curriculum-section">
+                  <header>
+                    <h3>{{ section.title }}</h3>
+                    <span>{{ section.components.length }} components</span>
+                  </header>
+                  <ul>
+                    @for (component of section.components; track component.id) {
+                      <li>
+                        {{ component.title }}
+                        <small>({{ componentMeta(component.durationMinutes, component.type) }})</small>
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
+            </div>
+          } @else {
+            <div class="curriculum-list">
+              @for (section of curriculumSections(currentCourse); track section.title) {
+                <section class="curriculum-section">
+                  <header>
+                    <h3>{{ section.title }}</h3>
+                    <span>{{ section.meta }}</span>
+                  </header>
+                  <ul>
+                    @for (lesson of section.lessons; track lesson) {
+                      <li>{{ lesson }}</li>
+                    }
+                  </ul>
+                </section>
+              }
+            </div>
+          }
         </section>
 
         @if (currentCourse.requirements.length > 0) {
-          <section class="course-view-card" aria-labelledby="requirements-title">
+          <section class="course-text-section" aria-labelledby="requirements-title">
             <h2 id="requirements-title">Requirements</h2>
             <ul class="course-view-list">
               @for (requirement of currentCourse.requirements; track requirement) {
@@ -122,13 +145,13 @@
           </section>
         }
 
-        <section class="course-view-card" id="course-description" aria-labelledby="description-title">
+        <section class="course-text-section" id="course-description" aria-labelledby="description-title">
           <h2 id="description-title">Description</h2>
           <p>{{ currentCourse.description }}</p>
         </section>
 
         @if (currentCourse.audience) {
-          <section class="course-view-card" aria-labelledby="audience-title">
+          <section class="course-text-section" aria-labelledby="audience-title">
             <h2 id="audience-title">Who this course is for</h2>
             <p>{{ currentCourse.audience }}</p>
           </section>

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { CourseCreateDraft, CourseListItem } from '../app.models';
+import { CourseContentDocument, CourseCreateDraft, CourseListItem, CourseSection } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
 export type CourseSaveMode = 'create' | 'edit';
@@ -8,6 +8,16 @@ export type CourseSaveResult =
   | {
       ok: true;
       course: CourseListItem;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+export type CourseContentSaveResult =
+  | {
+      ok: true;
+      content: CourseContentDocument;
     }
   | {
       ok: false;
@@ -84,6 +94,50 @@ export class CourseService {
     return {
       ok: true,
       course: body,
+    };
+  }
+
+  async loadCourseContent(courseId: string): Promise<CourseContentDocument> {
+    const { ok, body } = await this.apiClient.fetchJson<CourseContentDocument>(
+      `/courses/${encodeURIComponent(courseId)}/content`,
+      {},
+      true,
+    );
+
+    if (!ok || !('_id' in body)) {
+      throw new Error(!('_id' in body) && body.message ? body.message : 'Unable to load course content.');
+    }
+
+    return body;
+  }
+
+  async saveCourseContent(
+    courseId: string,
+    sections: CourseSection[],
+    token: string,
+  ): Promise<CourseContentSaveResult> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ sections }),
+    });
+    const body = (await response.json().catch(() => ({}))) as CourseContentDocument | { message?: string };
+
+    if (!response.ok || !('_id' in body)) {
+      return {
+        ok: false,
+        message: !('_id' in body) && body.message ? body.message : 'Unable to save course content.',
+      };
+    }
+
+    this.apiClient.invalidateCache(`/courses/${encodeURIComponent(courseId)}/content`);
+
+    return {
+      ok: true,
+      content: body,
     };
   }
 

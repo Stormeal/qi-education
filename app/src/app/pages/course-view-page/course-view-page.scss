@@ -133,6 +133,20 @@
   padding: 20px;
 }
 
+.course-text-section {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid rgba(108, 101, 88, 0.14);
+  padding: 20px 4px 0;
+}
+
+.course-text-section h2 {
+  margin: 0;
+  color: #171b4a;
+  font-size: 21px;
+  font-weight: 800;
+}
+
 .course-proof-card {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -214,6 +228,7 @@
   border: 1px solid rgba(108, 101, 88, 0.14);
   border-radius: 8px;
   overflow: hidden;
+  background: #fff;
 }
 
 .curriculum-section + .curriculum-section {
@@ -246,6 +261,10 @@
 
 .curriculum-section ul {
   padding: 12px 34px;
+}
+
+.course-content-note {
+  color: #6c6558;
 }
 
 .course-enroll-column {

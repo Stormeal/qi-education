@@ -39,7 +39,7 @@ export type CourseSummary = {
   goals: string[];
 };
 
-export type CourseStatus = 'draft' | 'published' | 'archived';
+export type CourseStatus = 'draft' | 'ready-for-review' | 'published' | 'archived';
 
 export type CourseListItem = {
   id: string;
@@ -63,6 +63,30 @@ export type CourseCreateDraft = {
   teacher: string;
   careerGoals: string;
   status: CourseStatus;
+};
+
+export type CourseComponentType = 'video' | 'quiz' | 'text';
+
+export type CourseComponent = {
+  id: string;
+  title: string;
+  type: CourseComponentType;
+  durationMinutes: number;
+  content: string;
+  resourceUrl: string;
+};
+
+export type CourseSection = {
+  id: string;
+  title: string;
+  components: CourseComponent[];
+};
+
+export type CourseContentDocument = {
+  _id: string;
+  sections: CourseSection[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type NextAction = {
