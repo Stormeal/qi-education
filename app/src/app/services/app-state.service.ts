@@ -29,7 +29,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.17';
+  readonly appVersion = '0.1.18';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -192,11 +192,15 @@ export class AppStateService {
 
     return path === '/courses/new' || /^\/courses\/[^/]+\/edit$/.test(path);
   });
-  readonly isCourseViewPage = computed(() => this.courseViewIdFromPath(this.currentPath()) !== null);
+  readonly isCourseViewPage = computed(
+    () => this.courseViewIdFromPath(this.currentPath()) !== null,
+  );
   readonly selectedCourse = computed(() => {
     const courseId = this.courseViewIdFromPath(this.currentPath());
 
-    return courseId ? (this.availableCourses().find((course) => course.id === courseId) ?? null) : null;
+    return courseId
+      ? (this.availableCourses().find((course) => course.id === courseId) ?? null)
+      : null;
   });
   readonly isAdminPage = computed(
     () => this.currentPath() === '/admin' && !!this.loginState()?.permissions.hasAdminAccess,
@@ -510,12 +514,18 @@ export class AppStateService {
   }
 
   updateCourseRequirements(value: string): void {
-    this.courseDraft.update((draft) => ({ ...draft, requirements: this.normalizeBulletListValue(value) }));
+    this.courseDraft.update((draft) => ({
+      ...draft,
+      requirements: this.normalizeBulletListValue(value),
+    }));
     this.courseCreateError.set('');
   }
 
   updateCourseWhatYoullLearn(value: string): void {
-    this.courseDraft.update((draft) => ({ ...draft, whatYoullLearn: this.normalizeBulletListValue(value) }));
+    this.courseDraft.update((draft) => ({
+      ...draft,
+      whatYoullLearn: this.normalizeBulletListValue(value),
+    }));
     this.courseCreateError.set('');
   }
 
@@ -545,7 +555,10 @@ export class AppStateService {
   }
 
   updateCourseStatus(value: string): void {
-    this.courseDraft.update((draft) => ({ ...draft, status: value as CourseCreateDraft['status'] }));
+    this.courseDraft.update((draft) => ({
+      ...draft,
+      status: value as CourseCreateDraft['status'],
+    }));
     this.courseCreateError.set('');
   }
 
@@ -632,7 +645,9 @@ export class AppStateService {
               index === sectionIndex
                 ? {
                     ...section,
-                    components: section.components.filter((_, currentIndex) => currentIndex !== componentIndex),
+                    components: section.components.filter(
+                      (_, currentIndex) => currentIndex !== componentIndex,
+                    ),
                   }
                 : section,
             ),
@@ -643,7 +658,10 @@ export class AppStateService {
   }
 
   updateCourseComponentTitle(sectionIndex: number, componentIndex: number, value: string): void {
-    this.updateCourseComponent(sectionIndex, componentIndex, (component) => ({ ...component, title: value }));
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => ({
+      ...component,
+      title: value,
+    }));
   }
 
   updateCourseComponentType(sectionIndex: number, componentIndex: number, value: string): void {
@@ -758,7 +776,13 @@ export class AppStateService {
       let savedCourse: CourseListItem | null = null;
 
       if (metadataChanged) {
-        const result = await this.courseService.saveCourse(mode, draft, token, user.displayName, courseId);
+        const result = await this.courseService.saveCourse(
+          mode,
+          draft,
+          token,
+          user.displayName,
+          courseId,
+        );
 
         if (!result.ok) {
           this.courseCreateError.set(result.message);
@@ -819,7 +843,9 @@ export class AppStateService {
       }
     } catch {
       if (contentChanged && !metadataChanged) {
-        this.courseContentError.set('Unable to reach the API while saving content. Please try again.');
+        this.courseContentError.set(
+          'Unable to reach the API while saving content. Please try again.',
+        );
       } else {
         this.courseCreateError.set(
           mode === 'edit'
@@ -859,7 +885,9 @@ export class AppStateService {
         courses.map((course) => (course.id === result.course.id ? result.course : course)),
       );
       this.courseDraft.update((draft) =>
-        this.courseEditingId() === result.course.id ? { ...draft, priceDkk: result.course.priceDkk } : draft,
+        this.courseEditingId() === result.course.id
+          ? { ...draft, priceDkk: result.course.priceDkk }
+          : draft,
       );
       this.showCoursePriceNotice('Course price saved.', false);
     } catch {
@@ -920,7 +948,9 @@ export class AppStateService {
       this.syncCourseEditorDraftFromPath(true);
       await this.loadCourseContentWhenNeeded();
     } catch (error) {
-      this.coursesError.set(error instanceof Error ? error.message : 'Unable to reach the API. Please try again.');
+      this.coursesError.set(
+        error instanceof Error ? error.message : 'Unable to reach the API. Please try again.',
+      );
     } finally {
       this.coursesLoading.set(false);
     }
@@ -971,7 +1001,9 @@ export class AppStateService {
       } else {
         this.courseContent.set(null);
         this.courseContentError.set(
-          error instanceof Error ? error.message : 'Unable to load course content. Please try again.',
+          error instanceof Error
+            ? error.message
+            : 'Unable to load course content. Please try again.',
         );
       }
     } finally {
@@ -1013,7 +1045,9 @@ export class AppStateService {
     }
   }
 
-  private createCourseDraft(displayName = this.loginState()?.user.displayName ?? ''): CourseCreateDraft {
+  private createCourseDraft(
+    displayName = this.loginState()?.user.displayName ?? '',
+  ): CourseCreateDraft {
     return {
       title: '',
       description: '',
@@ -1161,9 +1195,7 @@ export class AppStateService {
   private updateCourseComponent(
     sectionIndex: number,
     componentIndex: number,
-    update: (
-      component: CourseSection['components'][number],
-    ) => CourseSection['components'][number],
+    update: (component: CourseSection['components'][number]) => CourseSection['components'][number],
   ): void {
     this.courseContent.update((content) =>
       content
@@ -1315,4 +1347,3 @@ export class AppStateService {
     }
   }
 }
-
