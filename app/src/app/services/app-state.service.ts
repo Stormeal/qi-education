@@ -980,23 +980,15 @@ export class AppStateService {
       this.loadedCourseContentId.set(courseId);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
     } catch (error) {
-      if (error instanceof Error && error.message === 'Course content not found') {
-        const now = new Date().toISOString();
-        this.courseContent.set({
-          _id: courseId,
-          sections: [],
-          createdAt: now,
-          updatedAt: now,
-        });
+      if (
+        (error instanceof Error && error.message === 'Course content not found') ||
+        (this.isCourseViewPage() && this.isCourseContentUnavailableError(error))
+      ) {
+        const emptyContent = this.createEmptyCourseContent(courseId);
+
+        this.courseContent.set(emptyContent);
         this.loadedCourseContentId.set(courseId);
-        this.initialCourseContentSnapshot.set(
-          this.serializeCourseContent({
-            _id: courseId,
-            sections: [],
-            createdAt: now,
-            updatedAt: now,
-          }),
-        );
+        this.initialCourseContentSnapshot.set(this.serializeCourseContent(emptyContent));
         this.courseContentError.set('');
       } else {
         this.courseContent.set(null);
@@ -1244,6 +1236,25 @@ export class AppStateService {
       _id: content._id,
       sections: content.sections,
     });
+  }
+
+  private createEmptyCourseContent(courseId: string): CourseContentDocument {
+    const now = new Date().toISOString();
+
+    return {
+      _id: courseId,
+      sections: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  private isCourseContentUnavailableError(error: unknown): boolean {
+    if (!(error instanceof Error)) {
+      return true;
+    }
+
+    return ['Unexpected server error', 'Unable to load course content.'].includes(error.message);
   }
 
   private courseEditIdFromPath(path: string): string | null {
