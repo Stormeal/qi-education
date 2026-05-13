@@ -10,12 +10,16 @@ export type CourseContentDocument = {
   updatedAt: string;
 };
 
+export type CourseContentStorageType = 'memory' | 'mongodb';
+
 type CourseContentCollection = Pick<
   Collection<CourseContentDocument>,
   'findOne' | 'insertOne' | 'updateOne' | 'deleteOne'
 >;
 
 export interface CourseContentRepository {
+  readonly storageType: CourseContentStorageType;
+  checkHealth(): Promise<void>;
   getCourseContent(courseId: string): Promise<CourseContentDocument | null>;
   createEmptyCourseContent(courseId: string, createdAt?: string): Promise<CourseContentDocument>;
   updateCourseContent(courseId: string, sections: CourseContentSection[]): Promise<CourseContentDocument>;
@@ -23,10 +27,16 @@ export interface CourseContentRepository {
 }
 
 export class MongoCourseContentRepository implements CourseContentRepository {
+  readonly storageType = 'mongodb';
+
   constructor(private readonly collectionLoader: () => Promise<CourseContentCollection>) {}
 
   private async collection() {
     return this.collectionLoader();
+  }
+
+  async checkHealth(): Promise<void> {
+    await (await this.collection()).findOne({ _id: '__course_content_healthcheck__' });
   }
 
   async getCourseContent(courseId: string): Promise<CourseContentDocument | null> {
@@ -89,7 +99,12 @@ export class MongoCourseContentRepository implements CourseContentRepository {
 }
 
 export class InMemoryCourseContentRepository implements CourseContentRepository {
+  readonly storageType = 'memory';
   private readonly documents = new Map<string, CourseContentDocument>();
+
+  async checkHealth(): Promise<void> {
+    return;
+  }
 
   async getCourseContent(courseId: string): Promise<CourseContentDocument | null> {
     return this.documents.get(courseId) ?? null;

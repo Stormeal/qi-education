@@ -980,10 +980,7 @@ export class AppStateService {
       this.loadedCourseContentId.set(courseId);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
     } catch (error) {
-      if (
-        (error instanceof Error && error.message === 'Course content not found') ||
-        (this.isCourseViewPage() && this.isCourseContentUnavailableError(error))
-      ) {
+      if (error instanceof Error && error.message === 'Course content not found') {
         const emptyContent = this.createEmptyCourseContent(courseId);
 
         this.courseContent.set(emptyContent);
@@ -1247,14 +1244,6 @@ export class AppStateService {
       createdAt: now,
       updatedAt: now,
     };
-  }
-
-  private isCourseContentUnavailableError(error: unknown): boolean {
-    if (!(error instanceof Error)) {
-      return true;
-    }
-
-    return ['Unexpected server error', 'Unable to load course content.'].includes(error.message);
   }
 
   private courseEditIdFromPath(path: string): string | null {

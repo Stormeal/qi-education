@@ -88,6 +88,20 @@ describe('QI-Education API', () => {
     expect(body.status).toBe('ok');
   });
 
+  it('reports content storage health under the Vercel /api prefix', async () => {
+    const response = await fetch(`${baseUrl}/api/health/content`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      status: 'ok',
+      storage: 'memory',
+      configured: false,
+      database: null,
+      collection: null,
+    });
+  });
+
   it('rejects invalid login credentials', async () => {
     const response = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
@@ -193,7 +207,32 @@ describe('QI-Education API', () => {
     expect(body.message).toBe('Course content not found');
   });
 
-  it('returns empty public content when the content repository is unavailable', async () => {
+  it('reports content storage health failures', async () => {
+    const courseRepository = new InMemoryCourseRepository();
+    const isolatedServer = createServer({
+      courseRepository,
+      courseContentRepository: new FailingCourseContentRepository(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const response = await fetch(`${isolatedBaseUrl}/health/content`);
+      const body = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(body).toMatchObject({
+        status: 'unavailable',
+        storage: 'mongodb',
+        message: 'Course content storage is unavailable.',
+        error: 'Error',
+      });
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  it('returns 503 when the content repository is unavailable', async () => {
     const courseRepository = new InMemoryCourseRepository();
     const isolatedServer = createServer({
       courseRepository,
@@ -207,13 +246,8 @@ describe('QI-Education API', () => {
       const response = await fetch(`${isolatedBaseUrl}/courses/${course.id}/content`);
       const body = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(body).toEqual({
-        _id: course.id,
-        sections: [],
-        createdAt: course.createdAt,
-        updatedAt: course.createdAt,
-      });
+      expect(response.status).toBe(503);
+      expect(body.message).toBe('Course content storage is unavailable.');
     } finally {
       isolatedServer.close();
     }
@@ -678,6 +712,12 @@ class FailingCreateCourseRepository extends InMemoryCourseRepository implements 
 }
 
 class FailingCourseContentRepository implements CourseContentRepository {
+  readonly storageType = 'mongodb';
+
+  async checkHealth(): Promise<void> {
+    throw new Error('Content store unavailable');
+  }
+
   async getCourseContent() {
     throw new Error('Content store unavailable');
   }

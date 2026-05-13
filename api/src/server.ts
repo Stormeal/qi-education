@@ -13,8 +13,8 @@ import {
   type AuthenticatedUser,
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
-import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig } from './config.js';
-import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema, type Course } from './course.js';
+import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig, hasMongoConfig } from './config.js';
+import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema } from './course.js';
 import { updateCourseContentSchema } from './courseContent.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
@@ -71,6 +71,26 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
 
     response.json({ status: 'ok' });
+  });
+
+  app.get('/health/content', async (_request, response) => {
+    const body = courseContentHealthBody(courseContent.storageType);
+
+    try {
+      await courseContent.checkHealth();
+      response.json({
+        ...body,
+        status: 'ok',
+      });
+    } catch (error) {
+      console.error('Course content storage health check failed.', error);
+      response.status(503).json({
+        ...body,
+        status: 'unavailable',
+        message: 'Course content storage is unavailable.',
+        error: error instanceof Error ? error.name : 'UnknownError',
+      });
+    }
   });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
@@ -161,19 +181,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       response.json(content);
     } catch (error) {
-      try {
-        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
-
-        if (!matchingCourse) {
-          response.status(404).json({ message: 'Course not found' });
-          return;
-        }
-
-        console.error(`Unable to load stored content for course ${courseId}. Returning empty content.`, error);
-        response.json(emptyCourseContentDocument(matchingCourse));
-      } catch {
-        next(error);
-      }
+      console.error(`Unable to load stored content for course ${courseId}.`, error);
+      response.status(503).json({ message: 'Course content storage is unavailable.' });
     }
   });
 
@@ -301,12 +310,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
   return app;
 }
 
-function emptyCourseContentDocument(course: Course) {
+function courseContentHealthBody(storage: CourseContentRepository['storageType']) {
   return {
-    _id: course.id,
-    sections: [],
-    createdAt: course.createdAt,
-    updatedAt: course.createdAt,
+    storage,
+    configured: hasMongoConfig(),
+    database: apiConfig.MONGODB_DB_NAME || null,
+    collection: apiConfig.MONGODB_COURSE_CONTENT_COLLECTION || null,
   };
 }
 
