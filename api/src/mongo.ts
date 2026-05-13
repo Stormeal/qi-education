@@ -9,6 +9,7 @@ export function createMongoClient(uri = apiConfig.MONGODB_URI) {
   }
 
   return new MongoClient(uri, {
+    serverSelectionTimeoutMS: 5000,
     serverApi: {
       version: ServerApiVersion.v1,
       strict: true,

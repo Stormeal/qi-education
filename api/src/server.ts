@@ -14,7 +14,7 @@ import {
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig } from './config.js';
-import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema } from './course.js';
+import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema, type Course } from './course.js';
 import { updateCourseContentSchema } from './courseContent.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
@@ -149,8 +149,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
 
   app.get('/courses/:id/content', async (request, response, next) => {
+    const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+
     try {
-      const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
       const content = await courseContent.getCourseContent(courseId);
 
       if (!content) {
@@ -160,7 +161,19 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       response.json(content);
     } catch (error) {
-      next(error);
+      try {
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        console.error(`Unable to load stored content for course ${courseId}. Returning empty content.`, error);
+        response.json(emptyCourseContentDocument(matchingCourse));
+      } catch {
+        next(error);
+      }
     }
   });
 
@@ -286,6 +299,15 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
 
   return app;
+}
+
+function emptyCourseContentDocument(course: Course) {
+  return {
+    _id: course.id,
+    sections: [],
+    createdAt: course.createdAt,
+    updatedAt: course.createdAt,
+  };
 }
 
 function authenticateRequest(authRepository: AuthRepository) {

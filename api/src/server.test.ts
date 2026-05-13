@@ -1,7 +1,10 @@
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { InMemoryCourseContentRepository } from './courseContentRepository.js';
+import {
+  InMemoryCourseContentRepository,
+  type CourseContentRepository,
+} from './courseContentRepository.js';
 import { InMemoryCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createServer } from './server.js';
 
@@ -188,6 +191,32 @@ describe('QI-Education API', () => {
 
     expect(response.status).toBe(404);
     expect(body.message).toBe('Course content not found');
+  });
+
+  it('returns empty public content when the content repository is unavailable', async () => {
+    const courseRepository = new InMemoryCourseRepository();
+    const isolatedServer = createServer({
+      courseRepository,
+      courseContentRepository: new FailingCourseContentRepository(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const [course] = await courseRepository.listCourses();
+      const response = await fetch(`${isolatedBaseUrl}/courses/${course.id}/content`);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({
+        _id: course.id,
+        sections: [],
+        createdAt: course.createdAt,
+        updatedAt: course.createdAt,
+      });
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('allows a teacher to update a course', async () => {
@@ -645,5 +674,23 @@ class FailingCreateCourseRepository extends InMemoryCourseRepository implements 
   override async createCourse(...args: Parameters<CourseRepository['createCourse']>) {
     this.lastCreateId = args[1]?.id ?? null;
     throw new Error('Sheets write failed');
+  }
+}
+
+class FailingCourseContentRepository implements CourseContentRepository {
+  async getCourseContent() {
+    throw new Error('Content store unavailable');
+  }
+
+  async createEmptyCourseContent(): ReturnType<CourseContentRepository['createEmptyCourseContent']> {
+    throw new Error('Content store unavailable');
+  }
+
+  async updateCourseContent(): ReturnType<CourseContentRepository['updateCourseContent']> {
+    throw new Error('Content store unavailable');
+  }
+
+  async deleteCourseContent(): Promise<void> {
+    throw new Error('Content store unavailable');
   }
 }
