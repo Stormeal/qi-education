@@ -9,6 +9,7 @@ export type LoginResponse = {
     role: UserRole;
     status: 'active' | 'disabled';
     createdAt: string;
+    enrolledCourseIds: string[];
   };
   permissions: {
     canCreateCourses: boolean;

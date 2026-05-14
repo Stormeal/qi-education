@@ -3,7 +3,7 @@ import { AppButton } from '../app-button/app-button';
 import { BrandLink } from '../brand-link/brand-link';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
-export type PageHeaderSection = 'home' | 'courses' | 'admin' | 'editor';
+export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor';
 
 @Component({
   selector: 'app-page-header',
@@ -23,6 +23,7 @@ export class PageHeader {
 
   readonly homeClicked = output<void>();
   readonly coursesClicked = output<void>();
+  readonly libraryClicked = output<void>();
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();

@@ -44,6 +44,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   app.use(cors({ origin: getCorsOrigins() }));
   app.use(express.json());
+  app.use((_request, response, next) => {
+    response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
+    response.setHeader('X-QI-Education-Content-Storage', courseContent.storageType);
+    next();
+  });
   app.use((request, _response, next) => {
     if (request.url === '/api') {
       request.url = '/';
@@ -58,6 +63,26 @@ export function createServer(dependencies: ServerDependencies = {}) {
     response.json({
       status: 'ok',
       storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
+    });
+  });
+
+  app.get('/health/config', (_request, response) => {
+    response.json({
+      status: 'ok',
+      auth: {
+        configured: Boolean(apiConfig.AUTH_TOKEN_SECRET),
+        storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
+      },
+      content: {
+        storage: courseContent.storageType,
+        configured: hasMongoConfig(),
+      },
+      corsOrigins: getCorsOrigins(),
+      ranges: {
+        courses: apiConfig.GOOGLE_SHEETS_COURSES_RANGE,
+        users: apiConfig.GOOGLE_SHEETS_USERS_RANGE,
+        feedback: apiConfig.GOOGLE_SHEETS_FEEDBACK_RANGE,
+      },
     });
   });
 
@@ -132,6 +157,33 @@ export function createServer(dependencies: ServerDependencies = {}) {
       user: authenticatedRequest.user,
       permissions: getRolePermissions(authenticatedRequest.user.role),
     });
+  });
+
+  app.post('/users/me/courses/:id', authenticateRequest(auth), async (request, response, next) => {
+    try {
+      const authenticatedRequest = request as AuthenticatedRequest;
+      const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+      const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+      if (!matchingCourse) {
+        response.status(404).json({ message: 'Course not found' });
+        return;
+      }
+
+      const updatedUser = await auth.enrollUserInCourse(authenticatedRequest.user.id, courseId);
+
+      if (!updatedUser) {
+        response.status(404).json({ message: 'User not found' });
+        return;
+      }
+
+      response.json({
+        user: toAuthenticatedUser(updatedUser),
+        permissions: getRolePermissions(updatedUser.role),
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.get('/courses', async (_request, response, next) => {

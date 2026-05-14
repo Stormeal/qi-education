@@ -30,9 +30,11 @@ export class AuthService {
     const body = (await response.json()) as LoginResponse | { message?: string };
 
     if (!response.ok) {
+      const message = 'message' in body ? body.message ?? 'Unable to log in.' : 'Unable to log in.';
+
       return {
         ok: false,
-        message: 'message' in body ? body.message ?? 'Unable to log in.' : 'Unable to log in.',
+        message: this.loginFailureMessage(message, response),
       };
     }
 
@@ -54,5 +56,16 @@ export class AuthService {
     }
 
     return (await response.json()) as Omit<LoginResponse, 'token'>;
+  }
+
+  private loginFailureMessage(message: string, response: Response): string {
+    const authStorage = response.headers.get('x-qi-education-auth-storage');
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    if (response.status === 401 && isLocalhost && authStorage === 'memory') {
+      return `${message}. Local API is using demo users because api/.env is missing or incomplete. Run npm run env:pull for shared users, or use teacher@qi-education.local / Password123!.`;
+    }
+
+    return message;
   }
 }

@@ -20,14 +20,15 @@
       Courses
       <span class="nav-chevron" aria-hidden="true"></span>
     </button>
-    <a
-      class="with-chevron"
-      [class.active]="activeSection() === 'admin' || activeSection() === 'editor'"
-      [href]="otherPagesHref()"
+    <button
+      type="button"
+      class="tab-link with-chevron"
+      [class.active]="activeSection() === 'library'"
+      (click)="libraryClicked.emit()"
     >
-      Other Pages
+      Library
       <span class="nav-chevron" aria-hidden="true"></span>
-    </a>
+    </button>
   </div>
   <app-profile-menu
     [displayName]="displayName()"

@@ -42,7 +42,7 @@ export const apiConfig = {
   GOOGLE_SHEETS_COURSES_RANGE:
     coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:M',
   GOOGLE_SHEETS_USERS_RANGE:
-    usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:G',
+    usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:H',
   GOOGLE_SHEETS_FEEDBACK_RANGE:
     env.GOOGLE_SHEETS_FEEDBACK_RANGE &&
     env.GOOGLE_SHEETS_FEEDBACK_RANGE !== 'GOOGLE_SHEETS_FEEDBACK_RANGE'

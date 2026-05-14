@@ -1,17 +1,16 @@
 @if (state.isSessionRestoring()) {
   <app-session-restore-state />
 } @else if (state.loginState()) {
-  <app-courses-page
+  <app-library-page
     [appVersion]="state.appVersion"
     [currentYear]="state.currentYear"
     [student]="state.student()"
     [userEmail]="state.loginState()?.user?.email ?? ''"
     [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
-    [courses]="state.availableCourses()"
+    [courses]="state.enrolledCourses()"
     [coursesLoading]="state.coursesLoading()"
     [coursesError]="state.coursesError()"
-    [canCreateCourses]="state.loginState()?.permissions?.canCreateCourses ?? false"
     [isFeedbackOpen]="state.isFeedbackOpen()"
     [feedbackSubmitted]="state.feedbackSubmitted()"
     [feedbackPage]="state.feedbackPage()"
@@ -25,12 +24,11 @@
     (libraryClicked)="state.navigateLibrary()"
     (feedbackOpened)="state.openFeedback()"
     (loggedOut)="state.logout()"
-    (createCourseOpened)="state.openCreateCourse()"
+    (adminClicked)="state.navigateAdmin()"
     (feedbackClosed)="state.closeFeedback()"
     (feedbackRatingSelected)="state.selectFeedbackRating($event)"
     (feedbackTextChanged)="state.updateFeedbackText($event)"
     (feedbackSubmittedClicked)="state.submitFeedback()"
-    (adminClicked)="state.navigateAdmin()"
   />
 } @else {
   <app-login-page

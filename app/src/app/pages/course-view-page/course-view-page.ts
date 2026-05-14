@@ -17,6 +17,8 @@ export class CourseViewPage {
   protected readonly priceDraft = signal('');
   protected readonly isPriceModalOpen = signal(false);
   protected readonly pendingPriceSave = signal(false);
+  protected readonly isEnrollDialogOpen = signal(false);
+  protected readonly pendingEnrollment = signal(false);
   protected readonly expandedSectionIds = signal<string[]>([]);
   protected readonly expandedComponentIds = signal<string[]>([]);
   protected readonly allSectionsExpanded = computed(() => {
@@ -40,6 +42,9 @@ export class CourseViewPage {
   readonly priceSaving = input.required<boolean>();
   readonly priceSaveNotice = input.required<string>();
   readonly priceSaveNoticeError = input.required<boolean>();
+  readonly isEnrolled = input.required<boolean>();
+  readonly enrollmentSubmitting = input.required<boolean>();
+  readonly enrollmentError = input.required<string>();
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();
   readonly feedbackPage = input.required<string>();
@@ -51,11 +56,13 @@ export class CourseViewPage {
 
   readonly homeClicked = output<void>();
   readonly coursesClicked = output<void>();
+  readonly libraryClicked = output<void>();
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();
   readonly courseEdited = output<string>();
   readonly coursePriceSaved = output<{ courseId: string; priceDkk: number | null }>();
+  readonly courseEnrollmentConfirmed = output<string>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();
@@ -86,6 +93,20 @@ export class CourseViewPage {
 
       this.pendingPriceSave.set(false);
     });
+
+    effect(() => {
+      if (!this.pendingEnrollment() || this.enrollmentSubmitting()) {
+        return;
+      }
+
+      if (this.isEnrolled()) {
+        this.isEnrollDialogOpen.set(false);
+      }
+
+      if (this.isEnrolled() || this.enrollmentError()) {
+        this.pendingEnrollment.set(false);
+      }
+    });
   }
 
   protected openPriceModal(course: CourseListItem): void {
@@ -115,6 +136,28 @@ export class CourseViewPage {
       courseId,
       priceDkk: parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? parsed : null,
     });
+  }
+
+  protected openEnrollDialog(): void {
+    this.pendingEnrollment.set(false);
+    this.isEnrollDialogOpen.set(true);
+  }
+
+  protected closeEnrollDialog(): void {
+    if (this.enrollmentSubmitting()) {
+      return;
+    }
+
+    this.isEnrollDialogOpen.set(false);
+  }
+
+  protected confirmEnrollment(courseId: string): void {
+    if (this.enrollmentSubmitting()) {
+      return;
+    }
+
+    this.pendingEnrollment.set(true);
+    this.courseEnrollmentConfirmed.emit(courseId);
   }
 
   protected controlValue(event: Event): string {
@@ -159,6 +202,18 @@ export class CourseViewPage {
         0,
       ) ?? 0
     );
+  }
+
+  protected firstCourseComponent(): CourseContentDocument['sections'][number]['components'][number] | null {
+    for (const section of this.courseContent()?.sections ?? []) {
+      const component = section.components[0];
+
+      if (component) {
+        return component;
+      }
+    }
+
+    return null;
   }
 
   protected contentSummary(): string {
@@ -304,7 +359,7 @@ export class CourseViewPage {
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   }
 
-  private formatDurationLong(durationMinutes: number): string {
+  protected formatDurationLong(durationMinutes: number): string {
     if (durationMinutes <= 0) {
       return '0 min';
     }

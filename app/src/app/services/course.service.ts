@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { CourseContentDocument, CourseCreateDraft, CourseListItem, CourseSection } from '../app.models';
+import { CourseContentDocument, CourseCreateDraft, CourseListItem, CourseSection, LoginResponse } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
 export type CourseSaveMode = 'create' | 'edit';
@@ -18,6 +18,16 @@ export type CourseContentSaveResult =
   | {
       ok: true;
       content: CourseContentDocument;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+export type CourseEnrollmentResult =
+  | {
+      ok: true;
+      login: Omit<LoginResponse, 'token'>;
     }
   | {
       ok: false;
@@ -171,6 +181,32 @@ export class CourseService {
     return {
       ok: true,
       course: body,
+    };
+  }
+
+  async enrollCourse(courseId: string, token: string): Promise<CourseEnrollmentResult> {
+    const response = await this.apiClient.fetch(`/users/me/courses/${encodeURIComponent(courseId)}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const body = (await response.json().catch(() => ({}))) as
+      | Omit<LoginResponse, 'token'>
+      | { message?: string };
+
+    if (!response.ok || !('user' in body)) {
+      return {
+        ok: false,
+        message: 'message' in body && body.message ? body.message : 'Unable to enroll in this course.',
+      };
+    }
+
+    this.apiClient.invalidateCache('/me');
+
+    return {
+      ok: true,
+      login: body,
     };
   }
 

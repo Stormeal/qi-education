@@ -10,6 +10,7 @@
       [canAccessAdmin]="canAccessAdmin()"
       (homeClicked)="homeClicked.emit()"
       (coursesClicked)="coursesClicked.emit()"
+      (libraryClicked)="libraryClicked.emit()"
       (feedbackOpened)="feedbackOpened.emit()"
       (loggedOut)="loggedOut.emit()"
       (adminClicked)="adminClicked.emit()"
@@ -29,6 +30,111 @@
     </section>
   } @else {
     @let currentCourse = course()!;
+    @if (isEnrolled()) {
+      <section class="learning-shell" aria-label="Course workspace">
+        <div class="learning-topline">
+          <nav class="course-breadcrumb learning-breadcrumb" aria-label="Course breadcrumbs">
+            <button type="button" (click)="libraryClicked.emit()">Library</button>
+            <span aria-hidden="true">/</span>
+            <span>{{ currentCourse.title }}</span>
+          </nav>
+          <button type="button" class="learning-share-button">Share</button>
+        </div>
+
+        <div class="learning-workspace">
+          <div class="learning-main">
+            <section class="learning-player" aria-labelledby="learning-player-title">
+              @let activeComponent = firstCourseComponent();
+              <div class="learning-player-inner">
+                <p class="eyebrow">{{ activeComponent ? componentTypeLabel(activeComponent.type) : currentCourse.level }}</p>
+                <h1 id="learning-player-title">
+                  {{ activeComponent?.title || currentCourse.title }}
+                </h1>
+                <p>
+                  {{
+                    activeComponent?.content ||
+                      'Course material is being prepared. Use the course content panel to review the available outline.'
+                  }}
+                </p>
+                <button type="button" class="learning-play-button" aria-label="Play current lesson">
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </section>
+
+            <section class="learning-overview" aria-labelledby="learning-overview-title">
+              <div class="learning-tabs" aria-label="Course detail tabs">
+                <button type="button" class="active">Overview</button>
+                <button type="button">Q&amp;A</button>
+                <button type="button">Notes</button>
+              </div>
+
+              <div class="learning-overview-body">
+                <h2 id="learning-overview-title">{{ currentCourse.title }}</h2>
+                <p>{{ currentCourse.description }}</p>
+                <div class="learning-stat-row" aria-label="Course summary">
+                  <span>{{ totalLessonCount() || 0 }} components</span>
+                  <span>{{ formatDurationLong(totalContentDurationMinutes()) }} total length</span>
+                  <span>{{ currentCourse.level }}</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="learning-content-panel" aria-label="Course content">
+            <header>
+              <div>
+                <h2>Course content</h2>
+                <p>{{ contentSummary() }}</p>
+              </div>
+              @if (hasRealCurriculum()) {
+                <button type="button" (click)="toggleAllSections()">
+                  {{ allSectionsExpanded() ? 'Collapse' : 'Expand' }}
+                </button>
+              }
+            </header>
+
+            @if (courseContentLoading()) {
+              <app-loading-skeleton variant="course-content" [count]="2" />
+            } @else if (courseContentError()) {
+              <p class="course-content-note" role="alert">{{ courseContentError() }}</p>
+            } @else if (hasRealCurriculum()) {
+              <div class="learning-outline">
+                @for (section of courseContent()!.sections; track section.id) {
+                  <section class="learning-outline-section">
+                    <button
+                      type="button"
+                      class="learning-outline-header"
+                      [attr.aria-expanded]="isSectionExpanded(section.id)"
+                      (click)="toggleSection(section.id)"
+                    >
+                      <span>{{ section.title }}</span>
+                      <small>{{ sectionLectureMeta(section.components.length, sectionDurationMinutes(section)) }}</small>
+                    </button>
+
+                    @if (isSectionExpanded(section.id)) {
+                      <div class="learning-outline-items">
+                        @for (component of section.components; track component.id) {
+                          <button type="button" class="learning-outline-item">
+                            <span class="learning-check" aria-hidden="true"></span>
+                            <span>
+                              <strong>{{ component.title }}</strong>
+                              <small>{{ componentDurationLabel(component.durationMinutes) }}</small>
+                            </span>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </section>
+                }
+              </div>
+            } @else {
+              <p class="course-content-note">The course outline will appear here when lessons are added.</p>
+            }
+          </aside>
+        </div>
+      </section>
+    } @else {
     <section class="course-view-hero">
       <div class="course-view-hero-content">
         <nav class="course-breadcrumb" aria-label="Course breadcrumbs">
@@ -224,7 +330,7 @@
             <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
             <h2>{{ currentCourse.title }}</h2>
             <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
-            <app-button class="fill" variant="primary">Start learning</app-button>
+            <app-button class="fill" variant="primary" (buttonClicked)="openEnrollDialog()">Enroll</app-button>
 
             <div class="course-includes">
               <h3>This course includes</h3>
@@ -271,6 +377,7 @@
         </div>
       </aside>
     </div>
+    }
   }
 
   <footer class="site-footer">
@@ -331,6 +438,55 @@
             <span>Saving price...</span>
           } @else {
             <span>Save price</span>
+          }
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (isEnrollDialogOpen() && course()) {
+  @let enrollCourse = course()!;
+  <div class="price-modal-overlay">
+    <section class="price-modal enroll-modal" role="dialog" aria-modal="true" aria-labelledby="enroll-modal-title">
+      <header class="price-modal-header">
+        <div>
+          <p class="course-enroll-kicker">Enrollment</p>
+          <h2 id="enroll-modal-title">Enroll in this course?</h2>
+        </div>
+        <button type="button" class="price-modal-close" aria-label="Close enrollment dialog" (click)="closeEnrollDialog()">
+          <span class="inline-icon" aria-hidden="true">x</span>
+        </button>
+      </header>
+
+      <div class="enroll-modal-course">
+        <span class="course-avatar" aria-hidden="true">{{ teacherInitials(enrollCourse.teacher) }}</span>
+        <div>
+          <strong>{{ enrollCourse.title }}</strong>
+          <p>{{ enrollCourse.level }} course by {{ enrollCourse.teacher }}</p>
+        </div>
+      </div>
+
+      <p class="price-field-note">
+        Confirming will add this course to your Library so you can open it again whenever you log in.
+      </p>
+
+      @if (enrollmentError()) {
+        <p class="course-error" role="alert">{{ enrollmentError() }}</p>
+      }
+
+      <footer class="price-modal-actions">
+        <app-button variant="outline" [disabled]="enrollmentSubmitting()" (buttonClicked)="closeEnrollDialog()">Cancel</app-button>
+        <app-button
+          variant="primary"
+          [disabled]="enrollmentSubmitting()"
+          (buttonClicked)="confirmEnrollment(enrollCourse.id)"
+        >
+          @if (enrollmentSubmitting()) {
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span>Enrolling...</span>
+          } @else {
+            <span>Confirm enrollment</span>
           }
         </app-button>
       </footer>

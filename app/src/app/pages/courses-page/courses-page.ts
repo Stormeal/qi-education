@@ -35,6 +35,7 @@ export class CoursesPage {
 
   readonly homeClicked = output<void>();
   readonly coursesClicked = output<void>();
+  readonly libraryClicked = output<void>();
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly createCourseOpened = output<void>();

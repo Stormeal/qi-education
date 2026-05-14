@@ -21,6 +21,15 @@ export class SessionService {
     );
   }
 
+  updateStoredLoginState(loginState: LoginState): void {
+    const storage =
+      window.localStorage.getItem('qiEducationSession') !== null
+        ? window.localStorage
+        : window.sessionStorage;
+
+    storage.setItem('qiEducationSession', JSON.stringify(loginState));
+  }
+
   clearStoredSession(): void {
     window.localStorage.removeItem('qiEducationSession');
     window.sessionStorage.removeItem('qiEducationSession');

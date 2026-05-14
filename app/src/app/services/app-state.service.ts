@@ -65,6 +65,8 @@ export class AppStateService {
   readonly coursePriceSaving = signal(false);
   readonly coursePriceNotice = signal('');
   readonly coursePriceNoticeError = signal(false);
+  readonly courseEnrollmentSubmitting = signal(false);
+  readonly courseEnrollmentError = signal('');
   readonly courseContent = signal<CourseContentDocument | null>(null);
   readonly initialCourseDraftSnapshot = signal('');
   readonly initialCourseContentSnapshot = signal('');
@@ -187,6 +189,7 @@ export class AppStateService {
   );
 
   readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
+  readonly isLibraryPage = computed(() => this.currentPath() === '/library');
   readonly isCourseEditorPage = computed(() => {
     const path = this.currentPath();
 
@@ -201,6 +204,17 @@ export class AppStateService {
     return courseId
       ? (this.availableCourses().find((course) => course.id === courseId) ?? null)
       : null;
+  });
+  readonly enrolledCourseIds = computed(() => this.loginState()?.user.enrolledCourseIds ?? []);
+  readonly enrolledCourses = computed(() => {
+    const enrolledIds = new Set(this.enrolledCourseIds());
+
+    return this.availableCourses().filter((course) => enrolledIds.has(course.id));
+  });
+  readonly selectedCourseIsEnrolled = computed(() => {
+    const courseId = this.courseViewIdFromPath(this.currentPath());
+
+    return courseId ? this.enrolledCourseIds().includes(courseId) : false;
   });
   readonly isAdminPage = computed(
     () => this.currentPath() === '/admin' && !!this.loginState()?.permissions.hasAdminAccess,
@@ -322,6 +336,8 @@ export class AppStateService {
     this.isFeedbackOpen.set(false);
     this.courseCreateError.set('');
     this.courseContentError.set('');
+    this.courseEnrollmentError.set('');
+    this.courseEnrollmentSubmitting.set(false);
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set('');
@@ -372,6 +388,10 @@ export class AppStateService {
 
   navigateCourses(): void {
     this.updatePath('/courses');
+  }
+
+  navigateLibrary(): void {
+    this.updatePath('/library');
   }
 
   openCourse(courseId: string): void {
@@ -897,6 +917,44 @@ export class AppStateService {
     }
   }
 
+  async enrollInCourse(courseId: string): Promise<void> {
+    const token = this.loginState()?.token;
+
+    if (!token || this.courseEnrollmentSubmitting()) {
+      this.courseEnrollmentError.set('Please log in again before enrolling.');
+      return;
+    }
+
+    if (this.enrolledCourseIds().includes(courseId)) {
+      this.courseEnrollmentError.set('');
+      return;
+    }
+
+    this.courseEnrollmentSubmitting.set(true);
+    this.courseEnrollmentError.set('');
+
+    try {
+      const result = await this.courseService.enrollCourse(courseId, token);
+
+      if (!result.ok) {
+        this.courseEnrollmentError.set(result.message);
+        return;
+      }
+
+      const loginState: LoginState = {
+        token,
+        user: result.login.user,
+        permissions: result.login.permissions,
+      };
+      this.loginState.set(loginState);
+      this.sessionService.updateStoredLoginState(loginState);
+    } catch {
+      this.courseEnrollmentError.set('Unable to reach the API. Please try again.');
+    } finally {
+      this.courseEnrollmentSubmitting.set(false);
+    }
+  }
+
   async updateAdminFeedbackTriage(update: FeedbackTriageUpdate): Promise<void> {
     const token = this.loginState()?.token;
 
@@ -936,7 +994,13 @@ export class AppStateService {
   }
 
   private async loadCoursesWhenNeeded(): Promise<void> {
-    if (!this.loginState() || !this.currentPath().startsWith('/courses') || this.coursesLoading()) {
+    const currentPath = this.currentPath();
+
+    if (
+      !this.loginState() ||
+      (!currentPath.startsWith('/courses') && currentPath !== '/library') ||
+      this.coursesLoading()
+    ) {
       return;
     }
 
@@ -1291,6 +1355,10 @@ export class AppStateService {
       return 'Admin';
     }
 
+    if (this.isLibraryPage()) {
+      return 'Library';
+    }
+
     return this.isCoursesPage() || this.isCourseEditorPage() || this.isCourseViewPage()
       ? 'Courses'
       : 'Home';
@@ -1299,7 +1367,7 @@ export class AppStateService {
   private normalizePath(path: string): string {
     const withoutQuery = path.split('?')[0]?.split('#')[0] || '/';
 
-    if (withoutQuery === '/courses' || withoutQuery === '/courses/new') {
+    if (withoutQuery === '/courses' || withoutQuery === '/courses/new' || withoutQuery === '/library') {
       return withoutQuery;
     }
 
@@ -1309,6 +1377,10 @@ export class AppStateService {
 
     if (withoutQuery.endsWith('/admin')) {
       return '/admin';
+    }
+
+    if (withoutQuery.endsWith('/library')) {
+      return '/library';
     }
 
     return withoutQuery.endsWith('/courses') ? '/courses' : '/';

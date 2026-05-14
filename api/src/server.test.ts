@@ -88,6 +88,36 @@ describe('QI-Education API', () => {
     expect(body.status).toBe('ok');
   });
 
+  it('reports non-secret runtime configuration for diagnostics', async () => {
+    const response = await fetch(`${baseUrl}/api/health/config`);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-qi-education-auth-storage')).toBe('memory');
+    expect(body).toEqual({
+      status: 'ok',
+      auth: {
+        configured: true,
+        storage: 'memory',
+      },
+      content: {
+        storage: 'memory',
+        configured: false,
+      },
+      corsOrigins: [
+        'http://localhost:4200',
+        'http://127.0.0.1:4200',
+        'https://stormeal.github.io',
+        'https://qi-education.vercel.app',
+      ],
+      ranges: {
+        courses: 'Courses!A:M',
+        users: 'Users!A:H',
+        feedback: 'Feedback!A:I',
+      },
+    });
+  });
+
   it('reports content storage health under the Vercel /api prefix', async () => {
     const response = await fetch(`${baseUrl}/api/health/content`);
     const body = await response.json();
@@ -197,6 +227,46 @@ describe('QI-Education API', () => {
       createdAt: body.createdAt,
       updatedAt: body.createdAt,
     });
+  });
+
+  it('enrolls the current user in an existing course', async () => {
+    const token = await loginAs('student@qi-education.local');
+    const courseResponse = await fetch(`${baseUrl}/courses`);
+    const [course] = await courseResponse.json();
+
+    const response = await fetch(`${baseUrl}/users/me/courses/${course.id}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.user.enrolledCourseIds).toContain(course.id);
+
+    const meResponse = await fetch(`${baseUrl}/auth/me`, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const me = await meResponse.json();
+
+    expect(me.user.enrolledCourseIds).toContain(course.id);
+  });
+
+  it('returns 404 when enrolling in a missing course', async () => {
+    const token = await loginAs('student@qi-education.local');
+    const response = await fetch(`${baseUrl}/users/me/courses/missing-course`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.message).toBe('Course not found');
   });
 
   it('returns 404 when course content does not exist', async () => {

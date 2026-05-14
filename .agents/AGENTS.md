@@ -28,6 +28,15 @@ qi-education/
 - Prefer workspace-aware commands from the root when possible.
 - Do not introduce yarn or pnpm.
 
+## Design Skills
+
+For frontend UI implementation or redesign work, prefer the installed Taste Skill skills:
+- `design-taste-frontend` for general polished frontend design
+- `redesign-existing-projects` when improving existing Angular screens
+- `image-to-code` when implementing from visual references
+- `brandkit` for visual identity exploration
+
+
 Common root scripts:
 
 - `npm run app:dev` - run API and Angular dev server together

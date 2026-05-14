@@ -29,6 +29,14 @@ npm run api:dev
 
 Use `npm run app:dev:frontend` only when you intentionally want to run the Angular dev server without starting the local API.
 
+Check local release readiness:
+
+```bash
+npm run doctor
+```
+
+The doctor checks `api/.env`, local API health, auth storage, CORS, and content storage configuration. Use `npm run doctor -- --allow-demo` only when you intentionally want local login to use the demo users instead of the shared Google Sheets users.
+
 ## Google Sheets Setup
 
 The API expects one Google Sheet with a `Courses` worksheet. Add this header row:
@@ -71,12 +79,29 @@ npm --prefix api run auth:hash-password -- "Password123!"
 Create `api/.env` from Vercel development variables:
 
 ```bash
-npx vercel env pull api/.env --environment=development --yes
+npm run env:pull
 ```
 
 Share the sheet with the configured Google service account email.
 
 Set an `AUTH_TOKEN_SECRET` value in the API environment before using login in shared or production environments.
+
+Preferred environment variable names:
+
+```text
+AUTH_TOKEN_SECRET
+GOOGLE_SHEETS_SPREADSHEET_ID
+GOOGLE_SERVICE_ACCOUNT_EMAIL
+GOOGLE_PRIVATE_KEY
+GOOGLE_SHEETS_COURSES_RANGE
+GOOGLE_SHEETS_USERS_RANGE
+GOOGLE_SHEETS_FEEDBACK_RANGE
+MONGODB_URI
+MONGODB_DB_NAME
+MONGODB_COURSE_CONTENT_COLLECTION
+```
+
+The API still accepts the legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and `SESSION_SECRET` names, but new configuration should use the preferred names above.
 
 The feedback worksheet range defaults to `Feedback!A:I`; override it with `GOOGLE_SHEETS_FEEDBACK_RANGE` if needed.
 
@@ -105,3 +130,14 @@ The API still uses Vercel environment variables for local development through `n
 The GitHub Pages build calls `https://qi-education.vercel.app/api` for login and course data. The Vercel deployment exposes the Express API through `api/[...path].ts`, so make sure the Vercel project has the same Google Sheets and auth environment variables configured for production.
 
 The Pages deployment workflow checks `https://qi-education.vercel.app/api/health/auth` before publishing. If that check fails, fix or redeploy the Vercel API first so GitHub Pages does not publish a frontend that cannot sign users in.
+
+Before release, run:
+
+```bash
+npm run doctor
+npm run app:test -- --run
+npm run api:test
+npm run app:build:pages
+```
+
+Then verify a real login against the published Pages URL after the API has been deployed.

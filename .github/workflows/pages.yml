@@ -45,6 +45,38 @@ jobs:
       - name: Verify hosted auth API
         run: curl --fail --silent --show-error https://qi-education.vercel.app/api/health/auth
 
+      - name: Verify hosted API config
+        run: |
+          node --input-type=module <<'NODE'
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          let lastError;
+
+          for (let attempt = 1; attempt <= 12; attempt += 1) {
+            try {
+              const response = await fetch('https://qi-education.vercel.app/api/health/config');
+              const body = await response.json();
+
+              if (!response.ok) {
+                throw new Error(`Hosted API config returned HTTP ${response.status}`);
+              }
+
+              if (!body.auth?.configured || body.auth?.storage !== 'google-sheets') {
+                throw new Error('Hosted API must use configured Google Sheets auth storage before Pages deploys.');
+              }
+
+              process.exit(0);
+            } catch (error) {
+              lastError = error;
+              console.log(`Hosted API config check attempt ${attempt} failed: ${error.message}`);
+              if (attempt < 12) {
+                await sleep(15000);
+              }
+            }
+          }
+
+          throw lastError;
+          NODE
+
       - name: Build GitHub Pages bundle
         run: npm run app:build:pages
 

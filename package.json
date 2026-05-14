@@ -14,7 +14,8 @@
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",
     "api:test": "npm --prefix api test",
-    "env:pull": "npx vercel env pull api/.env --environment=development --yes"
+    "env:pull": "npx vercel env pull api/.env --environment=development --yes",
+    "doctor": "node scripts/doctor.mjs"
   },
   "workspaces": [
     "app",

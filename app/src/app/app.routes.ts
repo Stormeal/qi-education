@@ -16,6 +16,10 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/courses-route').then((module) => module.CoursesRoute),
   },
   {
+    path: 'library',
+    loadComponent: () => import('./routes/library-route').then((module) => module.LibraryRoute),
+  },
+  {
     path: 'courses/new',
     loadComponent: () =>
       import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),

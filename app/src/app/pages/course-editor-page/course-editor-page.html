@@ -1,60 +1,59 @@
-<main class="page-shell">
-  <app-page-header
-    activeSection="editor"
-    aboutHref="#course-editor-form"
-    otherPagesHref="#course-editor-form"
-    [displayName]="student().name"
-    [email]="userEmail()"
-    [roleLabel]="userRoleLabel()"
-    [canAccessAdmin]="canAccessAdmin()"
-    (homeClicked)="homeClicked.emit()"
-    (coursesClicked)="coursesClicked.emit()"
-    (feedbackOpened)="feedbackOpened.emit()"
-    (loggedOut)="loggedOut.emit()"
-    (adminClicked)="adminClicked.emit()"
-  />
+<main class="course-editor-shell">
+  <div class="course-editor-nav-frame">
+    <app-page-header
+      activeSection="editor"
+      aboutHref="#course-editor-form"
+      otherPagesHref="#course-editor-form"
+      [displayName]="student().name"
+      [email]="userEmail()"
+      [roleLabel]="userRoleLabel()"
+      [canAccessAdmin]="canAccessAdmin()"
+      (homeClicked)="homeClicked.emit()"
+      (coursesClicked)="coursesClicked.emit()"
+      (libraryClicked)="libraryClicked.emit()"
+      (feedbackOpened)="feedbackOpened.emit()"
+      (loggedOut)="loggedOut.emit()"
+      (adminClicked)="adminClicked.emit()"
+    />
+  </div>
 
   <header class="course-editor-hero">
-    <div>
-      <p class="eyebrow">Teacher tools</p>
-      <h1>
-        @if (courseFormMode() === 'edit') {
-          Edit course
-        } @else {
-          Create course
-        }
-      </h1>
-      <p>
-        Keep the course details in one place. Update the title, level, teacher, publishing stage,
-        and career goals from this page.
-      </p>
-    </div>
+    <div class="course-editor-hero-content">
+      <nav class="course-breadcrumb" aria-label="Course editor breadcrumbs">
+        <button type="button" (click)="courseCanceled.emit()">Courses</button>
+        <span aria-hidden="true">/</span>
+        <span>{{ courseFormMode() === 'edit' ? 'Edit course' : 'Create course' }}</span>
+      </nav>
 
-    <app-button variant="outline" (buttonClicked)="courseCanceled.emit()">
-      @if (courseFormMode() === 'edit') {
-        Back to course
-      } @else {
-        Back to courses
-      }
-    </app-button>
+      <p class="eyebrow">Teacher tools</p>
+      <h1>{{ draftTitle() }}</h1>
+      <p class="course-editor-lede">{{ draftDescription() }}</p>
+
+      <div class="course-editor-meta" aria-label="Course editor metadata">
+        <span>{{ statusLabel() }}</span>
+        <span>{{ courseDraft().level || 'Level not set' }}</span>
+        <span>{{ courseDraft().teacher || 'Teacher not set' }}</span>
+      </div>
+    </div>
   </header>
 
-  <section class="course-create-panel" aria-labelledby="course-editor-title" id="course-editor-form">
-    <div class="editor-panel-header">
-      <div>
-        <p class="eyebrow">Course form</p>
-        <h2 id="course-editor-title">
-          @if (courseFormMode() === 'edit') {
-            Edit course details
-          } @else {
-            Start a new course
-          }
-        </h2>
+  <div class="course-editor-layout">
+    <section class="course-create-panel" aria-labelledby="course-editor-title" id="course-editor-form">
+      <div class="editor-panel-header">
+        <div>
+          <p class="eyebrow">Course form</p>
+          <h2 id="course-editor-title">
+            @if (courseFormMode() === 'edit') {
+              Edit course details
+            } @else {
+              Start a new course
+            }
+          </h2>
+        </div>
+        <span class="editor-status" [class.is-published]="courseDraft().status === 'published'">
+          {{ statusLabel() }}
+        </span>
       </div>
-      <span class="editor-status" [class.is-published]="courseDraft().status === 'published'">
-        {{ statusLabel() }}
-      </span>
-    </div>
 
     <div class="course-form">
       <section class="editor-section" aria-labelledby="course-basics-title">
@@ -249,25 +248,92 @@
       }
     </div>
 
-    <div class="editor-action-bar">
-      <app-button [disabled]="courseSubmitting()" (buttonClicked)="courseCanceled.emit()">
-        Cancel
-      </app-button>
-      <app-button
-        variant="primary"
-        [disabled]="courseSubmitting()"
-        (buttonClicked)="courseSubmitted.emit()"
-      >
-        @if (courseSubmitting()) {
-          Saving...
-        } @else if (courseFormMode() === 'edit') {
-          Save changes
-        } @else {
-          Create course
-        }
-      </app-button>
-    </div>
-  </section>
+      <div class="editor-action-bar">
+        <app-button [disabled]="courseSubmitting()" (buttonClicked)="courseCanceled.emit()">
+          Cancel
+        </app-button>
+        <app-button
+          variant="primary"
+          [disabled]="courseSubmitting()"
+          (buttonClicked)="courseSubmitted.emit()"
+        >
+          @if (courseSubmitting()) {
+            Saving...
+          } @else if (courseFormMode() === 'edit') {
+            Save changes
+          } @else {
+            Create course
+          }
+        </app-button>
+      </div>
+    </section>
+
+    <aside class="course-editor-preview" aria-label="Course edit summary">
+      <div class="course-preview-card">
+        <div class="course-preview-body">
+          <p class="course-preview-kicker">{{ courseDraft().level || 'Course level' }}</p>
+          <h2>{{ draftTitle() }}</h2>
+          <p>{{ draftDescription() }}</p>
+
+          <div class="preview-progress" aria-label="Course detail completion">
+            <span>
+              <strong>{{ completionPercent() }}%</strong>
+              filled
+            </span>
+            <div class="preview-progress-track">
+              <span [style.width.%]="completionPercent()"></span>
+            </div>
+          </div>
+
+          <div class="preview-stat-grid">
+            <div>
+              <span>Sections</span>
+              <strong>{{ totalSectionCount() }}</strong>
+            </div>
+            <div>
+              <span>Components</span>
+              <strong>{{ totalComponentCount() }}</strong>
+            </div>
+            <div>
+              <span>Length</span>
+              <strong>{{ durationSummary() }}</strong>
+            </div>
+          </div>
+
+          <div class="preview-line">
+            <span>Status</span>
+            <strong>{{ statusLabel() }}</strong>
+          </div>
+          <div class="preview-line">
+            <span>Teacher</span>
+            <strong>{{ courseDraft().teacher || 'Not set' }}</strong>
+          </div>
+          <div class="preview-line">
+            <span>Content</span>
+            <strong>{{ contentSummary() }}</strong>
+          </div>
+
+          @if (goalsList().length > 0) {
+            <div class="preview-topic-row" aria-label="Career goals">
+              @for (goal of goalsList(); track goal) {
+                <span>{{ goal }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="course-preview-actions">
+          <button type="button" class="course-preview-action" (click)="courseCanceled.emit()">
+            @if (courseFormMode() === 'edit') {
+              Back to course
+            } @else {
+              Back to courses
+            }
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <footer class="site-footer">
     <span class="footer-credit">

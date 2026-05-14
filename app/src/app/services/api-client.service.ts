@@ -22,10 +22,13 @@ export type ApiJsonResult<T> = {
 export class ApiClientService {
   private readonly apiJsonCache = new Map<string, ApiJsonCacheEntry>();
   private readonly unauthorizedHandlers = new Set<() => void>();
+  private hasLoggedApiBaseUrls = false;
 
   async fetch(path: string, init: RequestInit): Promise<Response> {
     const apiBaseUrls = this.apiBaseUrls();
     let lastError: unknown;
+
+    this.logApiBaseUrls(apiBaseUrls);
 
     for (const apiBaseUrl of apiBaseUrls) {
       try {
@@ -38,6 +41,7 @@ export class ApiClientService {
         return response;
       } catch (error) {
         lastError = error;
+        this.logApiFallback(apiBaseUrl, apiBaseUrls);
       }
     }
 
@@ -132,6 +136,25 @@ export class ApiClientService {
     const configuredApiBaseUrl = window.qiEducationConfig?.apiBaseUrl?.trim().replace(/\/+$/, '');
 
     return resolveApiBaseUrls(window.location, configuredApiBaseUrl);
+  }
+
+  private logApiBaseUrls(apiBaseUrls: string[]): void {
+    if (this.hasLoggedApiBaseUrls) {
+      return;
+    }
+
+    this.hasLoggedApiBaseUrls = true;
+    console.info(`QI-Education API order: ${apiBaseUrls.join(' -> ')}`);
+  }
+
+  private logApiFallback(failedApiBaseUrl: string, apiBaseUrls: string[]): void {
+    const fallbackApiBaseUrl = apiBaseUrls[apiBaseUrls.indexOf(failedApiBaseUrl) + 1];
+
+    if (!fallbackApiBaseUrl) {
+      return;
+    }
+
+    console.warn(`QI-Education API ${failedApiBaseUrl} is unreachable. Trying ${fallbackApiBaseUrl}.`);
   }
 }
 

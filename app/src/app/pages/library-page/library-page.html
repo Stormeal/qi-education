@@ -1,0 +1,88 @@
+<main class="page-shell library-shell">
+  <app-page-header
+    activeSection="library"
+    aboutHref="#library-list"
+    otherPagesHref="#library-list"
+    [displayName]="student().name"
+    [email]="userEmail()"
+    [roleLabel]="userRoleLabel()"
+    [canAccessAdmin]="canAccessAdmin()"
+    (homeClicked)="homeClicked.emit()"
+    (coursesClicked)="coursesClicked.emit()"
+    (libraryClicked)="libraryClicked.emit()"
+    (feedbackOpened)="feedbackOpened.emit()"
+    (loggedOut)="loggedOut.emit()"
+    (adminClicked)="adminClicked.emit()"
+  />
+
+  <header class="library-hero">
+    <div>
+      <p class="eyebrow">Library</p>
+      <h1>Your enrolled courses</h1>
+      <p>Return to every course you have joined and continue from the course workspace.</p>
+    </div>
+    <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Browse courses</app-button>
+  </header>
+
+  <section class="library-layout" id="library-list">
+    @if (coursesLoading()) {
+      <app-loading-skeleton variant="course-card" [count]="3" />
+    } @else if (coursesError()) {
+      <p class="course-error" role="alert">{{ coursesError() }}</p>
+    } @else if (courses().length === 0) {
+      <div class="library-empty">
+        <span aria-hidden="true"></span>
+        <div>
+          <h2>No courses in your library yet</h2>
+          <p>Enroll from the course catalog and the course will stay here for quick access.</p>
+        </div>
+        <app-button variant="outline" (buttonClicked)="coursesClicked.emit()">Find a course</app-button>
+      </div>
+    } @else {
+      <div class="library-list">
+        @for (course of courses(); track course.id) {
+          <a
+            class="library-course"
+            [routerLink]="['/courses', course.id]"
+            [attr.aria-label]="'Open enrolled course: ' + course.title"
+          >
+            <div class="library-course-mark" aria-hidden="true">{{ teacherInitials(course.teacher) }}</div>
+            <div class="library-course-copy">
+              <p>{{ course.level }}</p>
+              <h2>{{ course.title }}</h2>
+              <span>{{ course.description }}</span>
+            </div>
+            <div class="library-course-side">
+              <strong>0%</strong>
+              <span>Progress</span>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </section>
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
+}
