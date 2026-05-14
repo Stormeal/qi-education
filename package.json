@@ -9,7 +9,7 @@
     "app:dev": "concurrently -k -n api,app -c blue,green \"npm run api:dev\" \"npm run app:dev:frontend\"",
     "app:dev:frontend": "npm --prefix app start",
     "app:build": "npm --prefix app run build",
-    "app:build:pages": "npm --prefix app run build -- --base-href /qi-education/ --deploy-url /qi-education/",
+    "app:build:pages": "npm --prefix app run build -- --base-href /qi-education/ --deploy-url /qi-education/ && node scripts/create-pages-fallback.mjs",
     "app:test": "npm --prefix app test",
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",
