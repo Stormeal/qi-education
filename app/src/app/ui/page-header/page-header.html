@@ -10,7 +10,7 @@
     >
       Home
     </button>
-    <a [href]="aboutHref()">About</a>
+    <a [href]="aboutHref()" (click)="navigateToAnchor($event, aboutHref())">About</a>
     <button
       type="button"
       class="tab-link with-chevron"
