@@ -324,10 +324,24 @@ export class CourseViewPage {
   }
 
   protected componentHasDetails(component: CourseContentDocument['sections'][number]['components'][number]): boolean {
+    if (component.type === 'quiz') {
+      return (
+        component.quiz.questions.some(
+          (question) =>
+            !!question.question.trim() ||
+            question.answers.some((answer) => answer.text.trim() || answer.description.trim()),
+        )
+      );
+    }
+
     return !!component.content.trim() || !!component.resourceUrl.trim();
   }
 
   protected componentPreviewText(component: CourseContentDocument['sections'][number]['components'][number]): string {
+    if (component.type === 'quiz') {
+      return component.quiz.questions[0]?.question.trim() || 'Quiz question coming soon.';
+    }
+
     return component.content.trim() || 'No preview text available yet.';
   }
 

@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { CourseComponentType, CourseContentDocument, CourseCreateDraft, FeedbackOption, StudentSummary } from '../../app.models';
+import {
+  CourseComponentType,
+  CourseContentDocument,
+  CourseCreateDraft,
+  FeedbackOption,
+  StudentSummary,
+} from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -70,6 +76,22 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
   readonly courseComponentUrlChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
+  readonly courseComponentQuizQuestionChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
+  readonly courseComponentQuizPointsChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
+  readonly courseComponentQuizPassPointsChanged =
+    output<{ sectionIndex: number; componentIndex: number; value: string }>();
+  readonly courseComponentQuizQuestionAdded =
+    output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentQuizQuestionRemoved =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number }>();
+  readonly courseComponentQuizAnswerTextChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
+  readonly courseComponentQuizAnswerDescriptionChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
+  readonly courseComponentQuizAnswerCorrectChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
   readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number }>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();

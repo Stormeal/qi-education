@@ -10,6 +10,11 @@ body {
   overflow-x: clip;
 }
 
+html.builder-modal-open,
+body.builder-modal-open {
+  overflow: hidden;
+}
+
 app-root {
   display: block;
   min-height: 100vh;

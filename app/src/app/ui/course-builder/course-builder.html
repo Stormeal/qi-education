@@ -87,7 +87,7 @@
 
                 <div class="builder-component-copy">
                   <strong>{{ component.title || 'Untitled component' }}</strong>
-                  <span>{{ componentTypeLabel(component) }}</span>
+                  <span>{{ quizMetaSummary(component) || componentTypeLabel(component) }}</span>
                 </div>
 
                 <div class="builder-component-duration">
@@ -163,17 +163,20 @@
 
       @if (activeEditor(); as editor) {
         <div class="builder-modal-body">
-          <label class="builder-field">
-            <span>Component title</span>
-            <input
-              type="text"
-              [value]="component.title"
-              [disabled]="courseContentSaving() || courseSubmitting()"
-              (input)="courseComponentTitleChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
-            />
-          </label>
+          <div
+            class="builder-modal-grid builder-modal-grid-compact"
+            [class.builder-modal-grid-quiz]="isQuizComponent(component)"
+          >
+            <label class="builder-field builder-field-title">
+              <span>Component title</span>
+              <input
+                type="text"
+                [value]="component.title"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (input)="courseComponentTitleChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              />
+            </label>
 
-          <div class="builder-modal-grid">
             <label class="builder-field">
               <span>Component type</span>
               <select
@@ -197,7 +200,138 @@
                 (input)="courseComponentDurationChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
               />
             </label>
+
+            @if (isQuizComponent(component)) {
+              <label class="builder-field">
+                <span>Pass points</span>
+                <input
+                  type="number"
+                  min="1"
+                  [value]="component.quiz.passPoints"
+                  [disabled]="courseContentSaving() || courseSubmitting()"
+                  (input)="updateQuizPassPoints(editor.sectionIndex, editor.componentIndex, controlValue($event))"
+                />
+              </label>
+            }
           </div>
+
+          @if (isQuizComponent(component)) {
+            <section class="quiz-editor-card">
+              <div class="quiz-question-stack">
+                @for (question of component.quiz.questions; track question.id; let questionIndex = $index) {
+                  <section
+                    class="quiz-question-card"
+                    [class.is-collapsed]="!isQuizQuestionExpanded(questionIndex)"
+                  >
+                    <div
+                      class="quiz-question-header"
+                      [class.is-collapsed]="!isQuizQuestionExpanded(questionIndex)"
+                    >
+                      <button
+                        type="button"
+                        class="quiz-question-trigger"
+                        [disabled]="courseContentSaving() || courseSubmitting()"
+                        (click)="expandQuizQuestion(questionIndex)"
+                      >
+                        <div>
+                          <p class="quiz-editor-kicker">Question {{ questionIndex + 1 }}</p>
+                          <strong>{{ question.question || 'Untitled question' }}</strong>
+                        </div>
+                      </button>
+
+                      <span class="quiz-question-meta">{{ question.points }} pt</span>
+
+                      @if (isQuizQuestionExpanded(questionIndex) && component.quiz.questions.length > 1) {
+                        <button
+                          type="button"
+                          class="quiz-question-remove"
+                          aria-label="Remove question"
+                          [disabled]="courseContentSaving() || courseSubmitting()"
+                          (click)="removeQuizQuestion(editor.sectionIndex, editor.componentIndex, questionIndex)"
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      }
+                    </div>
+
+                    @if (isQuizQuestionExpanded(questionIndex)) {
+                      <div class="quiz-question-body">
+                        <div class="builder-modal-grid quiz-settings-grid">
+                          <label class="builder-field quiz-question-field">
+                            <span>Question</span>
+                            <input
+                              type="text"
+                              [value]="question.question"
+                              [disabled]="courseContentSaving() || courseSubmitting()"
+                              (input)="updateQuizQuestion(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
+                            />
+                          </label>
+
+                          <label class="builder-field">
+                            <span>Question points</span>
+                            <input
+                              type="number"
+                              min="1"
+                              [value]="question.points"
+                              [disabled]="courseContentSaving() || courseSubmitting()"
+                              (input)="updateQuizPoints(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
+                            />
+                          </label>
+                        </div>
+
+                        <div class="quiz-answer-list">
+                          @for (answer of question.answers; track answer.id; let answerIndex = $index) {
+                            <div class="quiz-answer-row">
+                              <div class="quiz-answer-header">
+                                <p class="quiz-answer-label">Answer {{ answerIndex + 1 }}</p>
+
+                                <label class="quiz-answer-toggle">
+                                  <input
+                                    type="checkbox"
+                                    [checked]="answer.isCorrect"
+                                    [disabled]="courseContentSaving() || courseSubmitting()"
+                                    (change)="updateQuizAnswerCorrectness(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, toggleValue($event))"
+                                  />
+                                  <span>Correct</span>
+                                </label>
+                              </div>
+
+                              <input
+                                type="text"
+                                class="quiz-answer-input"
+                                placeholder="Answer text"
+                                [value]="answer.text"
+                                [disabled]="courseContentSaving() || courseSubmitting()"
+                                (input)="updateQuizAnswerText(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, controlValue($event))"
+                              />
+
+                              <textarea
+                                rows="2"
+                                class="quiz-answer-description"
+                                placeholder="Why this is right or wrong"
+                                [value]="answer.description"
+                                [disabled]="courseContentSaving() || courseSubmitting()"
+                                (input)="updateQuizAnswerDescription(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, controlValue($event))"
+                              ></textarea>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </section>
+                }
+              </div>
+
+              <button
+                type="button"
+                class="add-component-button quiz-add-question-button"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (click)="addQuizQuestion(editor.sectionIndex, editor.componentIndex)"
+              >
+                + Add question
+              </button>
+            </section>
+          }
 
           @if (hasSupportingUrl(component)) {
             <label class="builder-field">
@@ -212,15 +346,17 @@
             </label>
           }
 
-          <label class="builder-field">
-            <span>{{ componentEditorLabel(component) }}</span>
-            <textarea
-              rows="7"
-              [value]="component.content"
-              [disabled]="courseContentSaving() || courseSubmitting()"
-              (input)="courseComponentContentChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
-            ></textarea>
-          </label>
+          @if (!isQuizComponent(component)) {
+            <label class="builder-field">
+              <span>{{ componentEditorLabel(component) }}</span>
+              <textarea
+                rows="7"
+                [value]="component.content"
+                [disabled]="courseContentSaving() || courseSubmitting()"
+                (input)="courseComponentContentChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
+              ></textarea>
+            </label>
+          }
         </div>
       }
 
@@ -258,11 +394,6 @@
       </header>
 
       <div class="component-picker-body">
-        <div class="component-picker-tabs" aria-hidden="true">
-          <span class="is-active">New Components</span>
-          <span>Existing Components</span>
-        </div>
-
         <div class="component-picker-group">
           <p class="component-picker-label">Create</p>
 

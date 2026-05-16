@@ -437,11 +437,47 @@ describe('QI-Education API', () => {
         components: [
           {
             id: 'component-1',
-            title: 'Intro video',
-            type: 'video',
+            title: 'Quick knowledge check',
+            type: 'quiz',
             durationMinutes: 5,
-            content: 'Welcome to the first lesson.',
-            resourceUrl: 'https://example.com/video',
+            content: 'What belongs in a strong API test suite?',
+            resourceUrl: '',
+            quiz: {
+              passPoints: 2,
+              questions: [
+                {
+                  id: 'question-1',
+                  question: 'What belongs in a strong API test suite?',
+                  points: 2,
+                  answers: [
+                    {
+                      id: 'answer-1',
+                      text: 'Assertions against expected status codes',
+                      description: 'Correct because responses need to be validated.',
+                      isCorrect: true,
+                    },
+                    {
+                      id: 'answer-2',
+                      text: 'Ignoring error responses entirely',
+                      description: 'Wrong because failure paths still need coverage.',
+                      isCorrect: false,
+                    },
+                    {
+                      id: 'answer-3',
+                      text: 'Checks for response body structure',
+                      description: 'Correct because payload shape matters to consumers.',
+                      isCorrect: true,
+                    },
+                    {
+                      id: 'answer-4',
+                      text: 'Random delays without purpose',
+                      description: 'Wrong because timing should be tied to a real need.',
+                      isCorrect: false,
+                    },
+                  ],
+                },
+              ],
+            },
           },
         ],
       },
@@ -545,6 +581,67 @@ describe('QI-Education API', () => {
                 type: 'html',
                 durationMinutes: 5,
                 content: 'invalid',
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toBe('Invalid request body');
+  });
+
+  it('rejects quiz content without four answers', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+
+    const response = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        sections: [
+          {
+            id: 'section-1',
+            title: 'Quiz section',
+            components: [
+              {
+                id: 'component-1',
+                title: 'Broken quiz',
+                type: 'quiz',
+                durationMinutes: 5,
+                content: 'A broken quiz',
+                resourceUrl: '',
+                quiz: {
+                  passPoints: 1,
+                  questions: [
+                    {
+                      id: 'question-1',
+                      question: 'Pick the correct answer',
+                      points: 1,
+                      answers: [
+                        {
+                          id: 'answer-1',
+                          text: 'One',
+                          description: 'Only one option exists.',
+                          isCorrect: true,
+                        },
+                      ],
+                    },
+                  ],
+                },
               },
             ],
           },

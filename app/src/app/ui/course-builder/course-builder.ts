@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
@@ -15,8 +16,11 @@ type ComponentPickerState = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CourseBuilder {
+  private readonly document = inject(DOCUMENT);
   private readonly collapsedSections = new Set<number>();
   private editingSectionIndex: number | null = null;
+  private scrollLockTop = 0;
+  private expandedQuizQuestionIndex = signal(0);
   protected readonly activeEditor = signal<{ sectionIndex: number; componentIndex: number } | null>(null);
   protected readonly componentPicker = signal<ComponentPickerState>(null);
   private dragSource: { sectionIndex: number; componentIndex: number } | null = null;
@@ -42,6 +46,22 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
   readonly courseComponentUrlChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
+  readonly courseComponentQuizQuestionChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
+  readonly courseComponentQuizPointsChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
+  readonly courseComponentQuizPassPointsChanged =
+    output<{ sectionIndex: number; componentIndex: number; value: string }>();
+  readonly courseComponentQuizQuestionAdded =
+    output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentQuizQuestionRemoved =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number }>();
+  readonly courseComponentQuizAnswerTextChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
+  readonly courseComponentQuizAnswerDescriptionChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
+  readonly courseComponentQuizAnswerCorrectChanged =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
   readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number }>();
 
   protected readonly editingComponent = computed(() => {
@@ -54,6 +74,32 @@ export class CourseBuilder {
 
     return content.sections[editor.sectionIndex]?.components[editor.componentIndex] ?? null;
   });
+
+  constructor() {
+    effect(() => {
+      const modalOpen = !!this.activeEditor() || !!this.componentPicker();
+      const body = this.document.body;
+      const root = this.document.documentElement;
+      const viewport = this.document.defaultView;
+
+      if (modalOpen) {
+        if (!body.classList.contains('builder-modal-open')) {
+          this.scrollLockTop = viewport?.scrollY ?? 0;
+          body.style.position = 'fixed';
+          body.style.top = `-${this.scrollLockTop}px`;
+          body.style.width = '100%';
+        }
+      } else if (body.classList.contains('builder-modal-open')) {
+        body.style.position = '';
+        body.style.top = '';
+        body.style.width = '';
+        viewport?.scrollTo({ top: this.scrollLockTop, behavior: 'auto' });
+      }
+
+      body.classList.toggle('builder-modal-open', modalOpen);
+      root.classList.toggle('builder-modal-open', modalOpen);
+    });
+  }
 
   protected readonly componentChoices: Array<{
     type: CourseComponentType;
@@ -130,7 +176,7 @@ export class CourseBuilder {
 
   protected componentEditorLabel(component: CourseComponent): string {
     if (component.type === 'quiz') {
-      return 'Quiz instructions';
+      return 'Quiz notes';
     }
 
     if (component.type === 'video') {
@@ -142,6 +188,18 @@ export class CourseBuilder {
 
   protected hasSupportingUrl(component: CourseComponent): boolean {
     return component.type === 'video';
+  }
+
+  protected isQuizComponent(component: CourseComponent): component is Extract<CourseComponent, { type: 'quiz' }> {
+    return component.type === 'quiz';
+  }
+
+  protected quizMetaSummary(component: CourseComponent): string | null {
+    if (component.type !== 'quiz') {
+      return null;
+    }
+
+    return `${component.quiz.questions.length} questions · Pass at ${component.quiz.passPoints} pts`;
   }
 
   protected isSectionCollapsed(sectionIndex: number): boolean {
@@ -192,10 +250,12 @@ export class CourseBuilder {
   }
 
   protected openComponentEditor(sectionIndex: number, componentIndex: number): void {
+    this.expandedQuizQuestionIndex.set(0);
     this.activeEditor.set({ sectionIndex, componentIndex });
   }
 
   protected closeComponentEditor(): void {
+    this.expandedQuizQuestionIndex.set(0);
     this.activeEditor.set(null);
   }
 
@@ -276,5 +336,120 @@ export class CourseBuilder {
     }
 
     return '';
+  }
+
+  protected toggleValue(event: Event): boolean {
+    const control = event.target;
+
+    return control instanceof HTMLInputElement ? control.checked : false;
+  }
+
+  protected updateQuizQuestion(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    value: string,
+  ): void {
+    this.courseComponentQuizQuestionChanged.emit({ sectionIndex, componentIndex, questionIndex, value });
+  }
+
+  protected updateQuizPoints(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    value: string,
+  ): void {
+    this.courseComponentQuizPointsChanged.emit({ sectionIndex, componentIndex, questionIndex, value });
+  }
+
+  protected updateQuizPassPoints(sectionIndex: number, componentIndex: number, value: string): void {
+    this.courseComponentQuizPassPointsChanged.emit({ sectionIndex, componentIndex, value });
+  }
+
+  protected addQuizQuestion(sectionIndex: number, componentIndex: number): void {
+    const component = this.editingComponent();
+    const questionCount = component?.type === 'quiz' ? component.quiz.questions.length : 0;
+    this.expandedQuizQuestionIndex.set(questionCount);
+    this.courseComponentQuizQuestionAdded.emit({ sectionIndex, componentIndex });
+    this.scrollQuizQuestionIntoView(questionCount);
+  }
+
+  protected removeQuizQuestion(sectionIndex: number, componentIndex: number, questionIndex: number): void {
+    const activeIndex = this.expandedQuizQuestionIndex();
+    if (questionIndex < activeIndex) {
+      this.expandedQuizQuestionIndex.set(activeIndex - 1);
+    } else if (questionIndex === activeIndex) {
+      this.expandedQuizQuestionIndex.set(Math.max(0, activeIndex - 1));
+    }
+    this.courseComponentQuizQuestionRemoved.emit({ sectionIndex, componentIndex, questionIndex });
+  }
+
+  protected isQuizQuestionExpanded(questionIndex: number): boolean {
+    return this.expandedQuizQuestionIndex() === questionIndex;
+  }
+
+  protected expandQuizQuestion(questionIndex: number): void {
+    this.expandedQuizQuestionIndex.set(questionIndex);
+    this.scrollQuizQuestionIntoView(questionIndex);
+  }
+
+  private scrollQuizQuestionIntoView(questionIndex: number): void {
+    const viewport = this.document.defaultView;
+
+    viewport?.setTimeout(() => {
+      const question = this.document.querySelectorAll('.quiz-question-card').item(questionIndex);
+
+      if (question instanceof HTMLElement) {
+        question.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 0);
+  }
+
+  protected updateQuizAnswerText(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    answerIndex: number,
+    value: string,
+  ): void {
+    this.courseComponentQuizAnswerTextChanged.emit({
+      sectionIndex,
+      componentIndex,
+      questionIndex,
+      answerIndex,
+      value,
+    });
+  }
+
+  protected updateQuizAnswerDescription(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    answerIndex: number,
+    value: string,
+  ): void {
+    this.courseComponentQuizAnswerDescriptionChanged.emit({
+      sectionIndex,
+      componentIndex,
+      questionIndex,
+      answerIndex,
+      value,
+    });
+  }
+
+  protected updateQuizAnswerCorrectness(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    answerIndex: number,
+    value: boolean,
+  ): void {
+    this.courseComponentQuizAnswerCorrectChanged.emit({
+      sectionIndex,
+      componentIndex,
+      questionIndex,
+      answerIndex,
+      value,
+    });
   }
 }

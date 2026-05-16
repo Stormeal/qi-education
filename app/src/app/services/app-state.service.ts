@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import {
+  CourseComponent,
   CourseComponentType,
   CourseSection,
   CourseContentDocument,
@@ -14,6 +15,7 @@ import {
   FeedbackTriageUpdate,
   LoginState,
   NextAction,
+  QuizComponentContent,
   UserRole,
 } from '../app.models';
 import { AuthService } from './auth.service';
@@ -638,14 +640,7 @@ export class AppStateService {
                     ...section,
                     components: [
                       ...section.components,
-                      {
-                        id: this.createContentId('component'),
-                        title: `New component ${section.components.length + 1}`,
-                        type,
-                        durationMinutes: 0,
-                        content: '',
-                        resourceUrl: '',
-                      },
+                      this.createCourseComponent(type, section.components.length + 1),
                     ],
                   }
                 : section,
@@ -685,11 +680,46 @@ export class AppStateService {
   }
 
   updateCourseComponentType(sectionIndex: number, componentIndex: number, value: string): void {
-    this.updateCourseComponent(sectionIndex, componentIndex, (component) => ({
-      ...component,
-      type: value as CourseComponentType,
-      resourceUrl: value === 'video' ? component.resourceUrl : '',
-    }));
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      const nextType = value as CourseComponentType;
+
+      if (nextType === 'quiz') {
+        const quizQuestion =
+          component.type === 'quiz'
+            ? this.primaryQuizQuestionText(component.quiz)
+            : component.content;
+
+        return {
+          id: component.id,
+          title: component.title,
+          type: 'quiz',
+          durationMinutes: component.durationMinutes,
+          content: quizQuestion,
+          resourceUrl: '',
+          quiz: component.type === 'quiz' ? component.quiz : this.createEmptyQuizContent(),
+        };
+      }
+
+      if (nextType === 'video') {
+        return {
+          id: component.id,
+          title: component.title,
+          type: 'video',
+          durationMinutes: component.durationMinutes,
+          content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
+          resourceUrl: component.resourceUrl,
+        };
+      }
+
+      return {
+        id: component.id,
+        title: component.title,
+        type: 'text',
+        durationMinutes: component.durationMinutes,
+        content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
+        resourceUrl: '',
+      };
+    });
   }
 
   updateCourseComponentDuration(sectionIndex: number, componentIndex: number, value: string): void {
@@ -712,6 +742,213 @@ export class AppStateService {
       ...component,
       resourceUrl: value,
     }));
+  }
+
+  updateCourseComponentQuizQuestion(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    value: string,
+  ): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      const questions = component.quiz.questions.map((question, index) =>
+        index === questionIndex ? { ...question, question: value } : question,
+      );
+
+      return {
+        ...component,
+        content: questions[0]?.question ?? '',
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions,
+        },
+      };
+    });
+  }
+
+  updateCourseComponentQuizPoints(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    value: string,
+  ): void {
+    const parsed = Number.parseInt(value, 10);
+
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      return {
+        ...component,
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions: component.quiz.questions.map((question, index) =>
+            index === questionIndex
+              ? { ...question, points: Number.isFinite(parsed) && parsed > 0 ? parsed : 1 }
+              : question,
+          ),
+        },
+      };
+    });
+  }
+
+  updateCourseComponentQuizPassPoints(sectionIndex: number, componentIndex: number, value: string): void {
+    const parsed = Number.parseInt(value, 10);
+
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      return {
+        ...component,
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          passPoints: Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
+        },
+      };
+    });
+  }
+
+  addCourseComponentQuizQuestion(sectionIndex: number, componentIndex: number): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      const nextQuestion = this.createEmptyQuizQuestion(component.quiz.questions.length + 1);
+      return {
+        ...component,
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions: [...component.quiz.questions, nextQuestion],
+        },
+      };
+    });
+  }
+
+  removeCourseComponentQuizQuestion(sectionIndex: number, componentIndex: number, questionIndex: number): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz' || component.quiz.questions.length <= 1) {
+        return component;
+      }
+
+      const questions = component.quiz.questions.filter((_, index) => index !== questionIndex);
+      return {
+        ...component,
+        content: questions[0]?.question ?? '',
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions,
+        },
+      };
+    });
+  }
+
+  updateCourseComponentQuizAnswerText(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    answerIndex: number,
+    value: string,
+  ): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      return {
+        ...component,
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions: component.quiz.questions.map((question, index) =>
+            index === questionIndex
+              ? {
+                  ...question,
+                  answers: question.answers.map((answer, currentAnswerIndex) =>
+                    currentAnswerIndex === answerIndex ? { ...answer, text: value } : answer,
+                  ) as QuizComponentContent['questions'][number]['answers'],
+                }
+              : question,
+          ),
+        },
+      };
+    });
+  }
+
+  updateCourseComponentQuizAnswerDescription(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    answerIndex: number,
+    value: string,
+  ): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      return {
+        ...component,
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions: component.quiz.questions.map((question, index) =>
+            index === questionIndex
+              ? {
+                  ...question,
+                  answers: question.answers.map((answer, currentAnswerIndex) =>
+                    currentAnswerIndex === answerIndex ? { ...answer, description: value } : answer,
+                  ) as QuizComponentContent['questions'][number]['answers'],
+                }
+              : question,
+          ),
+        },
+      };
+    });
+  }
+
+  updateCourseComponentQuizAnswerCorrect(
+    sectionIndex: number,
+    componentIndex: number,
+    questionIndex: number,
+    answerIndex: number,
+    value: boolean,
+  ): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') {
+        return component;
+      }
+
+      return {
+        ...component,
+        resourceUrl: '',
+        quiz: {
+          ...component.quiz,
+          questions: component.quiz.questions.map((question, index) =>
+            index === questionIndex
+              ? {
+                  ...question,
+                  answers: question.answers.map((answer, currentAnswerIndex) =>
+                    currentAnswerIndex === answerIndex ? { ...answer, isCorrect: value } : answer,
+                  ) as QuizComponentContent['questions'][number]['answers'],
+                }
+              : question,
+          ),
+        },
+      };
+    });
   }
 
   moveCourseComponent(sectionIndex: number, fromIndex: number, toIndex: number): void {
@@ -1039,7 +1276,7 @@ export class AppStateService {
     this.courseContentError.set('');
 
     try {
-      const loadedContent = await this.courseService.loadCourseContent(courseId);
+      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId));
       this.courseContent.set(loadedContent);
       this.loadedCourseContentId.set(courseId);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
@@ -1274,6 +1511,70 @@ export class AppStateService {
     return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  private createCourseComponent(type: CourseComponentType, componentNumber: number): CourseComponent {
+    const base = {
+      id: this.createContentId('component'),
+      title: `New component ${componentNumber}`,
+      durationMinutes: 0,
+      content: '',
+      resourceUrl: '',
+    };
+
+    switch (type) {
+      case 'quiz':
+        return {
+          ...base,
+          type: 'quiz',
+          content: 'New question',
+          quiz: this.createEmptyQuizContent(),
+        };
+      case 'video':
+        return {
+          ...base,
+          type: 'video',
+        };
+      default:
+        return {
+          ...base,
+          type: 'text',
+        };
+    }
+  }
+
+  private createEmptyQuizContent(): QuizComponentContent {
+    return {
+      passPoints: 1,
+      questions: [this.createEmptyQuizQuestion(1)],
+    };
+  }
+
+  private createEmptyQuizQuestion(questionNumber: number) {
+    return {
+      id: this.createContentId(`question-${questionNumber}`),
+      question: 'New question',
+      points: 1,
+      answers: [
+        this.createEmptyQuizAnswer(1),
+        this.createEmptyQuizAnswer(2),
+        this.createEmptyQuizAnswer(3),
+        this.createEmptyQuizAnswer(4),
+      ] as QuizComponentContent['questions'][number]['answers'],
+    };
+  }
+
+  private createEmptyQuizAnswer(answerNumber: number) {
+    return {
+      id: this.createContentId(`answer-${answerNumber}`),
+      text: '',
+      description: '',
+      isCorrect: false,
+    };
+  }
+
+  private primaryQuizQuestionText(quiz: QuizComponentContent): string {
+    return quiz.questions[0]?.question?.trim() || '';
+  }
+
   private serializeCourseDraft(draft: CourseCreateDraft): string {
     return JSON.stringify(draft);
   }
@@ -1307,6 +1608,107 @@ export class AppStateService {
       sections: [],
       createdAt: now,
       updatedAt: now,
+    };
+  }
+
+  private normalizeCourseContent(content: CourseContentDocument): CourseContentDocument {
+    return {
+      ...content,
+      sections: content.sections.map((section) => ({
+        ...section,
+        components: section.components.map((component) => {
+          if (component.type !== 'quiz') {
+            return component;
+          }
+
+          const existingQuiz = 'quiz' in component ? component.quiz : undefined;
+          const fallbackQuiz = this.createEmptyQuizContent();
+          const legacyQuestion =
+            existingQuiz && 'question' in existingQuiz && typeof existingQuiz.question === 'string'
+              ? existingQuiz.question
+              : component.content;
+          const legacyPoints =
+            existingQuiz && 'points' in existingQuiz && typeof existingQuiz.points === 'number'
+              ? existingQuiz.points
+              : 1;
+          const legacyAnswers =
+            existingQuiz && 'answers' in existingQuiz && Array.isArray(existingQuiz.answers)
+              ? existingQuiz.answers
+              : [];
+          const existingQuestions =
+            existingQuiz && 'questions' in existingQuiz && Array.isArray(existingQuiz.questions)
+              ? existingQuiz.questions
+              : [];
+          const questionsSource =
+            existingQuestions.length > 0
+              ? existingQuestions
+              : [
+                  {
+                    id: this.createContentId('question-1'),
+                    question: legacyQuestion,
+                    points: legacyPoints,
+                    answers: legacyAnswers,
+                  },
+                ];
+
+          return {
+            ...component,
+            content:
+              questionsSource[0]?.question && typeof questionsSource[0].question === 'string'
+                ? questionsSource[0].question
+                : component.content,
+            quiz: {
+              passPoints:
+                existingQuiz?.passPoints && existingQuiz.passPoints > 0 ? existingQuiz.passPoints : 1,
+              questions: questionsSource.map((question, questionIndex) => {
+                const fallbackQuestion = this.createEmptyQuizQuestion(questionIndex + 1);
+
+                return {
+                  id:
+                    'id' in question && typeof question.id === 'string'
+                      ? question.id
+                      : fallbackQuestion.id,
+                  question:
+                    'question' in question && typeof question.question === 'string'
+                      ? question.question
+                      : fallbackQuestion.question,
+                  points:
+                    'points' in question &&
+                    typeof question.points === 'number' &&
+                    question.points > 0
+                      ? question.points
+                      : 1,
+                  answers: fallbackQuestion.answers.map((fallbackAnswer, answerIndex) => {
+                    const answer =
+                      'answers' in question && Array.isArray(question.answers)
+                        ? question.answers[answerIndex]
+                        : undefined;
+
+                    return {
+                      id:
+                        answer && typeof answer.id === 'string'
+                          ? answer.id
+                          : fallbackAnswer.id,
+                      text:
+                        answer && typeof answer.text === 'string'
+                          ? answer.text
+                          : '',
+                      description:
+                        answer && typeof answer.description === 'string'
+                          ? answer.description
+                          : '',
+                      isCorrect:
+                        answer && typeof answer.isCorrect === 'boolean'
+                          ? answer.isCorrect
+                          : false,
+                    };
+                  }) as QuizComponentContent['questions'][number]['answers'],
+                };
+              }),
+            },
+          };
+        }),
+      })),
     };
   }
 

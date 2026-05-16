@@ -74,14 +74,47 @@ export type CourseCreateDraft = {
 
 export type CourseComponentType = 'video' | 'quiz' | 'text';
 
-export type CourseComponent = {
+export type QuizAnswerOption = {
+  id: string;
+  text: string;
+  description: string;
+  isCorrect: boolean;
+};
+
+export type QuizQuestion = {
+  id: string;
+  question: string;
+  points: number;
+  answers: [QuizAnswerOption, QuizAnswerOption, QuizAnswerOption, QuizAnswerOption];
+};
+
+export type QuizComponentContent = {
+  passPoints: number;
+  questions: QuizQuestion[];
+};
+
+type BaseCourseComponent = {
   id: string;
   title: string;
-  type: CourseComponentType;
   durationMinutes: number;
   content: string;
   resourceUrl: string;
 };
+
+export type VideoCourseComponent = BaseCourseComponent & {
+  type: 'video';
+};
+
+export type TextCourseComponent = BaseCourseComponent & {
+  type: 'text';
+};
+
+export type QuizCourseComponent = BaseCourseComponent & {
+  type: 'quiz';
+  quiz: QuizComponentContent;
+};
+
+export type CourseComponent = VideoCourseComponent | TextCourseComponent | QuizCourseComponent;
 
 export type CourseSection = {
   id: string;
