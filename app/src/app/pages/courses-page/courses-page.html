@@ -59,7 +59,7 @@
                 <span>0 (0)</span>
               </div>
               <h2>{{ course.title }}</h2>
-              <p>{{ course.description }}</p>
+              <p>{{ firstSentence(course.description) }}</p>
               <div class="course-teacher-row">
                 <span class="course-avatar" aria-hidden="true">{{ teacherInitials(course.teacher) }}</span>
                 <span>

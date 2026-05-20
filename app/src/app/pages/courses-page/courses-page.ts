@@ -64,4 +64,15 @@ export class CoursesPage {
       .map((part) => part[0]?.toUpperCase())
       .join('');
   }
+
+  protected firstSentence(description: string): string {
+    const trimmedDescription = description.trim();
+    const firstPeriodIndex = trimmedDescription.indexOf('.');
+
+    if (firstPeriodIndex === -1) {
+      return trimmedDescription;
+    }
+
+    return trimmedDescription.slice(0, firstPeriodIndex + 1);
+  }
 }
