@@ -2,6 +2,8 @@ html {
   min-height: 100%;
   margin: 0;
   overflow-x: clip;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 body {

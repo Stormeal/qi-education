@@ -6,6 +6,8 @@ import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 
+type CourseViewMode = 'details' | 'learning';
+
 @Component({
   selector: 'app-course-view-page',
   imports: [AppButton, DatePipe, FeedbackDialog, LoadingSkeleton, PageHeader],
@@ -42,6 +44,7 @@ export class CourseViewPage {
   readonly priceSaving = input.required<boolean>();
   readonly priceSaveNotice = input.required<string>();
   readonly priceSaveNoticeError = input.required<boolean>();
+  readonly viewMode = input.required<CourseViewMode>();
   readonly isEnrolled = input.required<boolean>();
   readonly enrollmentSubmitting = input.required<boolean>();
   readonly enrollmentError = input.required<string>();
@@ -61,6 +64,7 @@ export class CourseViewPage {
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();
   readonly courseEdited = output<string>();
+  readonly courseLearningOpened = output<string>();
   readonly coursePriceSaved = output<{ courseId: string; priceDkk: number | null }>();
   readonly courseEnrollmentConfirmed = output<string>();
   readonly feedbackClosed = output<void>();
@@ -141,6 +145,10 @@ export class CourseViewPage {
   protected openEnrollDialog(): void {
     this.pendingEnrollment.set(false);
     this.isEnrollDialogOpen.set(true);
+  }
+
+  protected openLearningWorkspace(courseId: string): void {
+    this.courseLearningOpened.emit(courseId);
   }
 
   protected closeEnrollDialog(): void {

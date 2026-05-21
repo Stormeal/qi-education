@@ -20,6 +20,11 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/library-route').then((module) => module.LibraryRoute),
   },
   {
+    path: 'library/:id',
+    loadComponent: () =>
+      import('./routes/course-view-route').then((module) => module.CourseViewRoute),
+  },
+  {
     path: 'courses/new',
     loadComponent: () =>
       import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),

@@ -1,7 +1,7 @@
 <main class="course-view-shell">
   <div class="course-view-nav-frame">
     <app-page-header
-      activeSection="courses"
+      [activeSection]="viewMode() === 'learning' ? 'library' : 'courses'"
       aboutHref="#course-content"
       otherPagesHref="#course-description"
       [displayName]="student().name"
@@ -30,11 +30,17 @@
     </section>
   } @else {
     @let currentCourse = course()!;
-    @if (isEnrolled()) {
+    @if (viewMode() === 'learning') {
+      @if (!isEnrolled()) {
+        <section class="course-view-empty">
+          <p class="course-empty">This course is not available in My Learning yet.</p>
+          <app-button variant="primary" (buttonClicked)="libraryClicked.emit()">Back to My Learning</app-button>
+        </section>
+      } @else {
       <section class="learning-shell" aria-label="Course workspace">
         <div class="learning-topline">
           <nav class="course-breadcrumb learning-breadcrumb" aria-label="Course breadcrumbs">
-            <button type="button" (click)="libraryClicked.emit()">Library</button>
+            <button type="button" (click)="libraryClicked.emit()">My Learning</button>
             <span aria-hidden="true">/</span>
             <span>{{ currentCourse.title }}</span>
           </nav>
@@ -134,11 +140,12 @@
           </aside>
         </div>
       </section>
+      }
     } @else {
     <section class="course-view-hero">
       <div class="course-view-hero-content">
         <nav class="course-breadcrumb" aria-label="Course breadcrumbs">
-          <button type="button" (click)="coursesClicked.emit()">Courses</button>
+          <button type="button" (click)="coursesClicked.emit()">Catalog</button>
           <span aria-hidden="true">/</span>
           <span>{{ currentCourse.level }}</span>
         </nav>
@@ -330,7 +337,13 @@
             <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
             <h2>{{ currentCourse.title }}</h2>
             <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
-            <app-button class="fill" variant="primary" (buttonClicked)="openEnrollDialog()">Enroll</app-button>
+            @if (isEnrolled()) {
+              <app-button class="fill" variant="primary" (buttonClicked)="openLearningWorkspace(currentCourse.id)">
+                Start learning
+              </app-button>
+            } @else {
+              <app-button class="fill" variant="primary" (buttonClicked)="openEnrollDialog()">Enroll</app-button>
+            }
 
             <div class="course-includes">
               <h3>This course includes</h3>
@@ -338,7 +351,7 @@
                 <li>Self-paced lessons</li>
                 <li>Practical exercises</li>
                 <li>Progress tracking</li>
-                <li>QI-Education access</li>
+                <li>{{ isEnrolled() ? 'Access from My Learning' : 'QI-Education access' }}</li>
               </ul>
             </div>
 

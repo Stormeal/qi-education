@@ -31,7 +31,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.21';
+  readonly appVersion = '0.1.22';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -192,16 +192,24 @@ export class AppStateService {
 
   readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
   readonly isLibraryPage = computed(() => this.currentPath() === '/library');
+  readonly isLearningWorkspacePage = computed(
+    () => this.libraryCourseViewIdFromPath(this.currentPath()) !== null,
+  );
   readonly isCourseEditorPage = computed(() => {
     const path = this.currentPath();
 
     return path === '/courses/new' || /^\/courses\/[^/]+\/edit$/.test(path);
   });
   readonly isCourseViewPage = computed(
-    () => this.courseViewIdFromPath(this.currentPath()) !== null,
+    () => this.courseCatalogIdFromPath(this.currentPath()) !== null,
+  );
+  readonly selectedCourseId = computed(
+    () =>
+      this.courseCatalogIdFromPath(this.currentPath()) ??
+      this.libraryCourseViewIdFromPath(this.currentPath()),
   );
   readonly selectedCourse = computed(() => {
-    const courseId = this.courseViewIdFromPath(this.currentPath());
+    const courseId = this.selectedCourseId();
 
     return courseId
       ? (this.availableCourses().find((course) => course.id === courseId) ?? null)
@@ -214,7 +222,7 @@ export class AppStateService {
     return this.availableCourses().filter((course) => enrolledIds.has(course.id));
   });
   readonly selectedCourseIsEnrolled = computed(() => {
-    const courseId = this.courseViewIdFromPath(this.currentPath());
+    const courseId = this.selectedCourseId();
 
     return courseId ? this.enrolledCourseIds().includes(courseId) : false;
   });
@@ -238,7 +246,7 @@ export class AppStateService {
       return editId;
     }
 
-    return this.courseViewIdFromPath(this.currentPath());
+    return this.selectedCourseId();
   });
   readonly loadedCourseContentId = signal<string | null>(null);
   private courseSaveNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -398,6 +406,10 @@ export class AppStateService {
 
   openCourse(courseId: string): void {
     this.updatePath(`/courses/${encodeURIComponent(courseId)}`);
+  }
+
+  openLearningCourse(courseId: string): void {
+    this.updatePath(`/library/${encodeURIComponent(courseId)}`);
   }
 
   navigateAdmin(): void {
@@ -1723,7 +1735,21 @@ export class AppStateService {
   }
 
   private courseViewIdFromPath(path: string): string | null {
+    return this.courseCatalogIdFromPath(path) ?? this.libraryCourseViewIdFromPath(path);
+  }
+
+  private courseCatalogIdFromPath(path: string): string | null {
     const match = path.match(/^\/courses\/([^/]+)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    return decodeURIComponent(match[1]);
+  }
+
+  private libraryCourseViewIdFromPath(path: string): string | null {
+    const match = path.match(/^\/library\/([^/]+)$/);
 
     if (!match) {
       return null;
@@ -1757,12 +1783,12 @@ export class AppStateService {
       return 'Admin';
     }
 
-    if (this.isLibraryPage()) {
-      return 'Library';
+    if (this.isLibraryPage() || this.isLearningWorkspacePage()) {
+      return 'My Learning';
     }
 
     return this.isCoursesPage() || this.isCourseEditorPage() || this.isCourseViewPage()
-      ? 'Courses'
+      ? 'Catalog'
       : 'Home';
   }
 
@@ -1773,7 +1799,7 @@ export class AppStateService {
       return withoutQuery;
     }
 
-    if (/^\/courses\/[^/]+(?:\/edit)?$/.test(withoutQuery)) {
+    if (/^\/courses\/[^/]+(?:\/edit)?$/.test(withoutQuery) || /^\/library\/[^/]+$/.test(withoutQuery)) {
       return withoutQuery;
     }
 

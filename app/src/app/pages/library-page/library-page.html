@@ -17,9 +17,9 @@
 
   <header class="library-hero">
     <div>
-      <p class="eyebrow">Library</p>
-      <h1>Your enrolled courses</h1>
-      <p>Return to every course you have joined and continue from the course workspace.</p>
+      <p class="eyebrow">My Learning</p>
+      <h1>Learning hub</h1>
+      <p>Open the courses you have joined and continue in the dedicated learning workspace.</p>
     </div>
     <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Browse courses</app-button>
   </header>
@@ -43,8 +43,8 @@
         @for (course of courses(); track course.id) {
           <a
             class="library-course"
-            [routerLink]="['/courses', course.id]"
-            [attr.aria-label]="'Open enrolled course: ' + course.title"
+            [routerLink]="['/library', course.id]"
+            [attr.aria-label]="'Open learning workspace: ' + course.title"
           >
             <div class="library-course-mark" aria-hidden="true">{{ teacherInitials(course.teacher) }}</div>
             <div class="library-course-copy">
