@@ -30,6 +30,8 @@ export type FeedbackEntry = CreateFeedbackInput & {
   createdAt: string;
   workStatus?: FeedbackWorkStatus;
   priority?: FeedbackPriority;
+  githubIssueNumber?: number;
+  githubIssueUrl?: string;
 };
 
 export const feedbackSheetHeaders = [
@@ -44,6 +46,8 @@ export const feedbackSheetHeaders = [
   'User Agent',
   'Work Status',
   'Priority',
+  'GitHub Issue Number',
+  'GitHub Issue URL',
 ] as const;
 
 export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
@@ -59,6 +63,8 @@ export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
     feedback.userAgent ?? '',
     feedback.workStatus ?? '',
     feedback.priority ?? '',
+    feedback.githubIssueNumber?.toString() ?? '',
+    feedback.githubIssueUrl ?? '',
   ];
 }
 
@@ -75,5 +81,16 @@ export function feedbackFromSheetRow(row: string[]): FeedbackEntry {
     userAgent: row[8] || undefined,
     workStatus: feedbackWorkStatusSchema.optional().catch(undefined).parse(row[9] || undefined),
     priority: feedbackPrioritySchema.optional().catch(undefined).parse(row[10] || undefined),
+    githubIssueNumber: parseGithubIssueNumber(row[11]),
+    githubIssueUrl: row[12] || undefined,
   };
+}
+
+function parseGithubIssueNumber(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }

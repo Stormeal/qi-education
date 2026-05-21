@@ -14,8 +14,17 @@ import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 export interface FeedbackRepository {
   createFeedback(input: CreateFeedbackInput, user: AuthenticatedUser): Promise<FeedbackEntry>;
   listFeedback(): Promise<FeedbackEntry[]>;
-  updateFeedbackTriage(id: string, input: UpdateFeedbackTriageInput): Promise<FeedbackEntry | null>;
+  findFeedbackById(id: string): Promise<FeedbackEntry | null>;
+  updateFeedbackTriage(
+    id: string,
+    input: UpdateFeedbackTriageRecord,
+  ): Promise<FeedbackEntry | null>;
 }
+
+export type UpdateFeedbackTriageRecord = UpdateFeedbackTriageInput & {
+  githubIssueNumber?: number;
+  githubIssueUrl?: string;
+};
 
 export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
   async createFeedback(input: CreateFeedbackInput, user: AuthenticatedUser): Promise<FeedbackEntry> {
@@ -51,9 +60,14 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
       .reverse();
   }
 
+  async findFeedbackById(id: string): Promise<FeedbackEntry | null> {
+    const feedback = await this.listFeedback();
+    return feedback.find((entry) => entry.id === id) ?? null;
+  }
+
   async updateFeedbackTriage(
     id: string,
-    input: UpdateFeedbackTriageInput,
+    input: UpdateFeedbackTriageRecord,
   ): Promise<FeedbackEntry | null> {
     const sheets = createSheetsClient();
 
@@ -72,16 +86,23 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
     const rowNumber = rowIndex + 2;
     await sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: `${feedbackSheetTitle()}!J${rowNumber}:K${rowNumber}`,
+      range: `${feedbackSheetTitle()}!J${rowNumber}:M${rowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[input.workStatus, input.priority ?? '']],
+        values: [[
+          input.workStatus,
+          input.priority ?? '',
+          input.githubIssueNumber?.toString() ?? '',
+          input.githubIssueUrl ?? '',
+        ]],
       },
     });
 
     const updatedRow = [...(rows[rowNumber - 1] as string[])];
     updatedRow[9] = input.workStatus;
     updatedRow[10] = input.priority ?? '';
+    updatedRow[11] = input.githubIssueNumber?.toString() ?? '';
+    updatedRow[12] = input.githubIssueUrl ?? '';
 
     return feedbackFromSheetRow(updatedRow);
   }
@@ -100,9 +121,13 @@ export class InMemoryFeedbackRepository implements FeedbackRepository {
     return [...this.feedback].reverse();
   }
 
+  async findFeedbackById(id: string): Promise<FeedbackEntry | null> {
+    return this.feedback.find((entry) => entry.id === id) ?? null;
+  }
+
   async updateFeedbackTriage(
     id: string,
-    input: UpdateFeedbackTriageInput,
+    input: UpdateFeedbackTriageRecord,
   ): Promise<FeedbackEntry | null> {
     const index = this.feedback.findIndex((entry) => entry.id === id);
 
@@ -114,6 +139,8 @@ export class InMemoryFeedbackRepository implements FeedbackRepository {
       ...this.feedback[index],
       workStatus: input.workStatus,
       priority: input.priority ?? undefined,
+      githubIssueNumber: input.githubIssueNumber ?? this.feedback[index].githubIssueNumber,
+      githubIssueUrl: input.githubIssueUrl ?? this.feedback[index].githubIssueUrl,
     };
 
     this.feedback[index] = updated;
@@ -143,7 +170,7 @@ async function ensureFeedbackHeaders() {
   await ensureWorksheetHeaders(feedbackDataRange(), [...feedbackSheetHeaders]);
   await sheets.spreadsheets.values.update({
     spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-    range: `${feedbackSheetTitle()}!A1:K1`,
+    range: `${feedbackSheetTitle()}!A1:M1`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [[...feedbackSheetHeaders]],
@@ -156,5 +183,5 @@ function feedbackSheetTitle(): string {
 }
 
 function feedbackDataRange(): string {
-  return `${feedbackSheetTitle()}!A:K`;
+  return `${feedbackSheetTitle()}!A:M`;
 }

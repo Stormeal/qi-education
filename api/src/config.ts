@@ -27,6 +27,9 @@ const envSchema = z.object({
   GOOGLE_SHEETS_COURSES_RANGE: z.string().optional(),
   GOOGLE_SHEETS_USERS_RANGE: z.string().optional(),
   GOOGLE_SHEETS_FEEDBACK_RANGE: z.string().optional(),
+  GITHUB_FEEDBACK_TOKEN: z.string().min(1).optional(),
+  GITHUB_FEEDBACK_REPOSITORY: z.string().min(1).optional(),
+  GITHUB_FEEDBACK_PROJECT_ID: z.string().min(1).optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -47,7 +50,7 @@ export const apiConfig = {
     env.GOOGLE_SHEETS_FEEDBACK_RANGE &&
     env.GOOGLE_SHEETS_FEEDBACK_RANGE !== 'GOOGLE_SHEETS_FEEDBACK_RANGE'
       ? env.GOOGLE_SHEETS_FEEDBACK_RANGE
-      : 'Feedback!A:I',
+      : 'Feedback!A:M',
 };
 
 export function resolveAuthTokenSecret(
@@ -117,4 +120,8 @@ export function getCorsOrigins() {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+}
+
+export function hasGitHubFeedbackConfig() {
+  return Boolean(apiConfig.GITHUB_FEEDBACK_TOKEN && apiConfig.GITHUB_FEEDBACK_REPOSITORY);
 }

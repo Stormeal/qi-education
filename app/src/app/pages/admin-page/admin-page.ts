@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import {
   FeedbackEntry,
   FeedbackOption,
@@ -13,6 +13,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
+type FeedbackTab = 'current' | 'archived';
 
 @Component({
   selector: 'app-admin-page',
@@ -62,12 +63,22 @@ export class AdminPage {
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
   ];
+  protected readonly activeTab = signal<FeedbackTab>('current');
   protected readonly feedbackTotal = computed(() => this.feedback().length);
   protected readonly needsWorkTotal = computed(
     () => this.feedback().filter((item) => item.rating === 'needs-work').length,
   );
   protected readonly activePagesTotal = computed(
     () => new Set(this.feedback().map((item) => item.page)).size,
+  );
+  protected readonly currentFeedback = computed(() =>
+    this.feedback().filter((item) => item.workStatus !== 'completed' && item.workStatus !== 'wont-do'),
+  );
+  protected readonly archivedFeedback = computed(() =>
+    this.feedback().filter((item) => item.workStatus === 'completed' || item.workStatus === 'wont-do'),
+  );
+  protected readonly visibleFeedback = computed(() =>
+    this.activeTab() === 'current' ? this.currentFeedback() : this.archivedFeedback(),
   );
 
   protected ratingLabel(rating: FeedbackEntry['rating']): string {
@@ -101,6 +112,14 @@ export class AdminPage {
     return item.priority ?? 'medium';
   }
 
+  protected selectTab(tab: FeedbackTab): void {
+    this.activeTab.set(tab);
+  }
+
+  protected activeTabCount(tab: FeedbackTab): number {
+    return tab === 'current' ? this.currentFeedback().length : this.archivedFeedback().length;
+  }
+
   protected selectStatus(item: FeedbackEntry, workStatus: FeedbackWorkStatus): void {
     this.feedbackTriaged.emit({
       id: item.id,
@@ -115,5 +134,9 @@ export class AdminPage {
       workStatus: item.workStatus ?? 'work',
       priority,
     });
+  }
+
+  protected githubIssueLabel(item: FeedbackEntry): string {
+    return item.githubIssueNumber ? `Issue #${item.githubIssueNumber}` : 'GitHub issue';
   }
 }
