@@ -2,33 +2,30 @@
   <app-brand-link />
   <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
   <div class="tabs" aria-label="Site sections">
-    <button
-      type="button"
+    <a
       class="tab-link"
+      [routerLink]="homeHref"
       [class.active]="activeSection() === 'home'"
-      (click)="homeClicked.emit()"
     >
       Home
-    </button>
+    </a>
     <a [href]="aboutHref()" (click)="navigateToAnchor($event, aboutHref())">About</a>
-    <button
-      type="button"
+    <a
       class="tab-link with-chevron"
+      [routerLink]="coursesHref"
       [class.active]="activeSection() === 'courses'"
-      (click)="coursesClicked.emit()"
     >
       Courses
       <span class="nav-chevron" aria-hidden="true"></span>
-    </button>
-    <button
-      type="button"
+    </a>
+    <a
       class="tab-link with-chevron"
+      [routerLink]="libraryHref"
       [class.active]="activeSection() === 'library'"
-      (click)="libraryClicked.emit()"
     >
       Library
       <span class="nav-chevron" aria-hidden="true"></span>
-    </button>
+    </a>
   </div>
   <app-profile-menu
     [displayName]="displayName()"
