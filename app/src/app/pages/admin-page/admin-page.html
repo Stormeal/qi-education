@@ -1,4 +1,4 @@
-<main class="page-shell">
+<main class="page-shell admin-shell">
   <app-page-header
     activeSection="admin"
     aboutHref="#admin-feedback"
@@ -58,92 +58,127 @@
   <section class="admin-panel" id="admin-feedback">
     <div class="admin-panel-header">
       <div>
-        <p class="eyebrow">Feedback</p>
-        <h2>Received feedback</h2>
+        <div class="admin-feedback-tabs" role="tablist" aria-label="Feedback views">
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'current'"
+            [class.active]="activeTab() === 'current'"
+            (click)="selectTab('current')"
+          >
+            Current Work Items
+            <span>{{ activeTabCount('current') }}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="activeTab() === 'archived'"
+            [class.active]="activeTab() === 'archived'"
+            (click)="selectTab('archived')"
+          >
+            Archived
+            <span>{{ activeTabCount('archived') }}</span>
+          </button>
+        </div>
       </div>
-      @if (!feedbackLoading() && !feedbackError() && feedback().length > 0) {
-        <span class="admin-result-count">{{ feedback().length }} items</span>
-      }
     </div>
 
-    @if (feedbackLoading()) {
-      <app-loading-skeleton variant="feedback-card" [count]="4" />
-    } @else if (feedbackError()) {
-      <p class="course-error" role="alert">{{ feedbackError() }}</p>
-    } @else if (feedback().length === 0) {
-      <div class="admin-empty">
-        <strong>No feedback yet</strong>
-        <span>New submissions will appear here as users send them.</span>
-      </div>
-    } @else {
-      <div class="admin-feedback-list">
-        @for (item of feedback(); track item.id) {
-          <article
-            class="admin-feedback-card"
-            [class.card-great]="item.rating === 'great'"
-            [class.card-okay]="item.rating === 'okay'"
-            [class.card-bad]="item.rating === 'needs-work'"
-            [class.is-selected]="isSelected(item)"
-            [class.is-completed]="isCompleted(item)"
-            [class.is-wont-do]="isWontDo(item)"
-          >
-            <div class="admin-feedback-card-header">
-              <div class="admin-feedback-title">
-                <span
-                  class="feedback-rating"
-                  [class.rating-great]="item.rating === 'great'"
-                  [class.rating-okay]="item.rating === 'okay'"
-                  [class.rating-needs-work]="item.rating === 'needs-work'"
-                >
-                  {{ ratingLabel(item.rating) }}
-                </span>
-                <strong>{{ item.page }}</strong>
+    <div class="admin-panel-body">
+      @if (feedbackLoading()) {
+        <app-loading-skeleton variant="feedback-card" [count]="4" />
+      } @else if (feedbackError()) {
+        <p class="course-error" role="alert">{{ feedbackError() }}</p>
+      } @else if (visibleFeedback().length === 0) {
+        <div class="admin-empty">
+          <strong>{{ activeTab() === 'current' ? 'No current work items' : 'No archived items' }}</strong>
+          <span>
+            {{
+              activeTab() === 'current'
+                ? 'New submissions and active triage items will appear here.'
+                : 'Completed and declined items will move here.'
+            }}
+          </span>
+        </div>
+      } @else {
+        <div class="admin-feedback-list">
+          @for (item of visibleFeedback(); track item.id) {
+            <article
+              class="admin-feedback-card"
+              [class.card-great]="item.rating === 'great'"
+              [class.card-okay]="item.rating === 'okay'"
+              [class.card-bad]="item.rating === 'needs-work'"
+              [class.is-selected]="isSelected(item)"
+              [class.is-completed]="isCompleted(item)"
+              [class.is-wont-do]="isWontDo(item)"
+            >
+              <div class="admin-feedback-card-header">
+                <div class="admin-feedback-title">
+                  <span
+                    class="feedback-rating"
+                    [class.rating-great]="item.rating === 'great'"
+                    [class.rating-okay]="item.rating === 'okay'"
+                    [class.rating-needs-work]="item.rating === 'needs-work'"
+                  >
+                    {{ ratingLabel(item.rating) }}
+                  </span>
+                  <strong>{{ item.page }}</strong>
+                </div>
+                <div class="admin-feedback-actions">
+                  <time [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
+                  <div class="admin-triage" aria-label="Feedback status">
+                    @for (status of workStatusOptions; track status.value) {
+                      <button
+                        type="button"
+                        [class.active]="selectedStatus(item) === status.value"
+                        [class.status-completed]="status.value === 'completed'"
+                        [class.status-wont-do]="status.value === 'wont-do'"
+                        (click)="selectStatus(item, status.value)"
+                      >
+                        {{ status.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
               </div>
-              <div class="admin-feedback-actions">
-                <time [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
-                <div class="admin-triage" aria-label="Feedback status">
-                  @for (status of workStatusOptions; track status.value) {
+              <p class="admin-feedback-message">
+                {{ item.message || 'No written message.' }}
+              </p>
+              <div class="admin-feedback-user">
+                <span class="admin-user-avatar" aria-hidden="true">
+                  {{ item.userEmail.slice(0, 1).toUpperCase() }}
+                </span>
+                <span>{{ item.userEmail }}</span>
+                <small>{{ item.userRole }}</small>
+                @if (item.githubIssueUrl) {
+                  <a
+                    class="admin-issue-link"
+                    [href]="item.githubIssueUrl"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {{ githubIssueLabel(item) }}
+                  </a>
+                }
+              </div>
+              @if (selectedStatus(item) === 'work') {
+                <div class="priority-picker" aria-label="Priority">
+                  @for (priority of priorityOptions; track priority.value) {
                     <button
                       type="button"
-                      [class.active]="selectedStatus(item) === status.value"
-                      [class.status-completed]="status.value === 'completed'"
-                      [class.status-wont-do]="status.value === 'wont-do'"
-                      (click)="selectStatus(item, status.value)"
+                      [class.active]="selectedPriority(item) === priority.value"
+                      [class.priority-high]="priority.value === 'high'"
+                      (click)="selectPriority(item, priority.value)"
                     >
-                      {{ status.label }}
+                      {{ priority.label }}
                     </button>
                   }
                 </div>
-              </div>
-            </div>
-            <p class="admin-feedback-message">
-              {{ item.message || 'No written message.' }}
-            </p>
-            <div class="admin-feedback-user">
-              <span class="admin-user-avatar" aria-hidden="true">
-                {{ item.userEmail.slice(0, 1).toUpperCase() }}
-              </span>
-              <span>{{ item.userEmail }}</span>
-              <small>{{ item.userRole }}</small>
-            </div>
-            @if (selectedStatus(item) === 'work') {
-              <div class="priority-picker" aria-label="Priority">
-                @for (priority of priorityOptions; track priority.value) {
-                  <button
-                    type="button"
-                    [class.active]="selectedPriority(item) === priority.value"
-                    [class.priority-high]="priority.value === 'high'"
-                    (click)="selectPriority(item, priority.value)"
-                  >
-                    {{ priority.label }}
-                  </button>
-                }
-              </div>
-            }
-          </article>
-        }
-      </div>
-    }
+              }
+            </article>
+          }
+        </div>
+      }
+    </div>
   </section>
 
   <footer class="site-footer">

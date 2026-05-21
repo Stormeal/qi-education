@@ -20,6 +20,11 @@ import { createCourseRepository, type CourseRepository } from './courseRepositor
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
 import {
+  ConfiguredGitHubFeedbackService,
+  GitHubFeedbackError,
+  type GitHubFeedbackService,
+} from './githubFeedback.js';
+import {
   createCourseContentRepository,
   type CourseContentRepository,
 } from './courseContentRepository.js';
@@ -29,6 +34,7 @@ type ServerDependencies = {
   courseRepository?: CourseRepository;
   feedbackRepository?: FeedbackRepository;
   courseContentRepository?: CourseContentRepository;
+  gitHubFeedbackService?: GitHubFeedbackService;
 };
 
 type AuthenticatedRequest = Request & {
@@ -41,6 +47,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const courses = dependencies.courseRepository ?? createCourseRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const courseContent = dependencies.courseContentRepository ?? createCourseContentRepository();
+  const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
 
   app.use(cors({ origin: getCorsOrigins() }));
   app.use(express.json());
@@ -335,7 +342,26 @@ export function createServer(dependencies: ServerDependencies = {}) {
       try {
         const input = updateFeedbackTriageSchema.parse(request.body);
         const feedbackId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
-        const updatedFeedback = await feedback.updateFeedbackTriage(feedbackId, input);
+        const existingFeedback = await feedback.findFeedbackById(feedbackId);
+
+        if (!existingFeedback) {
+          response.status(404).json({ message: 'Feedback not found' });
+          return;
+        }
+
+        const githubIssue =
+          input.workStatus === 'work' && !existingFeedback.githubIssueUrl
+            ? await gitHubFeedback.createIssueFromFeedback({
+                ...existingFeedback,
+                workStatus: input.workStatus,
+                priority: input.priority ?? undefined,
+              })
+            : null;
+        const updatedFeedback = await feedback.updateFeedbackTriage(feedbackId, {
+          ...input,
+          githubIssueNumber: githubIssue?.number ?? existingFeedback.githubIssueNumber,
+          githubIssueUrl: githubIssue?.url ?? existingFeedback.githubIssueUrl,
+        });
 
         if (!updatedFeedback) {
           response.status(404).json({ message: 'Feedback not found' });
@@ -344,6 +370,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         response.json(updatedFeedback);
       } catch (error) {
+        if (error instanceof GitHubFeedbackError) {
+          response.status(503).json({ message: 'GitHub feedback integration is unavailable.' });
+          return;
+        }
+
         next(error);
       }
     },

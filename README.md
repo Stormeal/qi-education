@@ -103,7 +103,17 @@ MONGODB_COURSE_CONTENT_COLLECTION
 
 The API still accepts the legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and `SESSION_SECRET` names, but new configuration should use the preferred names above.
 
-The feedback worksheet range defaults to `Feedback!A:I`; override it with `GOOGLE_SHEETS_FEEDBACK_RANGE` if needed.
+The feedback worksheet range defaults to `Feedback!A:M`; override it with `GOOGLE_SHEETS_FEEDBACK_RANGE` if needed.
+
+To create GitHub issues automatically when an admin marks feedback as `Mark for work`, configure:
+
+```text
+GITHUB_FEEDBACK_TOKEN
+GITHUB_FEEDBACK_REPOSITORY
+GITHUB_FEEDBACK_PROJECT_ID
+```
+
+`GITHUB_FEEDBACK_REPOSITORY` must use the `owner/repo` format. `GITHUB_FEEDBACK_PROJECT_ID` is optional; when it is set, new feedback issues are also added to that GitHub Project.
 
 ## Demo Authentication
 

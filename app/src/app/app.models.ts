@@ -155,6 +155,8 @@ export type FeedbackEntry = {
   userAgent?: string;
   workStatus?: 'work' | 'completed' | 'wont-do';
   priority?: 'low' | 'medium' | 'high';
+  githubIssueNumber?: number;
+  githubIssueUrl?: string;
 };
 
 export type FeedbackTriageUpdate = {

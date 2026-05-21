@@ -6,6 +6,12 @@ import {
   type CourseContentRepository,
 } from './courseContentRepository.js';
 import { InMemoryCourseRepository, type CourseRepository } from './courseRepository.js';
+import type { FeedbackEntry } from './feedback.js';
+import {
+  GitHubFeedbackError,
+  type GitHubFeedbackIssue,
+  type GitHubFeedbackService,
+} from './githubFeedback.js';
 import { createServer } from './server.js';
 
 describe('QI-Education API', () => {
@@ -113,7 +119,7 @@ describe('QI-Education API', () => {
       ranges: {
         courses: 'Courses!A:M',
         users: 'Users!A:H',
-        feedback: 'Feedback!A:I',
+        feedback: 'Feedback!A:M',
       },
     });
   });
@@ -710,54 +716,239 @@ describe('QI-Education API', () => {
   });
 
   it('allows an admin to update feedback triage', async () => {
-    const studentToken = await loginAs('student@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/feedback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        authorization: `Bearer ${studentToken}`,
-      },
-      body: JSON.stringify({
-        page: 'Home',
-        rating: 'needs-work',
-        message: 'The overview needs clearer next steps.',
-      }),
-    });
-    const created = await createResponse.json();
-    const adminToken = await loginAs('admin@qi-education.local');
+    const gitHubFeedbackService = new FakeGitHubFeedbackService();
+    const isolatedServer = createServer({ gitHubFeedbackService }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
 
-    const updateResponse = await fetch(`${baseUrl}/feedback/${created.id}/triage`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify({
+    try {
+      const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({
+          page: 'Home',
+          rating: 'needs-work',
+          message: 'The overview needs clearer next steps.',
+        }),
+      });
+      const created = await createResponse.json();
+      const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
+
+      const updateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          workStatus: 'work',
+          priority: 'high',
+        }),
+      });
+      const updated = await updateResponse.json();
+
+      expect(updateResponse.status).toBe(200);
+      expect(updated).toMatchObject({
+        id: created.id,
         workStatus: 'work',
         priority: 'high',
-      }),
-    });
-    const updated = await updateResponse.json();
+        githubIssueNumber: 42,
+        githubIssueUrl: 'https://github.com/Stormeal/qi-education/issues/42',
+      });
+      expect(gitHubFeedbackService.createdFeedback).toMatchObject({
+        id: created.id,
+        workStatus: 'work',
+        priority: 'high',
+      });
 
-    expect(updateResponse.status).toBe(200);
-    expect(updated).toMatchObject({
-      id: created.id,
-      workStatus: 'work',
-      priority: 'high',
-    });
+      const listResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+        },
+      });
+      const feedback = await listResponse.json();
 
-    const listResponse = await fetch(`${baseUrl}/feedback`, {
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-      },
-    });
-    const feedback = await listResponse.json();
+      expect(feedback[0]).toMatchObject({
+        id: created.id,
+        workStatus: 'work',
+        priority: 'high',
+        githubIssueNumber: 42,
+        githubIssueUrl: 'https://github.com/Stormeal/qi-education/issues/42',
+      });
+    } finally {
+      isolatedServer.close();
+    }
+  });
 
-    expect(feedback[0]).toMatchObject({
-      id: created.id,
-      workStatus: 'work',
-      priority: 'high',
-    });
+  it('does not create a duplicate GitHub issue when a work item priority changes', async () => {
+    const gitHubFeedbackService = new FakeGitHubFeedbackService();
+    const isolatedServer = createServer({ gitHubFeedbackService }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({
+          page: 'Courses',
+          rating: 'needs-work',
+          message: 'Need stronger filters.',
+        }),
+      });
+      const created = await createResponse.json();
+      const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
+
+      await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          workStatus: 'work',
+          priority: 'medium',
+        }),
+      });
+
+      const secondUpdateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          workStatus: 'work',
+          priority: 'high',
+        }),
+      });
+      const updated = await secondUpdateResponse.json();
+
+      expect(secondUpdateResponse.status).toBe(200);
+      expect(updated).toMatchObject({
+        workStatus: 'work',
+        priority: 'high',
+        githubIssueNumber: 42,
+      });
+      expect(gitHubFeedbackService.createCalls).toBe(1);
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  it('returns 503 when GitHub issue creation fails for a work item', async () => {
+    const isolatedServer = createServer({
+      gitHubFeedbackService: new FailingGitHubFeedbackService(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({
+          page: 'Home',
+          rating: 'needs-work',
+          message: 'This should fail to create an issue.',
+        }),
+      });
+      const created = await createResponse.json();
+      const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
+
+      const updateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          workStatus: 'work',
+          priority: 'high',
+        }),
+      });
+      const body = await updateResponse.json();
+
+      expect(updateResponse.status).toBe(503);
+      expect(body.message).toBe('GitHub feedback integration is unavailable.');
+
+      const listResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+        },
+      });
+      const feedback = await listResponse.json();
+
+      expect(feedback[0]).toMatchObject({
+        id: created.id,
+      });
+      expect(feedback[0].workStatus).toBeUndefined();
+      expect(feedback[0].githubIssueUrl).toBeUndefined();
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  it('still marks feedback for work when project assignment fails after issue creation', async () => {
+    const isolatedServer = createServer({
+      gitHubFeedbackService: new PartialFailureGitHubFeedbackService(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({
+          page: 'Home',
+          rating: 'needs-work',
+          message: 'Create the issue even if project assignment fails.',
+        }),
+      });
+      const created = await createResponse.json();
+      const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
+
+      const updateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          workStatus: 'work',
+          priority: 'high',
+        }),
+      });
+      const updated = await updateResponse.json();
+
+      expect(updateResponse.status).toBe(200);
+      expect(updated).toMatchObject({
+        id: created.id,
+        workStatus: 'work',
+        priority: 'high',
+        githubIssueNumber: 43,
+        githubIssueUrl: 'https://github.com/Stormeal/qi-education/issues/43',
+      });
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('blocks non-admin users from listing feedback', async () => {
@@ -899,5 +1090,35 @@ class FailingCourseContentRepository implements CourseContentRepository {
 
   async deleteCourseContent(): Promise<void> {
     throw new Error('Content store unavailable');
+  }
+}
+
+class FakeGitHubFeedbackService implements GitHubFeedbackService {
+  createCalls = 0;
+  createdFeedback: FeedbackEntry | null = null;
+
+  async createIssueFromFeedback(feedback: FeedbackEntry): Promise<GitHubFeedbackIssue> {
+    this.createCalls += 1;
+    this.createdFeedback = feedback;
+
+    return {
+      number: 42,
+      url: 'https://github.com/Stormeal/qi-education/issues/42',
+    };
+  }
+}
+
+class FailingGitHubFeedbackService implements GitHubFeedbackService {
+  async createIssueFromFeedback(): Promise<GitHubFeedbackIssue> {
+    throw new GitHubFeedbackError('GitHub API unavailable');
+  }
+}
+
+class PartialFailureGitHubFeedbackService implements GitHubFeedbackService {
+  async createIssueFromFeedback(): Promise<GitHubFeedbackIssue> {
+    return {
+      number: 43,
+      url: 'https://github.com/Stormeal/qi-education/issues/43',
+    };
   }
 }
