@@ -36,6 +36,16 @@ export type CourseMuxUploadResult =
       message: string;
     };
 
+export type CourseMuxVideoRemoveResult =
+  | {
+      ok: true;
+      content: CourseContentDocument;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 export type CourseEnrollmentResult =
   | {
       ok: true;
@@ -204,6 +214,44 @@ export class CourseService {
       ok: true,
       uploadId: body.uploadId,
       uploadUrl: body.uploadUrl,
+      content: body.content,
+    };
+  }
+
+  async removeMuxVideo(
+    courseId: string,
+    sectionId: string,
+    componentId: string,
+    token: string,
+  ): Promise<CourseMuxVideoRemoveResult> {
+    const response = await this.apiClient.fetch(
+      `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/mux-video`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sectionId }),
+      },
+    );
+    const body = (await response.json().catch(() => ({}))) as
+      | {
+          content?: CourseContentDocument;
+          message?: string;
+        };
+
+    if (!response.ok || !body.content) {
+      return {
+        ok: false,
+        message: body.message ?? 'Unable to remove Mux video.',
+      };
+    }
+
+    this.apiClient.invalidateCache(`/courses/${encodeURIComponent(courseId)}/content`);
+
+    return {
+      ok: true,
       content: body.content,
     };
   }

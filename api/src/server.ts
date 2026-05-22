@@ -352,6 +352,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
+        if (videoComponent.mux) {
+          response.status(409).json({ message: 'Remove the existing video before uploading a new one.' });
+          return;
+        }
+
         const upload = await muxVideo.createDirectUpload({
           courseId,
           sectionId: input.sectionId,
@@ -392,6 +397,68 @@ export function createServer(dependencies: ServerDependencies = {}) {
           playbackPolicy: upload.playbackPolicy,
           content: updatedContent,
         });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.delete(
+    '/courses/:id/content/components/:componentId/mux-video',
+    authenticateRequest(auth),
+    requireCourseCreator,
+    async (request, response, next) => {
+      try {
+        const input = createMuxUploadSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const componentId = Array.isArray(request.params.componentId)
+          ? request.params.componentId[0]
+          : request.params.componentId;
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        const content = await courseContent.getCourseContent(courseId);
+
+        if (!content) {
+          response.status(404).json({ message: 'Course content not found' });
+          return;
+        }
+
+        const videoComponent = findCourseVideoComponent(content.sections, input.sectionId, componentId);
+
+        if (!videoComponent) {
+          response.status(404).json({ message: 'Video component not found' });
+          return;
+        }
+
+        if (!videoComponent.mux) {
+          response.status(409).json({ message: 'This component does not have a Mux video.' });
+          return;
+        }
+
+        const updatedSections = content.sections.map((section) =>
+          section.id === input.sectionId
+            ? {
+                ...section,
+                components: section.components.map((component) => {
+                  if (component.id !== componentId || component.type !== 'video') {
+                    return component;
+                  }
+
+                  const { mux: _removedMux, ...componentWithoutMux } = component;
+
+                  return componentWithoutMux;
+                }),
+              }
+            : section,
+        );
+        const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
+
+        response.json({ content: updatedContent });
       } catch (error) {
         next(error);
       }
@@ -547,6 +614,7 @@ async function handleMuxWebhookEvent(
       }
 
       await updateMuxVideoComponent(courseContent, passthrough, {
+        uploadId: data.id,
         assetId: data.asset_id,
         status: 'processing',
       });
@@ -563,6 +631,7 @@ async function handleMuxWebhookEvent(
       }
 
       await updateMuxVideoComponent(courseContent, passthrough, {
+        uploadId: data.upload_id,
         assetId: data.id,
         playbackId: playback.id,
         playbackPolicy: playback.policy === 'signed' ? 'signed' : 'public',
@@ -582,6 +651,7 @@ async function handleMuxWebhookEvent(
       }
 
       await updateMuxVideoComponent(courseContent, passthrough, {
+        uploadId: data.upload_id,
         assetId: data.id,
         status: 'errored',
         errorMessage: muxErrorMessage(data.errors),
@@ -600,6 +670,7 @@ type MuxPassthrough = {
 };
 
 type MuxVideoUpdate = {
+  uploadId?: string;
   assetId?: string;
   playbackId?: string;
   playbackPolicy?: 'public' | 'signed';
@@ -625,7 +696,11 @@ async function updateMuxVideoComponent(
       ? {
           ...section,
           components: section.components.map((component) => {
-            if (component.id !== passthrough.componentId || component.type !== 'video') {
+            if (component.id !== passthrough.componentId || component.type !== 'video' || !component.mux) {
+              return component;
+            }
+
+            if (update.uploadId && component.mux.uploadId !== update.uploadId) {
               return component;
             }
 
@@ -633,15 +708,15 @@ async function updateMuxVideoComponent(
               ...component,
               mux: {
                 provider: 'mux' as const,
-                uploadId: component.mux?.uploadId ?? '',
-                assetId: update.assetId ?? component.mux?.assetId ?? '',
-                playbackId: update.playbackId ?? component.mux?.playbackId ?? '',
-                playbackPolicy: update.playbackPolicy ?? component.mux?.playbackPolicy ?? 'public',
-                status: update.status ?? component.mux?.status ?? 'waiting',
-                durationSeconds: update.durationSeconds ?? component.mux?.durationSeconds ?? null,
-                thumbnailUrl: update.thumbnailUrl ?? component.mux?.thumbnailUrl ?? '',
-                errorMessage: update.errorMessage ?? component.mux?.errorMessage ?? '',
-                captions: component.mux?.captions ?? [],
+                uploadId: component.mux.uploadId,
+                assetId: update.assetId ?? component.mux.assetId,
+                playbackId: update.playbackId ?? component.mux.playbackId,
+                playbackPolicy: update.playbackPolicy ?? component.mux.playbackPolicy,
+                status: update.status ?? component.mux.status,
+                durationSeconds: update.durationSeconds ?? component.mux.durationSeconds,
+                thumbnailUrl: update.thumbnailUrl ?? component.mux.thumbnailUrl,
+                errorMessage: update.errorMessage ?? component.mux.errorMessage,
+                captions: component.mux.captions,
               },
             };
           }),

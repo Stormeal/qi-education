@@ -335,39 +335,64 @@
 
           @if (hasSupportingUrl(component)) {
             <section class="mux-upload-panel">
-              <div class="mux-upload-copy">
-                <span>Mux video</span>
-                <strong>{{ muxStatusLabel(component) }}</strong>
-                @if (component.type === 'video' && component.mux?.errorMessage) {
-                  <small>{{ component.mux?.errorMessage }}</small>
-                } @else if (muxUploadError()) {
-                  <small>{{ muxUploadError() }}</small>
+              @if (muxPlaybackId(component)) {
+                <mux-player
+                  class="mux-video-preview"
+                  [attr.playback-id]="muxPlaybackId(component)"
+                  stream-type="on-demand"
+                  accent-color="#4f773e"
+                ></mux-player>
+              }
+
+              <div class="mux-upload-toolbar">
+                <div class="mux-upload-copy">
+                  <strong>{{ muxStatusLabel(component) }}</strong>
+                  <small>{{ muxStatusDescription(component) }}</small>
+                  @if (muxUploadError()) {
+                    <small class="mux-upload-error">{{ muxUploadError() }}</small>
+                  }
+                </div>
+
+                @if (component.type === 'video' && component.mux) {
+                  <button
+                    type="button"
+                    class="component-row-action component-row-action-danger"
+                    [disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
+                    (click)="courseComponentMuxVideoRemoved.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex })"
+                  >
+                    @if (muxUploadComponentId() === component.id) {
+                      Removing...
+                    } @else {
+                      Delete video
+                    }
+                  </button>
+                } @else {
+                  <input
+                    class="mux-file-input"
+                    type="file"
+                    accept="video/*"
+                    [id]="muxUploadInputId(component)"
+                    [disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
+                    (change)="muxVideoSelected($event, editor.sectionIndex, editor.componentIndex)"
+                  />
+                  <label
+                    class="component-row-action mux-upload-button"
+                    [class.is-disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
+                    [attr.for]="muxUploadInputId(component)"
+                  >
+                    @if (muxUploadComponentId() === component.id) {
+                      Uploading...
+                    } @else {
+                      Upload video
+                    }
+                  </label>
                 }
               </div>
 
-              <button
-                type="button"
-                class="component-row-action"
-                [disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
-                (click)="courseComponentMuxUploadRequested.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex })"
-              >
-                @if (muxUploadComponentId() === component.id) {
-                  Preparing upload...
-                } @else {
-                  Prepare upload
-                }
-              </button>
-
-              @if (muxUploadEndpoint(component)) {
-                <mux-uploader
-                  class="mux-uploader"
-                  [attr.endpoint]="muxUploadEndpoint(component)"
-                  dynamic-chunk-size
-                  pausable
-                  (uploadstart)="courseComponentMuxUploadStarted.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex })"
-                  (success)="courseComponentMuxUploadCompleted.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex })"
-                  (uploaderror)="courseComponentMuxUploadFailed.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, message: muxUploadErrorMessage($event) })"
-                ></mux-uploader>
+              @if (muxUploadComponentId() === component.id || (component.type === 'video' && component.mux?.status === 'uploading')) {
+                <div class="mux-upload-progress" aria-label="Video upload progress">
+                  <span [style.width.%]="muxUploadProgressValue(component)"></span>
+                </div>
               }
             </section>
 

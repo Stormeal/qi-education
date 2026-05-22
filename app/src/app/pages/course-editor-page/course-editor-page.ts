@@ -35,8 +35,8 @@ export class CourseEditorPage {
   readonly courseContentSaving = input.required<boolean>();
   readonly courseContentError = input.required<string>();
   readonly muxUploadComponentId = input.required<string>();
-  readonly muxUploadEndpoints = input.required<Record<string, string>>();
   readonly muxUploadError = input.required<string>();
+  readonly muxUploadProgress = input.required<Record<string, number>>();
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();
   readonly feedbackPage = input.required<string>();
@@ -79,14 +79,10 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
   readonly courseComponentUrlChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
-  readonly courseComponentMuxUploadRequested =
+  readonly courseComponentMuxVideoSelected =
+    output<{ sectionIndex: number; componentIndex: number; file: File }>();
+  readonly courseComponentMuxVideoRemoved =
     output<{ sectionIndex: number; componentIndex: number }>();
-  readonly courseComponentMuxUploadStarted =
-    output<{ sectionIndex: number; componentIndex: number }>();
-  readonly courseComponentMuxUploadCompleted =
-    output<{ sectionIndex: number; componentIndex: number }>();
-  readonly courseComponentMuxUploadFailed =
-    output<{ sectionIndex: number; componentIndex: number; message: string }>();
   readonly courseComponentQuizQuestionChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
   readonly courseComponentQuizPointsChanged =

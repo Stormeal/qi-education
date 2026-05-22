@@ -10,7 +10,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import '@mux/mux-uploader';
+import '@mux/mux-player';
 import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
@@ -43,8 +43,8 @@ export class CourseBuilder {
   readonly courseSubmitting = input.required<boolean>();
   readonly courseContentError = input.required<string>();
   readonly muxUploadComponentId = input.required<string>();
-  readonly muxUploadEndpoints = input.required<Record<string, string>>();
   readonly muxUploadError = input.required<string>();
+  readonly muxUploadProgress = input.required<Record<string, number>>();
 
   readonly courseSectionAdded = output<void>();
   readonly courseSectionRemoved = output<number>();
@@ -61,14 +61,10 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
   readonly courseComponentUrlChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
-  readonly courseComponentMuxUploadRequested =
+  readonly courseComponentMuxVideoSelected =
+    output<{ sectionIndex: number; componentIndex: number; file: File }>();
+  readonly courseComponentMuxVideoRemoved =
     output<{ sectionIndex: number; componentIndex: number }>();
-  readonly courseComponentMuxUploadStarted =
-    output<{ sectionIndex: number; componentIndex: number }>();
-  readonly courseComponentMuxUploadCompleted =
-    output<{ sectionIndex: number; componentIndex: number }>();
-  readonly courseComponentMuxUploadFailed =
-    output<{ sectionIndex: number; componentIndex: number; message: string }>();
   readonly courseComponentQuizQuestionChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
   readonly courseComponentQuizPointsChanged =
@@ -203,7 +199,7 @@ export class CourseBuilder {
     }
 
     if (component.type === 'video') {
-      return 'Supporting notes';
+      return 'Component Overview';
     }
 
     return 'Text content';
@@ -213,22 +209,18 @@ export class CourseBuilder {
     return component.type === 'video';
   }
 
-  protected muxUploadEndpoint(component: CourseComponent): string {
-    return component.type === 'video' ? (this.muxUploadEndpoints()[component.id] ?? '') : '';
-  }
-
   protected muxStatusLabel(component: CourseComponent): string {
     if (component.type !== 'video' || !component.mux) {
-      return 'No Mux upload yet';
+      return 'Ready for upload';
     }
 
     switch (component.mux.status) {
       case 'waiting':
-        return 'Ready for file upload';
+        return 'Preparing upload';
       case 'uploading':
-        return 'Uploading to Mux';
+        return 'Uploading';
       case 'processing':
-        return 'Processing in Mux';
+        return 'Processing';
       case 'ready':
         return 'Ready to play';
       case 'errored':
@@ -238,10 +230,58 @@ export class CourseBuilder {
     }
   }
 
-  protected muxUploadErrorMessage(event: Event): string {
-    const detail = (event as CustomEvent<{ message?: string }>).detail;
+  protected muxUploadInputId(component: CourseComponent): string {
+    return `mux-video-upload-${component.id}`;
+  }
 
-    return detail?.message ?? 'Mux upload failed.';
+  protected muxUploadProgressValue(component: CourseComponent): number {
+    return component.type === 'video' ? (this.muxUploadProgress()[component.id] ?? 0) : 0;
+  }
+
+  protected muxPlaybackId(component: CourseComponent): string {
+    return component.type === 'video' && component.mux?.status === 'ready'
+      ? component.mux.playbackId
+      : '';
+  }
+
+  protected muxStatusDescription(component: CourseComponent): string {
+    if (component.type !== 'video' || !component.mux) {
+      return 'Select a video file and QI Education will prepare the Mux upload automatically.';
+    }
+
+    switch (component.mux.status) {
+      case 'waiting':
+        return 'The upload slot is ready. Your file upload is about to begin.';
+      case 'uploading':
+        return `${this.muxUploadProgressValue(component)}% uploaded`;
+      case 'processing':
+        return 'Mux is processing the video. The preview will appear here when it is ready.';
+      case 'ready':
+        return 'Students will see this video when they open this component.';
+      case 'errored':
+        return component.mux.errorMessage || 'Mux could not process this video.';
+      default:
+        return 'Video status is updating.';
+    }
+  }
+
+  protected muxVideoSelected(
+    event: Event,
+    sectionIndex: number,
+    componentIndex: number,
+  ): void {
+    const inputElement = event.target;
+
+    if (!(inputElement instanceof HTMLInputElement) || !inputElement.files?.[0]) {
+      return;
+    }
+
+    this.courseComponentMuxVideoSelected.emit({
+      sectionIndex,
+      componentIndex,
+      file: inputElement.files[0],
+    });
+    inputElement.value = '';
   }
 
   protected isQuizComponent(component: CourseComponent): component is Extract<CourseComponent, { type: 'quiz' }> {

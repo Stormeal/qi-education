@@ -615,6 +615,87 @@ describe('QI-Education API', () => {
     }
   });
 
+  it('removes a Mux video from a video component', async () => {
+    const isolatedServer = createServer().listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(validCourse()),
+      });
+      const created = await createResponse.json();
+      const sections = [
+        {
+          id: 'section-1',
+          title: 'Chapter 1',
+          components: [
+            {
+              id: 'component-1',
+              title: 'Intro video',
+              type: 'video',
+              durationMinutes: 5,
+              content: 'Welcome notes',
+              resourceUrl: '',
+              mux: {
+                provider: 'mux',
+                uploadId: 'upload-1',
+                assetId: 'asset-1',
+                playbackId: 'playback-1',
+                playbackPolicy: 'public',
+                status: 'ready',
+                durationSeconds: 120,
+                thumbnailUrl: 'https://image.mux.com/playback-1/thumbnail.jpg',
+                errorMessage: '',
+                captions: [],
+              },
+            },
+          ],
+        },
+      ];
+
+      await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sections }),
+      });
+
+      const removeResponse = await fetch(
+        `${isolatedBaseUrl}/courses/${created.id}/content/components/component-1/mux-video`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ sectionId: 'section-1' }),
+        },
+      );
+      const body = await removeResponse.json();
+
+      expect(removeResponse.status).toBe(200);
+      expect(body.content.sections[0].components[0]).toEqual({
+        id: 'component-1',
+        title: 'Intro video',
+        type: 'video',
+        durationMinutes: 5,
+        content: 'Welcome notes',
+        resourceUrl: '',
+      });
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
   it('blocks students from creating Mux uploads', async () => {
     const muxVideoService = new FakeMuxVideoService();
     const isolatedServer = createServer({ muxVideoService }).listen(0);

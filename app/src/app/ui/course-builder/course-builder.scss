@@ -396,7 +396,8 @@
   flex-direction: column;
   gap: 12px;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   max-height: calc(100dvh - 260px);
 }
 
@@ -759,11 +760,18 @@ select:focus {
 
 .mux-upload-panel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   border: 1px solid rgba(43, 60, 46, 0.14);
-  border-radius: 8px;
+  border-radius: 14px;
   background: #f8faf6;
-  padding: 16px;
+  padding: 14px;
+}
+
+.mux-upload-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .mux-upload-copy {
@@ -771,7 +779,6 @@ select:focus {
   gap: 4px;
 }
 
-.mux-upload-copy span,
 .mux-upload-copy small {
   color: #6f7e6f;
   font-size: 13px;
@@ -782,12 +789,36 @@ select:focus {
   font-size: 16px;
 }
 
-.mux-uploader {
-  --button-border-radius: 8px;
-  --progress-bar-fill-color: #4f773e;
-  --progress-bar-height: 6px;
+.mux-file-input {
+  display: none;
+}
+
+.mux-upload-button.is-disabled {
+  pointer-events: none;
+}
+
+.mux-video-preview {
   display: block;
   width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #162019;
+}
+
+.mux-upload-progress {
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(79, 119, 62, 0.12);
+}
+
+.mux-upload-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4f773e, #7a9f5b);
+  transition: width 180ms ease;
 }
 
 @media (max-width: 1120px) {
@@ -855,5 +886,10 @@ select:focus {
   .quiz-answer-toggle {
     width: 100%;
     justify-content: center;
+  }
+
+  .mux-upload-toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

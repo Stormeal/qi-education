@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
+import * as UpChunk from '@mux/upchunk';
 import {
   CourseComponent,
   CourseComponentType,
@@ -66,8 +67,8 @@ export class AppStateService {
   readonly courseContentSaving = signal(false);
   readonly courseContentError = signal('');
   readonly muxUploadComponentId = signal('');
-  readonly muxUploadEndpoints = signal<Record<string, string>>({});
   readonly muxUploadError = signal('');
+  readonly muxUploadProgress = signal<Record<string, number>>({});
   readonly coursePriceSaving = signal(false);
   readonly coursePriceNotice = signal('');
   readonly coursePriceNoticeError = signal(false);
@@ -351,8 +352,8 @@ export class AppStateService {
     this.courseCreateError.set('');
     this.courseContentError.set('');
     this.muxUploadComponentId.set('');
-    this.muxUploadEndpoints.set({});
     this.muxUploadError.set('');
+    this.muxUploadProgress.set({});
     this.courseEnrollmentError.set('');
     this.courseEnrollmentSubmitting.set(false);
     this.courseContent.set(null);
@@ -491,8 +492,8 @@ export class AppStateService {
     this.courseCreateError.set('');
     this.courseContentError.set('');
     this.muxUploadComponentId.set('');
-    this.muxUploadEndpoints.set({});
     this.muxUploadError.set('');
+    this.muxUploadProgress.set({});
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
@@ -541,8 +542,8 @@ export class AppStateService {
     this.courseCreateError.set('');
     this.courseContentError.set('');
     this.muxUploadComponentId.set('');
-    this.muxUploadEndpoints.set({});
     this.muxUploadError.set('');
+    this.muxUploadProgress.set({});
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
@@ -769,7 +770,11 @@ export class AppStateService {
     }));
   }
 
-  async startCourseComponentMuxUpload(sectionIndex: number, componentIndex: number): Promise<void> {
+  async uploadCourseComponentMuxVideo(
+    sectionIndex: number,
+    componentIndex: number,
+    file: File,
+  ): Promise<void> {
     if (this.muxUploadComponentId()) {
       return;
     }
@@ -795,8 +800,14 @@ export class AppStateService {
       return;
     }
 
+    if (component.mux) {
+      this.muxUploadError.set('Remove the existing video before uploading a new one.');
+      return;
+    }
+
     this.muxUploadComponentId.set(component.id);
     this.muxUploadError.set('');
+    this.muxUploadProgress.update((progress) => ({ ...progress, [component.id]: 0 }));
 
     try {
       if (this.serializeCourseContent(content) !== this.initialCourseContentSnapshot()) {
@@ -831,43 +842,78 @@ export class AppStateService {
       this.courseContent.set(updatedContent);
       this.loadedCourseContentId.set(updatedContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
-      this.muxUploadEndpoints.update((endpoints) => ({
-        ...endpoints,
-        [component.id]: uploadResult.uploadUrl,
+      this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'uploading');
+
+      await this.uploadFileToMux(uploadResult.uploadUrl, file, (progress) => {
+        this.muxUploadProgress.update((currentProgress) => ({
+          ...currentProgress,
+          [component.id]: progress,
+        }));
+      });
+
+      this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'processing');
+      this.muxUploadProgress.update((currentProgress) => ({
+        ...currentProgress,
+        [component.id]: 100,
       }));
+      void this.refreshMuxVideoUntilReady(courseId, component.id);
     } catch {
-      this.muxUploadError.set('Unable to prepare the Mux upload. Please try again.');
+      const message = 'Unable to upload the video to Mux. Please try again.';
+
+      this.muxUploadError.set(message);
+      this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'errored', message);
     } finally {
       this.courseContentSaving.set(false);
       this.muxUploadComponentId.set('');
     }
   }
 
-  markCourseComponentMuxUploadStarted(sectionIndex: number, componentIndex: number): void {
-    this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'uploading');
-  }
+  async removeCourseComponentMuxVideo(sectionIndex: number, componentIndex: number): Promise<void> {
+    if (this.muxUploadComponentId()) {
+      return;
+    }
 
-  markCourseComponentMuxUploadCompleted(sectionIndex: number, componentIndex: number): void {
-    this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'processing');
-    const componentId = this.courseContent()?.sections[sectionIndex]?.components[componentIndex]?.id;
+    const token = this.loginState()?.token;
     const courseId = this.courseEditingId();
+    const content = this.courseContent();
+    const section = content?.sections[sectionIndex];
+    const component = section?.components[componentIndex];
 
-    if (componentId) {
-      this.muxUploadEndpoints.update(({ [componentId]: _completedEndpoint, ...endpoints }) => endpoints);
+    if (!token) {
+      this.muxUploadError.set('Please log in again before removing video.');
+      return;
     }
 
-    if (courseId && componentId) {
-      void this.refreshMuxVideoUntilReady(courseId, componentId);
+    if (!courseId || !section || !component) {
+      this.muxUploadError.set('Select a saved video component before removing video.');
+      return;
     }
-  }
 
-  markCourseComponentMuxUploadFailed(
-    sectionIndex: number,
-    componentIndex: number,
-    message: string,
-  ): void {
-    this.muxUploadError.set(message);
-    this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'errored', message);
+    if (component.type !== 'video' || !component.mux) {
+      return;
+    }
+
+    this.muxUploadComponentId.set(component.id);
+    this.muxUploadError.set('');
+
+    try {
+      const result = await this.courseService.removeMuxVideo(courseId, section.id, component.id, token);
+
+      if (!result.ok) {
+        this.muxUploadError.set(result.message);
+        return;
+      }
+
+      const updatedContent = this.normalizeCourseContent(result.content);
+      this.courseContent.set(updatedContent);
+      this.loadedCourseContentId.set(updatedContent._id);
+      this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
+      this.muxUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
+    } catch {
+      this.muxUploadError.set('Unable to remove the video. Please try again.');
+    } finally {
+      this.muxUploadComponentId.set('');
+    }
   }
 
   updateCourseComponentQuizQuestion(
@@ -1652,6 +1698,33 @@ export class AppStateService {
           errorMessage,
         },
       };
+    });
+  }
+
+  private uploadFileToMux(
+    uploadUrl: string,
+    file: File,
+    onProgress: (progress: number) => void,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const upload = UpChunk.createUpload({
+        endpoint: uploadUrl,
+        file,
+        dynamicChunkSize: true,
+      });
+
+      upload.on('progress', (event) => {
+        const progress = typeof event.detail === 'number' ? event.detail : 0;
+
+        onProgress(Math.round(progress));
+      });
+      upload.on('success', () => resolve());
+      upload.on('error', (event) => {
+        const detail = event.detail;
+        const message = typeof detail === 'string' ? detail : 'Mux upload failed.';
+
+        reject(new Error(message));
+      });
     });
   }
 
