@@ -14,6 +14,7 @@ import {
   FeedbackOption,
   FeedbackTriageUpdate,
   LoginState,
+  MuxVideoStatus,
   NextAction,
   QuizComponentContent,
   UserRole,
@@ -64,6 +65,9 @@ export class AppStateService {
   readonly courseContentLoading = signal(false);
   readonly courseContentSaving = signal(false);
   readonly courseContentError = signal('');
+  readonly muxUploadComponentId = signal('');
+  readonly muxUploadEndpoints = signal<Record<string, string>>({});
+  readonly muxUploadError = signal('');
   readonly coursePriceSaving = signal(false);
   readonly coursePriceNotice = signal('');
   readonly coursePriceNoticeError = signal(false);
@@ -346,6 +350,9 @@ export class AppStateService {
     this.isFeedbackOpen.set(false);
     this.courseCreateError.set('');
     this.courseContentError.set('');
+    this.muxUploadComponentId.set('');
+    this.muxUploadEndpoints.set({});
+    this.muxUploadError.set('');
     this.courseEnrollmentError.set('');
     this.courseEnrollmentSubmitting.set(false);
     this.courseContent.set(null);
@@ -483,6 +490,9 @@ export class AppStateService {
     this.courseDraft.set(this.createCourseDraft());
     this.courseCreateError.set('');
     this.courseContentError.set('');
+    this.muxUploadComponentId.set('');
+    this.muxUploadEndpoints.set({});
+    this.muxUploadError.set('');
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
@@ -530,6 +540,9 @@ export class AppStateService {
     });
     this.courseCreateError.set('');
     this.courseContentError.set('');
+    this.muxUploadComponentId.set('');
+    this.muxUploadEndpoints.set({});
+    this.muxUploadError.set('');
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
@@ -754,6 +767,107 @@ export class AppStateService {
       ...component,
       resourceUrl: value,
     }));
+  }
+
+  async startCourseComponentMuxUpload(sectionIndex: number, componentIndex: number): Promise<void> {
+    if (this.muxUploadComponentId()) {
+      return;
+    }
+
+    const token = this.loginState()?.token;
+    const courseId = this.courseEditingId();
+    const content = this.courseContent();
+    const section = content?.sections[sectionIndex];
+    const component = section?.components[componentIndex];
+
+    if (!token) {
+      this.muxUploadError.set('Please log in again before uploading video.');
+      return;
+    }
+
+    if (!courseId || !content || !section || !component) {
+      this.muxUploadError.set('Save the course before uploading video.');
+      return;
+    }
+
+    if (component.type !== 'video') {
+      this.muxUploadError.set('Select a video component before uploading.');
+      return;
+    }
+
+    this.muxUploadComponentId.set(component.id);
+    this.muxUploadError.set('');
+
+    try {
+      if (this.serializeCourseContent(content) !== this.initialCourseContentSnapshot()) {
+        this.courseContentSaving.set(true);
+        const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
+
+        if (!saveResult.ok) {
+          this.courseContentError.set(saveResult.message);
+          this.muxUploadError.set(saveResult.message);
+          return;
+        }
+
+        const savedContent = this.normalizeCourseContent(saveResult.content);
+        this.courseContent.set(savedContent);
+        this.loadedCourseContentId.set(savedContent._id);
+        this.initialCourseContentSnapshot.set(this.serializeCourseContent(savedContent));
+      }
+
+      const uploadResult = await this.courseService.createMuxUpload(
+        courseId,
+        section.id,
+        component.id,
+        token,
+      );
+
+      if (!uploadResult.ok) {
+        this.muxUploadError.set(uploadResult.message);
+        return;
+      }
+
+      const updatedContent = this.normalizeCourseContent(uploadResult.content);
+      this.courseContent.set(updatedContent);
+      this.loadedCourseContentId.set(updatedContent._id);
+      this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
+      this.muxUploadEndpoints.update((endpoints) => ({
+        ...endpoints,
+        [component.id]: uploadResult.uploadUrl,
+      }));
+    } catch {
+      this.muxUploadError.set('Unable to prepare the Mux upload. Please try again.');
+    } finally {
+      this.courseContentSaving.set(false);
+      this.muxUploadComponentId.set('');
+    }
+  }
+
+  markCourseComponentMuxUploadStarted(sectionIndex: number, componentIndex: number): void {
+    this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'uploading');
+  }
+
+  markCourseComponentMuxUploadCompleted(sectionIndex: number, componentIndex: number): void {
+    this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'processing');
+    const componentId = this.courseContent()?.sections[sectionIndex]?.components[componentIndex]?.id;
+    const courseId = this.courseEditingId();
+
+    if (componentId) {
+      this.muxUploadEndpoints.update(({ [componentId]: _completedEndpoint, ...endpoints }) => endpoints);
+    }
+
+    if (courseId && componentId) {
+      void this.refreshMuxVideoUntilReady(courseId, componentId);
+    }
+  }
+
+  markCourseComponentMuxUploadFailed(
+    sectionIndex: number,
+    componentIndex: number,
+    message: string,
+  ): void {
+    this.muxUploadError.set(message);
+    this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'errored', message);
   }
 
   updateCourseComponentQuizQuestion(
@@ -1517,6 +1631,68 @@ export class AppStateService {
         : content,
     );
     this.courseContentError.set('');
+  }
+
+  private updateCourseComponentMuxStatus(
+    sectionIndex: number,
+    componentIndex: number,
+    status: MuxVideoStatus,
+    errorMessage = '',
+  ): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'video' || !component.mux) {
+        return component;
+      }
+
+      return {
+        ...component,
+        mux: {
+          ...component.mux,
+          status,
+          errorMessage,
+        },
+      };
+    });
+  }
+
+  private async refreshMuxVideoUntilReady(
+    courseId: string,
+    componentId: string,
+    remainingAttempts = 12,
+  ): Promise<void> {
+    if (remainingAttempts <= 0 || this.loadedCourseContentId() !== courseId) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    try {
+      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId));
+      this.courseContent.set(loadedContent);
+      this.loadedCourseContentId.set(courseId);
+      this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
+
+      const component = this.findCourseComponent(loadedContent, componentId);
+      if (component?.type === 'video' && (component.mux?.status === 'ready' || component.mux?.status === 'errored')) {
+        return;
+      }
+    } catch {
+      return;
+    }
+
+    await this.refreshMuxVideoUntilReady(courseId, componentId, remainingAttempts - 1);
+  }
+
+  private findCourseComponent(content: CourseContentDocument, componentId: string): CourseComponent | null {
+    for (const section of content.sections) {
+      const component = section.components.find((item) => item.id === componentId);
+
+      if (component) {
+        return component;
+      }
+    }
+
+    return null;
   }
 
   private createContentId(prefix: string): string {

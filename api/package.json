@@ -15,6 +15,7 @@
   "license": "UNLICENSED",
   "description": "QI-Education API backed by Google Sheets.",
   "dependencies": {
+    "@mux/mux-node": "^14.1.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

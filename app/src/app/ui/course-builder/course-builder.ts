@@ -1,5 +1,16 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import '@mux/mux-uploader';
 import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
@@ -14,6 +25,7 @@ type ComponentPickerState = {
   templateUrl: './course-builder.html',
   styleUrl: './course-builder.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class CourseBuilder {
   private readonly document = inject(DOCUMENT);
@@ -30,6 +42,9 @@ export class CourseBuilder {
   readonly courseContentSaving = input.required<boolean>();
   readonly courseSubmitting = input.required<boolean>();
   readonly courseContentError = input.required<string>();
+  readonly muxUploadComponentId = input.required<string>();
+  readonly muxUploadEndpoints = input.required<Record<string, string>>();
+  readonly muxUploadError = input.required<string>();
 
   readonly courseSectionAdded = output<void>();
   readonly courseSectionRemoved = output<number>();
@@ -46,6 +61,14 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
   readonly courseComponentUrlChanged =
     output<{ sectionIndex: number; componentIndex: number; value: string }>();
+  readonly courseComponentMuxUploadRequested =
+    output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentMuxUploadStarted =
+    output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentMuxUploadCompleted =
+    output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentMuxUploadFailed =
+    output<{ sectionIndex: number; componentIndex: number; message: string }>();
   readonly courseComponentQuizQuestionChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
   readonly courseComponentQuizPointsChanged =
@@ -188,6 +211,37 @@ export class CourseBuilder {
 
   protected hasSupportingUrl(component: CourseComponent): boolean {
     return component.type === 'video';
+  }
+
+  protected muxUploadEndpoint(component: CourseComponent): string {
+    return component.type === 'video' ? (this.muxUploadEndpoints()[component.id] ?? '') : '';
+  }
+
+  protected muxStatusLabel(component: CourseComponent): string {
+    if (component.type !== 'video' || !component.mux) {
+      return 'No Mux upload yet';
+    }
+
+    switch (component.mux.status) {
+      case 'waiting':
+        return 'Ready for file upload';
+      case 'uploading':
+        return 'Uploading to Mux';
+      case 'processing':
+        return 'Processing in Mux';
+      case 'ready':
+        return 'Ready to play';
+      case 'errored':
+        return 'Upload needs attention';
+      default:
+        return component.mux.status;
+    }
+  }
+
+  protected muxUploadErrorMessage(event: Event): string {
+    const detail = (event as CustomEvent<{ message?: string }>).detail;
+
+    return detail?.message ?? 'Mux upload failed.';
   }
 
   protected isQuizComponent(component: CourseComponent): component is Extract<CourseComponent, { type: 'quiz' }> {

@@ -1,6 +1,22 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
-import { CourseContentDocument, CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
+import {
+  CUSTOM_ELEMENTS_SCHEMA,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import '@mux/mux-player';
+import {
+  CourseComponent,
+  CourseContentDocument,
+  CourseListItem,
+  FeedbackOption,
+  StudentSummary,
+} from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -14,6 +30,7 @@ type CourseViewMode = 'details' | 'learning';
   templateUrl: './course-view-page.html',
   styleUrls: ['../../app.scss', './course-view-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class CourseViewPage {
   protected readonly priceDraft = signal('');
@@ -222,6 +239,30 @@ export class CourseViewPage {
     }
 
     return null;
+  }
+
+  protected muxPlaybackId(component: CourseComponent | null): string {
+    return component?.type === 'video' && component.mux?.status === 'ready'
+      ? component.mux.playbackId
+      : '';
+  }
+
+  protected videoStatusText(component: CourseComponent | null): string {
+    if (component?.type !== 'video' || !component.mux) {
+      return 'Course material is being prepared. Use the course content panel to review the available outline.';
+    }
+
+    switch (component.mux.status) {
+      case 'waiting':
+      case 'uploading':
+        return 'The video upload is still in progress.';
+      case 'processing':
+        return 'Mux is processing this video. It will appear here when it is ready.';
+      case 'errored':
+        return component.mux.errorMessage || 'This video could not be processed.';
+      default:
+        return component.content || 'Video lesson ready.';
+    }
   }
 
   protected contentSummary(): string {

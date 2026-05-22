@@ -757,6 +757,39 @@ select:focus {
   padding-inline: 16px;
 }
 
+.mux-upload-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(43, 60, 46, 0.14);
+  border-radius: 8px;
+  background: #f8faf6;
+  padding: 16px;
+}
+
+.mux-upload-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.mux-upload-copy span,
+.mux-upload-copy small {
+  color: #6f7e6f;
+  font-size: 13px;
+}
+
+.mux-upload-copy strong {
+  color: #1f3325;
+  font-size: 16px;
+}
+
+.mux-uploader {
+  --button-border-radius: 8px;
+  --progress-bar-fill-color: #4f773e;
+  --progress-bar-height: 6px;
+  display: block;
+  width: 100%;
+}
+
 @media (max-width: 1120px) {
   .builder-modal-grid-quiz,
   .quiz-settings-grid {

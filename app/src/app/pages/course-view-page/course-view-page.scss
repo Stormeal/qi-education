@@ -642,6 +642,15 @@
   padding: clamp(28px, 6vw, 76px);
 }
 
+.learning-mux-player {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #0f1117;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+}
+
 .learning-player h1 {
   width: min(720px, 100%);
   margin: 0;

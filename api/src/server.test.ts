@@ -12,6 +12,7 @@ import {
   type GitHubFeedbackIssue,
   type GitHubFeedbackService,
 } from './githubFeedback.js';
+import type { MuxVideoService, MuxWebhookEvent, MuxWebhookService } from './muxService.js';
 import { createServer } from './server.js';
 
 describe('QI-Education API', () => {
@@ -109,6 +110,10 @@ describe('QI-Education API', () => {
       content: {
         storage: 'memory',
         configured: false,
+      },
+      mux: {
+        configured: false,
+        playbackPolicy: 'public',
       },
       corsOrigins: [
         'http://localhost:4200',
@@ -512,6 +517,283 @@ describe('QI-Education API', () => {
 
     expect(getResponse.status).toBe(200);
     expect(loaded.sections).toEqual(sections);
+  });
+
+  it('creates a Mux direct upload for a video component', async () => {
+    const muxVideoService = new FakeMuxVideoService();
+    const isolatedServer = createServer({ muxVideoService }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(validCourse()),
+      });
+      const created = await createResponse.json();
+      const sections = [
+        {
+          id: 'section-1',
+          title: 'Chapter 1',
+          components: [
+            {
+              id: 'component-1',
+              title: 'Intro video',
+              type: 'video',
+              durationMinutes: 5,
+              content: 'Welcome notes',
+              resourceUrl: '',
+            },
+          ],
+        },
+      ];
+
+      await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sections }),
+      });
+
+      const uploadResponse = await fetch(
+        `${isolatedBaseUrl}/courses/${created.id}/content/components/component-1/mux-upload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${token}`,
+            origin: 'http://localhost:4200',
+          },
+          body: JSON.stringify({ sectionId: 'section-1' }),
+        },
+      );
+      const body = await uploadResponse.json();
+
+      expect(uploadResponse.status).toBe(201);
+      expect(muxVideoService.lastInput).toEqual({
+        courseId: created.id,
+        sectionId: 'section-1',
+        componentId: 'component-1',
+        corsOrigin: 'http://localhost:4200',
+      });
+      expect(body).toMatchObject({
+        uploadId: 'upload-1',
+        uploadUrl: 'https://uploads.mux.com/direct-upload',
+        playbackPolicy: 'public',
+        content: {
+          _id: created.id,
+          sections: [
+            {
+              id: 'section-1',
+              components: [
+                {
+                  id: 'component-1',
+                  type: 'video',
+                  mux: {
+                    provider: 'mux',
+                    uploadId: 'upload-1',
+                    assetId: '',
+                    playbackId: '',
+                    playbackPolicy: 'public',
+                    status: 'waiting',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      });
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  it('blocks students from creating Mux uploads', async () => {
+    const muxVideoService = new FakeMuxVideoService();
+    const isolatedServer = createServer({ muxVideoService }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
+      const response = await fetch(
+        `${isolatedBaseUrl}/courses/missing-course/content/components/component-1/mux-upload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${studentToken}`,
+          },
+          body: JSON.stringify({ sectionId: 'section-1' }),
+        },
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(body.message).toBe('Teacher or admin access is required');
+      expect(muxVideoService.lastInput).toBeNull();
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  it('updates video components from Mux asset webhooks', async () => {
+    const muxWebhookService = new FakeMuxWebhookService();
+    const isolatedServer = createServer({ muxWebhookService }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const createResponse = await fetch(`${isolatedBaseUrl}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(validCourse()),
+      });
+      const created = await createResponse.json();
+      const passthrough = JSON.stringify({
+        c: created.id,
+        s: 'section-1',
+        m: 'component-1',
+      });
+      const sections = [
+        {
+          id: 'section-1',
+          title: 'Chapter 1',
+          components: [
+            {
+              id: 'component-1',
+              title: 'Intro video',
+              type: 'video',
+              durationMinutes: 5,
+              content: 'Welcome notes',
+              resourceUrl: '',
+              mux: {
+                provider: 'mux',
+                uploadId: 'upload-1',
+                assetId: '',
+                playbackId: '',
+                playbackPolicy: 'public',
+                status: 'waiting',
+                durationSeconds: null,
+                thumbnailUrl: '',
+                errorMessage: '',
+                captions: [],
+              },
+            },
+          ],
+        },
+      ];
+
+      await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sections }),
+      });
+
+      muxWebhookService.event = {
+        type: 'video.upload.asset_created',
+        data: {
+          id: 'upload-1',
+          asset_id: 'asset-1',
+          new_asset_settings: {
+            passthrough,
+          },
+        },
+      };
+
+      const assetCreatedResponse = await fetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'mux-signature': 'test',
+        },
+        body: JSON.stringify({ type: 'video.upload.asset_created' }),
+      });
+
+      expect(assetCreatedResponse.status).toBe(200);
+
+      muxWebhookService.event = {
+        type: 'video.asset.ready',
+        data: {
+          id: 'asset-1',
+          duration: 123.45,
+          passthrough,
+          playback_ids: [
+            {
+              id: 'playback-1',
+              policy: 'public',
+            },
+          ],
+          upload_id: 'upload-1',
+        },
+      };
+
+      const readyResponse = await fetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'mux-signature': 'test',
+        },
+        body: JSON.stringify({ type: 'video.asset.ready' }),
+      });
+      const contentResponse = await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`);
+      const content = await contentResponse.json();
+
+      expect(readyResponse.status).toBe(200);
+      expect(content.sections[0].components[0].mux).toEqual({
+        provider: 'mux',
+        uploadId: 'upload-1',
+        assetId: 'asset-1',
+        playbackId: 'playback-1',
+        playbackPolicy: 'public',
+        status: 'ready',
+        durationSeconds: 123.45,
+        thumbnailUrl: 'https://image.mux.com/playback-1/thumbnail.jpg',
+        errorMessage: '',
+        captions: [],
+      });
+    } finally {
+      isolatedServer.close();
+    }
+  });
+
+  it('rejects invalid Mux webhook signatures', async () => {
+    const isolatedServer = createServer({
+      muxWebhookService: new FailingMuxWebhookService(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const response = await fetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'mux-signature': 'invalid',
+        },
+        body: JSON.stringify({ type: 'video.asset.ready' }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(body.message).toBe('Invalid Mux webhook signature.');
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('blocks a student from updating course content', async () => {
@@ -1090,6 +1372,37 @@ class FailingCourseContentRepository implements CourseContentRepository {
 
   async deleteCourseContent(): Promise<void> {
     throw new Error('Content store unavailable');
+  }
+}
+
+class FakeMuxVideoService implements MuxVideoService {
+  lastInput: Parameters<MuxVideoService['createDirectUpload']>[0] | null = null;
+
+  async createDirectUpload(input: Parameters<MuxVideoService['createDirectUpload']>[0]) {
+    this.lastInput = input;
+
+    return {
+      uploadId: 'upload-1',
+      uploadUrl: 'https://uploads.mux.com/direct-upload',
+      playbackPolicy: 'public' as const,
+    };
+  }
+}
+
+class FakeMuxWebhookService implements MuxWebhookService {
+  event: MuxWebhookEvent = {
+    type: 'video.asset.created',
+    data: {},
+  };
+
+  async unwrapWebhook(): Promise<MuxWebhookEvent> {
+    return this.event;
+  }
+}
+
+class FailingMuxWebhookService implements MuxWebhookService {
+  async unwrapWebhook(): Promise<MuxWebhookEvent> {
+    throw new Error('No signatures found matching the expected signature for payload.');
   }
 }
 

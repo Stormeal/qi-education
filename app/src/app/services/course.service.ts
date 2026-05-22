@@ -24,6 +24,18 @@ export type CourseContentSaveResult =
       message: string;
     };
 
+export type CourseMuxUploadResult =
+  | {
+      ok: true;
+      uploadId: string;
+      uploadUrl: string;
+      content: CourseContentDocument;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
 export type CourseEnrollmentResult =
   | {
       ok: true;
@@ -151,6 +163,48 @@ export class CourseService {
     return {
       ok: true,
       content: body,
+    };
+  }
+
+  async createMuxUpload(
+    courseId: string,
+    sectionId: string,
+    componentId: string,
+    token: string,
+  ): Promise<CourseMuxUploadResult> {
+    const response = await this.apiClient.fetch(
+      `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/mux-upload`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sectionId }),
+      },
+    );
+    const body = (await response.json().catch(() => ({}))) as
+      | {
+          uploadId?: string;
+          uploadUrl?: string;
+          content?: CourseContentDocument;
+          message?: string;
+        };
+
+    if (!response.ok || !body.uploadId || !body.uploadUrl || !body.content) {
+      return {
+        ok: false,
+        message: body.message ?? 'Unable to create Mux upload.',
+      };
+    }
+
+    this.apiClient.invalidateCache(`/courses/${encodeURIComponent(courseId)}/content`);
+
+    return {
+      ok: true,
+      uploadId: body.uploadId,
+      uploadUrl: body.uploadUrl,
+      content: body.content,
     };
   }
 

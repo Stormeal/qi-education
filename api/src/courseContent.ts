@@ -32,9 +32,32 @@ const baseCourseContentComponentSchema = z.object({
   resourceUrl: z.string().trim().max(2000).default(''),
 });
 
+const muxVideoSchema = z.object({
+  provider: z.literal('mux').default('mux'),
+  uploadId: z.string().trim().max(200).default(''),
+  assetId: z.string().trim().max(200).default(''),
+  playbackId: z.string().trim().max(200).default(''),
+  playbackPolicy: z.enum(['public', 'signed']).default('public'),
+  status: z.enum(['waiting', 'uploading', 'processing', 'ready', 'errored']).default('waiting'),
+  durationSeconds: z.coerce.number().nonnegative().nullable().default(null),
+  thumbnailUrl: z.string().trim().max(2000).default(''),
+  errorMessage: z.string().trim().max(1000).default(''),
+  captions: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(200),
+        languageCode: z.string().trim().min(1).max(35),
+        name: z.string().trim().max(120).default(''),
+        status: z.enum(['ready', 'processing', 'errored']).default('processing'),
+      }),
+    )
+    .default([]),
+});
+
 export const courseContentComponentSchema = z.discriminatedUnion('type', [
   baseCourseContentComponentSchema.extend({
     type: z.literal('video'),
+    mux: muxVideoSchema.optional(),
   }),
   baseCourseContentComponentSchema.extend({
     type: z.literal('text'),
@@ -53,6 +76,10 @@ export const courseContentSectionSchema = z.object({
 
 export const updateCourseContentSchema = z.object({
   sections: z.array(courseContentSectionSchema).max(200).default([]),
+});
+
+export const createMuxUploadSchema = z.object({
+  sectionId: z.string().trim().min(1).max(120),
 });
 
 export type CourseContentComponent = z.infer<typeof courseContentComponentSchema>;

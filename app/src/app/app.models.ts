@@ -74,6 +74,28 @@ export type CourseCreateDraft = {
 
 export type CourseComponentType = 'video' | 'quiz' | 'text';
 
+export type MuxPlaybackPolicy = 'public' | 'signed';
+
+export type MuxVideoStatus = 'waiting' | 'uploading' | 'processing' | 'ready' | 'errored';
+
+export type MuxVideo = {
+  provider: 'mux';
+  uploadId: string;
+  assetId: string;
+  playbackId: string;
+  playbackPolicy: MuxPlaybackPolicy;
+  status: MuxVideoStatus;
+  durationSeconds: number | null;
+  thumbnailUrl: string;
+  errorMessage: string;
+  captions: Array<{
+    id: string;
+    languageCode: string;
+    name: string;
+    status: 'ready' | 'processing' | 'errored';
+  }>;
+};
+
 export type QuizAnswerOption = {
   id: string;
   text: string;
@@ -103,6 +125,7 @@ type BaseCourseComponent = {
 
 export type VideoCourseComponent = BaseCourseComponent & {
   type: 'video';
+  mux?: MuxVideo;
 };
 
 export type TextCourseComponent = BaseCourseComponent & {

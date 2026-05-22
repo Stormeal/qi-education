@@ -13,9 +13,13 @@ import {
   type AuthenticatedUser,
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
-import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig, hasMongoConfig } from './config.js';
+import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig, hasMongoConfig, hasMuxConfig } from './config.js';
 import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema } from './course.js';
-import { updateCourseContentSchema } from './courseContent.js';
+import {
+  createMuxUploadSchema,
+  updateCourseContentSchema,
+  type CourseContentSection,
+} from './courseContent.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
@@ -28,6 +32,13 @@ import {
   createCourseContentRepository,
   type CourseContentRepository,
 } from './courseContentRepository.js';
+import {
+  createMuxVideoService,
+  createMuxWebhookService,
+  type MuxVideoService,
+  type MuxWebhookEvent,
+  type MuxWebhookService,
+} from './muxService.js';
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
@@ -35,6 +46,8 @@ type ServerDependencies = {
   feedbackRepository?: FeedbackRepository;
   courseContentRepository?: CourseContentRepository;
   gitHubFeedbackService?: GitHubFeedbackService;
+  muxVideoService?: MuxVideoService | null;
+  muxWebhookService?: MuxWebhookService | null;
 };
 
 type AuthenticatedRequest = Request & {
@@ -48,8 +61,39 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const courseContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
+  const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
+  const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
   app.use(cors({ origin: getCorsOrigins() }));
+  app.post(
+    ['/webhooks/mux', '/api/webhooks/mux'],
+    express.raw({ type: 'application/json' }),
+    async (request, response, next) => {
+      try {
+        if (!muxWebhook) {
+          response.status(503).json({ message: 'Mux webhooks are not configured.' });
+          return;
+        }
+
+        const body = Buffer.isBuffer(request.body)
+          ? request.body.toString('utf8')
+          : typeof request.body === 'string'
+            ? request.body
+            : '';
+        const event = await muxWebhook.unwrapWebhook(body, request.headers);
+        await handleMuxWebhookEvent(event, courseContent);
+
+        response.json({ received: true });
+      } catch (error) {
+        if (error instanceof Error && isMuxSignatureError(error)) {
+          response.status(401).json({ message: 'Invalid Mux webhook signature.' });
+          return;
+        }
+
+        next(error);
+      }
+    },
+  );
   app.use(express.json());
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
@@ -83,6 +127,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
       content: {
         storage: courseContent.storageType,
         configured: hasMongoConfig(),
+      },
+      mux: {
+        configured: hasMuxConfig() || Boolean(muxVideo),
+        playbackPolicy: apiConfig.MUX_DEFAULT_PLAYBACK_POLICY,
       },
       corsOrigins: getCorsOrigins(),
       ranges: {
@@ -267,6 +315,89 @@ export function createServer(dependencies: ServerDependencies = {}) {
     },
   );
 
+  app.post(
+    '/courses/:id/content/components/:componentId/mux-upload',
+    authenticateRequest(auth),
+    requireCourseCreator,
+    async (request, response, next) => {
+      try {
+        if (!muxVideo) {
+          response.status(503).json({ message: 'Mux video uploads are not configured.' });
+          return;
+        }
+
+        const input = createMuxUploadSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const componentId = Array.isArray(request.params.componentId)
+          ? request.params.componentId[0]
+          : request.params.componentId;
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        const content = await courseContent.getCourseContent(courseId);
+
+        if (!content) {
+          response.status(404).json({ message: 'Course content not found' });
+          return;
+        }
+
+        const videoComponent = findCourseVideoComponent(content.sections, input.sectionId, componentId);
+
+        if (!videoComponent) {
+          response.status(404).json({ message: 'Video component not found' });
+          return;
+        }
+
+        const upload = await muxVideo.createDirectUpload({
+          courseId,
+          sectionId: input.sectionId,
+          componentId,
+          corsOrigin: request.header('origin') ?? getCorsOrigins()[0] ?? 'http://localhost:4200',
+        });
+        const updatedSections = content.sections.map((section) =>
+          section.id === input.sectionId
+            ? {
+                ...section,
+                components: section.components.map((component) =>
+                  component.id === componentId && component.type === 'video'
+                    ? {
+                        ...component,
+                        mux: {
+                          provider: 'mux' as const,
+                          uploadId: upload.uploadId,
+                          assetId: '',
+                          playbackId: '',
+                          playbackPolicy: upload.playbackPolicy,
+                          status: 'waiting' as const,
+                          durationSeconds: null,
+                          thumbnailUrl: '',
+                          errorMessage: '',
+                          captions: [],
+                        },
+                      }
+                    : component,
+                ),
+              }
+            : section,
+        );
+        const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
+
+        response.status(201).json({
+          uploadId: upload.uploadId,
+          uploadUrl: upload.uploadUrl,
+          playbackPolicy: upload.playbackPolicy,
+          content: updatedContent,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   app.patch(
     '/courses/:id',
     authenticateRequest(auth),
@@ -400,6 +531,175 @@ function courseContentHealthBody(storage: CourseContentRepository['storageType']
     database: apiConfig.MONGODB_DB_NAME || null,
     collection: apiConfig.MONGODB_COURSE_CONTENT_COLLECTION || null,
   };
+}
+
+async function handleMuxWebhookEvent(
+  event: MuxWebhookEvent,
+  courseContent: CourseContentRepository,
+) {
+  switch (event.type) {
+    case 'video.upload.asset_created': {
+      const data = event.data as Extract<MuxWebhookEvent, { type: 'video.upload.asset_created' }>['data'];
+      const passthrough = parseMuxPassthrough(data.new_asset_settings?.passthrough);
+
+      if (!passthrough || !data.asset_id) {
+        return;
+      }
+
+      await updateMuxVideoComponent(courseContent, passthrough, {
+        assetId: data.asset_id,
+        status: 'processing',
+      });
+      return;
+    }
+    case 'video.asset.ready': {
+      const data = event.data as Extract<MuxWebhookEvent, { type: 'video.asset.ready' }>['data'];
+      const passthrough = parseMuxPassthrough(data.passthrough);
+      const playback = data.playback_ids?.find((item) => item.policy === 'public' || item.policy === 'signed')
+        ?? data.playback_ids?.[0];
+
+      if (!passthrough || !playback?.id) {
+        return;
+      }
+
+      await updateMuxVideoComponent(courseContent, passthrough, {
+        assetId: data.id,
+        playbackId: playback.id,
+        playbackPolicy: playback.policy === 'signed' ? 'signed' : 'public',
+        status: 'ready',
+        durationSeconds: data.duration ?? null,
+        thumbnailUrl: `https://image.mux.com/${playback.id}/thumbnail.jpg`,
+        errorMessage: '',
+      });
+      return;
+    }
+    case 'video.asset.errored': {
+      const data = event.data as Extract<MuxWebhookEvent, { type: 'video.asset.errored' }>['data'];
+      const passthrough = parseMuxPassthrough(data.passthrough);
+
+      if (!passthrough) {
+        return;
+      }
+
+      await updateMuxVideoComponent(courseContent, passthrough, {
+        assetId: data.id,
+        status: 'errored',
+        errorMessage: muxErrorMessage(data.errors),
+      });
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+type MuxPassthrough = {
+  courseId: string;
+  sectionId: string;
+  componentId: string;
+};
+
+type MuxVideoUpdate = {
+  assetId?: string;
+  playbackId?: string;
+  playbackPolicy?: 'public' | 'signed';
+  status?: 'waiting' | 'uploading' | 'processing' | 'ready' | 'errored';
+  durationSeconds?: number | null;
+  thumbnailUrl?: string;
+  errorMessage?: string;
+};
+
+async function updateMuxVideoComponent(
+  courseContent: CourseContentRepository,
+  passthrough: MuxPassthrough,
+  update: MuxVideoUpdate,
+) {
+  const content = await courseContent.getCourseContent(passthrough.courseId);
+
+  if (!content) {
+    return;
+  }
+
+  const updatedSections = content.sections.map((section) =>
+    section.id === passthrough.sectionId
+      ? {
+          ...section,
+          components: section.components.map((component) => {
+            if (component.id !== passthrough.componentId || component.type !== 'video') {
+              return component;
+            }
+
+            return {
+              ...component,
+              mux: {
+                provider: 'mux' as const,
+                uploadId: component.mux?.uploadId ?? '',
+                assetId: update.assetId ?? component.mux?.assetId ?? '',
+                playbackId: update.playbackId ?? component.mux?.playbackId ?? '',
+                playbackPolicy: update.playbackPolicy ?? component.mux?.playbackPolicy ?? 'public',
+                status: update.status ?? component.mux?.status ?? 'waiting',
+                durationSeconds: update.durationSeconds ?? component.mux?.durationSeconds ?? null,
+                thumbnailUrl: update.thumbnailUrl ?? component.mux?.thumbnailUrl ?? '',
+                errorMessage: update.errorMessage ?? component.mux?.errorMessage ?? '',
+                captions: component.mux?.captions ?? [],
+              },
+            };
+          }),
+        }
+      : section,
+  );
+
+  await courseContent.updateCourseContent(passthrough.courseId, updatedSections);
+}
+
+function parseMuxPassthrough(value: string | undefined): MuxPassthrough | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<Record<'c' | 's' | 'm' | 'courseId' | 'sectionId' | 'componentId', unknown>>;
+    const courseId = typeof parsed.c === 'string' ? parsed.c : parsed.courseId;
+    const sectionId = typeof parsed.s === 'string' ? parsed.s : parsed.sectionId;
+    const componentId = typeof parsed.m === 'string' ? parsed.m : parsed.componentId;
+
+    if (
+      typeof courseId !== 'string' ||
+      typeof sectionId !== 'string' ||
+      typeof componentId !== 'string'
+    ) {
+      return null;
+    }
+
+    return { courseId, sectionId, componentId };
+  } catch {
+    return null;
+  }
+}
+
+function muxErrorMessage(errors: { messages?: string[]; type?: string } | undefined) {
+  return errors?.messages?.[0] ?? errors?.type ?? 'Mux could not process this video.';
+}
+
+function isMuxSignatureError(error: Error) {
+  return (
+    error.message.includes('mux-signature') ||
+    error.message.includes('signature') ||
+    error.message.includes('webhook secret') ||
+    error.message.includes('Webhook body') ||
+    error.message.includes('timestamp')
+  );
+}
+
+function findCourseVideoComponent(
+  sections: CourseContentSection[],
+  sectionId: string,
+  componentId: string,
+) {
+  const section = sections.find((item) => item.id === sectionId);
+  const component = section?.components.find((item) => item.id === componentId);
+
+  return component?.type === 'video' ? component : null;
 }
 
 function authenticateRequest(authRepository: AuthRepository) {

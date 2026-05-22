@@ -30,6 +30,12 @@ const envSchema = z.object({
   GITHUB_FEEDBACK_TOKEN: z.string().min(1).optional(),
   GITHUB_FEEDBACK_REPOSITORY: z.string().min(1).optional(),
   GITHUB_FEEDBACK_PROJECT_ID: z.string().min(1).optional(),
+  MUX_TOKEN_ID: z.string().min(1).optional(),
+  MUX_TOKEN_SECRET: z.string().min(1).optional(),
+  MUX_WEBHOOK_SECRET: z.string().min(1).optional(),
+  MUX_DEFAULT_PLAYBACK_POLICY: z.enum(['public', 'signed']).default('public'),
+  MUX_SIGNING_KEY_ID: z.string().min(1).optional(),
+  MUX_SIGNING_PRIVATE_KEY: z.string().min(1).optional(),
 });
 
 const env = envSchema.parse(process.env);
@@ -111,6 +117,18 @@ export function hasMongoConfigValues(
   collectionName: string | undefined,
 ) {
   return Boolean(mongoUri && databaseName && collectionName);
+}
+
+export function hasMuxConfig() {
+  if (process.env.NODE_ENV === 'test') {
+    return false;
+  }
+
+  return hasMuxConfigValues(apiConfig.MUX_TOKEN_ID, apiConfig.MUX_TOKEN_SECRET);
+}
+
+export function hasMuxConfigValues(tokenId: string | undefined, tokenSecret: string | undefined) {
+  return Boolean(tokenId && tokenSecret);
 }
 
 export function getCorsOrigins() {
