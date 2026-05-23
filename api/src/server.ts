@@ -5,11 +5,14 @@ import { ZodError } from 'zod';
 import {
   createSessionToken,
   getRolePermissions,
+  hashPassword,
   loginSchema,
   roleCanCreateCourses,
+  signupSchema,
   toAuthenticatedUser,
   verifyPassword,
   verifySessionToken,
+  type AuthUser,
   type AuthenticatedUser,
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
@@ -195,11 +198,41 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
 
-      response.json({
-        token: createSessionToken(user, authTokenSecret),
-        user: toAuthenticatedUser(user),
-        permissions: getRolePermissions(user.role),
+      response.json(createAuthResponse(user, authTokenSecret));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post(['/auth/signup', '/signup'], async (request, response, next) => {
+    try {
+      const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
+
+      if (!authTokenSecret) {
+        response.status(503).json({ message: 'Authentication is temporarily unavailable.' });
+        return;
+      }
+
+      const input = signupSchema.parse(request.body);
+      const existingUser = await auth.findByEmail(input.email);
+
+      if (existingUser) {
+        response.status(409).json({ message: 'An account with this email already exists' });
+        return;
+      }
+
+      const user = await auth.createUser({
+        id: randomUUID(),
+        email: input.email,
+        displayName: input.displayName,
+        passwordHash: hashPassword(input.password),
+        role: 'student',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        enrolledCourseIds: [],
       });
+
+      response.status(201).json(createAuthResponse(user, authTokenSecret));
     } catch (error) {
       next(error);
     }
@@ -589,6 +622,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
 
   return app;
+}
+
+function createAuthResponse(user: AuthUser, secret: string) {
+  return {
+    token: createSessionToken(user, secret),
+    user: toAuthenticatedUser(user),
+    permissions: getRolePermissions(user.role),
+  };
 }
 
 function courseContentHealthBody(storage: CourseContentRepository['storageType']) {

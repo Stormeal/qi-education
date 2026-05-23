@@ -79,6 +79,102 @@ describe('QI-Education API', () => {
     expect(body.token).toEqual(expect.any(String));
   });
 
+  it('creates a student account through sign up and returns a working session', async () => {
+    const response = await fetch(`${baseUrl}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        displayName: 'Maja Lindholm',
+        email: 'maja.lindholm@example.com',
+        password: 'Testing42',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.user).toMatchObject({
+      email: 'maja.lindholm@example.com',
+      displayName: 'Maja Lindholm',
+      role: 'student',
+      status: 'active',
+      enrolledCourseIds: [],
+    });
+    expect(body.permissions).toEqual({
+      canCreateCourses: false,
+      hasAdminAccess: false,
+    });
+    expect(body.token).toEqual(expect.any(String));
+
+    const meResponse = await fetch(`${baseUrl}/auth/me`, {
+      headers: {
+        authorization: `Bearer ${body.token}`,
+      },
+    });
+    const me = await meResponse.json();
+
+    expect(meResponse.status).toBe(200);
+    expect(me.user.email).toBe('maja.lindholm@example.com');
+  });
+
+  it('creates a student account through the Vercel-safe sign up route', async () => {
+    const response = await fetch(`${baseUrl}/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        displayName: 'Noah Falk',
+        email: 'noah.falk@example.com',
+        password: 'Coursework8',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body.user).toMatchObject({
+      email: 'noah.falk@example.com',
+      role: 'student',
+    });
+    expect(body.token).toEqual(expect.any(String));
+  });
+
+  it('rejects duplicate sign up emails', async () => {
+    const payload = {
+      displayName: 'Sofie Nygaard',
+      email: 'sofie.nygaard@example.com',
+      password: 'Learning7',
+    };
+
+    await fetch(`${baseUrl}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const response = await fetch(`${baseUrl}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body.message).toBe('An account with this email already exists');
+  });
+
+  it('rejects sign up passwords that do not meet the password rules', async () => {
+    const response = await fetch(`${baseUrl}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        displayName: 'Emil Vester',
+        email: 'emil.vester@example.com',
+        password: 'lowercase',
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toBe('Invalid request body');
+  });
+
   it('serves API routes under the Vercel /api prefix', async () => {
     const response = await fetch(`${baseUrl}/api/health`);
     const body = (await response.json()) as { status: string };

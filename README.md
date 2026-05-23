@@ -48,7 +48,7 @@ id,title,description,level,teacher,careerGoals,status,createdAt
 Authentication uses a separate `Users` worksheet. Add this header row:
 
 ```text
-id,email,displayName,passwordHash,role,status,createdAt
+id,email,displayName,passwordHash,role,status,createdAt,enrolledCourseIds
 ```
 
 Feedback submissions use a `Feedback` worksheet. The API will create it automatically when Google Sheets is configured. It stores:
@@ -122,6 +122,18 @@ When Google Sheets is not configured, the API falls back to in-memory demo users
 - `student@qi-education.local` / `Password123!`
 - `teacher@qi-education.local` / `Password123!`
 - `admin@qi-education.local` / `Password123!`
+
+## Student Sign Up
+
+Public sign up is enabled for student accounts in local and production environments. New accounts are created with:
+
+- `role`: `student`
+- `status`: `active`
+- `enrolledCourseIds`: empty
+
+Teacher and admin access should be granted later through admin tooling rather than public registration.
+
+Passwords must be at least 8 characters and include at least one capital letter and one number.
 
 ## First Product Scope
 

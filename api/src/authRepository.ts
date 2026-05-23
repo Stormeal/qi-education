@@ -12,6 +12,7 @@ import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 export interface AuthRepository {
   findByEmail(email: string): Promise<AuthUser | null>;
   findById(id: string): Promise<AuthUser | null>;
+  createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
 }
 
@@ -24,6 +25,23 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
   async findById(id: string): Promise<AuthUser | null> {
     const users = await this.listUsers();
     return users.find((user) => user.id === id) ?? null;
+  }
+
+  async createUser(user: AuthUser): Promise<AuthUser> {
+    const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(authSheetRange(), [...authSheetHeaders]);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: authSheetRange(),
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [authUserToSheetRow(user)],
+      },
+    });
+
+    return user;
   }
 
   async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {
@@ -91,6 +109,11 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async findById(id: string): Promise<AuthUser | null> {
     return this.users.find((user) => user.id === id) ?? null;
+  }
+
+  async createUser(user: AuthUser): Promise<AuthUser> {
+    this.users.push(user);
+    return user;
   }
 
   async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {

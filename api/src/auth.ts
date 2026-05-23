@@ -15,9 +15,21 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200)
 });
 
+export const signupSchema = z.object({
+  displayName: z.string().trim().min(2).max(120),
+  email: z.email().transform((value) => value.trim().toLowerCase()),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(200)
+    .regex(/[A-Z]/, 'Password must include at least one capital letter')
+    .regex(/[0-9]/, 'Password must include at least one number')
+});
+
 export type UserRole = z.infer<typeof userRoleSchema>;
 export type UserStatus = z.infer<typeof userStatusSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type SignupInput = z.infer<typeof signupSchema>;
 
 export type AuthUser = {
   id: string;
