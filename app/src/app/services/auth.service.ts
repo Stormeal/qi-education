@@ -1,8 +1,18 @@
 import { Injectable, inject } from '@angular/core';
-import { LoginResponse } from '../app.models';
+import { LoginResponse, SignupRequest } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
 export type LoginResult =
+  | {
+      ok: true;
+      login: LoginResponse;
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+export type SignupResult =
   | {
       ok: true;
       login: LoginResponse;
@@ -35,6 +45,36 @@ export class AuthService {
       return {
         ok: false,
         message: this.loginFailureMessage(message, response),
+      };
+    }
+
+    return {
+      ok: true,
+      login: body as LoginResponse,
+    };
+  }
+
+  async signup(input: SignupRequest): Promise<SignupResult> {
+    const response = await this.apiClient.fetch('/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        displayName: input.displayName.trim(),
+        email: input.email.trim(),
+        password: input.password,
+      }),
+    });
+    const body = (await response.json()) as LoginResponse | { message?: string };
+
+    if (!response.ok) {
+      const message =
+        'message' in body ? body.message ?? 'Unable to create your account.' : 'Unable to create your account.';
+
+      return {
+        ok: false,
+        message,
       };
     }
 

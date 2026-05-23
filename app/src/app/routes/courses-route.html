@@ -34,18 +34,27 @@
   />
 } @else {
   <app-login-page
+    [authMode]="state.authMode()"
+    [signupDisplayName]="state.signupDisplayName()"
+    [signupPasswordConfirmation]="state.signupPasswordConfirmation()"
     [email]="state.email()"
     [password]="state.password()"
     [rememberMe]="state.rememberMe()"
     [passwordVisible]="state.passwordVisible()"
     [isSubmitting]="state.isSubmitting()"
     [loginError]="state.loginError()"
+    [signupError]="state.signupError()"
     [canSubmit]="state.canSubmit()"
+    [canSignupSubmit]="state.canSignupSubmit()"
     [learningHighlights]="state.learningHighlights"
+    (authModeChanged)="state.setAuthMode($event)"
+    (signupDisplayNameChanged)="state.updateSignupDisplayName($event)"
+    (signupPasswordConfirmationChanged)="state.updateSignupPasswordConfirmation($event)"
     (emailChanged)="state.updateEmail($event)"
     (passwordChanged)="state.updatePassword($event)"
     (rememberMeToggled)="state.toggleRememberMe()"
     (passwordVisibilityToggled)="state.togglePasswordVisibility()"
     (loginSubmitted)="state.submitLogin()"
+    (signupSubmitted)="state.submitSignup()"
   />
 }

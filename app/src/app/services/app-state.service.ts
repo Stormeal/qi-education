@@ -18,6 +18,7 @@ import {
   MuxVideoStatus,
   NextAction,
   QuizComponentContent,
+  SignupRequest,
   UserRole,
 } from '../app.models';
 import { AuthService } from './auth.service';
@@ -38,6 +39,10 @@ export class AppStateService {
 
   readonly email = signal('');
   readonly password = signal('');
+  readonly authMode = signal<'login' | 'signup'>('login');
+  readonly signupDisplayName = signal('');
+  readonly signupPasswordConfirmation = signal('');
+  readonly signupError = signal('');
   readonly rememberMe = signal(true);
   readonly passwordVisible = signal(false);
   readonly isSubmitting = signal(false);
@@ -94,6 +99,14 @@ export class AppStateService {
   readonly canSubmit = computed(
     () =>
       this.email().trim().length > 0 && this.password().trim().length > 0 && !this.isSubmitting(),
+  );
+  readonly canSignupSubmit = computed(
+    () =>
+      this.signupDisplayName().trim().length > 1 &&
+      this.email().trim().length > 0 &&
+      this.password().length >= 8 &&
+      this.signupPasswordConfirmation().length > 0 &&
+      !this.isSubmitting(),
   );
 
   readonly feedbackOptions: FeedbackOption[] = [
@@ -290,11 +303,35 @@ export class AppStateService {
   updateEmail(value: string): void {
     this.email.set(value);
     this.loginError.set('');
+    this.signupError.set('');
   }
 
   updatePassword(value: string): void {
     this.password.set(value);
     this.loginError.set('');
+    this.signupError.set('');
+  }
+
+  updateSignupDisplayName(value: string): void {
+    this.signupDisplayName.set(value);
+    this.signupError.set('');
+  }
+
+  updateSignupPasswordConfirmation(value: string): void {
+    this.signupPasswordConfirmation.set(value);
+    this.signupError.set('');
+  }
+
+  setAuthMode(mode: 'login' | 'signup'): void {
+    if (this.authMode() === mode || this.isSubmitting()) {
+      return;
+    }
+
+    this.authMode.set(mode);
+    this.loginError.set('');
+    this.signupError.set('');
+    this.password.set('');
+    this.signupPasswordConfirmation.set('');
   }
 
   toggleRememberMe(): void {
@@ -339,6 +376,68 @@ export class AppStateService {
       this.loginState.set(null);
       this.sessionService.clearStoredSession();
       this.loginError.set('Unable to reach the API. Please try again shortly.');
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  async submitSignup(): Promise<void> {
+    if (!this.canSignupSubmit()) {
+      return;
+    }
+
+    const validationMessage = this.signupValidationMessage({
+      displayName: this.signupDisplayName(),
+      email: this.email(),
+      password: this.password(),
+    });
+
+    if (validationMessage) {
+      this.signupError.set(validationMessage);
+      return;
+    }
+
+    if (this.password() !== this.signupPasswordConfirmation()) {
+      this.signupError.set('Passwords must match.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.signupError.set('');
+    this.loginError.set('');
+
+    try {
+      const result = await this.authService.signup({
+        displayName: this.signupDisplayName(),
+        email: this.email(),
+        password: this.password(),
+      });
+
+      if (!result.ok) {
+        this.loginState.set(null);
+        this.sessionService.clearStoredSession();
+        this.signupError.set(result.message);
+        return;
+      }
+
+      const login = result.login;
+      this.loginState.set({
+        token: login.token,
+        user: login.user,
+        permissions: login.permissions,
+      });
+      this.sessionService.storeSession(login, this.rememberMe());
+      this.password.set('');
+      this.signupPasswordConfirmation.set('');
+      this.signupDisplayName.set('');
+      this.authMode.set('login');
+      this.feedbackSubmitted.set(false);
+      this.loadCoursesWhenNeeded();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } catch {
+      this.loginState.set(null);
+      this.sessionService.clearStoredSession();
+      this.signupError.set('Unable to reach the API. Please try again shortly.');
     } finally {
       this.isSubmitting.set(false);
     }
@@ -1523,6 +1622,30 @@ export class AppStateService {
       status: 'draft',
       priceDkk: null,
     };
+  }
+
+  private signupValidationMessage(input: SignupRequest): string {
+    if (input.displayName.trim().length < 2) {
+      return 'Enter your full name.';
+    }
+
+    if (!input.email.trim()) {
+      return 'Enter your email address.';
+    }
+
+    if (input.password.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+
+    if (!/[A-Z]/.test(input.password)) {
+      return 'Password must include at least one capital letter.';
+    }
+
+    if (!/[0-9]/.test(input.password)) {
+      return 'Password must include at least one number.';
+    }
+
+    return '';
   }
 
   private syncCourseEditorDraftFromPath(allowMissingCourseError = false): void {

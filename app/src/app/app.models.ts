@@ -17,6 +17,12 @@ export type LoginResponse = {
   };
 };
 
+export type SignupRequest = {
+  displayName: string;
+  email: string;
+  password: string;
+};
+
 export type LoginState = {
   token: string;
   user: LoginResponse['user'];
