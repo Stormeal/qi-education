@@ -115,8 +115,7 @@
         >
           <div
             class="auth-fields flex flex-col gap-3"
-            [class.flex-1]="true"
-            [class.auth-fields--signup]="authMode() === 'signup'"
+            [class.flex-1]="authMode() === 'login'"
             [class.justify-center]="authMode() === 'login'"
             [class.justify-start]="authMode() === 'signup'"
             [class.pt-[13px]]="authMode() === 'signup'"
@@ -369,6 +368,19 @@
                     : 'Create Student Account'
               }}
             </app-button>
+
+            @if (authMode() === 'signup') {
+              <p class="mx-auto max-w-[380px] text-center text-[11px] leading-4 text-[var(--muted)]">
+                By creating an account, you agree to the
+                <a
+                  class="font-semibold text-[var(--form-ink)] underline decoration-[rgba(47,79,67,0.35)] underline-offset-2 transition hover:text-[var(--accent-deep)]"
+                  routerLink="/terms"
+                >
+                  Terms and Conditions
+                </a>
+                .
+              </p>
+            }
           </div>
         </form>
 
