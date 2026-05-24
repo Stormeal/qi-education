@@ -17,6 +17,11 @@ describe('course sheet mapping', () => {
       whatYoullLearn: ['Create stable API checks', 'Report automation results clearly'],
       audience: 'QA professionals moving into API automation.',
       priceDkk: 2495,
+      thumbnailAssetId: 'asset-1',
+      isPremium: true,
+      isBestseller: true,
+      rating: 4.7,
+      ratingCount: 128,
     };
 
     expect(courseFromSheetRow(courseToSheetRow(course))).toEqual(course);

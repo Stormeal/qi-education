@@ -1,5 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { CourseContentDocument, CourseCreateDraft, CourseListItem, CourseSection, LoginResponse } from '../app.models';
+import {
+  CourseCatalogMetadataDraft,
+  CourseContentDocument,
+  CourseCreateDraft,
+  CourseListItem,
+  CourseSection,
+  LoginResponse,
+} from '../app.models';
 import { ApiClientService } from './api-client.service';
 
 export type CourseSaveMode = 'create' | 'edit';
@@ -275,6 +282,64 @@ export class CourseService {
       return {
         ok: false,
         message: 'message' in body && body.message ? body.message : 'Unable to save course price.',
+      };
+    }
+
+    this.apiClient.invalidateCache('/courses');
+
+    return {
+      ok: true,
+      course: body,
+    };
+  }
+
+  async saveCourseCatalogMetadata(
+    courseId: string,
+    metadata: CourseCatalogMetadataDraft,
+    token: string,
+  ): Promise<CourseSaveResult> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/catalog-metadata`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(metadata),
+    });
+    const body = (await response.json().catch(() => ({}))) as CourseListItem | { message?: string };
+
+    if (!response.ok || !('id' in body)) {
+      return {
+        ok: false,
+        message:
+          'message' in body && body.message ? body.message : 'Unable to save course catalog metadata.',
+      };
+    }
+
+    this.apiClient.invalidateCache('/courses');
+
+    return {
+      ok: true,
+      course: body,
+    };
+  }
+
+  async uploadCourseThumbnail(courseId: string, file: File, token: string): Promise<CourseSaveResult> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/thumbnail`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file.type,
+        'X-File-Name': file.name,
+        authorization: `Bearer ${token}`,
+      },
+      body: file,
+    });
+    const body = (await response.json().catch(() => ({}))) as CourseListItem | { message?: string };
+
+    if (!response.ok || !('id' in body)) {
+      return {
+        ok: false,
+        message: 'message' in body && body.message ? body.message : 'Unable to upload course thumbnail.',
       };
     }
 

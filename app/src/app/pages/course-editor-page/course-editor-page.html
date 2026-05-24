@@ -213,9 +213,58 @@
       </section>
 
       @if (courseFormMode() === 'edit') {
-        <section class="editor-section" aria-labelledby="course-content-editor-title">
+        <section class="editor-section" aria-labelledby="course-thumbnail-title">
           <div class="editor-section-heading">
             <span class="section-step">4</span>
+            <div>
+              <h3 id="course-thumbnail-title">Catalog thumbnail</h3>
+              <p>Upload the image shown on the catalog card. JPEG, PNG, and WebP are supported up to 2 MB.</p>
+            </div>
+          </div>
+
+          <div class="thumbnail-editor">
+            <div class="thumbnail-stage">
+              @if (thumbnailUrl(editingCourse())) {
+                <img [src]="thumbnailUrl(editingCourse())" [alt]="draftTitle() + ' thumbnail'" />
+              } @else {
+                <div class="thumbnail-fallback" aria-hidden="true">
+                  <span>{{ courseDraft().level || 'Course' }}</span>
+                  <strong>{{ draftTitle() }}</strong>
+                </div>
+              }
+            </div>
+
+            <div class="thumbnail-controls">
+              <label class="thumbnail-upload-button">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  [disabled]="thumbnailUploading()"
+                  (change)="selectThumbnail($event)"
+                />
+                @if (thumbnailUploading()) {
+                  Uploading thumbnail...
+                } @else if (thumbnailUrl(editingCourse())) {
+                  Replace thumbnail
+                } @else {
+                  Upload thumbnail
+                }
+              </label>
+
+              <p class="thumbnail-help">
+                Use a wide image so the course card has a strong first frame in the catalog.
+              </p>
+
+              @if (thumbnailError()) {
+                <p class="course-error" role="alert">{{ thumbnailError() }}</p>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="editor-section" aria-labelledby="course-content-editor-title">
+          <div class="editor-section-heading">
+            <span class="section-step">5</span>
             <div>
               <h3 id="course-content-editor-title">Course content</h3>
               <p>Build the actual learning material stored in MongoDB.</p>
@@ -283,7 +332,18 @@
 
     <aside class="course-editor-preview" aria-label="Course edit summary">
       <div class="course-preview-card">
-        <div class="course-preview-body">
+      <div class="course-preview-body">
+          <div class="course-preview-media">
+            @if (thumbnailUrl(editingCourse())) {
+              <img [src]="thumbnailUrl(editingCourse())" [alt]="draftTitle() + ' thumbnail'" />
+            } @else {
+              <div class="course-preview-fallback" aria-hidden="true">
+                <span>{{ courseDraft().level || 'Course' }}</span>
+                <strong>{{ draftTitle() }}</strong>
+              </div>
+            }
+          </div>
+
           <p class="course-preview-kicker">{{ courseDraft().level || 'Course level' }}</p>
           <h2>{{ draftTitle() }}</h2>
           <p>{{ draftDescription() }}</p>

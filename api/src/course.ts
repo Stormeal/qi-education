@@ -16,6 +16,11 @@ export const courseSheetHeaders = [
   'priceDkk',
   'partOfCareer',
   'whatYoullLearn',
+  'thumbnailAssetId',
+  'isPremium',
+  'isBestseller',
+  'rating',
+  'ratingCount',
 ] as const;
 
 export const createCourseSchema = z.object({
@@ -30,17 +35,33 @@ export const createCourseSchema = z.object({
   careerGoals: z.array(z.string().trim().min(2).max(80)).default([]),
   status: courseStatusSchema.default('draft'),
   priceDkk: z.number().int().nonnegative().nullable().default(null),
+  thumbnailAssetId: z.string().trim().max(120).default(''),
+  isPremium: z.boolean().default(false),
+  isBestseller: z.boolean().default(false),
+  rating: z.number().min(0).max(5).default(0),
+  ratingCount: z.number().int().nonnegative().default(0),
 });
 
 export const updateCourseSchema = createCourseSchema;
 export const updateCoursePriceSchema = z.object({
   priceDkk: z.number().int().nonnegative().nullable(),
 });
+export const updateCourseCatalogMetadataSchema = z.object({
+  isPremium: z.boolean(),
+  isBestseller: z.boolean(),
+  rating: z.number().min(0).max(5),
+  ratingCount: z.number().int().nonnegative(),
+});
+export const updateCourseThumbnailSchema = z.object({
+  thumbnailAssetId: z.string().trim().max(120).default(''),
+});
 
 export type CourseStatus = z.infer<typeof courseStatusSchema>;
 export type CreateCourseInput = z.infer<typeof createCourseSchema>;
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 export type UpdateCoursePriceInput = z.infer<typeof updateCoursePriceSchema>;
+export type UpdateCourseCatalogMetadataInput = z.infer<typeof updateCourseCatalogMetadataSchema>;
+export type UpdateCourseThumbnailInput = z.infer<typeof updateCourseThumbnailSchema>;
 
 export type Course = CreateCourseInput & {
   id: string;
@@ -62,6 +83,11 @@ export function courseFromSheetRow(row: string[]): Course {
     priceDkk: parsePriceDkk(row[10]),
     partOfCareer: row[11] ?? '',
     whatYoullLearn: row[12] ? row[12].split('\n').map((item) => item.trim()).filter(Boolean) : [],
+    thumbnailAssetId: row[13] ?? '',
+    isPremium: parseBooleanFlag(row[14]),
+    isBestseller: parseBooleanFlag(row[15]),
+    rating: parseRating(row[16]),
+    ratingCount: parseRatingCount(row[17]),
   };
 }
 
@@ -80,6 +106,11 @@ export function courseToSheetRow(course: Course): string[] {
     course.priceDkk === null ? '' : String(course.priceDkk),
     course.partOfCareer,
     course.whatYoullLearn.join('\n'),
+    course.thumbnailAssetId,
+    course.isPremium ? 'TRUE' : 'FALSE',
+    course.isBestseller ? 'TRUE' : 'FALSE',
+    formatRating(course.rating),
+    String(course.ratingCount),
   ];
 }
 
@@ -90,4 +121,36 @@ function parsePriceDkk(value: string | undefined): number | null {
 
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseBooleanFlag(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'true' || normalized === 'yes' || normalized === '1';
+}
+
+function parseRating(value: string | undefined): number {
+  if (!value?.trim()) {
+    return 0;
+  }
+
+  const parsed = Number.parseFloat(value);
+
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.min(5, Math.max(0, Math.round(parsed * 10) / 10));
+}
+
+function parseRatingCount(value: string | undefined): number {
+  if (!value?.trim()) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function formatRating(value: number): string {
+  return (Math.round(Math.min(5, Math.max(0, value)) * 10) / 10).toFixed(1);
 }

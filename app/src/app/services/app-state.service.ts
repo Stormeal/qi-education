@@ -6,6 +6,7 @@ import * as UpChunk from '@mux/upchunk';
 import {
   CourseComponent,
   CourseComponentType,
+  CourseCatalogMetadataDraft,
   CourseSection,
   CourseContentDocument,
   CourseCreateDraft,
@@ -34,7 +35,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.22';
+  readonly appVersion = '0.1.26';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -77,6 +78,11 @@ export class AppStateService {
   readonly coursePriceSaving = signal(false);
   readonly coursePriceNotice = signal('');
   readonly coursePriceNoticeError = signal(false);
+  readonly courseCatalogSaving = signal(false);
+  readonly courseCatalogNotice = signal('');
+  readonly courseCatalogNoticeError = signal(false);
+  readonly courseThumbnailUploading = signal(false);
+  readonly courseThumbnailError = signal('');
   readonly courseEnrollmentSubmitting = signal(false);
   readonly courseEnrollmentError = signal('');
   readonly courseContent = signal<CourseContentDocument | null>(null);
@@ -257,6 +263,10 @@ export class AppStateService {
     return this.isCourseEditPath(path) ? 'edit' : 'create';
   });
   readonly courseEditingId = computed(() => this.courseEditIdFromPath(this.currentPath()));
+  readonly editingCourse = computed(() => {
+    const editId = this.courseEditingId();
+    return editId ? this.availableCourses().find((course) => course.id === editId) ?? null : null;
+  });
   readonly courseContentId = computed(() => {
     const editId = this.courseEditingId();
 
@@ -269,6 +279,7 @@ export class AppStateService {
   readonly loadedCourseContentId = signal<string | null>(null);
   private courseSaveNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private coursePriceNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private courseCatalogNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
 
   readonly recommendedCourses = computed(() =>
     this.courses().filter((course) => course.status === 'Recommended'),
@@ -453,6 +464,8 @@ export class AppStateService {
     this.muxUploadComponentId.set('');
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
+    this.courseThumbnailUploading.set(false);
+    this.courseThumbnailError.set('');
     this.courseEnrollmentError.set('');
     this.courseEnrollmentSubmitting.set(false);
     this.courseContent.set(null);
@@ -463,6 +476,8 @@ export class AppStateService {
     this.adminFeedback.set([]);
     this.adminFeedbackError.set('');
     this.sessionService.clearStoredSession();
+    this.clearCourseCatalogNotice();
+    this.clearCoursePriceNotice();
     void this.navigateHome();
   }
 
@@ -593,6 +608,8 @@ export class AppStateService {
     this.muxUploadComponentId.set('');
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
+    this.courseThumbnailUploading.set(false);
+    this.courseThumbnailError.set('');
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
@@ -643,6 +660,8 @@ export class AppStateService {
     this.muxUploadComponentId.set('');
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
+    this.courseThumbnailUploading.set(false);
+    this.courseThumbnailError.set('');
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
@@ -1425,6 +1444,83 @@ export class AppStateService {
     }
   }
 
+  async saveCourseCatalogMetadata(
+    courseId: string,
+    metadata: CourseCatalogMetadataDraft,
+  ): Promise<void> {
+    const token = this.loginState()?.token;
+
+    if (!token || !this.loginState()?.permissions.hasAdminAccess) {
+      return;
+    }
+
+    this.courseCatalogSaving.set(true);
+    this.clearCourseCatalogNotice();
+
+    try {
+      const result = await this.courseService.saveCourseCatalogMetadata(courseId, metadata, token);
+
+      if (!result.ok) {
+        this.showCourseCatalogNotice(result.message, true);
+        return;
+      }
+
+      this.availableCourses.update((courses) =>
+        courses.map((course) => (course.id === result.course.id ? result.course : course)),
+      );
+      this.showCourseCatalogNotice('Catalog settings saved.', false);
+    } catch {
+      this.showCourseCatalogNotice('Unable to save catalog settings. Please try again.', true);
+    } finally {
+      this.courseCatalogSaving.set(false);
+    }
+  }
+
+  async uploadCourseThumbnail(file: File): Promise<void> {
+    const token = this.loginState()?.token;
+    const courseId = this.courseEditingId();
+
+    if (!token || !courseId || this.courseThumbnailUploading()) {
+      return;
+    }
+
+    if (!this.loginState()?.permissions.canCreateCourses) {
+      this.courseThumbnailError.set('Teacher or admin access is required.');
+      return;
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      this.courseThumbnailError.set('Use a JPEG, PNG, or WebP thumbnail.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      this.courseThumbnailError.set('Thumbnail images must be 2 MB or smaller.');
+      return;
+    }
+
+    this.courseThumbnailUploading.set(true);
+    this.courseThumbnailError.set('');
+
+    try {
+      const result = await this.courseService.uploadCourseThumbnail(courseId, file, token);
+
+      if (!result.ok) {
+        this.courseThumbnailError.set(result.message);
+        return;
+      }
+
+      this.availableCourses.update((courses) =>
+        courses.map((course) => (course.id === result.course.id ? result.course : course)),
+      );
+      this.showCourseSaveNotice('Course thumbnail updated.');
+    } catch {
+      this.courseThumbnailError.set('Unable to upload the course thumbnail. Please try again.');
+    } finally {
+      this.courseThumbnailUploading.set(false);
+    }
+  }
+
   async enrollInCourse(courseId: string): Promise<void> {
     const token = this.loginState()?.token;
 
@@ -1656,6 +1752,8 @@ export class AppStateService {
       this.courseContentError.set('');
       this.courseContent.set(null);
       this.loadedCourseContentId.set(null);
+      this.courseThumbnailUploading.set(false);
+      this.courseThumbnailError.set('');
       this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.createCourseDraft()));
       this.initialCourseContentSnapshot.set('');
       this.courseDraft.set(this.createCourseDraft());
@@ -1679,6 +1777,7 @@ export class AppStateService {
     }
 
     this.courseCreateError.set('');
+    this.courseThumbnailError.set('');
     this.courseDraft.set({
       title: course.title,
       description: course.description,
@@ -1755,6 +1854,30 @@ export class AppStateService {
 
     this.coursePriceNotice.set('');
     this.coursePriceNoticeError.set(false);
+  }
+
+  private showCourseCatalogNotice(message: string, isError: boolean): void {
+    if (this.courseCatalogNoticeTimeout) {
+      clearTimeout(this.courseCatalogNoticeTimeout);
+    }
+
+    this.courseCatalogNotice.set(message);
+    this.courseCatalogNoticeError.set(isError);
+    this.courseCatalogNoticeTimeout = setTimeout(() => {
+      this.courseCatalogNotice.set('');
+      this.courseCatalogNoticeError.set(false);
+      this.courseCatalogNoticeTimeout = null;
+    }, 4000);
+  }
+
+  private clearCourseCatalogNotice(): void {
+    if (this.courseCatalogNoticeTimeout) {
+      clearTimeout(this.courseCatalogNoticeTimeout);
+      this.courseCatalogNoticeTimeout = null;
+    }
+
+    this.courseCatalogNotice.set('');
+    this.courseCatalogNoticeError.set(false);
   }
 
   private courseSaveMessage(

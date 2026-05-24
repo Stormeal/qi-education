@@ -17,12 +17,21 @@ import {
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig, hasMongoConfig, hasMuxConfig } from './config.js';
-import { createCourseSchema, updateCoursePriceSchema, updateCourseSchema } from './course.js';
+import {
+  createCourseSchema,
+  updateCourseCatalogMetadataSchema,
+  updateCoursePriceSchema,
+  updateCourseSchema,
+} from './course.js';
 import {
   createMuxUploadSchema,
   updateCourseContentSchema,
   type CourseContentSection,
 } from './courseContent.js';
+import {
+  createCourseAssetRepository,
+  type CourseAssetRepository,
+} from './courseAssetRepository.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
@@ -46,6 +55,7 @@ import {
 type ServerDependencies = {
   authRepository?: AuthRepository;
   courseRepository?: CourseRepository;
+  courseAssetRepository?: CourseAssetRepository;
   feedbackRepository?: FeedbackRepository;
   courseContentRepository?: CourseContentRepository;
   gitHubFeedbackService?: GitHubFeedbackService;
@@ -61,6 +71,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
   const courses = dependencies.courseRepository ?? createCourseRepository();
+  const courseAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const courseContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
@@ -93,6 +104,68 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
+        next(error);
+      }
+    },
+  );
+  app.put(
+    ['/courses/:id/thumbnail', '/api/courses/:id/thumbnail'],
+    authenticateRequest(auth),
+    requireCourseCreator,
+    express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb' }),
+    async (request, response, next) => {
+      try {
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        if (!Buffer.isBuffer(request.body) || request.body.byteLength === 0) {
+          response.status(400).json({ message: 'Thumbnail image data is required.' });
+          return;
+        }
+
+        const contentType = normalizeThumbnailContentType(request.header('content-type'));
+
+        if (!contentType) {
+          response.status(415).json({ message: 'Only JPEG, PNG, and WebP thumbnails are supported.' });
+          return;
+        }
+
+        const uploadedAsset = await courseAssets.saveThumbnail({
+          courseId,
+          contentType,
+          fileName: sanitizeFileName(request.header('x-file-name'), contentType),
+          binary: request.body,
+        });
+
+        try {
+          const updatedCourse = await courses.updateCourseThumbnail(courseId, {
+            thumbnailAssetId: uploadedAsset._id,
+          });
+
+          if (!updatedCourse) {
+            await courseAssets.deleteAsset(uploadedAsset._id);
+            response.status(404).json({ message: 'Course not found' });
+            return;
+          }
+
+          if (
+            matchingCourse.thumbnailAssetId &&
+            matchingCourse.thumbnailAssetId !== uploadedAsset._id
+          ) {
+            await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId);
+          }
+
+          response.json(updatedCourse);
+        } catch (error) {
+          await courseAssets.deleteAsset(uploadedAsset._id);
+          throw error;
+        }
+      } catch (error) {
         next(error);
       }
     },
@@ -277,6 +350,32 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.get('/courses', async (_request, response, next) => {
     try {
       response.json(await courses.listCourses());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get('/courses/:id/thumbnail', async (request, response, next) => {
+    try {
+      const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+      const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+      if (!matchingCourse || !matchingCourse.thumbnailAssetId) {
+        response.status(404).json({ message: 'Course thumbnail not found' });
+        return;
+      }
+
+      const asset = await courseAssets.getThumbnail(matchingCourse.thumbnailAssetId);
+
+      if (!asset) {
+        response.status(404).json({ message: 'Course thumbnail not found' });
+        return;
+      }
+
+      response.setHeader('Content-Type', asset.contentType);
+      response.setHeader('Content-Length', String(asset.sizeBytes));
+      response.setHeader('Cache-Control', 'public, max-age=300');
+      response.end(asset.binary);
     } catch (error) {
       next(error);
     }
@@ -529,6 +628,28 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const input = updateCoursePriceSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const updatedCourse = await courses.updateCoursePrice(courseId, input);
+
+        if (!updatedCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        response.json(updatedCourse);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.patch(
+    '/courses/:id/catalog-metadata',
+    authenticateRequest(auth),
+    requireAdmin,
+    async (request, response, next) => {
+      try {
+        const input = updateCourseCatalogMetadataSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const updatedCourse = await courses.updateCourseCatalogMetadata(courseId, input);
 
         if (!updatedCourse) {
           response.status(404).json({ message: 'Course not found' });
@@ -816,6 +937,30 @@ function findCourseVideoComponent(
   const component = section?.components.find((item) => item.id === componentId);
 
   return component?.type === 'video' ? component : null;
+}
+
+function normalizeThumbnailContentType(
+  value: string | undefined,
+): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  const normalized = value?.split(';')[0]?.trim().toLowerCase();
+
+  if (normalized === 'image/jpeg' || normalized === 'image/png' || normalized === 'image/webp') {
+    return normalized;
+  }
+
+  return null;
+}
+
+function sanitizeFileName(value: string | undefined, contentType: string): string {
+  const fallbackExtension =
+    contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
+  const fallbackName = `course-thumbnail.${fallbackExtension}`;
+
+  if (!value?.trim()) {
+    return fallbackName;
+  }
+
+  return value.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 120) || fallbackName;
 }
 
 function authenticateRequest(authRepository: AuthRepository) {

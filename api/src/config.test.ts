@@ -3,7 +3,7 @@ import { apiConfig, getCorsOrigins, hasMongoConfigValues, resolveAuthTokenSecret
 
 describe('API config', () => {
   it('uses a course sheet range that includes all course columns by default', () => {
-    expect(apiConfig.GOOGLE_SHEETS_COURSES_RANGE).toBe('Courses!A:M');
+    expect(apiConfig.GOOGLE_SHEETS_COURSES_RANGE).toBe('Courses!A:R');
   });
 
   it('allows the local auth token fallback outside production', () => {

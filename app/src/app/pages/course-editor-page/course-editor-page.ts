@@ -1,11 +1,13 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import {
   CourseComponentType,
   CourseContentDocument,
   CourseCreateDraft,
+  CourseListItem,
   FeedbackOption,
   StudentSummary,
 } from '../../app.models';
+import { ApiClientService } from '../../services/api-client.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -19,6 +21,8 @@ import { PageHeader } from '../../ui/page-header/page-header';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CourseEditorPage {
+  private readonly apiClient = inject(ApiClientService);
+
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();
@@ -26,6 +30,7 @@ export class CourseEditorPage {
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
   readonly courseFormMode = input.required<'create' | 'edit'>();
+  readonly editingCourse = input.required<CourseListItem | null>();
   readonly courseDraft = input.required<CourseCreateDraft>();
   readonly courseSubmitting = input.required<boolean>();
   readonly courseCreateError = input.required<string>();
@@ -37,6 +42,8 @@ export class CourseEditorPage {
   readonly muxUploadComponentId = input.required<string>();
   readonly muxUploadError = input.required<string>();
   readonly muxUploadProgress = input.required<Record<string, number>>();
+  readonly thumbnailUploading = input.required<boolean>();
+  readonly thumbnailError = input.required<string>();
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();
   readonly feedbackPage = input.required<string>();
@@ -64,6 +71,7 @@ export class CourseEditorPage {
   readonly courseCareerGoalsChanged = output<string>();
   readonly courseStatusChanged = output<string>();
   readonly courseSubmitted = output<void>();
+  readonly courseThumbnailSelected = output<File>();
   readonly courseSectionAdded = output<void>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
@@ -198,6 +206,27 @@ export class CourseEditorPage {
     }
 
     return '';
+  }
+
+  protected selectThumbnail(event: Event): void {
+    const control = event.target;
+
+    if (!(control instanceof HTMLInputElement) || !control.files?.[0]) {
+      return;
+    }
+
+    this.courseThumbnailSelected.emit(control.files[0]);
+    control.value = '';
+  }
+
+  protected thumbnailUrl(course: CourseListItem | null): string {
+    if (!course?.thumbnailAssetId) {
+      return '';
+    }
+
+    return this.apiClient.resourceUrl(
+      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
+    );
   }
 
   private formatDuration(durationMinutes: number): string {

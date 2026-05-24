@@ -1,22 +1,27 @@
 import { DatePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
+  inject,
   input,
   output,
   signal,
 } from '@angular/core';
+import { lucideBanknote, lucidePencil, lucideSlidersHorizontal } from '@ng-icons/lucide';
 import '@mux/mux-player';
 import {
   CourseComponent,
+  CourseCatalogMetadataDraft,
   CourseContentDocument,
   CourseListItem,
   FeedbackOption,
   StudentSummary,
 } from '../../app.models';
+import { ApiClientService } from '../../services/api-client.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -33,9 +38,22 @@ type CourseViewMode = 'details' | 'learning';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class CourseViewPage {
+  private readonly apiClient = inject(ApiClientService);
+  private readonly sanitizer = inject(DomSanitizer);
+
+  protected readonly editCourseIcon = this.asSafeIcon(lucidePencil);
+  protected readonly setPriceIcon = this.asSafeIcon(lucideBanknote);
+  protected readonly catalogSettingsIcon = this.asSafeIcon(lucideSlidersHorizontal);
+
   protected readonly priceDraft = signal('');
   protected readonly isPriceModalOpen = signal(false);
   protected readonly pendingPriceSave = signal(false);
+  protected readonly isCatalogModalOpen = signal(false);
+  protected readonly pendingCatalogSave = signal(false);
+  protected readonly catalogPremiumDraft = signal(false);
+  protected readonly catalogBestsellerDraft = signal(false);
+  protected readonly catalogRatingDraft = signal('0');
+  protected readonly catalogRatingCountDraft = signal('0');
   protected readonly isEnrollDialogOpen = signal(false);
   protected readonly pendingEnrollment = signal(false);
   protected readonly expandedSectionIds = signal<string[]>([]);
@@ -61,6 +79,9 @@ export class CourseViewPage {
   readonly priceSaving = input.required<boolean>();
   readonly priceSaveNotice = input.required<string>();
   readonly priceSaveNoticeError = input.required<boolean>();
+  readonly catalogSaving = input.required<boolean>();
+  readonly catalogSaveNotice = input.required<string>();
+  readonly catalogSaveNoticeError = input.required<boolean>();
   readonly viewMode = input.required<CourseViewMode>();
   readonly isEnrolled = input.required<boolean>();
   readonly enrollmentSubmitting = input.required<boolean>();
@@ -83,6 +104,7 @@ export class CourseViewPage {
   readonly courseEdited = output<string>();
   readonly courseLearningOpened = output<string>();
   readonly coursePriceSaved = output<{ courseId: string; priceDkk: number | null }>();
+  readonly courseCatalogSaved = output<{ courseId: string; metadata: CourseCatalogMetadataDraft }>();
   readonly courseEnrollmentConfirmed = output<string>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();
@@ -116,6 +138,18 @@ export class CourseViewPage {
     });
 
     effect(() => {
+      if (!this.pendingCatalogSave() || this.catalogSaving() || !this.catalogSaveNotice()) {
+        return;
+      }
+
+      if (!this.catalogSaveNoticeError()) {
+        this.isCatalogModalOpen.set(false);
+      }
+
+      this.pendingCatalogSave.set(false);
+    });
+
+    effect(() => {
       if (!this.pendingEnrollment() || this.enrollmentSubmitting()) {
         return;
       }
@@ -144,6 +178,23 @@ export class CourseViewPage {
     this.isPriceModalOpen.set(false);
   }
 
+  protected openCatalogModal(course: CourseListItem): void {
+    this.catalogPremiumDraft.set(course.isPremium);
+    this.catalogBestsellerDraft.set(course.isBestseller);
+    this.catalogRatingDraft.set(String(course.rating));
+    this.catalogRatingCountDraft.set(String(course.ratingCount));
+    this.pendingCatalogSave.set(false);
+    this.isCatalogModalOpen.set(true);
+  }
+
+  protected closeCatalogModal(): void {
+    if (this.catalogSaving()) {
+      return;
+    }
+
+    this.isCatalogModalOpen.set(false);
+  }
+
   protected updatePriceDraft(value: string): void {
     this.priceDraft.set(value);
   }
@@ -156,6 +207,41 @@ export class CourseViewPage {
     this.coursePriceSaved.emit({
       courseId,
       priceDkk: parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? parsed : null,
+    });
+  }
+
+  protected updateCatalogPremium(value: boolean): void {
+    this.catalogPremiumDraft.set(value);
+  }
+
+  protected updateCatalogBestseller(value: boolean): void {
+    this.catalogBestsellerDraft.set(value);
+  }
+
+  protected updateCatalogRating(value: string): void {
+    this.catalogRatingDraft.set(value);
+  }
+
+  protected updateCatalogRatingCount(value: string): void {
+    this.catalogRatingCountDraft.set(value);
+  }
+
+  protected applyCatalogDraft(courseId: string): void {
+    const parsedRating = Number.parseFloat(this.catalogRatingDraft().trim());
+    const parsedRatingCount = Number.parseInt(this.catalogRatingCountDraft().trim(), 10);
+
+    this.pendingCatalogSave.set(true);
+    this.courseCatalogSaved.emit({
+      courseId,
+      metadata: {
+        isPremium: this.catalogPremiumDraft(),
+        isBestseller: this.catalogBestsellerDraft(),
+        rating:
+          Number.isFinite(parsedRating) && parsedRating >= 0
+            ? Math.min(5, Math.round(parsedRating * 10) / 10)
+            : 0,
+        ratingCount: Number.isFinite(parsedRatingCount) && parsedRatingCount >= 0 ? parsedRatingCount : 0,
+      },
     });
   }
 
@@ -189,6 +275,12 @@ export class CourseViewPage {
     const control = event.target;
 
     return control instanceof HTMLInputElement ? control.value : '';
+  }
+
+  protected controlChecked(event: Event): boolean {
+    const control = event.target;
+
+    return control instanceof HTMLInputElement ? control.checked : false;
   }
 
   protected learningOutcomes(course: CourseListItem): string[] {
@@ -411,6 +503,24 @@ export class CourseViewPage {
     return `${new Intl.NumberFormat('da-DK').format(priceDkk)} DKK`;
   }
 
+  protected ratingLabel(rating: number): string {
+    return rating.toFixed(1);
+  }
+
+  protected ratingCountLabel(value: number): string {
+    return `${new Intl.NumberFormat('en-US').format(value)} ratings`;
+  }
+
+  protected thumbnailUrl(course: CourseListItem): string {
+    if (!course.thumbnailAssetId) {
+      return '';
+    }
+
+    return this.apiClient.resourceUrl(
+      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
+    );
+  }
+
   private formatDurationShort(durationMinutes: number): string {
     if (durationMinutes < 60) {
       return `${durationMinutes} min`;
@@ -428,5 +538,9 @@ export class CourseViewPage {
     }
 
     return this.formatDurationShort(durationMinutes);
+  }
+
+  private asSafeIcon(svg: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
   }
 }

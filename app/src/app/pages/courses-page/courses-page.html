@@ -1,8 +1,8 @@
-<main class="page-shell">
+<main class="page-shell catalog-shell">
   <app-page-header
     activeSection="courses"
-    aboutHref="#courses-list"
-    otherPagesHref="#courses-list"
+    aboutHref="#featured-courses"
+    otherPagesHref="#popular-topics"
     [displayName]="student().name"
     [email]="userEmail()"
     [roleLabel]="userRoleLabel()"
@@ -15,70 +15,151 @@
     (adminClicked)="adminClicked.emit()"
   />
 
-  <header class="courses-hero">
-    <div>
-      <p class="eyebrow">Catalog</p>
-      <h1>Explore courses</h1>
-      <p>
-        Build practical testing skills with focused courses from Testhuset teachers and platform
-        admins.
-      </p>
-    </div>
-    @if (canCreateCourses()) {
-      <app-button variant="primary" (buttonClicked)="createCourseOpened.emit()">
-        + New course
-      </app-button>
-    }
-  </header>
+  <section class="catalog-band" id="featured-courses" aria-labelledby="featured-courses-title">
+    <div class="section-heading">
+      <div class="section-heading-main">
+        <div class="catalog-toolbar">
+          @if (canCreateCourses()) {
+            <div class="catalog-view-tabs" aria-label="Catalog views">
+              <button type="button" [class.active]="activeView() === 'published'" (click)="setView('published')">
+                Published
+              </button>
+              @if (hasCreatorCourses()) {
+                <button type="button" [class.active]="activeView() === 'drafts'" (click)="setView('drafts')">
+                  My drafts
+                </button>
+              }
+            </div>
+          }
 
-  <section class="courses-layout" id="courses-list">
+          <div class="section-heading-actions">
+            @if (canCreateCourses()) {
+              <app-button variant="primary" (buttonClicked)="createCourseOpened.emit()">
+                + New course
+              </app-button>
+            }
+          </div>
+        </div>
+
+        <div class="catalog-heading-copy">
+          <h2 id="featured-courses-title">
+            {{ activeView() === 'drafts' ? 'Your draft courses' : 'Courses to get you started' }}
+          </h2>
+          <p>
+            {{
+              activeView() === 'drafts'
+                ? 'Review unpublished courses you have created and keep them moving toward release.'
+                : 'Explore courses from experienced, real-world experts.'
+            }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     @if (coursesLoading()) {
-      <app-loading-skeleton variant="course-card" [count]="6" />
+      <app-loading-skeleton variant="course-card" [count]="4" />
     } @else if (coursesError()) {
       <p class="course-error" role="alert">{{ coursesError() }}</p>
-    } @else if (courses().length === 0) {
-      <p class="course-empty">No courses have been created yet.</p>
+    } @else if (featuredCourses().length === 0) {
+      <p class="course-empty">
+        {{ activeView() === 'drafts' ? 'You have no drafts yet.' : 'No published courses are available yet.' }}
+      </p>
     } @else {
-      <div class="course-card-grid">
-        @for (course of courses(); track course.id; let index = $index) {
-          <a
-            class="course-card"
-            [routerLink]="['/courses', course.id]"
-            [attr.aria-label]="'Open course: ' + course.title"
-          >
-            <div class="course-card-media">
-              <div class="course-card-art" aria-hidden="true">
-                <span>{{ course.level }}</span>
-                <strong>{{ course.title }}</strong>
-              </div>
-              <span class="course-price-badge">{{ courseBadge(course) }}</span>
-            </div>
-            <div class="course-card-body">
-              <div class="course-rating-row" aria-label="Course rating">
-                <span aria-hidden="true">☆☆☆☆☆</span>
-                <span>0 (0)</span>
-              </div>
-              <h2>{{ course.title }}</h2>
-              <p>{{ firstSentence(course.description) }}</p>
-              <div class="course-teacher-row">
-                <span class="course-avatar" aria-hidden="true">{{ teacherInitials(course.teacher) }}</span>
-                <span>
-                  <small>Teacher</small>
-                  <strong>{{ course.teacher }}</strong>
-                </span>
-              </div>
-              <div class="course-card-footer">
-                <span>{{ course.level }}</span>
-                @if (course.careerGoals.length > 0) {
-                  <span>{{ course.careerGoals[0] }}</span>
+      <div class="featured-carousel">
+        <div class="featured-grid">
+          @for (course of visibleFeaturedCourses(); track course.id) {
+            <a
+              class="catalog-card"
+              [routerLink]="['/courses', course.id]"
+              [attr.aria-label]="'Open course: ' + course.title"
+            >
+              <div class="catalog-card-media">
+                @if (thumbnailUrl(course)) {
+                  <img [src]="thumbnailUrl(course)" [alt]="course.title + ' thumbnail'" />
+                } @else {
+                  <div class="catalog-card-fallback" aria-hidden="true"></div>
+                }
+
+                @if (course.isPremium) {
+                  <span class="catalog-pill catalog-pill-premium">Premium</span>
                 }
               </div>
-            </div>
-          </a>
+
+              <div class="catalog-card-body">
+                <h3>{{ course.title }}</h3>
+                <p class="catalog-card-author">{{ course.teacher }}</p>
+
+                <div class="catalog-card-pills" aria-label="Course highlights">
+                  @if (course.isBestseller) {
+                    <span class="catalog-pill catalog-pill-highlight">Bestseller</span>
+                  }
+                  <span class="catalog-pill">Course</span>
+                  <span class="catalog-pill catalog-pill-rating">
+                    <span class="catalog-star" aria-hidden="true">★</span>
+                    <span>{{ ratingLabel(course.rating) }}</span>
+                  </span>
+                  <span class="catalog-pill">{{ ratingCountLabel(course.ratingCount) }}</span>
+                </div>
+
+                <p class="catalog-card-price">{{ coursePriceLabel(course.priceDkk) }}</p>
+              </div>
+            </a>
+          }
+        </div>
+
+        @if (featuredCourses().length > 4) {
+          <button type="button" class="carousel-advance" aria-label="Show more featured courses" (click)="advanceCarousel()">
+            <span aria-hidden="true">›</span>
+          </button>
         }
       </div>
     }
   </section>
+
+  @if (activeView() === 'published') {
+    <section class="catalog-band" id="popular-topics" aria-labelledby="popular-topics-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="popular-topics-title">Popular topics</h2>
+        </div>
+      </div>
+
+      <div class="topic-grid">
+        @for (topic of popularTopics; track topic) {
+          <div class="topic-tile">{{ topic }}</div>
+        }
+      </div>
+    </section>
+
+    <section class="catalog-band" aria-labelledby="popular-instructors-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="popular-instructors-title">Popular instructors</h2>
+          <p>These real-world experts are highly rated by learners in the catalog.</p>
+        </div>
+      </div>
+
+      <div class="instructor-grid">
+        @for (instructor of popularInstructors(); track instructor.name) {
+          <article class="instructor-card">
+            <span class="instructor-avatar" aria-hidden="true">{{ teacherInitials(instructor.name) }}</span>
+            <div class="instructor-copy">
+              <h3>{{ instructor.name }}</h3>
+              <p>{{ instructorMetaLabel(instructor) }}</p>
+              <div class="instructor-stats">
+                <span class="instructor-rating">
+                  <span class="catalog-star" aria-hidden="true">★</span>
+                  <span>{{ ratingLabel(instructor.rating) }}</span>
+                </span>
+                <span>{{ ratingCountLabel(instructor.ratingCount) }}</span>
+                <span>{{ instructor.coursesCount }} courses</span>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
 
   <footer class="site-footer">
     <span class="footer-credit">

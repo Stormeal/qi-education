@@ -3,8 +3,10 @@ import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import {
   type Course,
   type CreateCourseInput,
+  type UpdateCourseCatalogMetadataInput,
   type UpdateCourseInput,
   type UpdateCoursePriceInput,
+  type UpdateCourseThumbnailInput,
   courseFromSheetRow,
   courseSheetHeaders,
   courseToSheetRow,
@@ -16,6 +18,8 @@ export interface CourseRepository {
   createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course>;
   updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null>;
   updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null>;
+  updateCourseCatalogMetadata(id: string, input: UpdateCourseCatalogMetadataInput): Promise<Course | null>;
+  updateCourseThumbnail(id: string, input: UpdateCourseThumbnailInput): Promise<Course | null>;
 }
 
 export type CourseSeed = {
@@ -129,6 +133,81 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 
     return updated;
   }
+
+  async updateCourseCatalogMetadata(
+    id: string,
+    input: UpdateCourseCatalogMetadataInput,
+  ): Promise<Course | null> {
+    const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(courseSheetRange(), [...courseSheetHeaders]);
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: courseSheetRange(),
+    });
+
+    const rows = response.data.values ?? [];
+    const rowIndex = rows.slice(1).findIndex((row) => (row as string[])[0] === id);
+
+    if (rowIndex < 0) {
+      return null;
+    }
+
+    const existing = courseFromSheetRow(rows[rowIndex + 1] as string[]);
+    const updated: Course = {
+      ...existing,
+      ...input,
+    };
+    const sheetRowNumber = rowIndex + 2;
+    const sheetTitle = courseSheetRange().split('!')[0];
+    const rowColumn = toColumnName(courseToSheetRow(updated).length);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [courseToSheetRow(updated)],
+      },
+    });
+
+    return updated;
+  }
+
+  async updateCourseThumbnail(id: string, input: UpdateCourseThumbnailInput): Promise<Course | null> {
+    const sheets = createSheetsClient();
+    await ensureWorksheetHeaders(courseSheetRange(), [...courseSheetHeaders]);
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: courseSheetRange(),
+    });
+
+    const rows = response.data.values ?? [];
+    const rowIndex = rows.slice(1).findIndex((row) => (row as string[])[0] === id);
+
+    if (rowIndex < 0) {
+      return null;
+    }
+
+    const existing = courseFromSheetRow(rows[rowIndex + 1] as string[]);
+    const updated: Course = {
+      ...existing,
+      thumbnailAssetId: input.thumbnailAssetId,
+    };
+    const sheetRowNumber = rowIndex + 2;
+    const sheetTitle = courseSheetRange().split('!')[0];
+    const rowColumn = toColumnName(courseToSheetRow(updated).length);
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+      range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [courseToSheetRow(updated)],
+      },
+    });
+
+    return updated;
+  }
 }
 
 export class InMemoryCourseRepository implements CourseRepository {
@@ -147,6 +226,11 @@ export class InMemoryCourseRepository implements CourseRepository {
       status: 'published',
       createdAt: new Date().toISOString(),
       priceDkk: null,
+      thumbnailAssetId: '',
+      isPremium: false,
+      isBestseller: false,
+      rating: 0,
+      ratingCount: 0,
     }
   ];
 
@@ -194,6 +278,41 @@ export class InMemoryCourseRepository implements CourseRepository {
     const updated: Course = {
       ...this.courses[index],
       priceDkk: input.priceDkk,
+    };
+
+    this.courses[index] = updated;
+    return updated;
+  }
+
+  async updateCourseCatalogMetadata(
+    id: string,
+    input: UpdateCourseCatalogMetadataInput,
+  ): Promise<Course | null> {
+    const index = this.courses.findIndex((course) => course.id === id);
+
+    if (index < 0) {
+      return null;
+    }
+
+    const updated: Course = {
+      ...this.courses[index],
+      ...input,
+    };
+
+    this.courses[index] = updated;
+    return updated;
+  }
+
+  async updateCourseThumbnail(id: string, input: UpdateCourseThumbnailInput): Promise<Course | null> {
+    const index = this.courses.findIndex((course) => course.id === id);
+
+    if (index < 0) {
+      return null;
+    }
+
+    const updated: Course = {
+      ...this.courses[index],
+      thumbnailAssetId: input.thumbnailAssetId,
     };
 
     this.courses[index] = updated;

@@ -18,6 +18,7 @@ const envSchema = z.object({
   MONGODB_URI: z.string().min(1).optional(),
   MONGODB_DB_NAME: z.string().min(1).optional(),
   MONGODB_COURSE_CONTENT_COLLECTION: z.string().min(1).optional(),
+  MONGODB_COURSE_ASSET_COLLECTION: z.string().min(1).optional(),
   GOOGLE_SHEET_ID: z.string().min(1).optional(),
   GOOGLE_SHEETS_COURSES: z.string().min(1).optional(),
   GOOGLE_SHEETS_USERS: z.string().min(1).optional(),
@@ -49,7 +50,7 @@ export const apiConfig = {
   AUTH_TOKEN_SECRET: authTokenSecret,
   GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
   GOOGLE_SHEETS_COURSES_RANGE:
-    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:M',
+    coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:R',
   GOOGLE_SHEETS_USERS_RANGE:
     usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:H',
   GOOGLE_SHEETS_FEEDBACK_RANGE:

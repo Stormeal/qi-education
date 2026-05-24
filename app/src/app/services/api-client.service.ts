@@ -48,6 +48,10 @@ export class ApiClientService {
     throw lastError;
   }
 
+  resourceUrl(path: string): string {
+    return `${this.apiBaseUrls()[0]}${path}`;
+  }
+
   async fetchJson<T>(
     path: string,
     init: RequestInit = {},

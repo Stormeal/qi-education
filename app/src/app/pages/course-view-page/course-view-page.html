@@ -166,7 +166,13 @@
         <p class="course-view-lede">{{ currentCourse.description }}</p>
 
         <div class="course-view-meta" aria-label="Course metadata">
-          <span class="rating-chip">New course</span>
+          @if (currentCourse.isPremium) {
+            <span class="rating-chip">Premium</span>
+          }
+          @if (currentCourse.isBestseller) {
+            <span class="rating-chip">Bestseller</span>
+          }
+          <span>{{ ratingLabel(currentCourse.rating) }} ({{ currentCourse.ratingCount }})</span>
           <span>{{ courseStatusLabel(currentCourse.status) }}</span>
           <span>Created by <strong>{{ currentCourse.teacher }}</strong></span>
           <span>Updated {{ currentCourse.createdAt | date: 'MMM yyyy' }}</span>
@@ -245,11 +251,11 @@
                     (click)="toggleSection(section.id)"
                   >
                     <span class="curriculum-panel-heading">
-                      <span class="inline-icon" aria-hidden="true">{{ isSectionExpanded(section.id) ? '▾' : '▸' }}</span>
+                      <span class="inline-icon" aria-hidden="true">{{ isSectionExpanded(section.id) ? 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¾' : 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸' }}</span>
                       <span>{{ section.title }}</span>
                     </span>
                     <span class="curriculum-panel-meta">
-                      <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
+                      <span class="inline-icon inline-icon-muted" aria-hidden="true">ÃƒÂ¢Ã¢â‚¬â€Ã‚Â·</span>
                       <span>{{ sectionLectureMeta(section.components.length, sectionDurationMinutes(section)) }}</span>
                     </span>
                   </button>
@@ -276,11 +282,11 @@
                             </span>
                             <span class="curriculum-item-side">
                               <span class="curriculum-item-duration">
-                                <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
+                                <span class="inline-icon inline-icon-muted" aria-hidden="true">ÃƒÂ¢Ã¢â‚¬â€Ã‚Â·</span>
                                 <span>{{ componentDurationLabel(component.durationMinutes) }}</span>
                               </span>
                               @if (componentHasDetails(component)) {
-                                <span class="inline-icon" aria-hidden="true">{{ isComponentExpanded(component.id) ? '▾' : '▸' }}</span>
+                                <span class="inline-icon" aria-hidden="true">{{ isComponentExpanded(component.id) ? 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¾' : 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¸' }}</span>
                               }
                             </span>
                           </button>
@@ -345,10 +351,25 @@
 
       <aside class="course-enroll-column" aria-label="Course enrollment">
         <div class="course-enroll-card">
+          <div class="course-enroll-media">
+            @if (thumbnailUrl(currentCourse)) {
+              <img [src]="thumbnailUrl(currentCourse)" [alt]="currentCourse.title + ' thumbnail'" />
+            } @else {
+              <div class="course-enroll-fallback" aria-hidden="true">
+                <span>{{ currentCourse.level }}</span>
+                <strong>{{ currentCourse.title }}</strong>
+              </div>
+            }
+          </div>
+
           <div class="course-enroll-body">
             <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
             <h2>{{ currentCourse.title }}</h2>
             <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
+            <div class="course-price-meta">
+              <span>{{ ratingLabel(currentCourse.rating) }}</span>
+              <span>{{ ratingCountLabel(currentCourse.ratingCount) }}</span>
+            </div>
             @if (isEnrolled()) {
               <app-button class="fill" variant="primary" (buttonClicked)="openLearningWorkspace(currentCourse.id)">
                 Start learning
@@ -381,20 +402,35 @@
               <button
                 type="button"
                 class="course-admin-action"
+                aria-label="Edit course"
+                title="Edit course"
+                data-tooltip="Edit course"
                 (click)="courseEdited.emit(currentCourse.id)"
               >
-                <span class="inline-icon" aria-hidden="true">✎</span>
-                <span>Edit course</span>
+                <span class="course-admin-icon" aria-hidden="true" [innerHTML]="editCourseIcon"></span>
               </button>
 
               @if (canAccessAdmin()) {
                 <button
                   type="button"
                   class="course-admin-action"
+                  aria-label="Set price"
+                  title="Set price"
+                  data-tooltip="Set price"
                   (click)="openPriceModal(currentCourse)"
                 >
-                  <span class="inline-icon" aria-hidden="true">kr</span>
-                  <span>Set price</span>
+                  <span class="course-admin-icon" aria-hidden="true" [innerHTML]="setPriceIcon"></span>
+                </button>
+
+                <button
+                  type="button"
+                  class="course-admin-action"
+                  aria-label="Catalog settings"
+                  title="Catalog settings"
+                  data-tooltip="Catalog settings"
+                  (click)="openCatalogModal(currentCourse)"
+                >
+                  <span class="course-admin-icon" aria-hidden="true" [innerHTML]="catalogSettingsIcon"></span>
                 </button>
               }
             </div>
@@ -439,7 +475,7 @@
           <h2 id="price-modal-title">Set course price</h2>
         </div>
         <button type="button" class="price-modal-close" aria-label="Close price modal" (click)="closePriceModal()">
-          <span class="inline-icon" aria-hidden="true">×</span>
+          <span class="inline-icon" aria-hidden="true">ÃƒÆ’Ã¢â‚¬â€</span>
         </button>
       </header>
 
@@ -519,8 +555,89 @@
   </div>
 }
 
+@if (isCatalogModalOpen() && course()) {
+  <div class="price-modal-overlay">
+    <section class="price-modal catalog-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title">
+      <header class="price-modal-header">
+        <div>
+          <p class="course-enroll-kicker">Admin</p>
+          <h2 id="catalog-modal-title">Catalog settings</h2>
+        </div>
+        <button type="button" class="price-modal-close" aria-label="Close catalog modal" (click)="closeCatalogModal()">
+          <span class="inline-icon" aria-hidden="true">x</span>
+        </button>
+      </header>
+
+      <div class="catalog-toggle-grid">
+        <label class="catalog-toggle">
+          <input
+            type="checkbox"
+            [checked]="catalogPremiumDraft()"
+            (change)="updateCatalogPremium(controlChecked($event))"
+          />
+          <span>Premium</span>
+        </label>
+
+        <label class="catalog-toggle">
+          <input
+            type="checkbox"
+            [checked]="catalogBestsellerDraft()"
+            (change)="updateCatalogBestseller(controlChecked($event))"
+          />
+          <span>Bestseller</span>
+        </label>
+      </div>
+
+      <label class="price-field">
+        <span>Course rating</span>
+        <input
+          type="number"
+          min="0"
+          max="5"
+          step="0.1"
+          [value]="catalogRatingDraft()"
+          (input)="updateCatalogRating(controlValue($event))"
+        />
+      </label>
+
+      <label class="price-field">
+        <span>Rating count</span>
+        <input
+          type="number"
+          min="0"
+          step="1"
+          [value]="catalogRatingCountDraft()"
+          (input)="updateCatalogRatingCount(controlValue($event))"
+        />
+      </label>
+
+      <p class="price-field-note">
+        Thumbnail artwork is managed from the course editor so teachers can update it during editing.
+      </p>
+
+      <footer class="price-modal-actions">
+        <app-button variant="outline" [disabled]="catalogSaving()" (buttonClicked)="closeCatalogModal()">Cancel</app-button>
+        <app-button variant="primary" [disabled]="catalogSaving()" (buttonClicked)="applyCatalogDraft(course()!.id)">
+          @if (catalogSaving()) {
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span>Saving...</span>
+          } @else {
+            <span>Save settings</span>
+          }
+        </app-button>
+      </footer>
+    </section>
+  </div>
+}
+
 @if (priceSaveNotice()) {
   <div class="save-toast" [class.save-toast-error]="priceSaveNoticeError()" role="status" aria-live="polite">
     {{ priceSaveNotice() }}
+  </div>
+}
+
+@if (catalogSaveNotice()) {
+  <div class="save-toast" [class.save-toast-error]="catalogSaveNoticeError()" role="status" aria-live="polite">
+    {{ catalogSaveNotice() }}
   </div>
 }

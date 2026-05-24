@@ -62,6 +62,18 @@ export type CourseListItem = {
   status: CourseStatus;
   createdAt: string;
   priceDkk: number | null;
+  thumbnailAssetId: string;
+  isPremium: boolean;
+  isBestseller: boolean;
+  rating: number;
+  ratingCount: number;
+};
+
+export type CourseCatalogMetadataDraft = {
+  isPremium: boolean;
+  isBestseller: boolean;
+  rating: number;
+  ratingCount: number;
 };
 
 export type CourseCreateDraft = {

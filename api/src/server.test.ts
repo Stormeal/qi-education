@@ -218,7 +218,7 @@ describe('QI-Education API', () => {
         'https://qi-education.vercel.app',
       ],
       ranges: {
-        courses: 'Courses!A:M',
+        courses: 'Courses!A:R',
         users: 'Users!A:H',
         feedback: 'Feedback!A:M',
       },
@@ -498,6 +498,75 @@ describe('QI-Education API', () => {
     });
   });
 
+  it('allows an admin to update catalog metadata', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+    const adminToken = await loginAs('admin@qi-education.local');
+
+    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        isPremium: true,
+        isBestseller: true,
+        rating: 4.8,
+        ratingCount: 312,
+      }),
+    });
+    const updated = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      id: created.id,
+      isPremium: true,
+      isBestseller: true,
+      rating: 4.8,
+      ratingCount: 312,
+    });
+  });
+
+  it('blocks non-admin users from updating catalog metadata', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+
+    const response = await fetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify({
+        isPremium: true,
+        isBestseller: false,
+        rating: 4.4,
+        ratingCount: 12,
+      }),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.message).toBe('Admin access is required');
+  });
+
   it('blocks non-admin users from updating course price', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
     const createResponse = await fetch(`${baseUrl}/courses`, {
@@ -524,6 +593,40 @@ describe('QI-Education API', () => {
 
     expect(response.status).toBe(403);
     expect(body.message).toBe('Admin access is required');
+  });
+
+  it('allows a teacher to upload a course thumbnail', async () => {
+    const token = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+
+    const uploadResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'image/png',
+        'X-File-Name': 'catalog-thumbnail.png',
+        authorization: `Bearer ${token}`,
+      },
+      body: Buffer.from('fake-image-binary'),
+    });
+    const updated = await uploadResponse.json();
+
+    expect(uploadResponse.status).toBe(200);
+    expect(updated.thumbnailAssetId).toEqual(expect.any(String));
+
+    const thumbnailResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`);
+    const thumbnailBuffer = Buffer.from(await thumbnailResponse.arrayBuffer());
+
+    expect(thumbnailResponse.status).toBe(200);
+    expect(thumbnailResponse.headers.get('content-type')).toBe('image/png');
+    expect(thumbnailBuffer.equals(Buffer.from('fake-image-binary'))).toBe(true);
   });
 
   it('allows a teacher to update course content', async () => {
