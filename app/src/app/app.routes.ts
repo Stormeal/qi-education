@@ -25,6 +25,10 @@ export const routes: Routes = [
       import('./routes/course-view-route').then((module) => module.CourseViewRoute),
   },
   {
+    path: 'terms',
+    loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
+  },
+  {
     path: 'courses/new',
     loadComponent: () =>
       import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),
