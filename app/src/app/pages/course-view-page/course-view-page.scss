@@ -273,7 +273,6 @@
 
 .course-view-card p,
 .course-view-list,
-.curriculum-section li,
 .course-includes li {
   color: #39393a;
   font-size: 13px;
@@ -328,8 +327,7 @@
   color: #4529d1;
 }
 
-.curriculum-accordion,
-.curriculum-list {
+.curriculum-accordion {
   display: grid;
   border: 1px solid rgba(108, 101, 88, 0.14);
   border-radius: 10px;
@@ -338,8 +336,7 @@
   box-shadow: 0 10px 24px rgba(57, 57, 58, 0.04);
 }
 
-.curriculum-panel + .curriculum-panel,
-.curriculum-section + .curriculum-section {
+.curriculum-panel + .curriculum-panel {
   border-top: 1px solid rgba(108, 101, 88, 0.14);
 }
 
@@ -378,6 +375,12 @@
   min-width: 14px;
   font-size: 14px;
   line-height: 1;
+}
+
+.inline-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
 }
 
 .inline-icon-muted {
@@ -446,7 +449,7 @@
 .curriculum-item-copy strong {
   color: #171b4a;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 400;
 }
 
 .curriculum-item-copy small {
@@ -487,22 +490,6 @@
   text-decoration: underline;
 }
 
-.curriculum-section header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  background: #fbfaf7;
-  padding: 12px 14px;
-}
-
-.curriculum-section h3 {
-  margin: 0;
-  color: #171b4a;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.curriculum-section ul,
 .course-view-list,
 .course-includes ul {
   display: grid;
@@ -527,10 +514,6 @@
   color: #2f4f43;
   content: '•';
   font-weight: 900;
-}
-
-.curriculum-section ul {
-  padding: 12px 34px;
 }
 
 .course-content-note {

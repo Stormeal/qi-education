@@ -11,7 +11,20 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { lucideBanknote, lucidePencil, lucideSlidersHorizontal } from '@ng-icons/lucide';
+import {
+  lucideBanknote,
+  lucideCheck,
+  lucideCircle,
+  lucideCircleCheck,
+  lucideChevronDown,
+  lucideChevronRight,
+  lucideCircleHelp,
+  lucideFileText,
+  lucidePencil,
+  lucideSlidersHorizontal,
+  lucideVideo,
+  lucideX,
+} from '@ng-icons/lucide';
 import '@mux/mux-player';
 import {
   CourseComponent,
@@ -19,6 +32,7 @@ import {
   CourseContentDocument,
   CourseListItem,
   FeedbackOption,
+  QuizQuestion,
   StudentSummary,
 } from '../../app.models';
 import { ApiClientService } from '../../services/api-client.service';
@@ -44,6 +58,15 @@ export class CourseViewPage {
   protected readonly editCourseIcon = this.asSafeIcon(lucidePencil);
   protected readonly setPriceIcon = this.asSafeIcon(lucideBanknote);
   protected readonly catalogSettingsIcon = this.asSafeIcon(lucideSlidersHorizontal);
+  protected readonly chevronDownIcon = this.asSafeIcon(lucideChevronDown);
+  protected readonly chevronRightIcon = this.asSafeIcon(lucideChevronRight);
+  protected readonly closeIcon = this.asSafeIcon(lucideX);
+  protected readonly videoIcon = this.asSafeIcon(lucideVideo);
+  protected readonly quizIcon = this.asSafeIcon(lucideCircleHelp);
+  protected readonly textIcon = this.asSafeIcon(lucideFileText);
+  protected readonly checkIcon = this.asSafeIcon(lucideCheck);
+  protected readonly incompleteIcon = this.asSafeIcon(lucideCircle);
+  protected readonly completedIcon = this.asSafeIcon(lucideCircleCheck);
 
   protected readonly priceDraft = signal('');
   protected readonly isPriceModalOpen = signal(false);
@@ -58,10 +81,71 @@ export class CourseViewPage {
   protected readonly pendingEnrollment = signal(false);
   protected readonly expandedSectionIds = signal<string[]>([]);
   protected readonly expandedComponentIds = signal<string[]>([]);
+  protected readonly activeComponentId = signal('');
+  protected readonly completedComponentIds = signal<string[]>([]);
+  protected readonly quizSelectedAnswerIds = signal<Record<string, string>>({});
+  protected readonly submittedQuizQuestionIds = signal<string[]>([]);
+  protected readonly quizSubmitted = signal(false);
+  protected readonly activeQuizQuestionIndex = signal(0);
   protected readonly allSectionsExpanded = computed(() => {
     const content = this.courseContent();
     return !!content && content.sections.length > 0 && this.expandedSectionIds().length === content.sections.length;
   });
+  protected readonly orderedComponents = computed(() =>
+    this.courseContent()?.sections.flatMap((section) => section.components) ?? [],
+  );
+  protected readonly activeComponent = computed(() => {
+    const components = this.orderedComponents();
+    const activeId = this.activeComponentId();
+
+    return components.find((component) => component.id === activeId) ?? components[0] ?? null;
+  });
+  protected readonly activeComponentIndex = computed(() => {
+    const activeId = this.activeComponent()?.id;
+
+    return activeId ? this.orderedComponents().findIndex((component) => component.id === activeId) : -1;
+  });
+  protected readonly activeQuizQuestions = computed(() => {
+    const component = this.activeComponent();
+
+    return component?.type === 'quiz' ? component.quiz.questions : [];
+  });
+  protected readonly activeQuizQuestion = computed(
+    () => this.activeQuizQuestions()[this.activeQuizQuestionIndex()] ?? null,
+  );
+  protected readonly activeQuizQuestionNumber = computed(() =>
+    this.activeQuizQuestions().length > 0 ? this.activeQuizQuestionIndex() + 1 : 0,
+  );
+  protected readonly activeQuizProgressPercent = computed(() => {
+    const totalQuestions = this.activeQuizQuestions().length;
+
+    return totalQuestions > 0
+      ? Math.round((this.activeQuizQuestionNumber() / totalQuestions) * 100)
+      : 0;
+  });
+  protected readonly isLastActiveQuizQuestion = computed(
+    () => this.activeQuizQuestionIndex() >= this.activeQuizQuestions().length - 1,
+  );
+  protected readonly activeQuizScore = computed(() =>
+    this.activeQuizQuestions().reduce((score, question) => {
+      const selectedAnswer = question.answers.find(
+        (answer) => answer.id === this.quizSelectedAnswerIds()[question.id],
+      );
+
+      return selectedAnswer?.isCorrect ? score + question.points : score;
+    }, 0),
+  );
+  protected readonly activeQuizTotalPoints = computed(() =>
+    this.activeQuizQuestions().reduce((total, question) => total + question.points, 0),
+  );
+  protected readonly activeQuizPassed = computed(() => {
+    const component = this.activeComponent();
+
+    return component?.type === 'quiz' && this.activeQuizScore() >= component.quiz.passPoints;
+  });
+  protected readonly canSubmitActiveQuiz = computed(
+    () => this.activeQuizQuestions().length > 0,
+  );
 
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
@@ -118,11 +202,17 @@ export class CourseViewPage {
       if (!content || content.sections.length === 0) {
         this.expandedSectionIds.set([]);
         this.expandedComponentIds.set([]);
+        this.activeComponentId.set('');
+        this.completedComponentIds.set([]);
+        this.resetQuizAttempt();
         return;
       }
 
       this.expandedSectionIds.set([content.sections[0].id]);
       this.expandedComponentIds.set([]);
+      this.completedComponentIds.set(this.loadCompletedComponentIds(content._id));
+      this.activeComponentId.set(this.initialActiveComponentId(content));
+      this.resetQuizAttempt();
     });
 
     effect(() => {
@@ -321,16 +411,32 @@ export class CourseViewPage {
     );
   }
 
-  protected firstCourseComponent(): CourseContentDocument['sections'][number]['components'][number] | null {
-    for (const section of this.courseContent()?.sections ?? []) {
-      const component = section.components[0];
-
-      if (component) {
-        return component;
-      }
+  protected selectLearningComponent(componentId: string): void {
+    if (this.activeComponentId() === componentId) {
+      return;
     }
 
-    return null;
+    this.activeComponentId.set(componentId);
+    this.resetQuizAttempt();
+  }
+
+  protected completeActiveComponent(): void {
+    const component = this.activeComponent();
+
+    if (!component) {
+      return;
+    }
+
+    this.markComponentCompleted(component.id);
+    this.goToNextComponent();
+  }
+
+  protected isComponentCompleted(componentId: string): boolean {
+    return this.completedComponentIds().includes(componentId);
+  }
+
+  protected isActiveComponent(componentId: string): boolean {
+    return this.activeComponent()?.id === componentId;
   }
 
   protected muxPlaybackId(component: CourseComponent | null): string {
@@ -357,6 +463,98 @@ export class CourseViewPage {
     }
   }
 
+  protected selectQuizAnswer(questionId: string, answerId: string): void {
+    if (this.quizSubmitted() || this.isQuizQuestionSubmitted(questionId)) {
+      return;
+    }
+
+    this.quizSelectedAnswerIds.update((selected) => ({
+      ...selected,
+      [questionId]: answerId,
+    }));
+  }
+
+  protected selectedQuizAnswerId(questionId: string): string {
+    return this.quizSelectedAnswerIds()[questionId] ?? '';
+  }
+
+  protected activeQuizQuestionAnswered(): boolean {
+    const question = this.activeQuizQuestion();
+
+    return question ? !!this.selectedQuizAnswerId(question.id) : false;
+  }
+
+  protected activeQuizQuestionSubmitted(): boolean {
+    const question = this.activeQuizQuestion();
+
+    return question ? this.isQuizQuestionSubmitted(question.id) : false;
+  }
+
+  protected submitActiveQuizAnswer(): void {
+    const question = this.activeQuizQuestion();
+
+    if (!question || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) {
+      return;
+    }
+
+    this.submittedQuizQuestionIds.update((submitted) => [...submitted, question.id]);
+  }
+
+  protected goToNextQuizQuestion(): void {
+    if (this.quizSubmitted()) {
+      return;
+    }
+
+    if (this.isLastActiveQuizQuestion()) {
+      this.finishActiveQuiz();
+      return;
+    }
+
+    this.activeQuizQuestionIndex.update((index) => index + 1);
+  }
+
+  protected skipActiveQuizQuestion(): void {
+    if (this.quizSubmitted()) {
+      return;
+    }
+
+    this.goToNextQuizQuestion();
+  }
+
+  protected finishActiveQuiz(): void {
+    if (!this.canSubmitActiveQuiz()) {
+      return;
+    }
+
+    this.quizSubmitted.set(true);
+
+    if (this.activeQuizPassed()) {
+      this.completeActiveComponent();
+    }
+  }
+
+  protected retryActiveQuiz(): void {
+    this.resetQuizAttempt();
+  }
+
+  protected answerState(question: QuizQuestion, answerId: string): 'correct' | 'incorrect' | '' {
+    if (!this.isQuizQuestionSubmitted(question.id) || this.selectedQuizAnswerId(question.id) !== answerId) {
+      return '';
+    }
+
+    const answer = question.answers.find((item) => item.id === answerId);
+
+    return answer?.isCorrect ? 'correct' : 'incorrect';
+  }
+
+  protected shouldShowAnswerDescription(question: QuizQuestion, answerId: string): boolean {
+    return (
+      this.isQuizQuestionSubmitted(question.id) &&
+      this.selectedQuizAnswerId(question.id) === answerId &&
+      !!question.answers.find((answer) => answer.id === answerId)?.description
+    );
+  }
+
   protected contentSummary(): string {
     if (this.courseContentLoading()) {
       return 'Loading content...';
@@ -365,30 +563,14 @@ export class CourseViewPage {
     const content = this.courseContent();
 
     if (!content || content.sections.length === 0) {
-      return 'Content outline coming soon';
+      return 'No course content';
     }
 
-    return `${content.sections.length} sections • ${this.totalLessonCount()} components • ${this.formatDurationLong(this.totalContentDurationMinutes())} total length`;
+    return `${content.sections.length} sections - ${this.totalLessonCount()} components - ${this.formatDurationLong(this.totalContentDurationMinutes())} total length`;
   }
 
-  protected curriculumSections(course: CourseListItem): Array<{ title: string; meta: string; lessons: string[] }> {
-    return [
-      {
-        title: 'Getting started',
-        meta: '3 lessons',
-        lessons: ['Course overview', 'Learning path setup', 'How to use the materials'],
-      },
-      {
-        title: `${course.level} concepts`,
-        meta: '4 lessons',
-        lessons: ['Core terminology', 'Worked examples', 'Practice activity', 'Knowledge check'],
-      },
-      {
-        title: 'Apply it at work',
-        meta: '3 lessons',
-        lessons: ['Scenario walkthrough', 'Reflection prompts', 'Next steps'],
-      },
-    ];
+  protected emptyCourseContentMessage(): string {
+    return "This course doesn't have any course content yet.";
   }
 
   protected hasRealCurriculum(): boolean {
@@ -397,7 +579,7 @@ export class CourseViewPage {
 
   protected sectionLectureMeta(componentCount: number, durationMinutes: number): string {
     const label = componentCount === 1 ? 'component' : 'components';
-    return `${componentCount} ${label} • ${this.formatDurationLong(durationMinutes)}`;
+    return `${componentCount} ${label} - ${this.formatDurationLong(durationMinutes)}`;
   }
 
   protected sectionDurationMinutes(section: CourseContentDocument['sections'][number]): number {
@@ -449,14 +631,14 @@ export class CourseViewPage {
     }
   }
 
-  protected componentIconGlyph(type: string): string {
+  protected componentIcon(type: string): SafeHtml {
     switch (type) {
       case 'video':
-        return '▶';
+        return this.videoIcon;
       case 'quiz':
-        return '✓';
+        return this.quizIcon;
       default:
-        return '≡';
+        return this.textIcon;
     }
   }
 
@@ -542,5 +724,75 @@ export class CourseViewPage {
 
   private asSafeIcon(svg: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
+
+  private markComponentCompleted(componentId: string): void {
+    if (this.isComponentCompleted(componentId)) {
+      return;
+    }
+
+    const completed = [...this.completedComponentIds(), componentId];
+    this.completedComponentIds.set(completed);
+    this.storeCompletedComponentIds(completed);
+  }
+
+  private goToNextComponent(): void {
+    const components = this.orderedComponents();
+    const currentIndex = this.activeComponentIndex();
+    const nextComponent = currentIndex >= 0 ? components[currentIndex + 1] : null;
+
+    if (!nextComponent) {
+      return;
+    }
+
+    this.activeComponentId.set(nextComponent.id);
+    this.resetQuizAttempt();
+  }
+
+  private resetQuizAttempt(): void {
+    this.quizSelectedAnswerIds.set({});
+    this.submittedQuizQuestionIds.set([]);
+    this.quizSubmitted.set(false);
+    this.activeQuizQuestionIndex.set(0);
+  }
+
+  private isQuizQuestionSubmitted(questionId: string): boolean {
+    return this.submittedQuizQuestionIds().includes(questionId);
+  }
+
+  private initialActiveComponentId(content: CourseContentDocument): string {
+    const components = content.sections.flatMap((section) => section.components);
+    const completed = this.loadCompletedComponentIds(content._id);
+
+    return components.find((component) => !completed.includes(component.id))?.id ?? components[0]?.id ?? '';
+  }
+
+  private completedStorageKey(): string {
+    const userId = this.userEmail() || 'anonymous';
+    const courseId = this.courseContent()?._id ?? this.course()?.id ?? 'course';
+
+    return `qi-education:course-progress:${userId}:${courseId}`;
+  }
+
+  private loadCompletedComponentIds(courseId: string): string[] {
+    try {
+      const userId = this.userEmail() || 'anonymous';
+      const rawValue = window.localStorage.getItem(`qi-education:course-progress:${userId}:${courseId}`);
+      const parsedValue: unknown = rawValue ? JSON.parse(rawValue) : [];
+
+      return Array.isArray(parsedValue)
+        ? parsedValue.filter((value): value is string => typeof value === 'string')
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private storeCompletedComponentIds(completed: string[]): void {
+    try {
+      window.localStorage.setItem(this.completedStorageKey(), JSON.stringify(completed));
+    } catch {
+      return;
+    }
   }
 }
