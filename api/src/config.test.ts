@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { apiConfig, getCorsOrigins, hasMongoConfigValues, resolveAuthTokenSecret } from './config.js';
+import {
+  apiConfig,
+  getCorsOrigins,
+  hasMongoConfigValues,
+  resolveAuthTokenSecret,
+} from './config.js';
 
 describe('API config', () => {
   it('uses a course sheet range that includes all course columns by default', () => {

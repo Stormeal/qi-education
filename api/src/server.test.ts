@@ -197,6 +197,7 @@ describe('QI-Education API', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('x-qi-education-auth-storage')).toBe('memory');
+    expect(response.headers.get('x-qi-education-asset-storage')).toBe('memory');
     expect(body).toEqual({
       status: 'ok',
       auth: {
@@ -204,6 +205,10 @@ describe('QI-Education API', () => {
         storage: 'memory',
       },
       content: {
+        storage: 'memory',
+        configured: false,
+      },
+      assets: {
         storage: 'memory',
         configured: false,
       },

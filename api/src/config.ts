@@ -112,6 +112,18 @@ export function hasMongoConfig() {
   );
 }
 
+export function hasMongoAssetConfig() {
+  if (process.env.NODE_ENV === 'test') {
+    return false;
+  }
+
+  return hasMongoConfigValues(
+    apiConfig.MONGODB_URI,
+    apiConfig.MONGODB_DB_NAME,
+    apiConfig.MONGODB_COURSE_ASSET_COLLECTION,
+  );
+}
+
 export function hasMongoConfigValues(
   mongoUri: string | undefined,
   databaseName: string | undefined,

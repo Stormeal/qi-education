@@ -117,14 +117,27 @@ function checkEnv(env) {
     fail('CORS_ORIGIN does not include http://localhost:4200.');
   }
 
-  const mongoKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
+  const mongoContentKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
+  const mongoAssetKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_ASSET_COLLECTION'];
 
-  if (hasAnyValue(env, mongoKeys) && !hasAllValues(env, mongoKeys)) {
+  if (hasAnyValue(env, mongoContentKeys) && !hasAllValues(env, mongoContentKeys)) {
     fail('MongoDB content storage is partially configured. Set all MongoDB variables or none.');
-  } else if (hasAllValues(env, mongoKeys)) {
+  } else if (hasAllValues(env, mongoContentKeys)) {
     pass('MongoDB content storage is configured.');
   } else {
     warn('MongoDB content storage is not configured; course content will use memory locally.');
+  }
+
+  if (hasAnyValue(env, mongoAssetKeys) && !hasAllValues(env, mongoAssetKeys)) {
+    fail('MongoDB asset storage is partially configured. Set all asset MongoDB variables or none.');
+  } else if (hasAllValues(env, mongoAssetKeys)) {
+    pass('MongoDB asset storage is configured.');
+  } else if (hasAnyValue(env, mongoContentKeys)) {
+    fail(
+      'MongoDB asset storage is missing. Set MONGODB_COURSE_ASSET_COLLECTION or thumbnail uploads will only persist in memory.',
+    );
+  } else {
+    warn('MongoDB asset storage is not configured; thumbnails will use memory locally.');
   }
 }
 
@@ -177,15 +190,27 @@ async function checkServer(env) {
     fail('Running API CORS config does not include http://localhost:4200.');
   }
 
-  const mongoKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
-  const expectsMongo = hasAllValues(env, mongoKeys);
+  const mongoContentKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
+  const mongoAssetKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_ASSET_COLLECTION'];
+  const expectsMongoContent = hasAllValues(env, mongoContentKeys);
+  const expectsMongoAssets = hasAllValues(env, mongoAssetKeys);
 
-  if (expectsMongo && configResponse.body?.content?.configured) {
+  if (expectsMongoContent && configResponse.body?.content?.configured) {
     pass('Local API content storage is configured.');
-  } else if (expectsMongo) {
+  } else if (expectsMongoContent) {
     fail('api/.env has MongoDB values, but local API reports content storage as unconfigured.');
   } else {
     warn('Local API content storage is not configured; this is acceptable for auth-only testing.');
+  }
+
+  if (expectsMongoAssets && configResponse.body?.assets?.configured) {
+    pass('Local API asset storage is configured.');
+  } else if (expectsMongoAssets) {
+    fail('api/.env has MongoDB asset values, but local API reports asset storage as unconfigured.');
+  } else if (expectsMongoContent) {
+    fail('Local API asset storage is not configured; thumbnail uploads will not survive a restart.');
+  } else {
+    warn('Local API asset storage is not configured; this is acceptable for auth-only testing.');
   }
 
   try {

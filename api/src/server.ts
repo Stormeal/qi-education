@@ -16,7 +16,14 @@ import {
   type AuthenticatedUser,
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
-import { apiConfig, getCorsOrigins, hasGoogleSheetsConfig, hasMongoConfig, hasMuxConfig } from './config.js';
+import {
+  apiConfig,
+  getCorsOrigins,
+  hasGoogleSheetsConfig,
+  hasMongoAssetConfig,
+  hasMongoConfig,
+  hasMuxConfig,
+} from './config.js';
 import {
   createCourseSchema,
   updateCourseCatalogMetadataSchema,
@@ -174,6 +181,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
     response.setHeader('X-QI-Education-Content-Storage', courseContent.storageType);
+    response.setHeader('X-QI-Education-Asset-Storage', courseAssets.storageType);
     next();
   });
   app.use((request, _response, next) => {
@@ -203,6 +211,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
       content: {
         storage: courseContent.storageType,
         configured: hasMongoConfig(),
+      },
+      assets: {
+        storage: courseAssets.storageType,
+        configured: hasMongoAssetConfig(),
       },
       mux: {
         configured: hasMuxConfig() || Boolean(muxVideo),
