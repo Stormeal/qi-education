@@ -33,7 +33,7 @@ type CourseViewMode = 'details' | 'learning';
   selector: 'app-course-view-page',
   imports: [AppButton, DatePipe, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './course-view-page.html',
-  styleUrls: ['../../app.scss', './course-view-page.scss'],
+  styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
