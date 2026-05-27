@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { lucideChevronLeft, lucideChevronRight } from '@ng-icons/lucide';
 import { RouterLink } from '@angular/router';
 import { CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
 import { ApiClientService } from '../../services/api-client.service';
@@ -27,6 +29,10 @@ type PopularInstructorCard = {
 })
 export class CoursesPage {
   private readonly apiClient = inject(ApiClientService);
+  private readonly sanitizer = inject(DomSanitizer);
+
+  protected readonly carouselPreviousIcon = this.asSafeIcon(lucideChevronLeft);
+  protected readonly carouselNextIcon = this.asSafeIcon(lucideChevronRight);
 
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
@@ -62,6 +68,8 @@ export class CoursesPage {
   protected readonly activeView = signal<CourseCatalogView>('published');
   protected readonly activeCollection = signal<CourseCollectionTab>('popular');
   protected readonly carouselStart = signal(0);
+  protected readonly carouselMotion = signal<'next' | 'previous' | ''>('');
+  private carouselMotionTimeout: number | null = null;
   protected readonly popularTopics = [
     'Microsoft Playwright',
     'AI Agents & Agentic AI',
@@ -124,15 +132,14 @@ export class CoursesPage {
       return items;
     }
 
-    const start = this.carouselStart() % items.length;
-    const visible = items.slice(start, start + 4);
-
-    if (visible.length === 4) {
-      return visible;
-    }
-
-    return [...visible, ...items.slice(0, 4 - visible.length)];
+    return items.slice(this.currentCarouselStart(), this.currentCarouselStart() + 4);
   });
+
+  protected readonly canRetreatCarousel = computed(() => this.currentCarouselStart() > 0);
+
+  protected readonly canAdvanceCarousel = computed(
+    () => this.currentCarouselStart() < this.maxCarouselStart(),
+  );
 
   protected readonly popularInstructors = computed<PopularInstructorCard[]>(() => {
     const grouped = new Map<
@@ -204,13 +211,26 @@ export class CoursesPage {
   }
 
   protected advanceCarousel(): void {
-    const items = this.featuredCourses();
+    const maxStart = this.maxCarouselStart();
+    const nextStart = Math.min(this.currentCarouselStart() + 4, maxStart);
 
-    if (items.length <= 4) {
+    if (nextStart === this.currentCarouselStart()) {
       return;
     }
 
-    this.carouselStart.update((value) => (value + 3) % items.length);
+    this.setCarouselMotion('next');
+    this.carouselStart.set(nextStart);
+  }
+
+  protected retreatCarousel(): void {
+    const nextStart = Math.max(this.currentCarouselStart() - 4, 0);
+
+    if (nextStart === this.currentCarouselStart()) {
+      return;
+    }
+
+    this.setCarouselMotion('previous');
+    this.carouselStart.set(nextStart);
   }
 
   protected thumbnailUrl(course: CourseListItem): string {
@@ -250,5 +270,32 @@ export class CoursesPage {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join('');
+  }
+
+  private currentCarouselStart(): number {
+    return Math.min(this.carouselStart(), this.maxCarouselStart());
+  }
+
+  private maxCarouselStart(): number {
+    return Math.max(this.featuredCourses().length - 4, 0);
+  }
+
+  private asSafeIcon(svg: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
+
+  private setCarouselMotion(direction: 'next' | 'previous'): void {
+    if (this.carouselMotionTimeout !== null) {
+      window.clearTimeout(this.carouselMotionTimeout);
+    }
+
+    this.carouselMotion.set('');
+    window.requestAnimationFrame(() => {
+      this.carouselMotion.set(direction);
+      this.carouselMotionTimeout = window.setTimeout(() => {
+        this.carouselMotion.set('');
+        this.carouselMotionTimeout = null;
+      }, 360);
+    });
   }
 }

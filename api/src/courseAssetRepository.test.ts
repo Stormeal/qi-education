@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { Binary } from 'mongodb';
 import {
   InMemoryCourseAssetRepository,
   MongoCourseAssetRepository,
@@ -76,5 +77,27 @@ describe('course asset repository', () => {
 
     expect(await repository.getThumbnail('asset-1')).toEqual(asset);
     expect(findOne).toHaveBeenCalledWith({ _id: 'asset-1' });
+  });
+
+  it('normalizes BSON binary values loaded from Mongo storage', async () => {
+    const findOne = vi.fn().mockResolvedValue({
+      _id: 'asset-1',
+      courseId: 'course-1',
+      contentType: 'image/png',
+      fileName: 'thumbnail.png',
+      sizeBytes: 11,
+      binary: new Binary(Buffer.from('image-binary')),
+      createdAt: '2026-05-24T12:00:00.000Z',
+    });
+    const repository = new MongoCourseAssetRepository(async () => ({
+      findOne,
+      insertOne: vi.fn(),
+      deleteOne: vi.fn(),
+    }) as never);
+
+    const loaded = await repository.getThumbnail('asset-1');
+
+    expect(Buffer.isBuffer(loaded?.binary)).toBe(true);
+    expect(loaded?.binary.equals(Buffer.from('image-binary'))).toBe(true);
   });
 });

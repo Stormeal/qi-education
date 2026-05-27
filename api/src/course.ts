@@ -42,7 +42,13 @@ export const createCourseSchema = z.object({
   ratingCount: z.number().int().nonnegative().default(0),
 });
 
-export const updateCourseSchema = createCourseSchema;
+export const updateCourseSchema = createCourseSchema.omit({
+  thumbnailAssetId: true,
+  isPremium: true,
+  isBestseller: true,
+  rating: true,
+  ratingCount: true,
+});
 export const updateCoursePriceSchema = z.object({
   priceDkk: z.number().int().nonnegative().nullable(),
 });

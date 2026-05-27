@@ -66,7 +66,11 @@
       </p>
     } @else {
       <div class="featured-carousel">
-        <div class="featured-grid">
+        <div
+          class="featured-grid"
+          [class.is-moving-next]="carouselMotion() === 'next'"
+          [class.is-moving-previous]="carouselMotion() === 'previous'"
+        >
           @for (course of visibleFeaturedCourses(); track course.id) {
             <a
               class="catalog-card"
@@ -108,8 +112,25 @@
         </div>
 
         @if (featuredCourses().length > 4) {
-          <button type="button" class="carousel-advance" aria-label="Show more featured courses" (click)="advanceCarousel()">
+          <button
+            type="button"
+            class="carousel-control carousel-control-previous"
+            aria-label="Show previous featured courses"
+            [disabled]="!canRetreatCarousel()"
+            (click)="retreatCarousel()"
+          >
+            <span class="carousel-control-icon" aria-hidden="true" [innerHTML]="carouselPreviousIcon"></span>
             <span aria-hidden="true">›</span>
+          </button>
+          <button
+            type="button"
+            class="carousel-control carousel-control-next"
+            aria-label="Show next featured courses"
+            [disabled]="!canAdvanceCarousel()"
+            (click)="advanceCarousel()"
+          >
+            <span class="carousel-control-icon" aria-hidden="true" [innerHTML]="carouselNextIcon"></span>
+            <span aria-hidden="true">&rsaquo;</span>
           </button>
         }
       </div>
