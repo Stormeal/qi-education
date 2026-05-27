@@ -471,6 +471,68 @@ describe('QI-Education API', () => {
     });
   });
 
+  it('preserves thumbnail and catalog metadata when updating course details', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+    const uploadResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'image/png',
+        'X-File-Name': 'catalog-thumbnail.png',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: Buffer.from('fake-image-binary'),
+    });
+    const withThumbnail = await uploadResponse.json();
+    const adminToken = await loginAs('admin@qi-education.local');
+
+    await fetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        isPremium: true,
+        isBestseller: true,
+        rating: 4.8,
+        ratingCount: 312,
+      }),
+    });
+
+    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify({
+        ...validCourse(),
+        title: 'API Automation Foundations, Revised',
+      }),
+    });
+    const updated = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updated).toMatchObject({
+      id: created.id,
+      title: 'API Automation Foundations, Revised',
+      thumbnailAssetId: withThumbnail.thumbnailAssetId,
+      isPremium: true,
+      isBestseller: true,
+      rating: 4.8,
+      ratingCount: 312,
+    });
+  });
+
   it('allows an admin to update course price in DKK', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
     const createResponse = await fetch(`${baseUrl}/courses`, {

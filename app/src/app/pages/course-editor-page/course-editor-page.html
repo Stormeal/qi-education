@@ -374,16 +374,8 @@
           </div>
 
           <div class="preview-line">
-            <span>Status</span>
-            <strong>{{ statusLabel() }}</strong>
-          </div>
-          <div class="preview-line">
             <span>Teacher</span>
             <strong>{{ courseDraft().teacher || 'Not set' }}</strong>
-          </div>
-          <div class="preview-line">
-            <span>Content</span>
-            <strong>{{ contentSummary() }}</strong>
           </div>
 
           @if (goalsList().length > 0) {

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Collection } from 'mongodb';
+import { Binary, type Collection } from 'mongodb';
 import { apiConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 
@@ -19,6 +19,9 @@ type CourseAssetCollection = Pick<
   Collection<CourseThumbnailAsset>,
   'findOne' | 'insertOne' | 'deleteOne'
 >;
+type StoredCourseThumbnailAsset = Omit<CourseThumbnailAsset, 'binary'> & {
+  binary: Buffer | Binary | Uint8Array;
+};
 
 export interface CourseAssetRepository {
   readonly storageType: CourseAssetStorageType;
@@ -67,12 +70,32 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
   }
 
   async getThumbnail(assetId: string): Promise<CourseThumbnailAsset | null> {
-    return (await (await this.collection()).findOne({ _id: assetId })) ?? null;
+    const asset = await (await this.collection()).findOne({ _id: assetId });
+
+    return asset ? normalizeStoredThumbnailAsset(asset as StoredCourseThumbnailAsset) : null;
   }
 
   async deleteAsset(assetId: string): Promise<void> {
     await (await this.collection()).deleteOne({ _id: assetId });
   }
+}
+
+function normalizeStoredThumbnailAsset(asset: StoredCourseThumbnailAsset): CourseThumbnailAsset {
+  if (Buffer.isBuffer(asset.binary)) {
+    return asset as CourseThumbnailAsset;
+  }
+
+  if (asset.binary instanceof Binary) {
+    return {
+      ...asset,
+      binary: Buffer.from(asset.binary.buffer),
+    };
+  }
+
+  return {
+    ...asset,
+    binary: Buffer.from(asset.binary),
+  };
 }
 
 export class InMemoryCourseAssetRepository implements CourseAssetRepository {

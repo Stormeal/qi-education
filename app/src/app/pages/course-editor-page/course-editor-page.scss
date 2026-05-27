@@ -388,7 +388,14 @@
 }
 
 .course-preview-media {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
+  margin: -22px -22px 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.course-preview-media img {
+  object-fit: contain;
 }
 
 .course-preview-kicker {
