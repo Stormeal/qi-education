@@ -25,6 +25,10 @@ export const routes: Routes = [
       import('./routes/course-view-route').then((module) => module.CourseViewRoute),
   },
   {
+    path: 'profile',
+    loadComponent: () => import('./routes/profile-route').then((module) => module.ProfileRoute),
+  },
+  {
     path: 'terms',
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
   },

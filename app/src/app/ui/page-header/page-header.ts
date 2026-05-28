@@ -5,7 +5,7 @@ import { AppButton } from '../app-button/app-button';
 import { BrandLink } from '../brand-link/brand-link';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
-export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor';
+export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor' | 'profile';
 
 @Component({
   selector: 'app-page-header',

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-profile-menu',
@@ -7,13 +8,14 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileMenu {
+  private readonly router = inject(Router);
+
   readonly displayName = input.required<string>();
   readonly email = input.required<string>();
   readonly roleLabel = input.required<string>();
   readonly canAccessAdmin = input(false);
 
   readonly loggedOut = output<void>();
-  readonly profileSelected = output<void>();
   readonly settingsSelected = output<void>();
   readonly adminSelected = output<void>();
 
@@ -36,8 +38,8 @@ export class ProfileMenu {
   }
 
   protected selectProfile(): void {
-    this.profileSelected.emit();
     this.closeMenu();
+    void this.router.navigateByUrl('/profile');
   }
 
   protected selectSettings(): void {

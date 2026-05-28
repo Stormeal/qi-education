@@ -1,0 +1,242 @@
+.profile-shell {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+}
+
+.profile-shell::before {
+  position: absolute;
+  inset: 0 auto 0 50%;
+  z-index: -1;
+  width: 100vw;
+  min-height: 100%;
+  content: '';
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 208, 142, 0.24), transparent 28rem),
+    linear-gradient(180deg, #fbf7ef 0%, #fff 44%, #fff 100%);
+}
+
+.profile-identity {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  margin: 30px 0 24px;
+}
+
+.profile-identity-avatar {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 30px;
+  font-weight: 900;
+  box-shadow: 0 16px 34px rgba(57, 57, 58, 0.16);
+}
+
+.profile-identity-copy {
+  min-width: 0;
+}
+
+.profile-identity h1 {
+  margin: 4px 0 0;
+  color: #171b4a;
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.profile-identity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 12px 0 0;
+  color: #6c6558;
+  font-size: 13px;
+}
+
+.profile-role-badge {
+  border-radius: 999px;
+  background: #fff7e8;
+  padding: 4px 11px;
+  color: #78350f;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.profile-identity-email {
+  margin: 8px 0 0;
+  color: #7b6650;
+  font-size: 14px;
+}
+
+.profile-card {
+  display: grid;
+  gap: 22px;
+  border: 1px solid rgba(108, 101, 88, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  padding: 26px;
+  box-shadow: 0 16px 34px rgba(57, 57, 58, 0.07);
+}
+
+.profile-section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.profile-section-color {
+  gap: 10px;
+}
+
+.profile-label {
+  color: #171b4a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.profile-section-hint {
+  margin: -2px 0 2px;
+  color: #6c6558;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.profile-input {
+  width: 100%;
+  border: 1px solid rgba(108, 101, 88, 0.28);
+  border-radius: 8px;
+  background: #fffdf8;
+  padding: 11px 13px;
+  color: #39393a;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.profile-input::placeholder {
+  color: #8a8170;
+}
+
+.profile-input:focus-visible {
+  border-color: #d97706;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28);
+}
+
+textarea.profile-input {
+  resize: vertical;
+}
+
+.profile-field-hint {
+  margin: 0;
+  color: #7b6650;
+  font-size: 12px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.profile-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.profile-swatch {
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px #fff;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.profile-swatch:hover {
+  transform: translateY(-1px);
+}
+
+.profile-swatch.selected {
+  border-color: #171b4a;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+.profile-swatch:focus-visible {
+  outline: 3px solid rgba(245, 158, 11, 0.34);
+  outline-offset: 2px;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 2px;
+  border-top: 1px solid #ece6dc;
+  padding-top: 20px;
+}
+
+.profile-save-state {
+  margin: 0;
+  font-size: 13px;
+}
+
+.profile-saved {
+  color: #2f4f43;
+  font-weight: 700;
+}
+
+.profile-save-hint {
+  color: #7b6650;
+}
+
+@media (max-width: 760px) {
+  .profile-identity {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .profile-identity h1 {
+    font-size: 28px;
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-input,
+  .profile-swatch {
+    transition: none;
+  }
+
+  .profile-swatch:hover {
+    transform: none;
+  }
+}

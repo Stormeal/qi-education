@@ -20,11 +20,13 @@ import {
   NextAction,
   QuizComponentContent,
   SignupRequest,
+  UserProfileDetails,
   UserRole,
 } from '../app.models';
 import { AuthService } from './auth.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
+import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { SessionService } from './session.service';
 
 @Injectable({ providedIn: 'root' })
@@ -33,9 +35,10 @@ export class AppStateService {
   private readonly authService = inject(AuthService);
   private readonly courseService = inject(CourseService);
   private readonly feedbackService = inject(FeedbackService);
+  private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.36';
+  readonly appVersion = '0.1.38';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -51,6 +54,24 @@ export class AppStateService {
   readonly loginError = signal('');
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
   readonly currentPath = signal(this.normalizePath(this.router.url));
+
+  readonly profileBio = signal('');
+  readonly profileJobTitle = signal('');
+  readonly profileCompany = signal('');
+  readonly profileLearningGoals = signal('');
+  readonly profileAvatarColor = signal(DEFAULT_AVATAR_COLOR);
+  readonly profileSaving = signal(false);
+  readonly profileSaved = signal(false);
+  private readonly profileSnapshot = signal('');
+  private profileSavedTimeout: ReturnType<typeof setTimeout> | null = null;
+  readonly avatarColorOptions: readonly string[] = [
+    '#2f4f43',
+    '#171b4a',
+    '#80592f',
+    '#b45309',
+    '#0f766e',
+    '#9f1239',
+  ];
 
   readonly isFeedbackOpen = signal(false);
   readonly feedbackPage = signal('');
@@ -220,6 +241,21 @@ export class AppStateService {
 
   readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
   readonly isLibraryPage = computed(() => this.currentPath() === '/library');
+  readonly isProfilePage = computed(() => this.currentPath() === '/profile');
+  readonly profileDirty = computed(() => this.serializeProfile() !== this.profileSnapshot());
+  readonly profileMemberSince = computed(() => {
+    const createdAt = this.loginState()?.user.createdAt;
+
+    if (!createdAt) {
+      return '';
+    }
+
+    const date = new Date(createdAt);
+
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  });
   readonly isLearningWorkspacePage = computed(
     () => this.libraryCourseViewIdFromPath(this.currentPath()) !== null,
   );
@@ -385,6 +421,7 @@ export class AppStateService {
       this.sessionService.storeSession(login, this.rememberMe());
       this.password.set('');
       this.feedbackSubmitted.set(false);
+      this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       this.loadAdminFeedbackWhenNeeded();
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -448,6 +485,7 @@ export class AppStateService {
       this.signupDisplayName.set('');
       this.authMode.set('login');
       this.feedbackSubmitted.set(false);
+      this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       window.scrollTo({ top: 0, behavior: 'auto' });
     } catch {
@@ -484,6 +522,13 @@ export class AppStateService {
     this.courseDraft.set(this.createCourseDraft());
     this.adminFeedback.set([]);
     this.adminFeedbackError.set('');
+    this.profileBio.set('');
+    this.profileJobTitle.set('');
+    this.profileCompany.set('');
+    this.profileLearningGoals.set('');
+    this.profileAvatarColor.set(DEFAULT_AVATAR_COLOR);
+    this.profileSnapshot.set('');
+    this.profileSaved.set(false);
     this.sessionService.clearStoredSession();
     this.clearCourseCatalogNotice();
     this.clearCoursePriceNotice();
@@ -513,6 +558,7 @@ export class AppStateService {
         user: restored.user,
         permissions: restored.permissions,
       });
+      this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       this.loadAdminFeedbackWhenNeeded();
     } catch {
@@ -549,6 +595,98 @@ export class AppStateService {
     }
 
     this.updatePath('/admin');
+  }
+
+  navigateProfile(): void {
+    this.updatePath('/profile');
+  }
+
+  updateProfileBio(value: string): void {
+    this.profileBio.set(value);
+    this.profileSaved.set(false);
+  }
+
+  updateProfileJobTitle(value: string): void {
+    this.profileJobTitle.set(value);
+    this.profileSaved.set(false);
+  }
+
+  updateProfileCompany(value: string): void {
+    this.profileCompany.set(value);
+    this.profileSaved.set(false);
+  }
+
+  updateProfileLearningGoals(value: string): void {
+    this.profileLearningGoals.set(value);
+    this.profileSaved.set(false);
+  }
+
+  selectProfileAvatarColor(value: string): void {
+    this.profileAvatarColor.set(value);
+    this.profileSaved.set(false);
+  }
+
+  saveProfile(): void {
+    const userId = this.loginState()?.user.id;
+
+    if (!userId || this.profileSaving() || !this.profileDirty()) {
+      return;
+    }
+
+    this.profileSaving.set(true);
+
+    const details: UserProfileDetails = {
+      bio: this.profileBio().trim(),
+      jobTitle: this.profileJobTitle().trim(),
+      company: this.profileCompany().trim(),
+      learningGoals: this.profileLearningGoals().trim(),
+      avatarColor: this.profileAvatarColor(),
+    };
+
+    try {
+      this.profileService.saveProfile(userId, details);
+      this.profileBio.set(details.bio);
+      this.profileJobTitle.set(details.jobTitle);
+      this.profileCompany.set(details.company);
+      this.profileLearningGoals.set(details.learningGoals);
+      this.profileSnapshot.set(this.serializeProfile());
+      this.showProfileSaved();
+    } finally {
+      this.profileSaving.set(false);
+    }
+  }
+
+  private loadProfileForCurrentUser(): void {
+    const profile = this.profileService.loadProfile(this.loginState()?.user.id ?? '');
+    this.profileBio.set(profile.bio);
+    this.profileJobTitle.set(profile.jobTitle);
+    this.profileCompany.set(profile.company);
+    this.profileLearningGoals.set(profile.learningGoals);
+    this.profileAvatarColor.set(profile.avatarColor);
+    this.profileSnapshot.set(this.serializeProfile());
+    this.profileSaved.set(false);
+  }
+
+  private serializeProfile(): string {
+    return JSON.stringify({
+      bio: this.profileBio().trim(),
+      jobTitle: this.profileJobTitle().trim(),
+      company: this.profileCompany().trim(),
+      learningGoals: this.profileLearningGoals().trim(),
+      avatarColor: this.profileAvatarColor(),
+    });
+  }
+
+  private showProfileSaved(): void {
+    if (this.profileSavedTimeout) {
+      clearTimeout(this.profileSavedTimeout);
+    }
+
+    this.profileSaved.set(true);
+    this.profileSavedTimeout = setTimeout(() => {
+      this.profileSaved.set(false);
+      this.profileSavedTimeout = null;
+    }, 4000);
   }
 
   openFeedback(): void {
@@ -2643,6 +2781,10 @@ export class AppStateService {
       return 'Admin';
     }
 
+    if (this.isProfilePage()) {
+      return 'Profile';
+    }
+
     if (this.isLibraryPage() || this.isLearningWorkspacePage()) {
       return 'My Learning';
     }
@@ -2655,7 +2797,12 @@ export class AppStateService {
   private normalizePath(path: string): string {
     const withoutQuery = path.split('?')[0]?.split('#')[0] || '/';
 
-    if (withoutQuery === '/courses' || withoutQuery === '/courses/new' || withoutQuery === '/library') {
+    if (
+      withoutQuery === '/courses' ||
+      withoutQuery === '/courses/new' ||
+      withoutQuery === '/library' ||
+      withoutQuery === '/profile'
+    ) {
       return withoutQuery;
     }
 
