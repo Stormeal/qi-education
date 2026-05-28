@@ -15,75 +15,71 @@
     (adminClicked)="adminClicked.emit()"
   />
 
-  <header class="overview-header">
-    <div>
-      <p class="eyebrow">Student overview</p>
-      <h1>Welcome back, {{ student().name }}</h1>
-      <p>Testing career path: {{ student().currentRole }} to {{ student().targetRole }}</p>
+  <header class="db-welcome">
+    <div class="db-welcome-copy">
+      <h1 class="db-welcome-name">Welcome back, {{ student().name }}</h1>
+      <p class="db-welcome-path">{{ student().currentRole }} to {{ student().targetRole }}</p>
     </div>
     <app-button variant="primary">Adjust track</app-button>
   </header>
 
-  <section class="summary-grid" aria-label="Learning summary">
-    <article class="summary-card featured">
-      <span>Career path</span>
-      <strong>{{ student().pathProgress }}%</strong>
-      <div class="progress-track" aria-label="Career path progress">
+  <section class="db-stats" aria-label="Learning summary">
+    <article class="db-stat db-stat-hero">
+      <span class="db-stat-label">Career path</span>
+      <strong class="db-stat-value">{{ student().pathProgress }}%</strong>
+      <div class="db-progress-track" aria-label="Career path progress">
         <span [style.width.%]="student().pathProgress"></span>
       </div>
-      <p>Next milestone: choose a specialization after ISTQB Foundation.</p>
+      <p class="db-stat-meta">Next milestone: choose a specialization after ISTQB Foundation.</p>
     </article>
 
-    <article class="summary-card">
-      <span>Active course</span>
-      <strong>{{ activeCourse().title }}</strong>
-      <p>{{ activeCourse().progress }}% complete</p>
+    <article class="db-stat">
+      <span class="db-stat-label">Active course</span>
+      <strong class="db-stat-value">{{ activeCourse().progress }}%</strong>
+      <p class="db-stat-meta">{{ activeCourse().title }}</p>
     </article>
 
-    <article class="summary-card">
-      <span>Recommended</span>
-      <strong>{{ recommendedCourses().length }}</strong>
-      <p>Testing courses matched to your goal.</p>
+    <article class="db-stat">
+      <span class="db-stat-label">Recommended</span>
+      <strong class="db-stat-value">{{ recommendedCourses().length }}</strong>
+      <p class="db-stat-meta">Testing courses matched to your goal.</p>
     </article>
   </section>
 
-  <section class="dashboard-grid">
-    <div class="section-block" id="actions">
-      <div class="section-heading">
-        <p class="eyebrow">Next actions</p>
-        <h2>Keep the certification path moving</h2>
-      </div>
-      <div class="action-list">
-        @for (action of nextActions(); track action.title) {
-          <article
-            class="action-row"
-            [class.is-complete]="action.state === 'complete'"
-            [class.is-current]="action.state === 'current'"
-            [class.is-next]="action.state === 'next'"
-          >
-            <span class="action-state-icon" aria-hidden="true">
-              @if (action.state === 'complete') {
-                <svg viewBox="0 0 16 16" focusable="false">
-                  <path d="M3.2 8.2 6.6 11.4 12.8 4.6" />
-                </svg>
-              }
-            </span>
-            <div class="action-content">
-              <div class="action-title-row">
-                <div class="action-heading">
-                  <span class="action-chapter">{{ action.chapter }}</span>
-                  <h3>{{ action.title }}</h3>
-                </div>
-                <span class="action-status">{{ action.state }}</span>
+  <section class="db-actions-section" id="actions">
+    <div class="db-section-heading">
+      <h2>Keep the certification path moving</h2>
+    </div>
+    <div class="db-action-list">
+      @for (action of nextActions(); track action.title) {
+        <article
+          class="db-action-row"
+          [class.is-complete]="action.state === 'complete'"
+          [class.is-current]="action.state === 'current'"
+          [class.is-next]="action.state === 'next'"
+        >
+          <span class="db-action-icon" aria-hidden="true">
+            @if (action.state === 'complete') {
+              <svg viewBox="0 0 16 16" focusable="false">
+                <path d="M3.2 8.2 6.6 11.4 12.8 4.6" />
+              </svg>
+            }
+          </span>
+          <div class="db-action-body">
+            <div class="db-action-head">
+              <div class="db-action-title">
+                <span class="db-action-chapter">{{ action.chapter }}</span>
+                <h3>{{ action.title }}</h3>
               </div>
-              <p>{{ action.meta }}</p>
-              <div class="action-progress" [attr.aria-label]="action.title + ' progress'">
-                <span [style.width.%]="action.progress"></span>
-              </div>
+              <span class="db-action-badge">{{ action.state }}</span>
             </div>
-          </article>
-        }
-      </div>
+            <p>{{ action.meta }}</p>
+            <div class="db-action-progress" [attr.aria-label]="action.title + ' progress'">
+              <span [style.width.%]="action.progress"></span>
+            </div>
+          </div>
+        </article>
+      }
     </div>
   </section>
 
