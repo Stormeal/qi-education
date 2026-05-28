@@ -22,3 +22,286 @@ app-root {
   min-height: 100vh;
   overflow: visible;
 }
+
+app-course-builder .rich-text-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 620px;
+  border: 1px solid rgba(29, 115, 173, 0.16);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(40, 103, 143, 0.12);
+}
+
+app-course-builder .rich-text-outline {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-right: 1px solid rgba(55, 139, 194, 0.14);
+  background: linear-gradient(180deg, #dff2ff, #d8edfc);
+  padding: 28px 22px;
+}
+
+app-course-builder .outline-group,
+app-course-builder .outline-children {
+  display: grid;
+  gap: 10px;
+}
+
+app-course-builder .outline-heading {
+  border: 0;
+  border-left: 2px solid transparent;
+  color: #4d7594;
+  background: transparent;
+  padding: 4px 8px 4px 14px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+app-course-builder .outline-heading:hover {
+  color: #0b8ed3;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+app-course-builder .outline-heading-one {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left-color: #0b9ee8;
+  color: #0b8ed3;
+  font-weight: 800;
+}
+
+app-course-builder .outline-heading-one > span:first-child {
+  text-decoration: underline;
+  text-decoration-color: rgba(11, 158, 232, 0.34);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+
+app-course-builder .outline-heading-one > span:last-child {
+  transition: transform 120ms ease;
+}
+
+app-course-builder .outline-heading-one.is-expanded > span:last-child {
+  transform: rotate(180deg);
+}
+
+app-course-builder .outline-children {
+  padding-left: 16px;
+}
+
+app-course-builder .outline-heading-child {
+  border-left-color: rgba(11, 158, 232, 0.32);
+  color: #4f7897;
+  font-weight: 700;
+}
+
+app-course-builder .outline-heading-child.is-level-three {
+  padding-left: 18px;
+  font-weight: 600;
+}
+
+app-course-builder .rich-text-outline span {
+  color: #547c99;
+  font-size: 13px;
+}
+
+app-course-builder .rich-text-workspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  background: #fff;
+}
+
+app-course-builder .rich-text-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid rgba(29, 115, 173, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px 18px;
+  box-shadow: 0 8px 28px rgba(71, 107, 132, 0.08);
+}
+
+app-course-builder .rich-text-toolbar button,
+app-course-builder .rich-text-toolbar select {
+  width: auto;
+  min-height: 34px;
+  border-color: transparent;
+  border-radius: 6px;
+  color: #6b7f8d;
+  background: transparent;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+app-course-builder .rich-text-toolbar button {
+  display: inline-grid;
+  width: 34px;
+  place-items: center;
+}
+
+app-course-builder .rich-text-toolbar button:hover,
+app-course-builder .rich-text-toolbar select:hover {
+  color: #0b8ed3;
+  background: #edf8ff;
+}
+
+app-course-builder .rich-text-toolbar select {
+  min-width: 116px;
+  border: 1px solid rgba(29, 115, 173, 0.08);
+  background: #fff;
+}
+
+app-course-builder .rich-text-editor {
+  min-height: 560px;
+  overflow: auto;
+  padding: 64px clamp(28px, 8vw, 88px);
+  color: #1f2529;
+  font-size: 16px;
+  line-height: 1.72;
+  outline: none;
+}
+
+app-course-builder .rich-text-editor:focus {
+  box-shadow: inset 0 0 0 2px rgba(11, 158, 232, 0.16);
+}
+
+app-course-builder .rich-text-editor h1,
+app-course-builder .rich-text-editor h2,
+app-course-builder .rich-text-editor h3 {
+  max-width: 760px;
+  margin: 0 0 14px;
+  color: #0797dd;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+app-course-builder .rich-text-editor h1 {
+  border-bottom: 1px solid rgba(29, 115, 173, 0.14);
+  padding-bottom: 10px;
+  font-size: 26px;
+}
+
+app-course-builder .rich-text-editor h2 {
+  margin-top: 28px;
+  font-size: 20px;
+}
+
+app-course-builder .rich-text-editor h3 {
+  margin-top: 20px;
+  font-size: 16px;
+}
+
+app-course-builder .rich-text-editor p,
+app-course-builder .rich-text-editor ul {
+  max-width: 760px;
+  margin: 0 0 14px;
+}
+
+app-course-builder .rich-text-editor ul {
+  padding-left: 22px;
+}
+
+app-course-builder .rich-text-editor a {
+  color: #0b8ed3;
+  font-weight: 700;
+}
+
+app-course-builder .rich-attachment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  max-width: 572px;
+  min-height: 62px;
+  margin: 16px 0;
+  border: 1px solid rgba(29, 115, 173, 0.08);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px 18px;
+  box-shadow: 0 10px 24px rgba(26, 87, 126, 0.06);
+}
+
+app-course-builder .rich-attachment-card span {
+  display: grid;
+  gap: 2px;
+}
+
+app-course-builder .rich-attachment-card strong {
+  color: #171b1f;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+app-course-builder .rich-attachment-card small {
+  color: #777f86;
+  font-size: 12px;
+}
+
+app-course-builder .rich-attachment-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+app-course-builder .rich-attachment-card button {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  color: #1599dc;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+app-course-builder .rich-attachment-card button:hover:not(:disabled) {
+  background: #eaf7ff;
+  transform: translateY(-1px);
+}
+
+app-course-builder .rich-attachment-card button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+app-course-builder .rich-attachment-card button svg {
+  width: 18px;
+  height: 18px;
+}
+
+app-course-builder .rich-attachment-card button[data-attachment-remove] {
+  color: #b44646;
+}
+
+app-course-builder .rich-attachment-card button[data-attachment-remove]:hover:not(:disabled) {
+  color: #991b1b;
+  background: rgba(153, 27, 27, 0.06);
+}
+
+app-course-builder .rich-attachment-card.is-pending {
+  background: linear-gradient(90deg, #fff, #f5fbff);
+}
+
+@media (max-width: 760px) {
+  app-course-builder .rich-text-shell {
+    grid-template-columns: 1fr;
+  }
+
+  app-course-builder .rich-text-outline {
+    border-right: 0;
+    border-bottom: 1px solid rgba(55, 139, 194, 0.14);
+  }
+}

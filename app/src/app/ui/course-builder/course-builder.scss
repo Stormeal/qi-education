@@ -12,6 +12,12 @@
   line-height: 1;
 }
 
+.inline-icon svg {
+  width: 1em;
+  height: 1em;
+  stroke-width: 2;
+}
+
 .inline-icon-muted {
   color: #7b6650;
 }
@@ -170,6 +176,11 @@
   background: #f5efe7;
 }
 
+.component-icon-resources {
+  color: #5d6472;
+  background: #f0f2f5;
+}
+
 .builder-component-copy {
   flex: 1 1 auto;
   flex-direction: column;
@@ -232,6 +243,10 @@
 }
 
 .add-component-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   border: 2px dashed rgba(108, 101, 88, 0.28);
   border-radius: 12px;
@@ -306,20 +321,6 @@
 .chevron-button:hover {
   border-color: rgba(108, 101, 88, 0.16);
   background: #f8f5ef;
-}
-
-.chevron-icon {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid #5f4f3f;
-  border-bottom: 2px solid #5f4f3f;
-  transform: rotate(45deg);
-  transition: transform 120ms ease;
-}
-
-.chevron-button.is-collapsed .chevron-icon {
-  transform: rotate(-45deg);
 }
 
 .rename-link {
@@ -659,8 +660,7 @@ select:focus {
   cursor: default;
 }
 
-.quiz-question-meta,
-.quiz-question-summary {
+.quiz-question-meta {
   color: #7b6650;
   font-size: 12px;
   font-weight: 800;
@@ -821,6 +821,75 @@ select:focus {
   transition: width 180ms ease;
 }
 
+.chevron-button .inline-icon {
+  color: #5f4f3f;
+  font-size: 16px;
+  transition: transform 120ms ease;
+}
+
+.chevron-button.is-collapsed .inline-icon {
+  transform: rotate(-90deg);
+}
+
+.attachment-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(108, 101, 88, 0.14);
+  border-radius: 12px;
+  background: #fbfaf7;
+  padding: 14px;
+}
+
+.attachment-panel-header,
+.attachment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.attachment-panel-header div,
+.attachment-row span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.attachment-panel-header strong,
+.attachment-row strong {
+  color: #342f2a;
+  font-size: 14px;
+}
+
+.attachment-panel-header span,
+.attachment-row small {
+  color: #766c61;
+  font-size: 12px;
+}
+
+.attachment-list {
+  display: grid;
+  gap: 8px;
+}
+
+.attachment-list p,
+.attachment-error {
+  margin: 0;
+  color: #766c61;
+  font-size: 13px;
+}
+
+.attachment-error {
+  color: #991b1b;
+}
+
+.attachment-row {
+  border: 1px solid rgba(108, 101, 88, 0.12);
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+}
+
 @media (max-width: 1120px) {
   .builder-modal-grid-quiz,
   .quiz-settings-grid {
@@ -889,6 +958,12 @@ select:focus {
   }
 
   .mux-upload-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .attachment-panel-header,
+  .attachment-row {
     align-items: stretch;
     flex-direction: column;
   }
