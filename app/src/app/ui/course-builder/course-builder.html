@@ -455,6 +455,7 @@
                   </button>
                   <select
                     aria-label="Text style"
+                    [value]="richTextBlockTag()"
                     (change)="executeRichTextCommand('formatBlock', editor.sectionIndex, editor.componentIndex, controlValue($event))"
                   >
                     <option value="<p>">Text</option>
@@ -505,9 +506,14 @@
                   role="textbox"
                   aria-label="Text content editor"
                   [innerHTML]="richTextHtml()"
+                  (mousedown)="richTextMouseDown($event)"
+                  (beforeinput)="richTextBeforeInput($event)"
                   (input)="richTextEdited($event)"
                   (keydown)="richTextKeydown($event, editor.sectionIndex, editor.componentIndex)"
+                  (keyup)="richTextSelectionChanged()"
+                  (mouseup)="richTextSelectionChanged()"
                   (click)="richTextClicked($event, editor.sectionIndex, editor.componentIndex)"
+                  (focus)="richTextSelectionChanged()"
                   (blur)="richTextBlur(editor.sectionIndex, editor.componentIndex)"
                 ></div>
               </div>
@@ -524,7 +530,7 @@
             </label>
           }
 
-          @if (component.type === 'resources') {
+          @if (hasAttachmentPanel(component)) {
             <section class="attachment-panel">
               <div class="attachment-panel-header">
                 <div>
@@ -552,21 +558,45 @@
                 <p class="attachment-error" role="alert">{{ attachmentUploadError() }}</p>
               }
 
+              @if (isAttachmentUploading(component)) {
+                <div class="attachment-upload-status" aria-label="Attachment upload progress">
+                  <div class="attachment-upload-status-copy">
+                    <strong>Uploading file</strong>
+                    <span>{{ attachmentUploadProgressValue(component) }}%</span>
+                  </div>
+                  <div class="attachment-upload-progress">
+                    <span [style.width.%]="attachmentUploadProgressValue(component)"></span>
+                  </div>
+                </div>
+              }
+
               <div class="attachment-list">
                 @for (attachment of component.attachments; track attachment.assetId) {
                   <div class="attachment-row">
-                    <span>
+                    <span class="attachment-row-copy">
                       <strong>{{ attachment.fileName }}</strong>
                       <small>{{ formatFileSize(attachment.sizeBytes) }}</small>
                     </span>
-                    <button
-                      type="button"
-                      class="component-row-action component-row-action-danger"
-                      [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
-                      (click)="removeAttachment(editor.sectionIndex, editor.componentIndex, attachment.assetId)"
-                    >
-                      Remove
-                    </button>
+                    <span class="attachment-row-actions">
+                      <button
+                        type="button"
+                        class="attachment-icon-button"
+                        aria-label="Download {{ attachment.fileName }}"
+                        [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                        (click)="downloadAttachment(editor.sectionIndex, editor.componentIndex, attachment.assetId, attachment.fileName)"
+                      >
+                        <span class="inline-icon" aria-hidden="true" [innerHTML]="downloadIcon"></span>
+                      </button>
+                      <button
+                        type="button"
+                        class="attachment-icon-button attachment-icon-button-danger"
+                        aria-label="Remove {{ attachment.fileName }}"
+                        [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                        (click)="removeAttachment(editor.sectionIndex, editor.componentIndex, attachment.assetId)"
+                      >
+                        <span class="inline-icon" aria-hidden="true" [innerHTML]="trashIcon"></span>
+                      </button>
+                    </span>
                   </div>
                 } @empty {
                   <p>No files uploaded yet.</p>

@@ -28,6 +28,7 @@ import {
 import '@mux/mux-player';
 import {
   CourseComponent,
+  CourseComponentAttachment,
   CourseCatalogMetadataDraft,
   CourseContentDocument,
   CourseListItem,
@@ -150,6 +151,7 @@ export class CourseViewPage {
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();
+  readonly authToken = input.required<string>();
   readonly userEmail = input.required<string>();
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
@@ -624,10 +626,10 @@ export class CourseViewPage {
         return 'Video';
       case 'quiz':
         return 'Quiz';
-      case 'text':
-        return 'Text';
+      case 'resources':
+        return 'Resources';
       default:
-        return type;
+        return 'Text';
     }
   }
 
@@ -637,6 +639,8 @@ export class CourseViewPage {
         return this.videoIcon;
       case 'quiz':
         return this.quizIcon;
+      case 'resources':
+        return this.textIcon;
       default:
         return this.textIcon;
     }
@@ -657,7 +661,7 @@ export class CourseViewPage {
       );
     }
 
-    return !!component.content.trim() || !!component.resourceUrl.trim();
+    return !!component.content.trim() || !!component.resourceUrl.trim() || component.attachments.length > 0;
   }
 
   protected componentPreviewText(component: CourseContentDocument['sections'][number]['components'][number]): string {
@@ -666,6 +670,88 @@ export class CourseViewPage {
     }
 
     return component.content.trim() || 'No preview text available yet.';
+  }
+
+  protected renderMarkdown(markdown: string): string {
+    if (this.looksLikeHtml(markdown)) {
+      return markdown;
+    }
+
+    const lines = markdown.split(/\r?\n/);
+    const html: string[] = [];
+    let listItems: string[] = [];
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        html.push(`<ul>${listItems.join('')}</ul>`);
+        listItems = [];
+      }
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        flushList();
+        continue;
+      }
+
+      const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        flushList();
+        const level = heading[1].length;
+        html.push(`<h${level}>${this.renderInlineMarkdown(heading[2])}</h${level}>`);
+        continue;
+      }
+
+      const listItem = trimmed.match(/^[-*]\s+(.+)$/);
+      if (listItem) {
+        listItems.push(`<li>${this.renderInlineMarkdown(listItem[1])}</li>`);
+        continue;
+      }
+
+      flushList();
+      html.push(`<p>${this.renderInlineMarkdown(trimmed)}</p>`);
+    }
+
+    flushList();
+    return html.join('');
+  }
+
+  protected async downloadAttachment(courseId: string, attachment: CourseComponentAttachment): Promise<void> {
+    if (!this.authToken()) {
+      return;
+    }
+
+    const response = await this.apiClient.fetch(
+      `/courses/${encodeURIComponent(courseId)}/content/attachments/${encodeURIComponent(attachment.assetId)}`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${this.authToken()}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = attachment.fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  protected formatFileSize(sizeBytes: number): string {
+    if (sizeBytes < 1024 * 1024) {
+      return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+    }
+
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   protected teacherInitials(name: string): string {
@@ -712,6 +798,27 @@ export class CourseViewPage {
     const minutes = durationMinutes % 60;
 
     return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+
+  private renderInlineMarkdown(value: string): string {
+    return this.escapeHtml(value)
+      .replace(/\[([^\]]+)]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+      .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+
+  private looksLikeHtml(content: string): boolean {
+    return /<\/?[a-z][\s\S]*>/i.test(content);
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   protected formatDurationLong(durationMinutes: number): string {

@@ -72,14 +72,23 @@
           [class.is-moving-previous]="carouselMotion() === 'previous'"
         >
           @for (course of visibleFeaturedCourses(); track course.id) {
+            @let thumbnail = thumbnailUrl(course);
             <a
               class="catalog-card"
               [routerLink]="['/courses', course.id]"
               [attr.aria-label]="'Open course: ' + course.title"
             >
               <div class="catalog-card-media">
-                @if (thumbnailUrl(course)) {
-                  <img [src]="thumbnailUrl(course)" [alt]="course.title + ' thumbnail'" />
+                @if (thumbnail) {
+                  <img
+                    [src]="thumbnail"
+                    [alt]="course.title + ' thumbnail'"
+                    [class.is-loaded]="isThumbnailLoaded(course.id)"
+                    loading="eager"
+                    decoding="async"
+                    fetchpriority="high"
+                    (load)="markThumbnailLoaded(course.id)"
+                  />
                 } @else {
                   <div class="catalog-card-fallback" aria-hidden="true"></div>
                 }

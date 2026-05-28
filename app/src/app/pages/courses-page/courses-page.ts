@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { lucideChevronLeft, lucideChevronRight } from '@ng-icons/lucide';
 import { RouterLink } from '@angular/router';
 import { CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
 import { ApiClientService } from '../../services/api-client.service';
+import { CourseService } from '../../services/course.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -29,6 +30,7 @@ type PopularInstructorCard = {
 })
 export class CoursesPage {
   private readonly apiClient = inject(ApiClientService);
+  private readonly courseService = inject(CourseService);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly carouselPreviousIcon = this.asSafeIcon(lucideChevronLeft);
@@ -69,6 +71,7 @@ export class CoursesPage {
   protected readonly activeCollection = signal<CourseCollectionTab>('popular');
   protected readonly carouselStart = signal(0);
   protected readonly carouselMotion = signal<'next' | 'previous' | ''>('');
+  protected readonly loadedThumbnailIds = signal<Record<string, boolean>>({});
   private carouselMotionTimeout: number | null = null;
   protected readonly popularTopics = [
     'Microsoft Playwright',
@@ -82,6 +85,16 @@ export class CoursesPage {
     'pytest',
     'Artificial Intelligence (AI)',
   ];
+
+  constructor() {
+    effect(() => {
+      if (this.coursesLoading() || this.coursesError()) {
+        return;
+      }
+
+      this.courseService.warmCourseThumbnailCache(this.visibleFeaturedCourses());
+    });
+  }
 
   protected readonly creatorCourses = computed(() =>
     this.courses().filter((course) => course.teacher.trim() === this.student().name.trim()),
@@ -240,6 +253,16 @@ export class CoursesPage {
 
     return this.apiClient.resourceUrl(
       `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
+    );
+  }
+
+  protected isThumbnailLoaded(courseId: string): boolean {
+    return this.loadedThumbnailIds()[courseId] ?? false;
+  }
+
+  protected markThumbnailLoaded(courseId: string): void {
+    this.loadedThumbnailIds.update((loaded) =>
+      loaded[courseId] ? loaded : { ...loaded, [courseId]: true },
     );
   }
 

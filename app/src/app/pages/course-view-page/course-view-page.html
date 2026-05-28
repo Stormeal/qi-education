@@ -161,9 +161,22 @@
                           </span>
                         }
                       </header>
-                      <p>{{ currentComponent.type === 'video' ? videoStatusText(currentComponent) : currentComponent.content || 'No lesson text has been added yet.' }}</p>
+                      @if (currentComponent.type === 'text') {
+                        <div class="learning-markdown" [innerHTML]="renderMarkdown(currentComponent.content || 'No lesson text has been added yet.')"></div>
+                      } @else {
+                        <p>{{ currentComponent.type === 'video' ? videoStatusText(currentComponent) : currentComponent.content || 'No description has been added yet.' }}</p>
+                      }
                       @if (currentComponent.resourceUrl) {
                         <a class="learning-resource-link" [href]="currentComponent.resourceUrl" target="_blank" rel="noreferrer">Open resource</a>
+                      }
+                      @if (currentComponent.attachments.length > 0) {
+                        <div class="learning-attachment-list">
+                          @for (attachment of currentComponent.attachments; track attachment.assetId) {
+                            <button type="button" class="learning-resource-link" (click)="downloadAttachment(currentCourse.id, attachment)">
+                              {{ attachment.fileName }} · {{ formatFileSize(attachment.sizeBytes) }}
+                            </button>
+                          }
+                        </div>
                       }
                       <button type="button" class="learning-primary-button" (click)="completeActiveComponent()">
                         Mark complete
@@ -412,9 +425,22 @@
 
                           @if (componentHasDetails(component) && isComponentExpanded(component.id)) {
                             <div class="curriculum-item-preview">
-                              <p>{{ componentPreviewText(component) }}</p>
+                              @if (component.type === 'text') {
+                                <div class="curriculum-markdown-preview" [innerHTML]="renderMarkdown(component.content)"></div>
+                              } @else {
+                                <p>{{ componentPreviewText(component) }}</p>
+                              }
                               @if (component.resourceUrl) {
                                 <a [href]="component.resourceUrl" target="_blank" rel="noreferrer">Open resource</a>
+                              }
+                              @if (component.attachments.length > 0) {
+                                <div class="curriculum-resource-list">
+                                  @for (attachment of component.attachments; track attachment.assetId) {
+                                    <button type="button" (click)="downloadAttachment(currentCourse.id, attachment)">
+                                      {{ attachment.fileName }} · {{ formatFileSize(attachment.sizeBytes) }}
+                                    </button>
+                                  }
+                                </div>
                               }
                             </div>
                           }

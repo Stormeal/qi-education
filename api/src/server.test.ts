@@ -719,6 +719,7 @@ describe('QI-Education API', () => {
             durationMinutes: 5,
             content: 'What belongs in a strong API test suite?',
             resourceUrl: '',
+            attachments: [],
             quiz: {
               passPoints: 2,
               questions: [
@@ -783,6 +784,110 @@ describe('QI-Education API', () => {
 
     expect(getResponse.status).toBe(200);
     expect(loaded.sections).toEqual(sections);
+  });
+
+  it('stores component attachments and only lets enrolled learners download them', async () => {
+    const teacherToken = await loginAs('teacher@qi-education.local');
+    const createResponse = await fetch(`${baseUrl}/courses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify(validCourse()),
+    });
+    const created = await createResponse.json();
+    const sections = [
+      {
+        id: 'section-1',
+        title: 'Chapter 1',
+        components: [
+          {
+            id: 'component-1',
+            title: 'Reading',
+            type: 'text',
+            durationMinutes: 5,
+            content: '# Overview',
+            resourceUrl: '',
+            attachments: [],
+          },
+        ],
+      },
+    ];
+
+    await fetch(`${baseUrl}/courses/${created.id}/content`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${teacherToken}`,
+      },
+      body: JSON.stringify({ sections }),
+    });
+
+    const uploadResponse = await fetch(
+      `${baseUrl}/courses/${created.id}/content/components/component-1/attachments`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/pdf',
+          'X-File-Name': 'reading.pdf',
+          'X-Section-Id': 'section-1',
+          authorization: `Bearer ${teacherToken}`,
+        },
+        body: Buffer.from('pdf-binary'),
+      },
+    );
+    const uploaded = await uploadResponse.json();
+
+    expect(uploadResponse.status).toBe(201);
+    expect(uploaded.attachment).toMatchObject({
+      fileName: 'reading.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: Buffer.byteLength('pdf-binary'),
+    });
+    expect(uploaded.content.sections[0].components[0].attachments).toHaveLength(1);
+
+    const signupResponse = await fetch(`${baseUrl}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        displayName: 'Attachment Student',
+        email: `attachment.${created.id}@example.com`,
+        password: 'Testing42',
+      }),
+    });
+    const signup = await signupResponse.json();
+    const blockedResponse = await fetch(
+      `${baseUrl}/courses/${created.id}/content/attachments/${uploaded.attachment.assetId}`,
+      {
+        headers: {
+          authorization: `Bearer ${signup.token}`,
+        },
+      },
+    );
+
+    expect(blockedResponse.status).toBe(403);
+
+    await fetch(`${baseUrl}/users/me/courses/${created.id}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${signup.token}`,
+      },
+    });
+
+    const downloadResponse = await fetch(
+      `${baseUrl}/courses/${created.id}/content/attachments/${uploaded.attachment.assetId}`,
+      {
+        headers: {
+          authorization: `Bearer ${signup.token}`,
+        },
+      },
+    );
+    const downloaded = Buffer.from(await downloadResponse.arrayBuffer());
+
+    expect(downloadResponse.status).toBe(200);
+    expect(downloadResponse.headers.get('content-type')).toBe('application/pdf');
+    expect(downloaded.equals(Buffer.from('pdf-binary'))).toBe(true);
   });
 
   it('creates a Mux direct upload for a video component', async () => {
@@ -956,6 +1061,7 @@ describe('QI-Education API', () => {
         durationMinutes: 5,
         content: 'Welcome notes',
         resourceUrl: '',
+        attachments: [],
       });
     } finally {
       isolatedServer.close();

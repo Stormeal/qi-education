@@ -35,7 +35,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.33';
+  readonly appVersion = '0.1.34';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -76,6 +76,8 @@ export class AppStateService {
   readonly muxUploadError = signal('');
   readonly muxUploadProgress = signal<Record<string, number>>({});
   readonly attachmentUploadComponentId = signal('');
+  readonly attachmentUploadProgress = signal<Record<string, number>>({});
+  readonly attachmentUploadStage = signal<Record<string, 'uploading' | 'saving'>>({});
   readonly attachmentUploadError = signal('');
   readonly coursePriceSaving = signal(false);
   readonly coursePriceNotice = signal('');
@@ -468,6 +470,8 @@ export class AppStateService {
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
     this.attachmentUploadComponentId.set('');
+    this.attachmentUploadProgress.set({});
+    this.attachmentUploadStage.set({});
     this.attachmentUploadError.set('');
     this.courseThumbnailUploading.set(false);
     this.courseThumbnailError.set('');
@@ -614,6 +618,8 @@ export class AppStateService {
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
     this.attachmentUploadComponentId.set('');
+    this.attachmentUploadProgress.set({});
+    this.attachmentUploadStage.set({});
     this.attachmentUploadError.set('');
     this.courseThumbnailUploading.set(false);
     this.courseThumbnailError.set('');
@@ -668,6 +674,8 @@ export class AppStateService {
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
     this.attachmentUploadComponentId.set('');
+    this.attachmentUploadProgress.set({});
+    this.attachmentUploadStage.set({});
     this.attachmentUploadError.set('');
     this.courseThumbnailUploading.set(false);
     this.courseThumbnailError.set('');
@@ -958,6 +966,8 @@ export class AppStateService {
     }
 
     this.attachmentUploadComponentId.set(component.id);
+    this.attachmentUploadProgress.update((progress) => ({ ...progress, [component.id]: 0 }));
+    this.attachmentUploadStage.update((stage) => ({ ...stage, [component.id]: 'uploading' }));
     this.attachmentUploadError.set('');
 
     try {
@@ -983,6 +993,13 @@ export class AppStateService {
         component.id,
         file,
         token,
+        markerId,
+        (progress) => {
+          this.attachmentUploadProgress.update((currentProgress) => ({
+            ...currentProgress,
+            [component.id]: Math.min(progress, 95),
+          }));
+        },
       );
 
       if (!result.ok) {
@@ -990,19 +1007,7 @@ export class AppStateService {
         return;
       }
 
-      const updatedContent = this.replacePendingAttachmentMarker(
-        this.normalizeCourseContent(result.content),
-        result.attachment,
-        markerId,
-      );
-      const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token);
-
-      if (!saveResult.ok) {
-        this.attachmentUploadError.set(saveResult.message);
-        return;
-      }
-
-      const finalContent = this.normalizeCourseContent(saveResult.content);
+      const finalContent = this.normalizeCourseContent(result.content);
       this.courseContent.set(finalContent);
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
@@ -1010,6 +1015,8 @@ export class AppStateService {
       this.attachmentUploadError.set('Unable to upload the attachment. Please try again.');
     } finally {
       this.courseContentSaving.set(false);
+      this.attachmentUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
+      this.attachmentUploadStage.update(({ [component.id]: _removedStage, ...stage }) => stage);
       this.attachmentUploadComponentId.set('');
     }
   }
@@ -1019,15 +1026,30 @@ export class AppStateService {
     componentIndex: number,
     assetId: string,
   ): Promise<void> {
+    const content = this.courseContent();
+    const section = content?.sections[sectionIndex];
+    const component = section?.components[componentIndex];
+
+    if (assetId.startsWith('pending-')) {
+      this.courseService.cancelComponentAttachmentUpload();
+      this.attachmentUploadProgress.update(({ [component?.id ?? '']: _removedProgress, ...progress }) => progress);
+      this.attachmentUploadStage.update(({ [component?.id ?? '']: _removedStage, ...stage }) => stage);
+      this.attachmentUploadComponentId.set('');
+      this.attachmentUploadError.set('');
+      const updatedContent = component ? this.removeAttachmentMarker(content!, assetId) : content;
+
+      if (updatedContent) {
+        this.courseContent.set(updatedContent);
+      }
+      return;
+    }
+
     if (this.attachmentUploadComponentId()) {
       return;
     }
 
     const token = this.loginState()?.token;
     const courseId = this.courseEditingId();
-    const content = this.courseContent();
-    const section = content?.sections[sectionIndex];
-    const component = section?.components[componentIndex];
 
     if (!token || !courseId || !section || !component) {
       this.attachmentUploadError.set('Select a saved component before removing attachments.');
@@ -1047,7 +1069,9 @@ export class AppStateService {
       );
 
       if (!result.ok) {
-        this.attachmentUploadError.set(result.message);
+        if (result.message !== 'Upload cancelled.') {
+          this.attachmentUploadError.set(result.message);
+        }
         return;
       }
 
@@ -1989,6 +2013,8 @@ export class AppStateService {
       this.courseThumbnailUploading.set(false);
       this.courseThumbnailError.set('');
       this.attachmentUploadComponentId.set('');
+      this.attachmentUploadProgress.set({});
+      this.attachmentUploadStage.set({});
       this.attachmentUploadError.set('');
       this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.createCourseDraft()));
       this.initialCourseContentSnapshot.set('');
@@ -2197,9 +2223,13 @@ export class AppStateService {
         components: section.components.map((component) => ({
           ...component,
           content: component.content
+            .replace(/rich-attachment-card is-pending/g, 'rich-attachment-card')
+            .replace(new RegExp(`rich-attachment-asset-${escapedMarker}`, 'g'), `rich-attachment-asset-${attachment.assetId}`)
+            .replace(new RegExp(`id="rich-attachment-${escapedMarker}"`, 'g'), `id="rich-attachment-${attachment.assetId}"`)
             .replace(new RegExp(`data-attachment-id="${escapedMarker}"`, 'g'), `data-attachment-id="${attachment.assetId}"`)
             .replace(new RegExp(`data-attachment-pending="true"`, 'g'), 'data-attachment-pending="false"')
-            .replace(/<small>Uploading<\/small>/g, `<small>${this.formatAttachmentSize(attachment.sizeBytes)}</small>`)
+            .replace(/<small>(?:Uploading(?:\s+\d+%)?|Saving file\.\.\.)<\/small>/g, `<small>${this.formatAttachmentSize(attachment.sizeBytes)}</small>`)
+            .replace(/<span class="rich-attachment-progress"><span style="width:\s*\d+%;?"><\/span><\/span>/g, '')
             .replace(new RegExp(`data-attachment-download="${escapedMarker}"`, 'g'), `data-attachment-download="${attachment.assetId}"`)
             .replace(new RegExp(`data-attachment-remove="${escapedMarker}"`, 'g'), `data-attachment-remove="${attachment.assetId}"`),
         })),
@@ -2210,7 +2240,7 @@ export class AppStateService {
   private removeAttachmentMarker(content: CourseContentDocument, assetId: string): CourseContentDocument {
     const escapedAssetId = this.escapeRegExp(assetId);
     const attachmentPattern = new RegExp(
-      `<div[^>]*class="[^"]*rich-attachment-card[^"]*"[^>]*data-attachment-id="${escapedAssetId}"[\\s\\S]*?<\\/div>`,
+      `<div[^>]*(?:class="[^"]*rich-attachment-card[^"]*rich-attachment-asset-${escapedAssetId}[^"]*"|class="[^"]*rich-attachment-card[^"]*"[^>]*(?:data-attachment-id="${escapedAssetId}"|id="rich-attachment-${escapedAssetId}"))[^>]*[\\s\\S]*?<\\/div>`,
       'g',
     );
 
