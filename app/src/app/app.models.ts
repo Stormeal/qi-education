@@ -36,6 +36,14 @@ export type StudentSummary = {
   pathProgress: number;
 };
 
+export type UserProfileDetails = {
+  bio: string;
+  jobTitle: string;
+  company: string;
+  learningGoals: string;
+  avatarColor: string;
+};
+
 export type CourseSummary = {
   title: string;
   teacher: string;
