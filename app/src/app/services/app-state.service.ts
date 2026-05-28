@@ -5,7 +5,6 @@ import { filter } from 'rxjs';
 import * as UpChunk from '@mux/upchunk';
 import {
   CourseComponent,
-  CourseComponentAttachment,
   CourseComponentType,
   CourseCatalogMetadataDraft,
   CourseSection,
@@ -36,7 +35,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.31';
+  readonly appVersion = '0.1.32';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -834,7 +833,7 @@ export class AppStateService {
   }
 
   updateCourseComponentType(sectionIndex: number, componentIndex: number, value: string): void {
-    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component): CourseComponent => {
       const nextType = value as CourseComponentType;
 
       if (nextType === 'quiz') {
@@ -852,7 +851,7 @@ export class AppStateService {
           resourceUrl: '',
           attachments: [],
           quiz: component.type === 'quiz' ? component.quiz : this.createEmptyQuizContent(),
-        };
+        } as CourseComponent;
       }
 
       if (nextType === 'video') {
@@ -864,7 +863,7 @@ export class AppStateService {
           content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
           resourceUrl: component.resourceUrl,
           attachments: [],
-        };
+        } as CourseComponent;
       }
 
       if (nextType === 'resources') {
@@ -876,7 +875,7 @@ export class AppStateService {
           content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
           resourceUrl: '',
           attachments: component.type === 'resources' ? component.attachments : [],
-        };
+        } as CourseComponent;
       }
 
       return {
@@ -887,7 +886,7 @@ export class AppStateService {
         content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
         resourceUrl: '',
         attachments: component.type === 'text' ? component.attachments : [],
-      };
+      } as CourseComponent;
     });
   }
 
@@ -2186,7 +2185,7 @@ export class AppStateService {
 
   private replacePendingAttachmentMarker(
     content: CourseContentDocument,
-    attachment: CourseComponentAttachment,
+    attachment: CourseComponent['attachments'][number],
     markerId: string,
   ): CourseContentDocument {
     const escapedMarker = this.escapeRegExp(markerId);
