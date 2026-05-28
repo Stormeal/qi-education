@@ -42,6 +42,8 @@ export class CourseEditorPage {
   readonly muxUploadComponentId = input.required<string>();
   readonly muxUploadError = input.required<string>();
   readonly muxUploadProgress = input.required<Record<string, number>>();
+  readonly attachmentUploadComponentId = input.required<string>();
+  readonly attachmentUploadError = input.required<string>();
   readonly thumbnailUploading = input.required<boolean>();
   readonly thumbnailError = input.required<string>();
   readonly isFeedbackOpen = input.required<boolean>();
@@ -91,6 +93,12 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number; file: File }>();
   readonly courseComponentMuxVideoRemoved =
     output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentAttachmentSelected =
+    output<{ sectionIndex: number; componentIndex: number; file: File; markerId: string }>();
+  readonly courseComponentAttachmentRemoved =
+    output<{ sectionIndex: number; componentIndex: number; assetId: string }>();
+  readonly courseComponentAttachmentDownloaded =
+    output<{ sectionIndex: number; componentIndex: number; assetId: string; fileName: string }>();
   readonly courseComponentQuizQuestionChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
   readonly courseComponentQuizPointsChanged =

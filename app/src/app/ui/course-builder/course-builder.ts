@@ -1,4 +1,5 @@
 import { DOCUMENT } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
@@ -10,6 +11,29 @@ import {
   output,
   signal,
 } from '@angular/core';
+import {
+  lucideBold,
+  lucideCheck,
+  lucideChevronDown,
+  lucideChevronRight,
+  lucideCircleHelp,
+  lucideClock3,
+  lucideDownload,
+  lucideFileUp,
+  lucideFileText,
+  lucideGripVertical,
+  lucideItalic,
+  lucideLink,
+  lucideList,
+  lucidePackage,
+  lucidePlus,
+  lucideRedo2,
+  lucideTrash2,
+  lucideUnderline,
+  lucideUndo2,
+  lucideVideo,
+  lucideX,
+} from '@ng-icons/lucide';
 import '@mux/mux-player';
 import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
@@ -18,6 +42,14 @@ import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 type ComponentPickerState = {
   sectionIndex: number;
 } | null;
+
+type TextOutlineItem = {
+  id: string;
+  label: string;
+  level: number;
+  index: number;
+  children: TextOutlineItem[];
+};
 
 @Component({
   selector: 'app-course-builder',
@@ -29,13 +61,41 @@ type ComponentPickerState = {
 })
 export class CourseBuilder {
   private readonly document = inject(DOCUMENT);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly collapsedSections = new Set<number>();
   private editingSectionIndex: number | null = null;
   private scrollLockTop = 0;
   private expandedQuizQuestionIndex = signal(0);
   protected readonly activeEditor = signal<{ sectionIndex: number; componentIndex: number } | null>(null);
   protected readonly componentPicker = signal<ComponentPickerState>(null);
+  protected readonly richTextHtml = signal('');
+  protected readonly expandedOutlineIds = signal<string[]>([]);
+  protected readonly boldIcon = this.asSafeIcon(lucideBold);
+  protected readonly checkIcon = this.asSafeIcon(lucideCheck);
+  protected readonly chevronDownIcon = this.asSafeIcon(lucideChevronDown);
+  protected readonly chevronRightIcon = this.asSafeIcon(lucideChevronRight);
+  protected readonly circleHelpIcon = this.asSafeIcon(lucideCircleHelp);
+  protected readonly clockIcon = this.asSafeIcon(lucideClock3);
+  protected readonly listIcon = this.asSafeIcon(lucideList);
+  protected readonly fileTextIcon = this.asSafeIcon(lucideFileText);
+  protected readonly fileUpIcon = this.asSafeIcon(lucideFileUp);
+  protected readonly gripIcon = this.asSafeIcon(lucideGripVertical);
+  protected readonly italicIcon = this.asSafeIcon(lucideItalic);
+  protected readonly linkIcon = this.asSafeIcon(lucideLink);
+  protected readonly packageIcon = this.asSafeIcon(lucidePackage);
+  protected readonly plusIcon = this.asSafeIcon(lucidePlus);
+  protected readonly redoIcon = this.asSafeIcon(lucideRedo2);
+  protected readonly downloadIcon = this.asSafeIcon(lucideDownload);
+  protected readonly trashIcon = this.asSafeIcon(lucideTrash2);
+  protected readonly underlineIcon = this.asSafeIcon(lucideUnderline);
+  protected readonly undoIcon = this.asSafeIcon(lucideUndo2);
+  protected readonly videoIcon = this.asSafeIcon(lucideVideo);
+  protected readonly xIcon = this.asSafeIcon(lucideX);
+  private readonly downloadIconSvg = lucideDownload;
+  private readonly trashIconSvg = lucideTrash2;
   private dragSource: { sectionIndex: number; componentIndex: number } | null = null;
+  private richTextComponentId = '';
+  private richTextDraftHtml = '';
 
   readonly courseContent = input.required<CourseContentDocument | null>();
   readonly courseContentLoading = input.required<boolean>();
@@ -45,6 +105,8 @@ export class CourseBuilder {
   readonly muxUploadComponentId = input.required<string>();
   readonly muxUploadError = input.required<string>();
   readonly muxUploadProgress = input.required<Record<string, number>>();
+  readonly attachmentUploadComponentId = input.required<string>();
+  readonly attachmentUploadError = input.required<string>();
 
   readonly courseSectionAdded = output<void>();
   readonly courseSectionRemoved = output<number>();
@@ -65,6 +127,12 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; file: File }>();
   readonly courseComponentMuxVideoRemoved =
     output<{ sectionIndex: number; componentIndex: number }>();
+  readonly courseComponentAttachmentSelected =
+    output<{ sectionIndex: number; componentIndex: number; file: File; markerId: string }>();
+  readonly courseComponentAttachmentRemoved =
+    output<{ sectionIndex: number; componentIndex: number; assetId: string }>();
+  readonly courseComponentAttachmentDownloaded =
+    output<{ sectionIndex: number; componentIndex: number; assetId: string; fileName: string }>();
   readonly courseComponentQuizQuestionChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; value: string }>();
   readonly courseComponentQuizPointsChanged =
@@ -118,31 +186,55 @@ export class CourseBuilder {
       body.classList.toggle('builder-modal-open', modalOpen);
       root.classList.toggle('builder-modal-open', modalOpen);
     });
+
+    effect(() => {
+      const component = this.editingComponent();
+
+      if (component?.type !== 'text') {
+        this.richTextComponentId = '';
+        this.richTextDraftHtml = '';
+        this.richTextHtml.set('');
+        return;
+      }
+
+      if (this.richTextComponentId !== component.id) {
+        this.richTextComponentId = component.id;
+        this.richTextDraftHtml = this.renderRichContent(component.content);
+        this.richTextHtml.set(this.richTextDraftHtml);
+        this.expandedOutlineIds.set(this.textOutline(component).map((item) => item.id));
+      }
+    });
   }
 
   protected readonly componentChoices: Array<{
     type: CourseComponentType;
     title: string;
     subtitle: string;
-    icon: string;
+    icon: SafeHtml;
   }> = [
     {
       type: 'text',
       title: 'Text',
       subtitle: 'Reading material, notes, and written instructions',
-      icon: '≡',
+      icon: this.fileTextIcon,
     },
     {
       type: 'quiz',
       title: 'Quiz',
       subtitle: 'Knowledge checks, prompts, and assessment tasks',
-      icon: '✓',
+      icon: this.circleHelpIcon,
+    },
+    {
+      type: 'resources',
+      title: 'Resources',
+      subtitle: 'Downloadable files and supporting materials',
+      icon: this.packageIcon,
     },
     {
       type: 'video',
       title: 'Video',
       subtitle: 'Embedded lessons and supporting video resources',
-      icon: '▶',
+      icon: this.videoIcon,
     },
   ];
 
@@ -162,19 +254,23 @@ export class CourseBuilder {
         return 'Video';
       case 'quiz':
         return 'Quiz';
+      case 'resources':
+        return 'Resources';
       default:
         return 'Text';
     }
   }
 
-  protected componentTypeIconGlyph(component: CourseComponent): string {
+  protected componentTypeIcon(component: CourseComponent): SafeHtml {
     switch (component.type) {
       case 'video':
-        return '▶';
+        return this.videoIcon;
       case 'quiz':
-        return '✓';
+        return this.circleHelpIcon;
+      case 'resources':
+        return this.packageIcon;
       default:
-        return '≡';
+        return this.fileTextIcon;
     }
   }
 
@@ -194,6 +290,10 @@ export class CourseBuilder {
   }
 
   protected componentEditorLabel(component: CourseComponent): string {
+    if (component.type === 'resources') {
+      return 'Resource description';
+    }
+
     if (component.type === 'quiz') {
       return 'Quiz notes';
     }
@@ -207,6 +307,76 @@ export class CourseBuilder {
 
   protected hasSupportingUrl(component: CourseComponent): boolean {
     return component.type === 'video';
+  }
+
+  protected hasAttachmentPanel(component: CourseComponent): boolean {
+    return component.type === 'text' || component.type === 'resources';
+  }
+
+  protected attachmentAccept(component: CourseComponent): string {
+    return component.type === 'resources'
+      ? '.zip,.ppt,.pptx,image/*'
+      : '.pdf,.txt,.doc,.docx,.ppt,.pptx,image/*';
+  }
+
+  protected attachmentInputId(component: CourseComponent): string {
+    return `component-attachment-${component.id}`;
+  }
+
+  protected attachmentPanelTitle(component: CourseComponent): string {
+    return component.type === 'resources' ? 'Resource files' : 'Linked documentation';
+  }
+
+  protected attachmentPanelDescription(component: CourseComponent): string {
+    return component.type === 'resources'
+      ? 'Upload ZIP files, PowerPoint decks, and images for enrolled students.'
+      : 'Upload documents, PDFs, images, and PowerPoint decks for enrolled students.';
+  }
+
+  protected attachmentUploadLabel(component: CourseComponent): string {
+    return this.attachmentUploadComponentId() === component.id
+      ? 'Uploading...'
+      : component.type === 'resources'
+        ? 'Upload resource'
+        : 'Upload documentation';
+  }
+
+  protected attachmentFileSelected(
+    event: Event,
+    sectionIndex: number,
+    componentIndex: number,
+    component: CourseComponent,
+  ): void {
+    const inputElement = event.target;
+
+    if (!(inputElement instanceof HTMLInputElement) || !inputElement.files?.[0]) {
+      return;
+    }
+
+    const markerId = `pending-${Math.random().toString(36).slice(2, 10)}`;
+    if (component.type === 'text') {
+      this.insertPendingAttachmentCard(inputElement.files[0], markerId);
+      this.richTextBlur(sectionIndex, componentIndex);
+    }
+    this.courseComponentAttachmentSelected.emit({
+      sectionIndex,
+      componentIndex,
+      file: inputElement.files[0],
+      markerId,
+    });
+    inputElement.value = '';
+  }
+
+  protected removeAttachment(sectionIndex: number, componentIndex: number, assetId: string): void {
+    this.courseComponentAttachmentRemoved.emit({ sectionIndex, componentIndex, assetId });
+  }
+
+  protected formatFileSize(sizeBytes: number): string {
+    if (sizeBytes < 1024 * 1024) {
+      return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+    }
+
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   protected muxStatusLabel(component: CourseComponent): string {
@@ -286,6 +456,266 @@ export class CourseBuilder {
 
   protected isQuizComponent(component: CourseComponent): component is Extract<CourseComponent, { type: 'quiz' }> {
     return component.type === 'quiz';
+  }
+
+  protected isTextComponent(component: CourseComponent): component is Extract<CourseComponent, { type: 'text' }> {
+    return component.type === 'text';
+  }
+
+  protected textOutline(component: CourseComponent): TextOutlineItem[] {
+    if (component.type !== 'text') {
+      return [];
+    }
+
+    const container = this.document.createElement('div');
+    container.innerHTML = this.richTextComponentId === component.id
+      ? this.richTextDraftHtml || this.richTextHtml()
+      : this.renderRichContent(component.content);
+
+    const flatItems = Array.from(container.querySelectorAll('h1, h2, h3'))
+      .map((heading, index): TextOutlineItem => ({
+        id: `heading-${index}`,
+        label: heading.textContent?.trim() || `Section ${index + 1}`,
+        level: Number(heading.tagName.slice(1)),
+        index,
+        children: [],
+      }))
+      .slice(0, 24);
+    const sections: TextOutlineItem[] = [];
+    let currentSection: TextOutlineItem | null = null;
+
+    for (const item of flatItems) {
+      if (item.level === 1 || !currentSection) {
+        currentSection = item.level === 1 ? item : { ...item, level: 1 };
+        sections.push(currentSection);
+      } else {
+        currentSection.children.push(item);
+      }
+    }
+
+    return sections;
+  }
+
+  protected isOutlineExpanded(itemId: string): boolean {
+    return this.expandedOutlineIds().includes(itemId);
+  }
+
+  protected toggleOutline(itemId: string): void {
+    this.expandedOutlineIds.update((ids) =>
+      ids.includes(itemId) ? ids.filter((id) => id !== itemId) : [...ids, itemId],
+    );
+  }
+
+  protected focusTextHeading(index: number): void {
+    const editor = this.document.querySelector('.rich-text-editor');
+    const heading = editor?.querySelectorAll('h1, h2, h3').item(index);
+
+    if (heading instanceof HTMLElement) {
+      heading.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  protected richTextEdited(event: Event): void {
+    const editor = event.target;
+
+    if (editor instanceof HTMLElement) {
+      this.richTextDraftHtml = editor.innerHTML;
+    }
+  }
+
+  protected richTextBlur(sectionIndex: number, componentIndex: number): void {
+    const editor = this.document.querySelector('.rich-text-editor');
+    if (editor instanceof HTMLElement) {
+      this.richTextDraftHtml = editor.innerHTML;
+    }
+
+    this.courseComponentContentChanged.emit({
+      sectionIndex,
+      componentIndex,
+      value: this.normalizeRichTextHtml(this.richTextDraftHtml || this.richTextHtml()),
+    });
+  }
+
+  protected richTextKeydown(event: KeyboardEvent, sectionIndex: number, componentIndex: number): void {
+    if (event.key !== 'Enter' || event.shiftKey || !this.isSelectionInsideHeading()) {
+      return;
+    }
+
+    this.document.defaultView?.setTimeout(() => {
+      const editor = this.document.querySelector('.rich-text-editor');
+
+      if (!(editor instanceof HTMLElement)) {
+        return;
+      }
+
+      editor.focus();
+      this.document.execCommand('formatBlock', false, 'p');
+      this.richTextDraftHtml = editor.innerHTML;
+      this.richTextBlur(sectionIndex, componentIndex);
+    }, 0);
+  }
+
+  protected richTextClicked(event: MouseEvent, sectionIndex: number, componentIndex: number): void {
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const removeButton = target.closest<HTMLButtonElement>('[data-attachment-remove]');
+    const downloadButton = target.closest<HTMLButtonElement>('[data-attachment-download]');
+
+    if (downloadButton) {
+      const assetId = downloadButton.dataset['attachmentDownload'];
+      const fileName =
+        downloadButton.closest('.rich-attachment-card')?.querySelector('strong')?.textContent?.trim() ||
+        'attachment';
+
+      event.preventDefault();
+      if (assetId && !assetId.startsWith('pending-')) {
+        this.courseComponentAttachmentDownloaded.emit({
+          sectionIndex,
+          componentIndex,
+          assetId,
+          fileName,
+        });
+      }
+      return;
+    }
+
+    if (removeButton) {
+      const assetId = removeButton.dataset['attachmentRemove'];
+
+      if (assetId) {
+        event.preventDefault();
+        removeButton.closest('.rich-attachment-card')?.remove();
+        const editor = this.document.querySelector('.rich-text-editor');
+        if (editor instanceof HTMLElement) {
+          this.richTextDraftHtml = editor.innerHTML;
+          this.richTextBlur(sectionIndex, componentIndex);
+        }
+        this.removeAttachment(sectionIndex, componentIndex, assetId);
+      }
+    }
+  }
+
+  protected preventToolbarMouseDown(event: MouseEvent): void {
+    event.preventDefault();
+  }
+
+  protected executeRichTextCommand(
+    command: string,
+    sectionIndex: number,
+    componentIndex: number,
+    value?: string,
+  ): void {
+    const editor = this.document.querySelector('.rich-text-editor');
+
+    if (!(editor instanceof HTMLElement)) {
+      return;
+    }
+
+    editor.focus();
+
+    if (command === 'createLink') {
+      const url = this.document.defaultView?.prompt('Link URL', 'https://');
+
+      if (!url?.trim()) {
+        return;
+      }
+
+      this.document.execCommand(command, false, url.trim());
+    } else {
+      this.document.execCommand(command, false, value);
+    }
+
+    this.richTextDraftHtml = editor.innerHTML;
+    this.richTextBlur(sectionIndex, componentIndex);
+  }
+
+  protected selectDocumentationFile(component: CourseComponent): void {
+    const input = this.document.getElementById(this.attachmentInputId(component));
+
+    if (input instanceof HTMLInputElement) {
+      input.click();
+    }
+  }
+
+  protected insertUnorderedList(sectionIndex: number, componentIndex: number): void {
+    this.executeRichTextCommand('insertUnorderedList', sectionIndex, componentIndex);
+  }
+
+  protected insertPendingAttachmentCard(file: File, markerId: string): void {
+    const editor = this.document.querySelector('.rich-text-editor');
+
+    if (!(editor instanceof HTMLElement)) {
+      return;
+    }
+
+    editor.focus();
+    this.document.execCommand(
+      'insertHTML',
+      false,
+      this.attachmentCardHtml({
+        assetId: markerId,
+        fileName: file.name,
+        sizeBytes: file.size,
+        pending: true,
+      }),
+    );
+    this.richTextDraftHtml = editor.innerHTML;
+  }
+
+  private isSelectionInsideHeading(): boolean {
+    const selection = this.document.defaultView?.getSelection();
+    const anchorNode = selection?.anchorNode;
+    const anchorElement =
+      anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement ?? null;
+
+    return !!anchorElement?.closest('h1, h2, h3');
+  }
+
+  private renderRichContent(content: string): string {
+    return this.looksLikeHtml(content) ? content : this.renderMarkdown(content);
+  }
+
+  private looksLikeHtml(content: string): boolean {
+    return /<\/?[a-z][\s\S]*>/i.test(content);
+  }
+
+  private normalizeRichTextHtml(html: string): string {
+    const container = this.document.createElement('div');
+    container.innerHTML = html;
+
+    for (const pending of Array.from(container.querySelectorAll('[data-attachment-pending="true"]'))) {
+      pending.removeAttribute('data-attachment-pending');
+    }
+
+    return container.innerHTML.trim();
+  }
+
+  private attachmentCardHtml(input: {
+    assetId: string;
+    fileName: string;
+    sizeBytes: number;
+    pending: boolean;
+  }): string {
+    return `
+      <div class="rich-attachment-card${input.pending ? ' is-pending' : ''}" contenteditable="false" data-attachment-id="${this.escapeHtml(input.assetId)}" data-attachment-pending="${input.pending ? 'true' : 'false'}">
+        <span>
+          <strong>${this.escapeHtml(input.fileName)}</strong>
+          <small>${input.pending ? 'Uploading' : this.formatFileSize(input.sizeBytes)}</small>
+        </span>
+        <span class="rich-attachment-actions">
+          <button type="button" data-attachment-download="${this.escapeHtml(input.assetId)}" aria-label="Download ${this.escapeHtml(input.fileName)}" ${input.pending ? 'disabled' : ''}>${this.downloadIconSvg}</button>
+          <button type="button" data-attachment-remove="${this.escapeHtml(input.assetId)}" aria-label="Remove ${this.escapeHtml(input.fileName)}" ${input.pending ? 'disabled' : ''}>${this.trashIconSvg}</button>
+        </span>
+      </div>
+    `;
+  }
+
+  private asSafeIcon(svg: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(svg);
   }
 
   protected quizMetaSummary(component: CourseComponent): string | null {
@@ -545,5 +975,117 @@ export class CourseBuilder {
       answerIndex,
       value,
     });
+  }
+
+  protected renderMarkdown(markdown: string): string {
+    const lines = markdown.split(/\r?\n/);
+    const html: string[] = [];
+    let listItems: string[] = [];
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        html.push(`<ul>${listItems.join('')}</ul>`);
+        listItems = [];
+      }
+    };
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        flushList();
+        continue;
+      }
+
+      const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        flushList();
+        const level = heading[1].length;
+        html.push(`<h${level}>${this.renderInlineMarkdown(heading[2])}</h${level}>`);
+        continue;
+      }
+
+      const listItem = trimmed.match(/^[-*]\s+(.+)$/);
+      if (listItem) {
+        listItems.push(`<li>${this.renderInlineMarkdown(listItem[1])}</li>`);
+        continue;
+      }
+
+      flushList();
+      html.push(`<p>${this.renderInlineMarkdown(trimmed)}</p>`);
+    }
+
+    flushList();
+    return html.join('');
+  }
+
+  private renderInlineMarkdown(value: string): string {
+    return this.escapeHtml(value)
+      .replace(/\[([^\]]+)]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+      .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+
+  private htmlToMarkdown(html: string): string {
+    const container = this.document.createElement('div');
+    container.innerHTML = html;
+
+    return Array.from(container.childNodes)
+      .map((node) => this.nodeToMarkdown(node).trim())
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
+  }
+
+  private nodeToMarkdown(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent ?? '';
+    }
+
+    if (!(node instanceof HTMLElement)) {
+      return '';
+    }
+
+    const children = Array.from(node.childNodes).map((child) => this.nodeToMarkdown(child)).join('');
+
+    switch (node.tagName.toLowerCase()) {
+      case 'h1':
+        return `# ${children}`;
+      case 'h2':
+        return `## ${children}`;
+      case 'h3':
+        return `### ${children}`;
+      case 'strong':
+      case 'b':
+        return `**${children}**`;
+      case 'em':
+      case 'i':
+        return `*${children}*`;
+      case 'u':
+        return `++${children}++`;
+      case 'a':
+        return `[${children}](${node.getAttribute('href') ?? ''})`;
+      case 'li':
+        return `- ${children}`;
+      case 'ul':
+        return Array.from(node.children).map((child) => this.nodeToMarkdown(child)).join('\n');
+      case 'br':
+        return '\n';
+      case 'div':
+      case 'p':
+        return children;
+      default:
+        return children;
+    }
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }

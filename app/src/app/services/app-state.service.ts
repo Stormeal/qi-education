@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import * as UpChunk from '@mux/upchunk';
 import {
   CourseComponent,
+  CourseComponentAttachment,
   CourseComponentType,
   CourseCatalogMetadataDraft,
   CourseSection,
@@ -35,7 +36,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.29';
+  readonly appVersion = '0.1.31';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -75,6 +76,8 @@ export class AppStateService {
   readonly muxUploadComponentId = signal('');
   readonly muxUploadError = signal('');
   readonly muxUploadProgress = signal<Record<string, number>>({});
+  readonly attachmentUploadComponentId = signal('');
+  readonly attachmentUploadError = signal('');
   readonly coursePriceSaving = signal(false);
   readonly coursePriceNotice = signal('');
   readonly coursePriceNoticeError = signal(false);
@@ -280,6 +283,7 @@ export class AppStateService {
   private courseSaveNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private coursePriceNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private courseCatalogNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
+  private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
   readonly recommendedCourses = computed(() =>
     this.courses().filter((course) => course.status === 'Recommended'),
@@ -464,6 +468,8 @@ export class AppStateService {
     this.muxUploadComponentId.set('');
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
+    this.attachmentUploadComponentId.set('');
+    this.attachmentUploadError.set('');
     this.courseThumbnailUploading.set(false);
     this.courseThumbnailError.set('');
     this.courseEnrollmentError.set('');
@@ -608,6 +614,8 @@ export class AppStateService {
     this.muxUploadComponentId.set('');
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
+    this.attachmentUploadComponentId.set('');
+    this.attachmentUploadError.set('');
     this.courseThumbnailUploading.set(false);
     this.courseThumbnailError.set('');
     this.courseContent.set(null);
@@ -660,6 +668,8 @@ export class AppStateService {
     this.muxUploadComponentId.set('');
     this.muxUploadError.set('');
     this.muxUploadProgress.set({});
+    this.attachmentUploadComponentId.set('');
+    this.attachmentUploadError.set('');
     this.courseThumbnailUploading.set(false);
     this.courseThumbnailError.set('');
     this.courseContent.set(null);
@@ -840,6 +850,7 @@ export class AppStateService {
           durationMinutes: component.durationMinutes,
           content: quizQuestion,
           resourceUrl: '',
+          attachments: [],
           quiz: component.type === 'quiz' ? component.quiz : this.createEmptyQuizContent(),
         };
       }
@@ -852,6 +863,19 @@ export class AppStateService {
           durationMinutes: component.durationMinutes,
           content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
           resourceUrl: component.resourceUrl,
+          attachments: [],
+        };
+      }
+
+      if (nextType === 'resources') {
+        return {
+          id: component.id,
+          title: component.title,
+          type: 'resources',
+          durationMinutes: component.durationMinutes,
+          content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
+          resourceUrl: '',
+          attachments: component.type === 'resources' ? component.attachments : [],
         };
       }
 
@@ -862,6 +886,7 @@ export class AppStateService {
         durationMinutes: component.durationMinutes,
         content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
         resourceUrl: '',
+        attachments: component.type === 'text' ? component.attachments : [],
       };
     });
   }
@@ -886,6 +911,202 @@ export class AppStateService {
       ...component,
       resourceUrl: value,
     }));
+  }
+
+  async uploadCourseComponentAttachment(
+    sectionIndex: number,
+    componentIndex: number,
+    file: File,
+    markerId: string,
+  ): Promise<void> {
+    if (this.attachmentUploadComponentId()) {
+      return;
+    }
+
+    const token = this.loginState()?.token;
+    const courseId = this.courseEditingId();
+    const content = this.courseContent();
+    const section = content?.sections[sectionIndex];
+    const component = section?.components[componentIndex];
+
+    if (!token) {
+      this.attachmentUploadError.set('Please log in again before uploading attachments.');
+      return;
+    }
+
+    if (!courseId || !content || !section || !component) {
+      this.attachmentUploadError.set('Save the course before uploading attachments.');
+      return;
+    }
+
+    if (component.type !== 'text' && component.type !== 'resources') {
+      this.attachmentUploadError.set('Attachments are available for text and resources components.');
+      return;
+    }
+
+    if (!this.isAllowedComponentAttachment(component.type, file)) {
+      this.attachmentUploadError.set(
+        component.type === 'text'
+          ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'
+          : 'Resources supports ZIP files, PowerPoint files, and images.',
+      );
+      return;
+    }
+
+    if (file.size > 25 * 1024 * 1024) {
+      this.attachmentUploadError.set('Attachments must be 25 MB or smaller.');
+      return;
+    }
+
+    this.attachmentUploadComponentId.set(component.id);
+    this.attachmentUploadError.set('');
+
+    try {
+      if (this.serializeCourseContent(content) !== this.initialCourseContentSnapshot()) {
+        this.courseContentSaving.set(true);
+        const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
+
+        if (!saveResult.ok) {
+          this.courseContentError.set(saveResult.message);
+          this.attachmentUploadError.set(saveResult.message);
+          return;
+        }
+
+        const savedContent = this.normalizeCourseContent(saveResult.content);
+        this.courseContent.set(savedContent);
+        this.loadedCourseContentId.set(savedContent._id);
+        this.initialCourseContentSnapshot.set(this.serializeCourseContent(savedContent));
+      }
+
+      const result = await this.courseService.uploadComponentAttachment(
+        courseId,
+        section.id,
+        component.id,
+        file,
+        token,
+      );
+
+      if (!result.ok) {
+        this.attachmentUploadError.set(result.message);
+        return;
+      }
+
+      const updatedContent = this.replacePendingAttachmentMarker(
+        this.normalizeCourseContent(result.content),
+        result.attachment,
+        markerId,
+      );
+      const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token);
+
+      if (!saveResult.ok) {
+        this.attachmentUploadError.set(saveResult.message);
+        return;
+      }
+
+      const finalContent = this.normalizeCourseContent(saveResult.content);
+      this.courseContent.set(finalContent);
+      this.loadedCourseContentId.set(finalContent._id);
+      this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
+    } catch {
+      this.attachmentUploadError.set('Unable to upload the attachment. Please try again.');
+    } finally {
+      this.courseContentSaving.set(false);
+      this.attachmentUploadComponentId.set('');
+    }
+  }
+
+  async removeCourseComponentAttachment(
+    sectionIndex: number,
+    componentIndex: number,
+    assetId: string,
+  ): Promise<void> {
+    if (this.attachmentUploadComponentId()) {
+      return;
+    }
+
+    const token = this.loginState()?.token;
+    const courseId = this.courseEditingId();
+    const content = this.courseContent();
+    const section = content?.sections[sectionIndex];
+    const component = section?.components[componentIndex];
+
+    if (!token || !courseId || !section || !component) {
+      this.attachmentUploadError.set('Select a saved component before removing attachments.');
+      return;
+    }
+
+    this.attachmentUploadComponentId.set(component.id);
+    this.attachmentUploadError.set('');
+
+    try {
+      const result = await this.courseService.removeComponentAttachment(
+        courseId,
+        section.id,
+        component.id,
+        assetId,
+        token,
+      );
+
+      if (!result.ok) {
+        this.attachmentUploadError.set(result.message);
+        return;
+      }
+
+      const updatedContent = this.removeAttachmentMarker(this.normalizeCourseContent(result.content), assetId);
+      const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token);
+
+      if (!saveResult.ok) {
+        this.attachmentUploadError.set(saveResult.message);
+        return;
+      }
+
+      const finalContent = this.normalizeCourseContent(saveResult.content);
+      this.courseContent.set(finalContent);
+      this.loadedCourseContentId.set(finalContent._id);
+      this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
+    } catch {
+      this.attachmentUploadError.set('Unable to remove the attachment. Please try again.');
+    } finally {
+      this.attachmentUploadComponentId.set('');
+    }
+  }
+
+  async downloadCourseComponentAttachment(
+    sectionIndex: number,
+    componentIndex: number,
+    assetId: string,
+    fileName: string,
+  ): Promise<void> {
+    const token = this.loginState()?.token;
+    const courseId = this.courseEditingId();
+    const content = this.courseContent();
+    const component = content?.sections[sectionIndex]?.components[componentIndex];
+    const attachment = component?.attachments.find((item) => item.assetId === assetId);
+
+    if (!token || !courseId || !component) {
+      this.attachmentUploadError.set('Select a saved component before downloading attachments.');
+      return;
+    }
+
+    this.attachmentUploadError.set('');
+
+    try {
+      const result = await this.courseService.downloadComponentAttachment(courseId, assetId, token);
+
+      if (!result.ok) {
+        this.attachmentUploadError.set(result.message);
+        return;
+      }
+
+      const url = URL.createObjectURL(result.blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment?.fileName || fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      this.attachmentUploadError.set('Unable to download the attachment. Please try again.');
+    }
   }
 
   async uploadCourseComponentMuxVideo(
@@ -1612,7 +1833,9 @@ export class AppStateService {
     this.coursesError.set('');
 
     try {
-      this.availableCourses.set(await this.courseService.listCourses());
+      const courses = await this.loadCourseCatalog();
+      this.availableCourses.set(courses);
+      this.courseService.warmCourseThumbnailCache(courses);
       this.syncCourseEditorDraftFromPath(true);
       await this.loadCourseContentWhenNeeded();
     } catch (error) {
@@ -1622,6 +1845,18 @@ export class AppStateService {
     } finally {
       this.coursesLoading.set(false);
     }
+  }
+
+  private async loadCourseCatalog(): Promise<CourseListItem[]> {
+    if (!this.courseCatalogLoadPromise) {
+      this.courseCatalogLoadPromise = this.courseService
+        .listCourses()
+        .finally(() => {
+          this.courseCatalogLoadPromise = null;
+        });
+    }
+
+    return this.courseCatalogLoadPromise;
   }
 
   private async loadCourseContentWhenNeeded(): Promise<void> {
@@ -1754,6 +1989,8 @@ export class AppStateService {
       this.loadedCourseContentId.set(null);
       this.courseThumbnailUploading.set(false);
       this.courseThumbnailError.set('');
+      this.attachmentUploadComponentId.set('');
+      this.attachmentUploadError.set('');
       this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.createCourseDraft()));
       this.initialCourseContentSnapshot.set('');
       this.courseDraft.set(this.createCourseDraft());
@@ -1947,6 +2184,61 @@ export class AppStateService {
     });
   }
 
+  private replacePendingAttachmentMarker(
+    content: CourseContentDocument,
+    attachment: CourseComponentAttachment,
+    markerId: string,
+  ): CourseContentDocument {
+    const escapedMarker = this.escapeRegExp(markerId);
+
+    return {
+      ...content,
+      sections: content.sections.map((section) => ({
+        ...section,
+        components: section.components.map((component) => ({
+          ...component,
+          content: component.content
+            .replace(new RegExp(`data-attachment-id="${escapedMarker}"`, 'g'), `data-attachment-id="${attachment.assetId}"`)
+            .replace(new RegExp(`data-attachment-pending="true"`, 'g'), 'data-attachment-pending="false"')
+            .replace(/<small>Uploading<\/small>/g, `<small>${this.formatAttachmentSize(attachment.sizeBytes)}</small>`)
+            .replace(new RegExp(`data-attachment-download="${escapedMarker}"`, 'g'), `data-attachment-download="${attachment.assetId}"`)
+            .replace(new RegExp(`data-attachment-remove="${escapedMarker}"`, 'g'), `data-attachment-remove="${attachment.assetId}"`),
+        })),
+      })),
+    };
+  }
+
+  private removeAttachmentMarker(content: CourseContentDocument, assetId: string): CourseContentDocument {
+    const escapedAssetId = this.escapeRegExp(assetId);
+    const attachmentPattern = new RegExp(
+      `<div[^>]*class="[^"]*rich-attachment-card[^"]*"[^>]*data-attachment-id="${escapedAssetId}"[\\s\\S]*?<\\/div>`,
+      'g',
+    );
+
+    return {
+      ...content,
+      sections: content.sections.map((section) => ({
+        ...section,
+        components: section.components.map((component) => ({
+          ...component,
+          content: component.content.replace(attachmentPattern, ''),
+        })),
+      })),
+    };
+  }
+
+  private formatAttachmentSize(sizeBytes: number): string {
+    if (sizeBytes < 1024 * 1024) {
+      return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+    }
+
+    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   private uploadFileToMux(
     uploadUrl: string,
     file: File,
@@ -2025,6 +2317,7 @@ export class AppStateService {
       durationMinutes: 0,
       content: '',
       resourceUrl: '',
+      attachments: [],
     };
 
     switch (type) {
@@ -2039,6 +2332,12 @@ export class AppStateService {
         return {
           ...base,
           type: 'video',
+        };
+      case 'resources':
+        return {
+          ...base,
+          type: 'resources',
+          title: `Resources ${componentNumber}`,
         };
       default:
         return {
@@ -2080,6 +2379,37 @@ export class AppStateService {
 
   private primaryQuizQuestionText(quiz: QuizComponentContent): string {
     return quiz.questions[0]?.question?.trim() || '';
+  }
+
+  private isAllowedComponentAttachment(type: CourseComponentType, file: File): boolean {
+    const contentType = file.type.toLowerCase();
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    const isImage =
+      contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
+    const isPowerPoint =
+      [
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      ].includes(contentType) || ['ppt', 'pptx'].includes(extension);
+
+    if (type === 'resources') {
+      return (
+        isImage ||
+        isPowerPoint ||
+        ['application/zip', 'application/x-zip-compressed'].includes(contentType) ||
+        extension === 'zip'
+      );
+    }
+
+    return (
+      isImage ||
+      isPowerPoint ||
+      contentType === 'application/pdf' ||
+      contentType === 'text/plain' ||
+      contentType === 'application/msword' ||
+      contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      ['pdf', 'txt', 'doc', 'docx'].includes(extension)
+    );
   }
 
   private serializeCourseDraft(draft: CourseCreateDraft): string {
@@ -2124,16 +2454,21 @@ export class AppStateService {
       sections: content.sections.map((section) => ({
         ...section,
         components: section.components.map((component) => {
+          const componentWithAttachments = {
+            ...component,
+            attachments: Array.isArray(component.attachments) ? component.attachments : [],
+          };
+
           if (component.type !== 'quiz') {
-            return component;
+            return componentWithAttachments;
           }
 
-          const existingQuiz = 'quiz' in component ? component.quiz : undefined;
+          const existingQuiz = 'quiz' in componentWithAttachments ? componentWithAttachments.quiz : undefined;
           const fallbackQuiz = this.createEmptyQuizContent();
           const legacyQuestion =
             existingQuiz && 'question' in existingQuiz && typeof existingQuiz.question === 'string'
               ? existingQuiz.question
-              : component.content;
+              : componentWithAttachments.content;
           const legacyPoints =
             existingQuiz && 'points' in existingQuiz && typeof existingQuiz.points === 'number'
               ? existingQuiz.points
@@ -2160,10 +2495,11 @@ export class AppStateService {
 
           return {
             ...component,
+            attachments: componentWithAttachments.attachments,
             content:
               questionsSource[0]?.question && typeof questionsSource[0].question === 'string'
                 ? questionsSource[0].question
-                : component.content,
+                : componentWithAttachments.content,
             quiz: {
               passPoints:
                 existingQuiz?.passPoints && existingQuiz.passPoints > 0 ? existingQuiz.passPoints : 1,

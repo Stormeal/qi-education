@@ -12,7 +12,7 @@
       [disabled]="courseContentSaving() || courseSubmitting()"
       (click)="courseSectionAdded.emit()"
     >
-      <span class="inline-icon" aria-hidden="true">+</span>
+      <span class="inline-icon" aria-hidden="true" [innerHTML]="plusIcon"></span>
     </button>
   </div>
 
@@ -28,7 +28,7 @@
               [class.is-collapsed]="isSectionCollapsed(sectionIndex)"
               (click)="toggleSection(sectionIndex)"
             >
-              <span class="chevron-icon" aria-hidden="true"></span>
+              <span class="inline-icon" aria-hidden="true" [innerHTML]="chevronDownIcon"></span>
             </button>
             <span class="builder-section-index">{{ sectionIndex + 1 }}</span>
             <span
@@ -47,7 +47,7 @@
 
           <div class="builder-section-meta">
             <span class="builder-duration-chip">
-              <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
+              <span class="inline-icon inline-icon-muted" aria-hidden="true" [innerHTML]="clockIcon"></span>
               <span>{{ sectionDuration(sectionIndex) }}</span>
             </span>
             <button
@@ -57,7 +57,7 @@
               [disabled]="courseContentSaving() || courseSubmitting()"
               (click)="courseSectionRemoved.emit(sectionIndex)"
             >
-              <span class="inline-icon" aria-hidden="true">×</span>
+              <span class="inline-icon" aria-hidden="true" [innerHTML]="xIcon"></span>
             </button>
           </div>
         </div>
@@ -74,7 +74,7 @@
                 (dragend)="dragComponentEnded()"
               >
                 <button type="button" class="drag-handle" aria-label="Drag component">
-                  <span class="inline-icon" aria-hidden="true">⋮⋮</span>
+                  <span class="inline-icon" aria-hidden="true" [innerHTML]="gripIcon"></span>
                 </button>
 
                 <span
@@ -82,7 +82,7 @@
                   [class]="componentTypeClass(component)"
                   aria-hidden="true"
                 >
-                  <span class="inline-icon" aria-hidden="true">{{ componentTypeIconGlyph(component) }}</span>
+                  <span class="inline-icon" aria-hidden="true" [innerHTML]="componentTypeIcon(component)"></span>
                 </span>
 
                 <div class="builder-component-copy">
@@ -91,7 +91,7 @@
                 </div>
 
                 <div class="builder-component-duration">
-                  <span class="inline-icon inline-icon-muted" aria-hidden="true">◷</span>
+                  <span class="inline-icon inline-icon-muted" aria-hidden="true" [innerHTML]="clockIcon"></span>
                   <span>{{ formatDuration(component) }}</span>
                 </div>
 
@@ -122,7 +122,8 @@
             [disabled]="courseContentSaving() || courseSubmitting()"
             (click)="openComponentPicker(sectionIndex)"
           >
-            + Add New Component
+            <span class="inline-icon" aria-hidden="true" [innerHTML]="plusIcon"></span>
+            Add New Component
           </button>
         }
       </article>
@@ -157,7 +158,7 @@
           [disabled]="courseContentSaving() || courseSubmitting()"
           (click)="closeComponentEditor()"
         >
-          <span class="inline-icon" aria-hidden="true">×</span>
+          <span class="inline-icon" aria-hidden="true" [innerHTML]="xIcon"></span>
         </button>
       </header>
 
@@ -187,6 +188,7 @@
                 <option value="video">Video</option>
                 <option value="quiz">Quiz</option>
                 <option value="text">Text</option>
+                <option value="resources">Resources</option>
               </select>
             </label>
 
@@ -249,7 +251,7 @@
                           [disabled]="courseContentSaving() || courseSubmitting()"
                           (click)="removeQuizQuestion(editor.sectionIndex, editor.componentIndex, questionIndex)"
                         >
-                          <span aria-hidden="true">×</span>
+                          <span class="inline-icon" aria-hidden="true" [innerHTML]="xIcon"></span>
                         </button>
                       }
                     </div>
@@ -408,7 +410,109 @@
             </label>
           }
 
-          @if (!isQuizComponent(component)) {
+          @if (isTextComponent(component)) {
+            <section class="rich-text-shell">
+              <aside class="rich-text-outline" aria-label="Text structure">
+                @for (item of textOutline(component); track item.id) {
+                  <div class="outline-group">
+                    <button
+                      type="button"
+                      class="outline-heading outline-heading-one"
+                      [class.is-expanded]="isOutlineExpanded(item.id)"
+                      (click)="toggleOutline(item.id)"
+                    >
+                      <span (click)="$event.stopPropagation(); focusTextHeading(item.index)">{{ item.label }}</span>
+                      <span class="inline-icon" aria-hidden="true" [innerHTML]="chevronDownIcon"></span>
+                    </button>
+
+                    @if (isOutlineExpanded(item.id)) {
+                      <div class="outline-children">
+                        @for (child of item.children; track child.id) {
+                          <button
+                            type="button"
+                            class="outline-heading outline-heading-child"
+                            [class.is-level-three]="child.level > 2"
+                            (click)="focusTextHeading(child.index)"
+                          >
+                            {{ child.label }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                } @empty {
+                  <span>No headings yet</span>
+                }
+              </aside>
+
+              <div class="rich-text-workspace">
+                <div class="rich-text-toolbar" aria-label="Text formatting">
+                  <button type="button" title="Undo" aria-label="Undo" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('undo', editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="undoIcon"></span>
+                  </button>
+                  <button type="button" title="Redo" aria-label="Redo" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('redo', editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="redoIcon"></span>
+                  </button>
+                  <select
+                    aria-label="Text style"
+                    (change)="executeRichTextCommand('formatBlock', editor.sectionIndex, editor.componentIndex, controlValue($event))"
+                  >
+                    <option value="<p>">Text</option>
+                    <option value="<h1>">Heading 1</option>
+                    <option value="<h2>">Heading 2</option>
+                    <option value="<h3>">Heading 3</option>
+                  </select>
+                  <select
+                    aria-label="Font"
+                    (change)="executeRichTextCommand('fontName', editor.sectionIndex, editor.componentIndex, controlValue($event))"
+                  >
+                    <option value="inherit">Default</option>
+                    <option value="Georgia">Serif</option>
+                    <option value="Verdana">Sans</option>
+                    <option value="Courier New">Mono</option>
+                  </select>
+                  <button type="button" title="Bold" aria-label="Bold" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('bold', editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="boldIcon"></span>
+                  </button>
+                  <button type="button" title="Italic" aria-label="Italic" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('italic', editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="italicIcon"></span>
+                  </button>
+                  <button type="button" title="Underline" aria-label="Underline" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('underline', editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="underlineIcon"></span>
+                  </button>
+                  <button type="button" title="Bulleted list" aria-label="Bulleted list" (mousedown)="preventToolbarMouseDown($event)" (click)="insertUnorderedList(editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="listIcon"></span>
+                  </button>
+                  <button type="button" title="Link" aria-label="Link" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('createLink', editor.sectionIndex, editor.componentIndex)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="linkIcon"></span>
+                  </button>
+                  <button type="button" title="Upload documentation" aria-label="Upload documentation" (mousedown)="preventToolbarMouseDown($event)" (click)="selectDocumentationFile(component)">
+                    <span class="inline-icon" aria-hidden="true" [innerHTML]="fileUpIcon"></span>
+                  </button>
+                  <input
+                    class="mux-file-input"
+                    type="file"
+                    [accept]="attachmentAccept(component)"
+                    [id]="attachmentInputId(component)"
+                    [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                    (change)="attachmentFileSelected($event, editor.sectionIndex, editor.componentIndex, component)"
+                  />
+                </div>
+
+                <div
+                  class="rich-text-editor"
+                  contenteditable="true"
+                  role="textbox"
+                  aria-label="Text content editor"
+                  [innerHTML]="richTextHtml()"
+                  (input)="richTextEdited($event)"
+                  (keydown)="richTextKeydown($event, editor.sectionIndex, editor.componentIndex)"
+                  (click)="richTextClicked($event, editor.sectionIndex, editor.componentIndex)"
+                  (blur)="richTextBlur(editor.sectionIndex, editor.componentIndex)"
+                ></div>
+              </div>
+            </section>
+          } @else if (!isQuizComponent(component)) {
             <label class="builder-field">
               <span>{{ componentEditorLabel(component) }}</span>
               <textarea
@@ -418,6 +522,57 @@
                 (input)="courseComponentContentChanged.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex, value: controlValue($event) })"
               ></textarea>
             </label>
+          }
+
+          @if (component.type === 'resources') {
+            <section class="attachment-panel">
+              <div class="attachment-panel-header">
+                <div>
+                  <strong>{{ attachmentPanelTitle(component) }}</strong>
+                  <span>{{ attachmentPanelDescription(component) }}</span>
+                </div>
+                <input
+                  class="mux-file-input"
+                  type="file"
+                  [accept]="attachmentAccept(component)"
+                  [id]="attachmentInputId(component)"
+                  [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                  (change)="attachmentFileSelected($event, editor.sectionIndex, editor.componentIndex, component)"
+                />
+                <label
+                  class="component-row-action mux-upload-button"
+                  [class.is-disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                  [attr.for]="attachmentInputId(component)"
+                >
+                  {{ attachmentUploadLabel(component) }}
+                </label>
+              </div>
+
+              @if (attachmentUploadError()) {
+                <p class="attachment-error" role="alert">{{ attachmentUploadError() }}</p>
+              }
+
+              <div class="attachment-list">
+                @for (attachment of component.attachments; track attachment.assetId) {
+                  <div class="attachment-row">
+                    <span>
+                      <strong>{{ attachment.fileName }}</strong>
+                      <small>{{ formatFileSize(attachment.sizeBytes) }}</small>
+                    </span>
+                    <button
+                      type="button"
+                      class="component-row-action component-row-action-danger"
+                      [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                      (click)="removeAttachment(editor.sectionIndex, editor.componentIndex, attachment.assetId)"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                } @empty {
+                  <p>No files uploaded yet.</p>
+                }
+              </div>
+            </section>
           }
         </div>
       }
@@ -451,7 +606,7 @@
           [disabled]="courseContentSaving() || courseSubmitting()"
           (click)="closeComponentPicker()"
         >
-          <span class="inline-icon" aria-hidden="true">×</span>
+          <span class="inline-icon" aria-hidden="true" [innerHTML]="xIcon"></span>
         </button>
       </header>
 
@@ -463,7 +618,7 @@
             <div class="component-picker-row">
               <div class="component-picker-copy">
                 <span class="component-picker-icon">
-                  <span class="inline-icon" aria-hidden="true">{{ choice.icon }}</span>
+                  <span class="inline-icon" aria-hidden="true" [innerHTML]="choice.icon"></span>
                 </span>
                 <div>
                   <strong>{{ choice.title }}</strong>
