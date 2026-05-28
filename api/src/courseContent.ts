@@ -30,6 +30,19 @@ const baseCourseContentComponentSchema = z.object({
   durationMinutes: z.coerce.number().int().min(0).max(600).default(0),
   content: z.string().trim().max(20000).default(''),
   resourceUrl: z.string().trim().max(2000).default(''),
+  attachments: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(120),
+        assetId: z.string().trim().min(1).max(200),
+        fileName: z.string().trim().min(1).max(240),
+        contentType: z.string().trim().min(1).max(160),
+        sizeBytes: z.coerce.number().int().nonnegative().max(25 * 1024 * 1024),
+        createdAt: z.string().trim().min(1).max(80),
+      }),
+    )
+    .max(50)
+    .default([]),
 });
 
 const muxVideoSchema = z.object({
@@ -65,6 +78,9 @@ export const courseContentComponentSchema = z.discriminatedUnion('type', [
   baseCourseContentComponentSchema.extend({
     type: z.literal('quiz'),
     quiz: quizComponentSchema,
+  }),
+  baseCourseContentComponentSchema.extend({
+    type: z.literal('resources'),
   }),
 ]);
 

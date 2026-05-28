@@ -5,6 +5,7 @@
     [appVersion]="state.appVersion"
     [currentYear]="state.currentYear"
     [student]="state.student()"
+    [authToken]="state.loginState()?.token ?? ''"
     [userEmail]="state.loginState()?.user?.email ?? ''"
     [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"

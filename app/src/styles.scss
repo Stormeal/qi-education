@@ -27,19 +27,19 @@ app-course-builder .rich-text-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   min-height: 620px;
-  border: 1px solid rgba(29, 115, 173, 0.16);
+  border: 1px solid rgba(140, 121, 96, 0.18);
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 18px 48px rgba(40, 103, 143, 0.12);
+  box-shadow: 0 18px 48px rgba(106, 79, 48, 0.1);
 }
 
 app-course-builder .rich-text-outline {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  border-right: 1px solid rgba(55, 139, 194, 0.14);
-  background: linear-gradient(180deg, #dff2ff, #d8edfc);
+  border-right: 1px solid rgba(140, 121, 96, 0.16);
+  background: linear-gradient(180deg, #fdf6ea, #f7ecd9 58%, #f3e6d0);
   padding: 28px 22px;
 }
 
@@ -52,7 +52,7 @@ app-course-builder .outline-children {
 app-course-builder .outline-heading {
   border: 0;
   border-left: 2px solid transparent;
-  color: #4d7594;
+  color: #7b6650;
   background: transparent;
   padding: 4px 8px 4px 14px;
   font: inherit;
@@ -64,22 +64,22 @@ app-course-builder .outline-heading {
 }
 
 app-course-builder .outline-heading:hover {
-  color: #0b8ed3;
-  background: rgba(255, 255, 255, 0.38);
+  color: #8e5724;
+  background: rgba(255, 250, 241, 0.62);
 }
 
 app-course-builder .outline-heading-one {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-left-color: #0b9ee8;
-  color: #0b8ed3;
+  border-left-color: #c98952;
+  color: #9a6432;
   font-weight: 800;
 }
 
 app-course-builder .outline-heading-one > span:first-child {
   text-decoration: underline;
-  text-decoration-color: rgba(11, 158, 232, 0.34);
+  text-decoration-color: rgba(201, 137, 82, 0.24);
   text-decoration-thickness: 2px;
   text-underline-offset: 5px;
 }
@@ -97,8 +97,8 @@ app-course-builder .outline-children {
 }
 
 app-course-builder .outline-heading-child {
-  border-left-color: rgba(11, 158, 232, 0.32);
-  color: #4f7897;
+  border-left-color: rgba(201, 137, 82, 0.22);
+  color: #7b6650;
   font-weight: 700;
 }
 
@@ -108,7 +108,7 @@ app-course-builder .outline-heading-child.is-level-three {
 }
 
 app-course-builder .rich-text-outline span {
-  color: #547c99;
+  color: #8b735a;
   font-size: 13px;
 }
 
@@ -124,10 +124,10 @@ app-course-builder .rich-text-toolbar {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  border-bottom: 1px solid rgba(29, 115, 173, 0.12);
+  border-bottom: 1px solid rgba(140, 121, 96, 0.14);
   background: rgba(255, 255, 255, 0.96);
   padding: 12px 18px;
-  box-shadow: 0 8px 28px rgba(71, 107, 132, 0.08);
+  box-shadow: 0 8px 28px rgba(106, 79, 48, 0.06);
 }
 
 app-course-builder .rich-text-toolbar button,
@@ -222,77 +222,119 @@ app-course-builder .rich-attachment-card {
   justify-content: space-between;
   gap: 14px;
   max-width: 572px;
-  min-height: 62px;
+  min-height: 72px;
   margin: 16px 0;
-  border: 1px solid rgba(29, 115, 173, 0.08);
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid rgba(140, 121, 96, 0.14);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fffdf9, #f9f1e6);
   padding: 14px 18px;
-  box-shadow: 0 10px 24px rgba(26, 87, 126, 0.06);
+  box-shadow: 0 12px 28px rgba(106, 79, 48, 0.08);
+  user-select: none;
 }
 
-app-course-builder .rich-attachment-card span {
+app-course-builder .rich-attachment-copy {
   display: grid;
-  gap: 2px;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
 }
 
 app-course-builder .rich-attachment-card strong {
-  color: #171b1f;
+  color: #2f2b25;
   font-size: 13px;
   line-height: 1.2;
   font-weight: 700;
 }
 
 app-course-builder .rich-attachment-card small {
-  color: #777f86;
+  color: #7b6650;
   font-size: 12px;
+}
+
+app-course-builder .rich-attachment-progress {
+  overflow: hidden;
+  height: 6px;
+  width: min(180px, 100%);
+  border-radius: 999px;
+  background: rgba(201, 137, 82, 0.12);
+}
+
+app-course-builder .rich-attachment-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #c98952, #ddb07f);
+  transition: width 180ms ease;
 }
 
 app-course-builder .rich-attachment-actions {
   display: inline-flex;
   flex: 0 0 auto;
   gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 72px;
 }
 
-app-course-builder .rich-attachment-card button {
-  display: inline-grid;
-  width: 30px;
+app-course-builder .rich-attachment-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
   height: 30px;
-  place-items: center;
-  border: 0;
-  border-radius: 6px;
-  color: #1599dc;
-  background: transparent;
+  border: 1px solid rgba(201, 137, 82, 0.12);
+  border-radius: 8px;
+  color: #9a6432;
+  background: rgba(255, 250, 241, 0.92);
   padding: 0;
   cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
 }
 
-app-course-builder .rich-attachment-card button:hover:not(:disabled) {
-  background: #eaf7ff;
+app-course-builder .rich-attachment-action:hover {
+  border-color: rgba(201, 137, 82, 0.22);
+  background: #fbf1e2;
   transform: translateY(-1px);
 }
 
-app-course-builder .rich-attachment-card button:disabled {
-  opacity: 0.42;
+app-course-builder .rich-attachment-action svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  stroke-width: 2;
+}
+
+app-course-builder .rich-attachment-action.is-disabled {
+  opacity: 0.48;
   cursor: default;
 }
 
-app-course-builder .rich-attachment-card button svg {
-  width: 18px;
-  height: 18px;
+app-course-builder .rich-attachment-action.is-disabled:hover {
+  border-color: rgba(201, 137, 82, 0.12);
+  background: rgba(255, 250, 241, 0.92);
+  transform: none;
 }
 
-app-course-builder .rich-attachment-card button[data-attachment-remove] {
-  color: #b44646;
+app-course-builder .rich-attachment-action-danger {
+  color: #9f3f30;
 }
 
-app-course-builder .rich-attachment-card button[data-attachment-remove]:hover:not(:disabled) {
-  color: #991b1b;
-  background: rgba(153, 27, 27, 0.06);
+app-course-builder .rich-attachment-action-danger:hover {
+  border-color: rgba(159, 63, 48, 0.18);
+  color: #7f2d21;
+  background: #fbefec;
 }
 
 app-course-builder .rich-attachment-card.is-pending {
-  background: linear-gradient(90deg, #fff, #f5fbff);
+  background: linear-gradient(180deg, #fffaf2, #f9efdf);
 }
 
 @media (max-width: 760px) {
@@ -302,6 +344,6 @@ app-course-builder .rich-attachment-card.is-pending {
 
   app-course-builder .rich-text-outline {
     border-right: 0;
-    border-bottom: 1px solid rgba(55, 139, 194, 0.14);
+    border-bottom: 1px solid rgba(140, 121, 96, 0.16);
   }
 }

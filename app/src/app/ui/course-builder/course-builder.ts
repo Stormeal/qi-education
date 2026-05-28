@@ -69,6 +69,7 @@ export class CourseBuilder {
   protected readonly activeEditor = signal<{ sectionIndex: number; componentIndex: number } | null>(null);
   protected readonly componentPicker = signal<ComponentPickerState>(null);
   protected readonly richTextHtml = signal('');
+  protected readonly richTextBlockTag = signal('<p>');
   protected readonly expandedOutlineIds = signal<string[]>([]);
   protected readonly boldIcon = this.asSafeIcon(lucideBold);
   protected readonly checkIcon = this.asSafeIcon(lucideCheck);
@@ -106,6 +107,8 @@ export class CourseBuilder {
   readonly muxUploadError = input.required<string>();
   readonly muxUploadProgress = input.required<Record<string, number>>();
   readonly attachmentUploadComponentId = input.required<string>();
+  readonly attachmentUploadProgress = input.required<Record<string, number>>();
+  readonly attachmentUploadStage = input.required<Record<string, 'uploading' | 'saving'>>();
   readonly attachmentUploadError = input.required<string>();
 
   readonly courseSectionAdded = output<void>();
@@ -194,15 +197,31 @@ export class CourseBuilder {
         this.richTextComponentId = '';
         this.richTextDraftHtml = '';
         this.richTextHtml.set('');
+        this.richTextBlockTag.set('<p>');
         return;
       }
 
+      const renderedContent = this.renderEditorContent(component);
+
       if (this.richTextComponentId !== component.id) {
         this.richTextComponentId = component.id;
-        this.richTextDraftHtml = this.renderRichContent(component.content);
+        this.richTextDraftHtml = renderedContent;
         this.richTextHtml.set(this.richTextDraftHtml);
+        this.scheduleAttachmentActionHydration();
         this.expandedOutlineIds.set(this.textOutline(component).map((item) => item.id));
+        this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
+        return;
       }
+
+      if (renderedContent !== this.richTextDraftHtml) {
+        this.richTextDraftHtml = renderedContent;
+        this.richTextHtml.set(renderedContent);
+        this.scheduleAttachmentActionHydration();
+      }
+    });
+
+    effect(() => {
+      this.syncPendingAttachmentCards(this.attachmentUploadProgress());
     });
   }
 
@@ -310,7 +329,7 @@ export class CourseBuilder {
   }
 
   protected hasAttachmentPanel(component: CourseComponent): boolean {
-    return component.type === 'text' || component.type === 'resources';
+    return component.type === 'resources';
   }
 
   protected attachmentAccept(component: CourseComponent): string {
@@ -324,21 +343,29 @@ export class CourseBuilder {
   }
 
   protected attachmentPanelTitle(component: CourseComponent): string {
-    return component.type === 'resources' ? 'Resource files' : 'Linked documentation';
+    return component.type === 'resources' ? 'Resource files' : 'Files';
   }
 
   protected attachmentPanelDescription(component: CourseComponent): string {
     return component.type === 'resources'
-      ? 'Upload ZIP files, PowerPoint decks, and images for enrolled students.'
-      : 'Upload documents, PDFs, images, and PowerPoint decks for enrolled students.';
+      ? 'Upload ZIP files, PowerPoint decks, and images. Learners can download them directly from the lesson.'
+      : 'Upload documents, PDFs, images, and PowerPoint decks.';
   }
 
   protected attachmentUploadLabel(component: CourseComponent): string {
     return this.attachmentUploadComponentId() === component.id
-      ? 'Uploading...'
+      ? `Uploading ${this.attachmentUploadProgressValue(component)}%`
       : component.type === 'resources'
         ? 'Upload resource'
         : 'Upload documentation';
+  }
+
+  protected attachmentUploadProgressValue(component: CourseComponent): number {
+    return this.attachmentUploadProgress()[component.id] ?? 0;
+  }
+
+  protected isAttachmentUploading(component: CourseComponent): boolean {
+    return this.attachmentUploadComponentId() === component.id;
   }
 
   protected attachmentFileSelected(
@@ -369,6 +396,15 @@ export class CourseBuilder {
 
   protected removeAttachment(sectionIndex: number, componentIndex: number, assetId: string): void {
     this.courseComponentAttachmentRemoved.emit({ sectionIndex, componentIndex, assetId });
+  }
+
+  protected downloadAttachment(
+    sectionIndex: number,
+    componentIndex: number,
+    assetId: string,
+    fileName: string,
+  ): void {
+    this.courseComponentAttachmentDownloaded.emit({ sectionIndex, componentIndex, assetId, fileName });
   }
 
   protected formatFileSize(sizeBytes: number): string {
@@ -521,6 +557,9 @@ export class CourseBuilder {
     if (editor instanceof HTMLElement) {
       this.richTextDraftHtml = editor.innerHTML;
     }
+
+    this.expandOutlineHeadingsByDefault();
+    this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
   }
 
   protected richTextBlur(sectionIndex: number, componentIndex: number): void {
@@ -528,6 +567,9 @@ export class CourseBuilder {
     if (editor instanceof HTMLElement) {
       this.richTextDraftHtml = editor.innerHTML;
     }
+
+    this.expandOutlineHeadingsByDefault();
+    this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
 
     this.courseComponentContentChanged.emit({
       sectionIndex,
@@ -537,6 +579,15 @@ export class CourseBuilder {
   }
 
   protected richTextKeydown(event: KeyboardEvent, sectionIndex: number, componentIndex: number): void {
+    if (this.selectionTouchesAttachmentCard()) {
+      const blockedKeys = ['Backspace', 'Delete', 'Enter'];
+
+      if (blockedKeys.includes(event.key) || event.key.length === 1) {
+        event.preventDefault();
+        return;
+      }
+    }
+
     if (event.key !== 'Enter' || event.shiftKey || !this.isSelectionInsideHeading()) {
       return;
     }
@@ -558,21 +609,26 @@ export class CourseBuilder {
   protected richTextClicked(event: MouseEvent, sectionIndex: number, componentIndex: number): void {
     const target = event.target;
 
-    if (!(target instanceof HTMLElement)) {
+    if (!(target instanceof Element)) {
       return;
     }
 
-    const removeButton = target.closest<HTMLButtonElement>('[data-attachment-remove]');
-    const downloadButton = target.closest<HTMLButtonElement>('[data-attachment-download]');
+    const removeButton = target.closest<HTMLElement>('[data-attachment-remove], .rich-attachment-remove');
+    const downloadButton = target.closest<HTMLElement>('[data-attachment-download], .rich-attachment-download');
 
     if (downloadButton) {
-      const assetId = downloadButton.dataset['attachmentDownload'];
-      const fileName =
-        downloadButton.closest('.rich-attachment-card')?.querySelector('strong')?.textContent?.trim() ||
+      const card = downloadButton.closest<HTMLElement>('.rich-attachment-card');
+      const assetId = downloadButton.dataset['attachmentDownload'] ?? this.attachmentAssetIdFromCard(card);
+      const fileName = card?.querySelector('strong')?.textContent?.trim() ||
         'attachment';
 
       event.preventDefault();
-      if (assetId && !assetId.startsWith('pending-')) {
+      if (
+        assetId &&
+        !assetId.startsWith('pending-') &&
+        !downloadButton.classList.contains('is-disabled') &&
+        downloadButton.getAttribute('aria-disabled') !== 'true'
+      ) {
         this.courseComponentAttachmentDownloaded.emit({
           sectionIndex,
           componentIndex,
@@ -584,11 +640,12 @@ export class CourseBuilder {
     }
 
     if (removeButton) {
-      const assetId = removeButton.dataset['attachmentRemove'];
+      const card = removeButton.closest<HTMLElement>('.rich-attachment-card');
+      const assetId = removeButton.dataset['attachmentRemove'] ?? this.attachmentAssetIdFromCard(card);
 
       if (assetId) {
         event.preventDefault();
-        removeButton.closest('.rich-attachment-card')?.remove();
+        card?.remove();
         const editor = this.document.querySelector('.rich-text-editor');
         if (editor instanceof HTMLElement) {
           this.richTextDraftHtml = editor.innerHTML;
@@ -596,6 +653,34 @@ export class CourseBuilder {
         }
         this.removeAttachment(sectionIndex, componentIndex, assetId);
       }
+    }
+
+    this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
+  }
+
+  protected richTextSelectionChanged(): void {
+    this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
+  }
+
+  protected richTextBeforeInput(event: InputEvent): void {
+    if (this.selectionTouchesAttachmentCard()) {
+      event.preventDefault();
+    }
+  }
+
+  protected richTextMouseDown(event: MouseEvent): void {
+    const target = event.target;
+
+    if (!(target instanceof Element)) {
+      return;
+    }
+
+    if (target.closest('[data-attachment-download], [data-attachment-remove], .rich-attachment-download, .rich-attachment-remove')) {
+      return;
+    }
+
+    if (target.closest('.rich-attachment-card')) {
+      event.preventDefault();
     }
   }
 
@@ -630,6 +715,8 @@ export class CourseBuilder {
     }
 
     this.richTextDraftHtml = editor.innerHTML;
+    this.expandOutlineHeadingsByDefault();
+    this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
     this.richTextBlur(sectionIndex, componentIndex);
   }
 
@@ -664,6 +751,7 @@ export class CourseBuilder {
       }),
     );
     this.richTextDraftHtml = editor.innerHTML;
+    this.scheduleAttachmentActionHydration();
   }
 
   private isSelectionInsideHeading(): boolean {
@@ -677,6 +765,44 @@ export class CourseBuilder {
 
   private renderRichContent(content: string): string {
     return this.looksLikeHtml(content) ? content : this.renderMarkdown(content);
+  }
+
+  private renderEditorContent(component: Extract<CourseComponent, { type: 'text' }>): string {
+    const container = this.document.createElement('div');
+    container.innerHTML = this.renderRichContent(component.content);
+    const attachments = new Map(component.attachments.map((attachment) => [attachment.assetId, attachment]));
+
+    for (const card of Array.from(container.querySelectorAll<HTMLElement>('.rich-attachment-card'))) {
+      card.setAttribute('contenteditable', 'false');
+      const assetId = this.attachmentAssetIdFromCard(card);
+      const attachment = attachments.get(assetId);
+      const isPending = card.dataset['attachmentPending'] === 'true' || assetId.startsWith('pending-');
+      const copy = card.querySelector('.rich-attachment-copy');
+      const actions = card.querySelector('.rich-attachment-actions');
+
+      if (copy instanceof HTMLElement) {
+        copy.setAttribute('contenteditable', 'false');
+      }
+
+      if (actions instanceof HTMLElement) {
+        actions.setAttribute('contenteditable', 'false');
+        actions.innerHTML = this.attachmentActionsHtml({
+          assetId,
+          fileName: attachment?.fileName ?? card.querySelector('strong')?.textContent?.trim() ?? 'attachment',
+          pending: isPending,
+        });
+      }
+
+      if (attachment && copy instanceof HTMLElement) {
+        const meta = copy.querySelector('small');
+
+        if (meta) {
+          meta.textContent = this.formatFileSize(attachment.sizeBytes);
+        }
+      }
+    }
+
+    return container.innerHTML;
   }
 
   private looksLikeHtml(content: string): boolean {
@@ -701,21 +827,129 @@ export class CourseBuilder {
     pending: boolean;
   }): string {
     return `
-      <div class="rich-attachment-card${input.pending ? ' is-pending' : ''}" contenteditable="false" data-attachment-id="${this.escapeHtml(input.assetId)}" data-attachment-pending="${input.pending ? 'true' : 'false'}">
-        <span>
+      <div class="rich-attachment-card rich-attachment-asset-${this.escapeHtml(input.assetId)}${input.pending ? ' is-pending' : ''}" id="rich-attachment-${this.escapeHtml(input.assetId)}" contenteditable="false" data-attachment-id="${this.escapeHtml(input.assetId)}" data-attachment-pending="${input.pending ? 'true' : 'false'}">
+        <span class="rich-attachment-copy" contenteditable="false">
           <strong>${this.escapeHtml(input.fileName)}</strong>
-          <small>${input.pending ? 'Uploading' : this.formatFileSize(input.sizeBytes)}</small>
+          <small>${input.pending ? 'Uploading 0%' : this.formatFileSize(input.sizeBytes)}</small>
+          ${input.pending ? '<span class="rich-attachment-progress"><span style="width: 0%"></span></span>' : ''}
         </span>
-        <span class="rich-attachment-actions">
-          <button type="button" data-attachment-download="${this.escapeHtml(input.assetId)}" aria-label="Download ${this.escapeHtml(input.fileName)}" ${input.pending ? 'disabled' : ''}>${this.downloadIconSvg}</button>
-          <button type="button" data-attachment-remove="${this.escapeHtml(input.assetId)}" aria-label="Remove ${this.escapeHtml(input.fileName)}" ${input.pending ? 'disabled' : ''}>${this.trashIconSvg}</button>
-        </span>
+        <span class="rich-attachment-actions" contenteditable="false">${this.attachmentActionsHtml(input)}</span>
       </div>
     `;
   }
 
+  private attachmentActionsHtml(input: { assetId: string; fileName: string; pending: boolean }): string {
+    return `
+      <span class="rich-attachment-action rich-attachment-download${input.pending ? ' is-disabled' : ''}" role="button" aria-disabled="${input.pending ? 'true' : 'false'}" data-attachment-download="${this.escapeHtml(input.assetId)}" aria-label="Download ${this.escapeHtml(input.fileName)}">${this.downloadIconSvg}</span>
+      <span class="rich-attachment-action rich-attachment-remove rich-attachment-action-danger" role="button" data-attachment-remove="${this.escapeHtml(input.assetId)}" aria-label="Remove ${this.escapeHtml(input.fileName)}">${this.trashIconSvg}</span>
+    `;
+  }
+
+  private attachmentAssetIdFromCard(card: HTMLElement | null): string {
+    if (!card) {
+      return '';
+    }
+
+    const assetClass = Array.from(card.classList).find((className) =>
+      className.startsWith('rich-attachment-asset-'),
+    );
+
+    return (
+      card.dataset['attachmentId'] ||
+      assetClass?.replace(/^rich-attachment-asset-/, '') ||
+      card.id.replace(/^rich-attachment-/, '') ||
+      ''
+    );
+  }
+
+  private scheduleAttachmentActionHydration(): void {
+    this.document.defaultView?.setTimeout(() => this.hydrateAttachmentActionIcons(), 0);
+  }
+
+  private hydrateAttachmentActionIcons(): void {
+    for (const action of Array.from(this.document.querySelectorAll<HTMLElement>('.rich-attachment-download'))) {
+      if (!action.querySelector('svg')) {
+        action.innerHTML = this.downloadIconSvg;
+      }
+    }
+
+    for (const action of Array.from(this.document.querySelectorAll<HTMLElement>('.rich-attachment-remove'))) {
+      if (!action.querySelector('svg')) {
+        action.innerHTML = this.trashIconSvg;
+      }
+    }
+  }
+
   private asSafeIcon(svg: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
+  }
+
+  private syncPendingAttachmentCards(progressMap: Record<string, number>): void {
+    for (const [componentId, progress] of Object.entries(progressMap)) {
+      const input = this.document.getElementById(`component-attachment-${componentId}`);
+      const editor = input?.closest('.rich-text-shell')?.querySelector('.rich-text-editor');
+
+      if (!(editor instanceof HTMLElement)) {
+        continue;
+      }
+
+      for (const card of Array.from(editor.querySelectorAll<HTMLElement>('.rich-attachment-card.is-pending'))) {
+        const progressLabel = card.querySelector('small');
+        const progressBar = card.querySelector<HTMLElement>('.rich-attachment-progress span');
+
+        if (progressLabel) {
+          progressLabel.textContent = `Uploading ${progress}%`;
+        }
+
+        if (progressBar) {
+          progressBar.style.width = `${progress}%`;
+        }
+      }
+    }
+
+    this.hydrateAttachmentActionIcons();
+  }
+
+  private expandOutlineHeadingsByDefault(): void {
+    const component = this.editingComponent();
+
+    if (!component || component.type !== 'text') {
+      return;
+    }
+
+    const nextIds = this.textOutline(component).map((item) => item.id);
+    this.expandedOutlineIds.update((ids) => Array.from(new Set([...ids, ...nextIds])));
+  }
+
+  private detectCurrentTextBlockTag(): '<p>' | '<h1>' | '<h2>' | '<h3>' {
+    const selection = this.document.defaultView?.getSelection();
+    const anchorNode = selection?.anchorNode;
+    const anchorElement =
+      anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement ?? null;
+    const block = anchorElement?.closest('h1, h2, h3, p, li, div');
+
+    switch (block?.tagName.toLowerCase()) {
+      case 'h1':
+        return '<h1>';
+      case 'h2':
+        return '<h2>';
+      case 'h3':
+        return '<h3>';
+      default:
+        return '<p>';
+    }
+  }
+
+  private selectionTouchesAttachmentCard(): boolean {
+    const selection = this.document.defaultView?.getSelection();
+    const anchorNode = selection?.anchorNode;
+    const focusNode = selection?.focusNode;
+    const anchorElement =
+      anchorNode instanceof HTMLElement ? anchorNode : anchorNode?.parentElement ?? null;
+    const focusElement =
+      focusNode instanceof HTMLElement ? focusNode : focusNode?.parentElement ?? null;
+
+    return !!anchorElement?.closest('.rich-attachment-card') || !!focusElement?.closest('.rich-attachment-card');
   }
 
   protected quizMetaSummary(component: CourseComponent): string | null {

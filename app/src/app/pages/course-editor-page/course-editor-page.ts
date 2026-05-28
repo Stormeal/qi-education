@@ -43,6 +43,8 @@ export class CourseEditorPage {
   readonly muxUploadError = input.required<string>();
   readonly muxUploadProgress = input.required<Record<string, number>>();
   readonly attachmentUploadComponentId = input.required<string>();
+  readonly attachmentUploadProgress = input.required<Record<string, number>>();
+  readonly attachmentUploadStage = input.required<Record<string, 'uploading' | 'saving'>>();
   readonly attachmentUploadError = input.required<string>();
   readonly thumbnailUploading = input.required<boolean>();
   readonly thumbnailError = input.required<string>();

@@ -479,14 +479,61 @@
   line-height: 1.68;
 }
 
-.curriculum-item-preview a {
+.curriculum-markdown-preview {
+  color: #39393a;
+  font-size: 14px;
+  line-height: 1.68;
+}
+
+.curriculum-markdown-preview h1,
+.curriculum-markdown-preview h2,
+.curriculum-markdown-preview h3,
+.curriculum-markdown-preview p,
+.curriculum-markdown-preview ul {
+  margin: 0 0 8px;
+}
+
+.curriculum-markdown-preview h1,
+.curriculum-markdown-preview h2,
+.curriculum-markdown-preview h3 {
+  color: #171b4a;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.curriculum-markdown-preview h1 {
+  font-size: 22px;
+}
+
+.curriculum-markdown-preview h2 {
+  font-size: 18px;
+}
+
+.curriculum-markdown-preview h3 {
+  font-size: 15px;
+}
+
+.curriculum-resource-list {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.curriculum-item-preview a,
+.curriculum-resource-list button {
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: #5b3df5;
+  font: inherit;
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.curriculum-item-preview a:hover {
+.curriculum-item-preview a:hover,
+.curriculum-resource-list button:hover {
   text-decoration: underline;
 }
 

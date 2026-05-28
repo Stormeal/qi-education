@@ -100,6 +100,7 @@ export class CourseService {
   private readonly apiClient = inject(ApiClientService);
   private readonly warmedThumbnailUrls = new Set<string>();
   private readonly thumbnailWarmRequests = new Map<string, Promise<void>>();
+  private activeAttachmentUploadRequest: XMLHttpRequest | null = null;
 
   async listCourses(): Promise<CourseListItem[]> {
     const { ok, body } = await this.apiClient.fetchJson<CourseListItem[]>('/courses');
@@ -347,31 +348,23 @@ export class CourseService {
     componentId: string,
     file: File,
     token: string,
+    markerId: string,
+    onProgress?: (progress: number) => void,
   ): Promise<CourseAttachmentUploadResult> {
-    const response = await this.apiClient.fetch(
-      `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/attachments`,
-      {
-        method: 'PUT',
-        headers: {
-          'Content-Type': this.attachmentContentType(file),
-          'X-File-Name': file.name,
-          'X-Section-Id': sectionId,
-          authorization: `Bearer ${token}`,
-        },
-        body: file,
-      },
+    const response = await this.uploadComponentAttachmentRequest(
+      courseId,
+      sectionId,
+      componentId,
+      file,
+      token,
+      markerId,
+      onProgress,
     );
-    const body = (await response.json().catch(() => ({}))) as
-      | {
-          attachment?: CourseComponentAttachment;
-          content?: CourseContentDocument;
-          message?: string;
-        };
 
-    if (!response.ok || !body.attachment || !body.content) {
+    if (!response.ok) {
       return {
         ok: false,
-        message: body.message ?? 'Unable to upload attachment.',
+        message: response.message,
       };
     }
 
@@ -379,9 +372,14 @@ export class CourseService {
 
     return {
       ok: true,
-      attachment: body.attachment,
-      content: body.content,
+      attachment: response.attachment,
+      content: response.content,
     };
+  }
+
+  cancelComponentAttachmentUpload(): void {
+    this.activeAttachmentUploadRequest?.abort();
+    this.activeAttachmentUploadRequest = null;
   }
 
   async removeComponentAttachment(
@@ -577,6 +575,109 @@ export class CourseService {
         return 'image/gif';
       default:
         return 'application/octet-stream';
+    }
+  }
+
+  private uploadComponentAttachmentRequest(
+    courseId: string,
+    sectionId: string,
+    componentId: string,
+    file: File,
+    token: string,
+    markerId: string,
+    onProgress?: (progress: number) => void,
+  ): Promise<
+    | {
+        ok: true;
+        attachment: CourseComponentAttachment;
+        content: CourseContentDocument;
+      }
+    | {
+        ok: false;
+        message: string;
+      }
+  > {
+    return new Promise((resolve) => {
+      const request = new XMLHttpRequest();
+      this.activeAttachmentUploadRequest = request;
+      const url = this.apiClient.resourceUrl(
+        `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/attachments`,
+      );
+
+      request.open('PUT', url);
+      request.responseType = 'json';
+      request.setRequestHeader('Content-Type', this.attachmentContentType(file));
+      request.setRequestHeader('X-File-Name', file.name);
+      request.setRequestHeader('X-Section-Id', sectionId);
+      request.setRequestHeader('X-Attachment-Marker', markerId);
+      request.setRequestHeader('authorization', `Bearer ${token}`);
+
+      if (onProgress) {
+        request.upload.addEventListener('progress', (event) => {
+          if (!event.lengthComputable) {
+            return;
+          }
+
+          onProgress(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
+        });
+      }
+
+      request.addEventListener('load', () => {
+        const body = (request.response ??
+          this.parseJsonResponse(request.responseText)) as
+          | {
+              attachment?: CourseComponentAttachment;
+              content?: CourseContentDocument;
+              message?: string;
+            }
+          | undefined;
+
+        if (request.status < 200 || request.status >= 300 || !body?.attachment || !body.content) {
+          resolve({
+            ok: false,
+            message: body?.message ?? 'Unable to upload attachment.',
+          });
+          return;
+        }
+
+        resolve({
+          ok: true,
+          attachment: body.attachment,
+          content: body.content,
+        });
+      });
+
+      request.addEventListener('error', () => {
+        this.activeAttachmentUploadRequest = null;
+        resolve({
+          ok: false,
+          message: 'Unable to upload attachment.',
+        });
+      });
+
+      request.addEventListener('abort', () => {
+        this.activeAttachmentUploadRequest = null;
+        resolve({
+          ok: false,
+          message: 'Upload cancelled.',
+        });
+      });
+
+      request.addEventListener('loadend', () => {
+        if (this.activeAttachmentUploadRequest === request) {
+          this.activeAttachmentUploadRequest = null;
+        }
+      });
+
+      request.send(file);
+    });
+  }
+
+  private parseJsonResponse(value: string): unknown {
+    try {
+      return value ? JSON.parse(value) : {};
+    } catch {
+      return {};
     }
   }
 

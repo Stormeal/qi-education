@@ -306,9 +306,48 @@
   width: fit-content;
   border-radius: 7px;
   padding: 8px 12px;
+  font: inherit;
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
+  cursor: pointer;
+}
+
+.learning-attachment-list {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.learning-markdown {
+  color: #39393a;
+  line-height: 1.75;
+}
+
+.learning-markdown h1,
+.learning-markdown h2,
+.learning-markdown h3 {
+  margin: 0 0 10px;
+  color: #171b4a;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.learning-markdown h1 {
+  font-size: 30px;
+}
+
+.learning-markdown h2 {
+  font-size: 24px;
+}
+
+.learning-markdown h3 {
+  font-size: 19px;
+}
+
+.learning-markdown p,
+.learning-markdown ul {
+  margin: 0 0 14px;
 }
 
 .learning-overview {

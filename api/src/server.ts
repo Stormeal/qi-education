@@ -177,6 +177,116 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     },
   );
+  app.put(
+    [
+      '/courses/:id/content/components/:componentId/attachments',
+      '/api/courses/:id/content/components/:componentId/attachments',
+    ],
+    authenticateRequest(auth),
+    requireCourseCreator,
+    express.raw({ type: () => true, limit: '25mb' }),
+    async (request, response, next) => {
+      try {
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const componentId = Array.isArray(request.params.componentId)
+          ? request.params.componentId[0]
+          : request.params.componentId;
+        const sectionId = request.header('x-section-id')?.trim() ?? '';
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        if (!sectionId) {
+          response.status(400).json({ message: 'Section id is required.' });
+          return;
+        }
+
+        if (!Buffer.isBuffer(request.body) || request.body.byteLength === 0) {
+          response.status(400).json({ message: 'Attachment data is required.' });
+          return;
+        }
+
+        const content = await courseContent.getCourseContent(courseId);
+
+        if (!content) {
+          response.status(404).json({ message: 'Course content not found' });
+          return;
+        }
+
+        const component = findCourseComponent(content.sections, sectionId, componentId);
+
+        if (!component || (component.type !== 'text' && component.type !== 'resources')) {
+          response.status(404).json({ message: 'Attachment uploads are only available for text and resources components.' });
+          return;
+        }
+
+        const contentType = normalizeAttachmentContentType(request.header('content-type'));
+        const allowed = component.type === 'text'
+          ? isAllowedTextAttachmentContentType(contentType)
+          : isAllowedResourcesAttachmentContentType(contentType);
+
+        if (!allowed) {
+          response.status(415).json({
+            message:
+              component.type === 'text'
+                ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'
+                : 'Resources supports ZIP files, PowerPoint files, and images.',
+          });
+          return;
+        }
+
+        const uploadedAsset = await courseAssets.saveComponentAttachment({
+          courseId,
+          componentId,
+          contentType,
+          fileName: sanitizeFileName(request.header('x-file-name'), contentType),
+          binary: request.body,
+        });
+        const attachment = {
+          id: randomUUID(),
+          assetId: uploadedAsset._id,
+          fileName: uploadedAsset.fileName,
+          contentType: uploadedAsset.contentType,
+          sizeBytes: uploadedAsset.sizeBytes,
+          createdAt: uploadedAsset.createdAt,
+        };
+        const markerId = request.header('x-attachment-marker')?.trim() ?? '';
+
+        try {
+          const updatedSections = content.sections.map((section) =>
+            section.id === sectionId
+              ? {
+                  ...section,
+                  components: section.components.map((item) =>
+                    item.id === componentId
+                      ? {
+                          ...item,
+                          content:
+                            markerId && item.type === 'text'
+                              ? replacePendingAttachmentMarker(item.content, markerId, attachment)
+                              : item.content,
+                          attachments: [...(item.attachments ?? []), attachment],
+                        }
+                      : item,
+                  ),
+                }
+              : section,
+          );
+          const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
+
+          response.status(201).json({ attachment, content: updatedContent });
+        } catch (error) {
+          await courseAssets.deleteAsset(uploadedAsset._id);
+          throw error;
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
   app.use(express.json());
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
@@ -437,6 +547,53 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   });
 
+  app.get(
+    '/courses/:id/content/attachments/:assetId',
+    authenticateRequest(auth),
+    async (request, response, next) => {
+      try {
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const assetId = Array.isArray(request.params.assetId)
+          ? request.params.assetId[0]
+          : request.params.assetId;
+        const user = (request as AuthenticatedRequest).user;
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        if (!roleCanCreateCourses(user.role) && !user.enrolledCourseIds.includes(courseId)) {
+          response.status(403).json({ message: 'Enroll in this course before opening resources.' });
+          return;
+        }
+
+        const content = await courseContent.getCourseContent(courseId);
+
+        if (!content || !courseContentHasAttachment(content.sections, assetId)) {
+          response.status(404).json({ message: 'Attachment not found' });
+          return;
+        }
+
+        const asset = await courseAssets.getComponentAttachment(assetId);
+
+        if (!asset || asset.courseId !== courseId) {
+          response.status(404).json({ message: 'Attachment not found' });
+          return;
+        }
+
+        response.setHeader('Content-Type', asset.contentType);
+        response.setHeader('Content-Length', String(asset.sizeBytes));
+        response.setHeader('Content-Disposition', `attachment; filename="${asset.fileName}"`);
+        response.setHeader('Cache-Control', 'private, max-age=300');
+        response.end(asset.binary);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   app.patch(
     '/courses/:id/content',
     authenticateRequest(auth),
@@ -647,6 +804,73 @@ export function createServer(dependencies: ServerDependencies = {}) {
         }
 
         response.json(updatedCourse);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  app.delete(
+    '/courses/:id/content/components/:componentId/attachments/:assetId',
+    authenticateRequest(auth),
+    requireCourseCreator,
+    async (request, response, next) => {
+      try {
+        const input = createMuxUploadSchema.parse(request.body);
+        const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const componentId = Array.isArray(request.params.componentId)
+          ? request.params.componentId[0]
+          : request.params.componentId;
+        const assetId = Array.isArray(request.params.assetId)
+          ? request.params.assetId[0]
+          : request.params.assetId;
+        const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+
+        if (!matchingCourse) {
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        const content = await courseContent.getCourseContent(courseId);
+
+        if (!content) {
+          response.status(404).json({ message: 'Course content not found' });
+          return;
+        }
+
+        const component = findCourseComponent(content.sections, input.sectionId, componentId);
+
+        if (!component) {
+          response.status(404).json({ message: 'Component not found' });
+          return;
+        }
+
+        if (!(component.attachments ?? []).some((attachment) => attachment.assetId === assetId)) {
+          response.status(404).json({ message: 'Attachment not found' });
+          return;
+        }
+
+        const updatedSections = content.sections.map((section) =>
+          section.id === input.sectionId
+            ? {
+                ...section,
+                components: section.components.map((item) =>
+                  item.id === componentId
+                    ? {
+                        ...item,
+                        attachments: (item.attachments ?? []).filter(
+                          (attachment) => attachment.assetId !== assetId,
+                        ),
+                      }
+                    : item,
+                ),
+              }
+            : section,
+        );
+        const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
+
+        await courseAssets.deleteAsset(assetId);
+        response.json({ content: updatedContent });
       } catch (error) {
         next(error);
       }
@@ -951,6 +1175,24 @@ function findCourseVideoComponent(
   return component?.type === 'video' ? component : null;
 }
 
+function findCourseComponent(
+  sections: CourseContentSection[],
+  sectionId: string,
+  componentId: string,
+) {
+  const section = sections.find((item) => item.id === sectionId);
+
+  return section?.components.find((item) => item.id === componentId) ?? null;
+}
+
+function courseContentHasAttachment(sections: CourseContentSection[], assetId: string): boolean {
+  return sections.some((section) =>
+    section.components.some((component) =>
+      (component.attachments ?? []).some((attachment) => attachment.assetId === assetId),
+    ),
+  );
+}
+
 function normalizeThumbnailContentType(
   value: string | undefined,
 ): 'image/jpeg' | 'image/png' | 'image/webp' | null {
@@ -963,16 +1205,129 @@ function normalizeThumbnailContentType(
   return null;
 }
 
+function normalizeAttachmentContentType(value: string | undefined): string {
+  return value?.split(';')[0]?.trim().toLowerCase() ?? '';
+}
+
+function isAllowedTextAttachmentContentType(value: string): boolean {
+  return (
+    isAllowedImageContentType(value) ||
+    value === 'application/pdf' ||
+    value === 'text/plain' ||
+    value === 'application/msword' ||
+    value === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    isAllowedPowerPointContentType(value)
+  );
+}
+
+function isAllowedResourcesAttachmentContentType(value: string): boolean {
+  return (
+    isAllowedImageContentType(value) ||
+    isAllowedPowerPointContentType(value) ||
+    value === 'application/zip' ||
+    value === 'application/x-zip-compressed'
+  );
+}
+
+function isAllowedImageContentType(value: string): boolean {
+  return ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(value);
+}
+
+function isAllowedPowerPointContentType(value: string): boolean {
+  return (
+    value === 'application/vnd.ms-powerpoint' ||
+    value === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  );
+}
+
 function sanitizeFileName(value: string | undefined, contentType: string): string {
   const fallbackExtension =
-    contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
-  const fallbackName = `course-thumbnail.${fallbackExtension}`;
+    contentType === 'image/png'
+      ? 'png'
+      : contentType === 'image/webp'
+        ? 'webp'
+        : contentType === 'image/jpeg'
+          ? 'jpg'
+          : contentType === 'image/gif'
+            ? 'gif'
+            : contentType === 'application/pdf'
+              ? 'pdf'
+              : contentType === 'application/zip' || contentType === 'application/x-zip-compressed'
+                ? 'zip'
+                : contentType === 'application/vnd.ms-powerpoint'
+                  ? 'ppt'
+                  : contentType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                    ? 'pptx'
+                    : contentType === 'application/msword'
+                      ? 'doc'
+                      : contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                        ? 'docx'
+                        : 'txt';
+  const fallbackName = `course-attachment.${fallbackExtension}`;
 
   if (!value?.trim()) {
     return fallbackName;
   }
 
-  return value.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 120) || fallbackName;
+  return value.replace(/[^a-zA-Z0-9._ -]/g, '-').trim().slice(0, 160) || fallbackName;
+}
+
+function replacePendingAttachmentMarker(
+  content: string,
+  markerId: string,
+  attachment: {
+    assetId: string;
+    fileName: string;
+    sizeBytes: number;
+  },
+): string {
+  const escapedMarker = escapeRegExp(markerId);
+  const pendingCardPattern = new RegExp(
+    `<div[^>]*class="[^"]*rich-attachment-card[^"]*"[^>]*data-attachment-id="${escapedMarker}"[\\s\\S]*?<\\/div>`,
+    'g',
+  );
+
+  return content.replace(pendingCardPattern, buildAttachmentCardMarkup(attachment));
+}
+
+function buildAttachmentCardMarkup(attachment: {
+  assetId: string;
+  fileName: string;
+  sizeBytes: number;
+}): string {
+  const escapedAssetId = escapeHtml(attachment.assetId);
+  const escapedFileName = escapeHtml(attachment.fileName);
+
+  return `<div class="rich-attachment-card rich-attachment-asset-${escapedAssetId}" id="rich-attachment-${escapedAssetId}" contenteditable="false" data-attachment-id="${escapedAssetId}" data-attachment-pending="false"><span class="rich-attachment-copy" contenteditable="false"><strong>${escapedFileName}</strong><small>${formatAttachmentSize(attachment.sizeBytes)}</small></span><span class="rich-attachment-actions" contenteditable="false"><span class="rich-attachment-action rich-attachment-download" role="button" aria-disabled="false" data-attachment-download="${escapedAssetId}" aria-label="Download ${escapedFileName}">${lucideDownloadSvg()}</span><span class="rich-attachment-action rich-attachment-remove rich-attachment-action-danger" role="button" data-attachment-remove="${escapedAssetId}" aria-label="Remove ${escapedFileName}">${lucideTrash2Svg()}</span></span></div>`;
+}
+
+function lucideDownloadSvg(): string {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>';
+}
+
+function lucideTrash2Svg(): string {
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+}
+
+function formatAttachmentSize(sizeBytes: number): string {
+  if (sizeBytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+  }
+
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function authenticateRequest(authRepository: AuthRepository) {

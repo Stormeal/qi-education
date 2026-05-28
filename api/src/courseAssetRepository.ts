@@ -15,11 +15,22 @@ export type CourseThumbnailAsset = {
   createdAt: string;
 };
 
+export type CourseComponentAttachmentAsset = {
+  _id: string;
+  courseId: string;
+  componentId: string;
+  contentType: string;
+  fileName: string;
+  sizeBytes: number;
+  binary: Buffer;
+  createdAt: string;
+};
+
 type CourseAssetCollection = Pick<
-  Collection<CourseThumbnailAsset>,
+  Collection<CourseThumbnailAsset | CourseComponentAttachmentAsset>,
   'findOne' | 'insertOne' | 'deleteOne'
 >;
-type StoredCourseThumbnailAsset = Omit<CourseThumbnailAsset, 'binary'> & {
+type StoredCourseAsset<T extends { binary: Buffer }> = Omit<T, 'binary'> & {
   binary: Buffer | Binary | Uint8Array;
 };
 
@@ -33,6 +44,14 @@ export interface CourseAssetRepository {
     binary: Buffer;
   }): Promise<CourseThumbnailAsset>;
   getThumbnail(assetId: string): Promise<CourseThumbnailAsset | null>;
+  saveComponentAttachment(input: {
+    courseId: string;
+    componentId: string;
+    contentType: string;
+    fileName: string;
+    binary: Buffer;
+  }): Promise<CourseComponentAttachmentAsset>;
+  getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null>;
   deleteAsset(assetId: string): Promise<void>;
 }
 
@@ -72,7 +91,39 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
   async getThumbnail(assetId: string): Promise<CourseThumbnailAsset | null> {
     const asset = await (await this.collection()).findOne({ _id: assetId });
 
-    return asset ? normalizeStoredThumbnailAsset(asset as StoredCourseThumbnailAsset) : null;
+    return asset && !('componentId' in asset)
+      ? normalizeStoredAsset(asset as StoredCourseAsset<CourseThumbnailAsset>)
+      : null;
+  }
+
+  async saveComponentAttachment(input: {
+    courseId: string;
+    componentId: string;
+    contentType: string;
+    fileName: string;
+    binary: Buffer;
+  }): Promise<CourseComponentAttachmentAsset> {
+    const asset: CourseComponentAttachmentAsset = {
+      _id: randomUUID(),
+      courseId: input.courseId,
+      componentId: input.componentId,
+      contentType: input.contentType,
+      fileName: input.fileName,
+      sizeBytes: input.binary.byteLength,
+      binary: input.binary,
+      createdAt: new Date().toISOString(),
+    };
+
+    await (await this.collection()).insertOne(asset);
+    return asset;
+  }
+
+  async getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null> {
+    const asset = await (await this.collection()).findOne({ _id: assetId });
+
+    return asset && 'componentId' in asset
+      ? normalizeStoredAsset(asset as StoredCourseAsset<CourseComponentAttachmentAsset>)
+      : null;
   }
 
   async deleteAsset(assetId: string): Promise<void> {
@@ -80,27 +131,28 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
   }
 }
 
-function normalizeStoredThumbnailAsset(asset: StoredCourseThumbnailAsset): CourseThumbnailAsset {
+function normalizeStoredAsset<T extends { binary: Buffer }>(asset: StoredCourseAsset<T>): T {
   if (Buffer.isBuffer(asset.binary)) {
-    return asset as CourseThumbnailAsset;
+    return asset as T;
   }
 
   if (asset.binary instanceof Binary) {
     return {
       ...asset,
       binary: Buffer.from(asset.binary.buffer),
-    };
+    } as T;
   }
 
   return {
     ...asset,
     binary: Buffer.from(asset.binary),
-  };
+  } as T;
 }
 
 export class InMemoryCourseAssetRepository implements CourseAssetRepository {
   readonly storageType = 'memory';
   private readonly assets = new Map<string, CourseThumbnailAsset>();
+  private readonly componentAssets = new Map<string, CourseComponentAttachmentAsset>();
 
   async checkHealth(): Promise<void> {
     return;
@@ -130,8 +182,35 @@ export class InMemoryCourseAssetRepository implements CourseAssetRepository {
     return this.assets.get(assetId) ?? null;
   }
 
+  async saveComponentAttachment(input: {
+    courseId: string;
+    componentId: string;
+    contentType: string;
+    fileName: string;
+    binary: Buffer;
+  }): Promise<CourseComponentAttachmentAsset> {
+    const asset: CourseComponentAttachmentAsset = {
+      _id: randomUUID(),
+      courseId: input.courseId,
+      componentId: input.componentId,
+      contentType: input.contentType,
+      fileName: input.fileName,
+      sizeBytes: input.binary.byteLength,
+      binary: input.binary,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.componentAssets.set(asset._id, asset);
+    return asset;
+  }
+
+  async getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null> {
+    return this.componentAssets.get(assetId) ?? null;
+  }
+
   async deleteAsset(assetId: string): Promise<void> {
     this.assets.delete(assetId);
+    this.componentAssets.delete(assetId);
   }
 }
 
@@ -141,6 +220,8 @@ export function createCourseAssetRepository(): CourseAssetRepository {
   }
 
   return new MongoCourseAssetRepository(async () =>
-    (await getMongoDatabase()).collection<CourseThumbnailAsset>(apiConfig.MONGODB_COURSE_ASSET_COLLECTION!),
+    (await getMongoDatabase()).collection<CourseThumbnailAsset | CourseComponentAttachmentAsset>(
+      apiConfig.MONGODB_COURSE_ASSET_COLLECTION!,
+    ),
   );
 }
