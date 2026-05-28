@@ -171,16 +171,20 @@
                       }
                       @if (currentComponent.attachments.length > 0) {
                         <div class="learning-attachment-list">
+                          <p class="learning-attachment-label">Downloads</p>
                           @for (attachment of currentComponent.attachments; track attachment.assetId) {
-                            <button type="button" class="learning-resource-link" (click)="downloadAttachment(currentCourse.id, attachment)">
-                              {{ attachment.fileName }} · {{ formatFileSize(attachment.sizeBytes) }}
+                            <button type="button" class="learning-attachment-item" (click)="downloadAttachment(currentCourse.id, attachment)">
+                              <span class="learning-attachment-name">{{ attachment.fileName }}</span>
+                              <span class="learning-attachment-size">{{ formatFileSize(attachment.sizeBytes) }}</span>
                             </button>
                           }
                         </div>
                       }
-                      <button type="button" class="learning-primary-button" (click)="completeActiveComponent()">
-                        Mark complete
-                      </button>
+                      <div class="learning-player-footer">
+                        <button type="button" class="learning-primary-button" (click)="completeActiveComponent()">
+                          Mark complete
+                        </button>
+                      </div>
                     </div>
                   }
                 } @else {
