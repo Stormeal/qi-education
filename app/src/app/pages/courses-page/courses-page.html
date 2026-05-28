@@ -56,7 +56,7 @@
       </div>
     </div>
 
-    @if (coursesLoading()) {
+    @if (coursesLoading() || (!coursesError() && !thumbnailsReady())) {
       <app-loading-skeleton variant="course-card" [count]="4" />
     } @else if (coursesError()) {
       <p class="course-error" role="alert">{{ coursesError() }}</p>
@@ -88,6 +88,7 @@
                     decoding="async"
                     fetchpriority="high"
                     (load)="markThumbnailLoaded(course.id)"
+                    (error)="markThumbnailLoaded(course.id)"
                   />
                 } @else {
                   <div class="catalog-card-fallback" aria-hidden="true"></div>

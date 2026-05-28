@@ -72,6 +72,7 @@ export class CoursesPage {
   protected readonly carouselStart = signal(0);
   protected readonly carouselMotion = signal<'next' | 'previous' | ''>('');
   protected readonly loadedThumbnailIds = signal<Record<string, boolean>>({});
+  protected readonly thumbnailsReady = signal(false);
   private carouselMotionTimeout: number | null = null;
   protected readonly popularTopics = [
     'Microsoft Playwright',
@@ -92,7 +93,9 @@ export class CoursesPage {
         return;
       }
 
-      this.courseService.warmCourseThumbnailCache(this.visibleFeaturedCourses());
+      this.courseService
+        .preloadCourseThumbnails(this.visibleFeaturedCourses())
+        .then(() => this.thumbnailsReady.set(true));
     });
   }
 

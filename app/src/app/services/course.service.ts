@@ -126,6 +126,29 @@ export class CourseService {
     }
   }
 
+  preloadCourseThumbnails(courses: CourseListItem[]): Promise<void> {
+    const promises: Promise<void>[] = [];
+
+    for (const course of courses) {
+      if (!course.thumbnailAssetId) {
+        continue;
+      }
+
+      const url = this.apiClient.resourceUrl(
+        `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
+      );
+
+      this.warmThumbnailUrl(url);
+
+      const pending = this.thumbnailWarmRequests.get(url);
+      if (pending) {
+        promises.push(pending);
+      }
+    }
+
+    return Promise.all(promises).then(() => undefined);
+  }
+
   async saveCourse(
     mode: CourseSaveMode,
     draft: CourseCreateDraft,
