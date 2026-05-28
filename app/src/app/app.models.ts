@@ -90,7 +90,7 @@ export type CourseCreateDraft = {
   priceDkk: number | null;
 };
 
-export type CourseComponentType = 'video' | 'quiz' | 'text';
+export type CourseComponentType = 'video' | 'quiz' | 'text' | 'resources';
 
 export type MuxPlaybackPolicy = 'public' | 'signed';
 
@@ -139,6 +139,16 @@ type BaseCourseComponent = {
   durationMinutes: number;
   content: string;
   resourceUrl: string;
+  attachments: CourseComponentAttachment[];
+};
+
+export type CourseComponentAttachment = {
+  id: string;
+  assetId: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  createdAt: string;
 };
 
 export type VideoCourseComponent = BaseCourseComponent & {
@@ -155,7 +165,15 @@ export type QuizCourseComponent = BaseCourseComponent & {
   quiz: QuizComponentContent;
 };
 
-export type CourseComponent = VideoCourseComponent | TextCourseComponent | QuizCourseComponent;
+export type ResourcesCourseComponent = BaseCourseComponent & {
+  type: 'resources';
+};
+
+export type CourseComponent =
+  | VideoCourseComponent
+  | TextCourseComponent
+  | QuizCourseComponent
+  | ResourcesCourseComponent;
 
 export type CourseSection = {
   id: string;
