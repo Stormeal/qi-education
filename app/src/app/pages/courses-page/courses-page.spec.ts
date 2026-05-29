@@ -1,0 +1,259 @@
+import { APP_BASE_HREF } from '@angular/common';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router, provideRouter } from '@angular/router';
+import { CourseListItem } from '../../app.models';
+import { CoursesPage } from './courses-page';
+
+function makeCourse(partial: Partial<CourseListItem>): CourseListItem {
+  return {
+    id: 'course',
+    title: 'Course',
+    description: '',
+    requirements: [],
+    whatYoullLearn: [],
+    audience: '',
+    level: 'Beginner',
+    partOfCareer: '',
+    teacher: 'Teacher',
+    careerGoals: [],
+    status: 'published',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    priceDkk: null,
+    thumbnailAssetId: '',
+    isPremium: false,
+    isBestseller: false,
+    rating: 0,
+    ratingCount: 0,
+    category: 'Uncategorized',
+    languages: [],
+    ...partial,
+  };
+}
+
+const catalog: CourseListItem[] = [
+  makeCourse({
+    id: 'selenium',
+    title: 'Selenium WebDriver with Java',
+    teacher: 'Rahul Academy',
+    category: 'Automation Testing',
+    level: 'Intermediate',
+    languages: ['English'],
+    priceDkk: 1500,
+    rating: 4.6,
+    ratingCount: 140,
+    createdAt: '2026-02-01T00:00:00.000Z',
+    isBestseller: true,
+  }),
+  makeCourse({
+    id: 'api',
+    title: 'Rest API Testing Automation',
+    teacher: 'Rahul Academy',
+    category: 'API Testing',
+    level: 'Advanced',
+    languages: ['English', 'Danish'],
+    priceDkk: 900,
+    rating: 4.5,
+    ratingCount: 48,
+    createdAt: '2026-03-01T00:00:00.000Z',
+  }),
+  makeCourse({
+    id: 'istqb',
+    title: 'ISTQB Foundation Level',
+    teacher: 'Naved Koshy',
+    category: 'Software Testing',
+    level: 'Beginner',
+    languages: ['Danish'],
+    priceDkk: null,
+    rating: 3.9,
+    ratingCount: 42,
+    createdAt: '2026-01-15T00:00:00.000Z',
+  }),
+  makeCourse({
+    id: 'draft',
+    title: 'Unpublished Bootcamp',
+    status: 'draft',
+    category: 'Software Testing',
+  }),
+];
+
+async function createPage(): Promise<{ component: CoursesPage; fixture: ComponentFixture<CoursesPage> }> {
+  await TestBed.configureTestingModule({
+    imports: [CoursesPage],
+    providers: [provideRouter([]), { provide: APP_BASE_HREF, useValue: '/' }],
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(CoursesPage);
+  const ref = fixture.componentRef;
+  ref.setInput('appVersion', '0.0.0');
+  ref.setInput('currentYear', 2026);
+  ref.setInput('student', { name: 'Alex', currentRole: '', targetRole: '', pathProgress: 0 });
+  ref.setInput('userEmail', 'alex@example.com');
+  ref.setInput('userRoleLabel', 'Student');
+  ref.setInput('canAccessAdmin', false);
+  ref.setInput('courses', catalog);
+  ref.setInput('coursesLoading', false);
+  ref.setInput('coursesError', '');
+  ref.setInput('canCreateCourses', false);
+  ref.setInput('isFeedbackOpen', false);
+  ref.setInput('feedbackSubmitted', false);
+  ref.setInput('feedbackPage', 'courses');
+  ref.setInput('feedbackRating', '');
+  ref.setInput('feedbackText', '');
+  ref.setInput('feedbackSubmitting', false);
+  ref.setInput('feedbackError', '');
+  ref.setInput('feedbackOptions', []);
+  fixture.detectChanges();
+
+  return { component: fixture.componentInstance, fixture };
+}
+
+function ids(courses: CourseListItem[]): string[] {
+  return courses.map((course) => course.id);
+}
+
+describe('CoursesPage browse filters', () => {
+  it('only includes published courses in the catalog results', async () => {
+    const { component } = await createPage();
+    const result = ids((component as any).catalogResults());
+
+    expect(result).not.toContain('draft');
+    expect(result).toHaveLength(3);
+  });
+
+  it('filters by category', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).toggleCategory('API Testing', true);
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults())).toEqual(['api']);
+  });
+
+  it('filters by normalized level', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).toggleLevel('Beginner', true);
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults())).toEqual(['istqb']);
+  });
+
+  it('filters by language membership', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).setLanguage('Danish');
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults()).sort()).toEqual(['api', 'istqb']);
+  });
+
+  it('filters by minimum rating', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).setMinRating(4.5);
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults()).sort()).toEqual(['api', 'selenium']);
+  });
+
+  it('filters by search terms across title, teacher and topics', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).updateSearchQuery('rahul rest');
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults())).toEqual(['api']);
+  });
+
+  it('treats free courses as price zero within the range', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).updatePriceMax('1000');
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults()).sort()).toEqual(['api', 'istqb']);
+  });
+
+  it('sorts by price ascending with free first', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).setSort('price-asc');
+    fixture.detectChanges();
+
+    expect(ids((component as any).catalogResults())).toEqual(['istqb', 'api', 'selenium']);
+  });
+
+  it('builds category facet counts from published courses', async () => {
+    const { component } = await createPage();
+    const facets = (component as any).categoryFacets() as { value: string; count: number }[];
+
+    const software = facets.find((facet) => facet.value === 'Software Testing');
+    expect(software?.count).toBe(1);
+    expect(facets.some((facet) => facet.value === 'Uncategorized')).toBe(false);
+  });
+
+  it('clears all active filters', async () => {
+    const { component, fixture } = await createPage();
+    (component as any).toggleCategory('API Testing', true);
+    (component as any).updateSearchQuery('rest');
+    fixture.detectChanges();
+    expect((component as any).hasActiveFilters()).toBe(true);
+
+    (component as any).clearAllFilters();
+    fixture.detectChanges();
+
+    expect((component as any).hasActiveFilters()).toBe(false);
+    expect(ids((component as any).catalogResults())).toHaveLength(3);
+  });
+
+  it('does not throw when courses are missing category/languages (stale API)', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CoursesPage],
+      providers: [provideRouter([]), { provide: APP_BASE_HREF, useValue: '/' }],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(CoursesPage);
+    const ref = fixture.componentRef;
+    // A course shaped like an older API response: no category/languages fields.
+    const legacy = { ...makeCourse({ id: 'legacy', level: undefined as unknown as string }) } as Record<
+      string,
+      unknown
+    >;
+    delete legacy['category'];
+    delete legacy['languages'];
+
+    ref.setInput('appVersion', '0.0.0');
+    ref.setInput('currentYear', 2026);
+    ref.setInput('student', { name: 'Alex', currentRole: '', targetRole: '', pathProgress: 0 });
+    ref.setInput('userEmail', 'alex@example.com');
+    ref.setInput('userRoleLabel', 'Student');
+    ref.setInput('canAccessAdmin', false);
+    ref.setInput('courses', [legacy as unknown as CourseListItem]);
+    ref.setInput('coursesLoading', false);
+    ref.setInput('coursesError', '');
+    ref.setInput('canCreateCourses', false);
+    ref.setInput('isFeedbackOpen', false);
+    ref.setInput('feedbackSubmitted', false);
+    ref.setInput('feedbackPage', 'courses');
+    ref.setInput('feedbackRating', '');
+    ref.setInput('feedbackText', '');
+    ref.setInput('feedbackSubmitting', false);
+    ref.setInput('feedbackError', '');
+    ref.setInput('feedbackOptions', []);
+
+    expect(() => fixture.detectChanges()).not.toThrow();
+
+    const component = fixture.componentInstance as any;
+    expect(component.languageFacets()).toEqual([]);
+    expect(component.categoryFacets().map((facet: { value: string }) => facet.value)).toEqual([
+      'Uncategorized',
+    ]);
+    expect(ids(component.catalogResults())).toEqual(['legacy']);
+  });
+
+  it('syncs active filters to the URL query params', async () => {
+    const { component, fixture } = await createPage();
+    const router = TestBed.inject(Router);
+
+    (component as any).toggleCategory('API Testing', true);
+    (component as any).setSort('newest');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(router.url).toContain('category=API%20Testing');
+    expect(router.url).toContain('sort=newest');
+  });
+});

@@ -537,6 +537,8 @@ describe('QI-Education API', () => {
         isBestseller: true,
         rating: 4.8,
         ratingCount: 312,
+        category: 'API Testing',
+        languages: ['English', 'Danish'],
       }),
     });
 
@@ -562,6 +564,8 @@ describe('QI-Education API', () => {
       isBestseller: true,
       rating: 4.8,
       ratingCount: 312,
+      category: 'API Testing',
+      languages: ['English', 'Danish'],
     });
   });
 
@@ -621,6 +625,8 @@ describe('QI-Education API', () => {
         isBestseller: true,
         rating: 4.8,
         ratingCount: 312,
+        category: 'Performance Testing',
+        languages: ['English'],
       }),
     });
     const updated = await updateResponse.json();
@@ -632,6 +638,8 @@ describe('QI-Education API', () => {
       isBestseller: true,
       rating: 4.8,
       ratingCount: 312,
+      category: 'Performance Testing',
+      languages: ['English'],
     });
   });
 
@@ -658,6 +666,8 @@ describe('QI-Education API', () => {
         isBestseller: false,
         rating: 4.4,
         ratingCount: 12,
+        category: 'Mobile Testing',
+        languages: [],
       }),
     });
     const body = await response.json();

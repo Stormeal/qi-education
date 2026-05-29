@@ -56,6 +56,22 @@ export type CourseSummary = {
 
 export type CourseStatus = 'draft' | 'ready-for-review' | 'published' | 'archived';
 
+export const COURSE_CATEGORIES = [
+  'Software Testing',
+  'Automation Testing',
+  'Performance Testing',
+  'API Testing',
+  'Mobile Testing',
+  'Security Testing',
+  'Test Management',
+  'Uncategorized',
+] as const;
+
+export const COURSE_LANGUAGES = ['English', 'Danish', 'German', 'Swedish', 'Norwegian'] as const;
+
+export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
+export type CourseLanguage = (typeof COURSE_LANGUAGES)[number];
+
 export type CourseListItem = {
   id: string;
   title: string;
@@ -75,6 +91,8 @@ export type CourseListItem = {
   isBestseller: boolean;
   rating: number;
   ratingCount: number;
+  category: CourseCategory;
+  languages: CourseLanguage[];
 };
 
 export type CourseCatalogMetadataDraft = {
@@ -82,6 +100,8 @@ export type CourseCatalogMetadataDraft = {
   isBestseller: boolean;
   rating: number;
   ratingCount: number;
+  category: CourseCategory;
+  languages: CourseLanguage[];
 };
 
 export type CourseCreateDraft = {

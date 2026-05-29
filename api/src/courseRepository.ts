@@ -235,6 +235,8 @@ export class InMemoryCourseRepository implements CourseRepository {
       isBestseller: false,
       rating: 0,
       ratingCount: 0,
+      category: 'Software Testing',
+      languages: ['English'],
     }
   ];
 

@@ -830,7 +830,8 @@
   text-transform: uppercase;
 }
 
-.price-field input {
+.price-field input,
+.price-field select {
   width: 100%;
   border: 1px solid rgba(140, 121, 96, 0.22);
   border-radius: 8px;
@@ -841,10 +842,27 @@
   font-size: 14px;
 }
 
-.price-field input:focus {
+.price-field input:focus,
+.price-field select:focus {
   outline: 2px solid rgba(245, 158, 11, 0.24);
   border-color: rgba(245, 158, 11, 0.64);
   background: #fffdf9;
+}
+
+.catalog-language-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-language-field legend {
+  padding: 0;
+  color: #7b6650;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .price-field-note {
