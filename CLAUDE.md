@@ -85,6 +85,8 @@ All routes validate requests with Zod. Error middleware converts `ZodError` to 4
 
 `AppStateService` uses Angular signals throughout. Course draft changes are detected by comparing JSON snapshots (serialized on load, re-serialized on edit). Content normalization runs on load to handle legacy quiz format migration — this is the only place schema migrations happen.
 
+The catalog carousel's skeleton gate is the `thumbnailsReady` signal in `courses-page.ts`; its `effect` reactively re-runs on `visibleFeaturedCourses()`, so it covers carousel paging too — but it must reset to `false` at the start of each run or the skeleton won't reappear on later pages.
+
 ### Video Upload Flow
 
 1. Client requests an upload URL from the API (`POST /content/:id/video`)
@@ -108,3 +110,11 @@ Course statuses: `draft → ready-for-review → published → archived`
 - Frontend → GitHub Pages (`app:build:pages`)
 - API → Vercel Serverless Functions; environment variables managed via Vercel (`npm run env:pull`)
 - Health endpoints: `/health`, `/health/config`, `/health/auth`, `/health/content`
+
+## Capturing Learnings
+
+When finishing a task — typically when we commit and push — ask whether I want to add any of the learnings from the task to this file.
+
+- Present a short, easy-to-read bulleted list of the learnings made during the task (e.g. non-obvious gotchas, conventions discovered, architectural details, fixes that revealed how something works).
+- Keep each bullet to one line where possible.
+- Only add the items I select to the relevant section of CLAUDE.md.

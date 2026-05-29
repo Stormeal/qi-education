@@ -179,9 +179,29 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(circle at 18% 22%, rgba(255, 208, 142, 0.18), transparent 26%),
-    linear-gradient(140deg, #1d3028 0%, #305043 54%, #80592f 100%);
+  overflow: hidden;
+  background-color: #ece7dd;
+}
+
+.catalog-card-fallback::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  animation: catalog-thumbnail-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes catalog-thumbnail-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-card-fallback::after {
+    animation: none;
+  }
 }
 
 .catalog-pill {

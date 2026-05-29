@@ -5,6 +5,7 @@ import {
   InMemoryCourseContentRepository,
   type CourseContentRepository,
 } from './courseContentRepository.js';
+import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryCourseRepository, type CourseRepository } from './courseRepository.js';
 import type { FeedbackEntry } from './feedback.js';
 import {
@@ -339,6 +340,37 @@ describe('QI-Education API', () => {
       createdAt: body.createdAt,
       updatedAt: body.createdAt,
     });
+  });
+
+  it('rejects course creation when shared course rows would point at local-only content', async () => {
+    const courseRepository = new SharedCourseRepository();
+    const isolatedServer = createServer({
+      courseRepository,
+      courseContentRepository: new InMemoryCourseContentRepository(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const response = await fetch(`${isolatedBaseUrl}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(validCourse()),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(body.message).toBe(
+        'Course creation requires shared content storage when courses are stored in Google Sheets. Configure MongoDB course content storage before creating courses.',
+      );
+      expect(await courseRepository.listCourses()).toHaveLength(1);
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('enrolls the current user in an existing course', async () => {
@@ -694,6 +726,42 @@ describe('QI-Education API', () => {
     expect(thumbnailResponse.status).toBe(200);
     expect(thumbnailResponse.headers.get('content-type')).toBe('image/png');
     expect(thumbnailBuffer.equals(Buffer.from('fake-image-binary'))).toBe(true);
+  });
+
+  it('rejects thumbnail uploads when shared course rows would point at local-only assets', async () => {
+    const courseRepository = new SharedCourseRepository();
+    const created = await courseRepository.createCourse(validCourse());
+    const isolatedServer = createServer({
+      courseRepository,
+      courseAssetRepository: new InMemoryCourseAssetRepository(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const response = await fetch(`${isolatedBaseUrl}/courses/${created.id}/thumbnail`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png',
+          'X-File-Name': 'catalog-thumbnail.png',
+          authorization: `Bearer ${token}`,
+        },
+        body: Buffer.from('fake-image-binary'),
+      });
+      const body = await response.json();
+      const [storedCourse] = (await courseRepository.listCourses()).filter(
+        (course) => course.id === created.id,
+      );
+
+      expect(response.status).toBe(503);
+      expect(body.message).toBe(
+        'Thumbnail uploads require shared asset storage when courses are stored in Google Sheets. Configure MongoDB course asset storage before uploading thumbnails.',
+      );
+      expect(storedCourse.thumbnailAssetId ?? '').toBe('');
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('allows a teacher to update course content', async () => {
@@ -1802,6 +1870,10 @@ class FailingCreateCourseRepository extends InMemoryCourseRepository implements 
     this.lastCreateId = args[1]?.id ?? null;
     throw new Error('Sheets write failed');
   }
+}
+
+class SharedCourseRepository extends InMemoryCourseRepository implements CourseRepository {
+  override readonly storageType = 'google-sheets';
 }
 
 class FailingCourseContentRepository implements CourseContentRepository {

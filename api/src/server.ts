@@ -130,6 +130,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
+        if (hasUnsafeThumbnailStorage(courses, courseAssets)) {
+          response.status(503).json({
+            message:
+              'Thumbnail uploads require shared asset storage when courses are stored in Google Sheets. Configure MongoDB course asset storage before uploading thumbnails.',
+          });
+          return;
+        }
+
         if (!Buffer.isBuffer(request.body) || request.body.byteLength === 0) {
           response.status(400).json({ message: 'Thumbnail image data is required.' });
           return;
@@ -196,6 +204,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         if (!matchingCourse) {
           response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+
+        if (hasUnsafeAttachmentStorage(courseContent, courseAssets)) {
+          response.status(503).json({
+            message:
+              'Attachment uploads require shared asset storage when course content is stored in MongoDB. Configure MongoDB course asset storage before uploading attachments.',
+          });
           return;
         }
 
@@ -510,6 +526,15 @@ export function createServer(dependencies: ServerDependencies = {}) {
     async (request, response, next) => {
       try {
         const input = createCourseSchema.parse(request.body);
+
+        if (hasUnsafeCourseCreationStorage(courses, courseContent)) {
+          response.status(503).json({
+            message:
+              'Course creation requires shared content storage when courses are stored in Google Sheets. Configure MongoDB course content storage before creating courses.',
+          });
+          return;
+        }
+
         const seed = {
           id: randomUUID(),
           createdAt: new Date().toISOString(),
@@ -996,6 +1021,27 @@ function courseContentHealthBody(storage: CourseContentRepository['storageType']
     database: apiConfig.MONGODB_DB_NAME || null,
     collection: apiConfig.MONGODB_COURSE_CONTENT_COLLECTION || null,
   };
+}
+
+function hasUnsafeCourseCreationStorage(
+  courses: CourseRepository,
+  courseContent: CourseContentRepository,
+) {
+  return courses.storageType === 'google-sheets' && courseContent.storageType === 'memory';
+}
+
+function hasUnsafeThumbnailStorage(
+  courses: CourseRepository,
+  courseAssets: CourseAssetRepository,
+) {
+  return courses.storageType === 'google-sheets' && courseAssets.storageType === 'memory';
+}
+
+function hasUnsafeAttachmentStorage(
+  courseContent: CourseContentRepository,
+  courseAssets: CourseAssetRepository,
+) {
+  return courseContent.storageType === 'mongodb' && courseAssets.storageType === 'memory';
 }
 
 async function handleMuxWebhookEvent(
