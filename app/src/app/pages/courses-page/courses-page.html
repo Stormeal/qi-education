@@ -66,12 +66,13 @@
       </p>
     } @else {
       <div class="featured-carousel">
-        <div
-          class="featured-grid"
-          [class.is-moving-next]="carouselMotion() === 'next'"
-          [class.is-moving-previous]="carouselMotion() === 'previous'"
-        >
-          @for (course of visibleFeaturedCourses(); track course.id) {
+        <div class="featured-viewport">
+          <div
+            class="featured-grid"
+            [class.is-moving-next]="carouselMotion() === 'next'"
+            [class.is-moving-previous]="carouselMotion() === 'previous'"
+          >
+          @for (course of carouselWindowCourses(); track course.id) {
             @let thumbnail = thumbnailUrl(course);
             <a
               class="catalog-card"
@@ -119,6 +120,7 @@
               </div>
             </a>
           }
+          </div>
         </div>
 
         @if (featuredCourses().length > 4) {
