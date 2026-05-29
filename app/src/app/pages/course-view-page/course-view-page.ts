@@ -27,10 +27,14 @@ import {
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
 import {
+  COURSE_CATEGORIES,
+  COURSE_LANGUAGES,
+  CourseCategory,
   CourseComponent,
   CourseComponentAttachment,
   CourseCatalogMetadataDraft,
   CourseContentDocument,
+  CourseLanguage,
   CourseListItem,
   FeedbackOption,
   QuizQuestion,
@@ -78,6 +82,10 @@ export class CourseViewPage {
   protected readonly catalogBestsellerDraft = signal(false);
   protected readonly catalogRatingDraft = signal('0');
   protected readonly catalogRatingCountDraft = signal('0');
+  protected readonly catalogCategoryDraft = signal<CourseCategory>('Uncategorized');
+  protected readonly catalogLanguagesDraft = signal<CourseLanguage[]>([]);
+  protected readonly catalogCategoryOptions = COURSE_CATEGORIES;
+  protected readonly catalogLanguageOptions = COURSE_LANGUAGES;
   protected readonly isEnrollDialogOpen = signal(false);
   protected readonly pendingEnrollment = signal(false);
   protected readonly expandedSectionIds = signal<string[]>([]);
@@ -275,6 +283,8 @@ export class CourseViewPage {
     this.catalogBestsellerDraft.set(course.isBestseller);
     this.catalogRatingDraft.set(String(course.rating));
     this.catalogRatingCountDraft.set(String(course.ratingCount));
+    this.catalogCategoryDraft.set(course.category ?? 'Uncategorized');
+    this.catalogLanguagesDraft.set([...(course.languages ?? [])]);
     this.pendingCatalogSave.set(false);
     this.isCatalogModalOpen.set(true);
   }
@@ -318,6 +328,25 @@ export class CourseViewPage {
     this.catalogRatingCountDraft.set(value);
   }
 
+  protected updateCatalogCategory(value: string): void {
+    const parsed = COURSE_CATEGORIES.find((category) => category === value);
+    this.catalogCategoryDraft.set(parsed ?? 'Uncategorized');
+  }
+
+  protected isCatalogLanguageSelected(language: CourseLanguage): boolean {
+    return this.catalogLanguagesDraft().includes(language);
+  }
+
+  protected toggleCatalogLanguage(language: CourseLanguage, selected: boolean): void {
+    this.catalogLanguagesDraft.update((languages) => {
+      if (selected) {
+        return languages.includes(language) ? languages : [...languages, language];
+      }
+
+      return languages.filter((entry) => entry !== language);
+    });
+  }
+
   protected applyCatalogDraft(courseId: string): void {
     const parsedRating = Number.parseFloat(this.catalogRatingDraft().trim());
     const parsedRatingCount = Number.parseInt(this.catalogRatingCountDraft().trim(), 10);
@@ -333,6 +362,8 @@ export class CourseViewPage {
             ? Math.min(5, Math.round(parsedRating * 10) / 10)
             : 0,
         ratingCount: Number.isFinite(parsedRatingCount) && parsedRatingCount >= 0 ? parsedRatingCount : 0,
+        category: this.catalogCategoryDraft(),
+        languages: [...this.catalogLanguagesDraft()],
       },
     });
   }
@@ -366,7 +397,9 @@ export class CourseViewPage {
   protected controlValue(event: Event): string {
     const control = event.target;
 
-    return control instanceof HTMLInputElement ? control.value : '';
+    return control instanceof HTMLInputElement || control instanceof HTMLSelectElement
+      ? control.value
+      : '';
   }
 
   protected controlChecked(event: Event): boolean {

@@ -2,6 +2,19 @@ import { z } from 'zod';
 
 export const courseStatusSchema = z.enum(['draft', 'ready-for-review', 'published', 'archived']);
 
+export const courseCategorySchema = z.enum([
+  'Software Testing',
+  'Automation Testing',
+  'Performance Testing',
+  'API Testing',
+  'Mobile Testing',
+  'Security Testing',
+  'Test Management',
+  'Uncategorized',
+]);
+
+export const courseLanguageSchema = z.enum(['English', 'Danish', 'German', 'Swedish', 'Norwegian']);
+
 export const courseSheetHeaders = [
   'id',
   'title',
@@ -21,6 +34,8 @@ export const courseSheetHeaders = [
   'isBestseller',
   'rating',
   'ratingCount',
+  'category',
+  'languages',
 ] as const;
 
 export const createCourseSchema = z.object({
@@ -40,6 +55,8 @@ export const createCourseSchema = z.object({
   isBestseller: z.boolean().default(false),
   rating: z.number().min(0).max(5).default(0),
   ratingCount: z.number().int().nonnegative().default(0),
+  category: courseCategorySchema.default('Uncategorized'),
+  languages: z.array(courseLanguageSchema).default([]),
 });
 
 export const updateCourseSchema = createCourseSchema.omit({
@@ -48,6 +65,8 @@ export const updateCourseSchema = createCourseSchema.omit({
   isBestseller: true,
   rating: true,
   ratingCount: true,
+  category: true,
+  languages: true,
 });
 export const updateCoursePriceSchema = z.object({
   priceDkk: z.number().int().nonnegative().nullable(),
@@ -57,12 +76,16 @@ export const updateCourseCatalogMetadataSchema = z.object({
   isBestseller: z.boolean(),
   rating: z.number().min(0).max(5),
   ratingCount: z.number().int().nonnegative(),
+  category: courseCategorySchema,
+  languages: z.array(courseLanguageSchema),
 });
 export const updateCourseThumbnailSchema = z.object({
   thumbnailAssetId: z.string().trim().max(120).default(''),
 });
 
 export type CourseStatus = z.infer<typeof courseStatusSchema>;
+export type CourseCategory = z.infer<typeof courseCategorySchema>;
+export type CourseLanguage = z.infer<typeof courseLanguageSchema>;
 export type CreateCourseInput = z.infer<typeof createCourseSchema>;
 export type UpdateCourseInput = z.infer<typeof updateCourseSchema>;
 export type UpdateCoursePriceInput = z.infer<typeof updateCoursePriceSchema>;
@@ -94,6 +117,8 @@ export function courseFromSheetRow(row: string[]): Course {
     isBestseller: parseBooleanFlag(row[15]),
     rating: parseRating(row[16]),
     ratingCount: parseRatingCount(row[17]),
+    category: courseCategorySchema.catch('Uncategorized').parse(row[18]?.trim() || 'Uncategorized'),
+    languages: parseLanguages(row[19]),
   };
 }
 
@@ -117,6 +142,8 @@ export function courseToSheetRow(course: Course): string[] {
     course.isBestseller ? 'TRUE' : 'FALSE',
     formatRating(course.rating),
     String(course.ratingCount),
+    course.category,
+    course.languages.join(', '),
   ];
 }
 
@@ -146,6 +173,23 @@ function parseRating(value: string | undefined): number {
   }
 
   return Math.min(5, Math.max(0, Math.round(parsed * 10) / 10));
+}
+
+function parseLanguages(value: string | undefined): Course['languages'] {
+  if (!value?.trim()) {
+    return [];
+  }
+
+  const seen = new Set<Course['languages'][number]>();
+
+  for (const candidate of value.split(',').map((entry) => entry.trim())) {
+    const parsed = courseLanguageSchema.safeParse(candidate);
+    if (parsed.success) {
+      seen.add(parsed.data);
+    }
+  }
+
+  return [...seen];
 }
 
 function parseRatingCount(value: string | undefined): number {

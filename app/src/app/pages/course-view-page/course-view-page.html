@@ -746,6 +746,34 @@
         />
       </label>
 
+      <label class="price-field">
+        <span>Category</span>
+        <select
+          [value]="catalogCategoryDraft()"
+          (change)="updateCatalogCategory(controlValue($event))"
+        >
+          @for (category of catalogCategoryOptions; track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </label>
+
+      <fieldset class="catalog-language-field">
+        <legend>Languages</legend>
+        <div class="catalog-toggle-grid">
+          @for (language of catalogLanguageOptions; track language) {
+            <label class="catalog-toggle">
+              <input
+                type="checkbox"
+                [checked]="isCatalogLanguageSelected(language)"
+                (change)="toggleCatalogLanguage(language, controlChecked($event))"
+              />
+              <span>{{ language }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
       <p class="price-field-note">
         Thumbnail artwork is managed from the course editor so teachers can update it during editing.
       </p>

@@ -190,6 +190,230 @@
         }
       </div>
     </section>
+
+    <section class="catalog-band browse-band" id="browse-courses" aria-labelledby="browse-courses-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="browse-courses-title">Browse all courses</h2>
+          <p>Search and filter the full catalog to find the right course for you.</p>
+        </div>
+      </div>
+
+      <div class="browse-layout" [class.is-filters-open]="filtersOpen()">
+        <button
+          type="button"
+          class="filters-toggle"
+          [attr.aria-expanded]="filtersOpen()"
+          (click)="toggleFilters()"
+        >
+          <span>{{ filtersOpen() ? 'Hide filters' : 'Show filters' }}</span>
+          @if (activeFilterCount() > 0) {
+            <span class="filters-toggle-badge">{{ activeFilterCount() }}</span>
+          }
+        </button>
+
+        <aside class="filters-panel" aria-label="Course filters">
+          <div class="filters-header">
+            <h3>Filters</h3>
+            @if (hasActiveFilters()) {
+              <button type="button" class="filters-clear" (click)="clearAllFilters()">Clear all</button>
+            }
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label" for="catalog-search">Search</label>
+            <input
+              id="catalog-search"
+              type="search"
+              class="filter-search"
+              placeholder="Search for topics, skills, courses..."
+              [value]="searchQuery()"
+              (input)="updateSearchQuery(controlValue($event))"
+            />
+          </div>
+
+          @if (categoryFacets().length > 0) {
+            <div class="filter-group">
+              <span class="filter-label">Categories</span>
+              <div class="filter-options">
+                @for (facet of categoryFacets(); track facet.value) {
+                  <label class="filter-option">
+                    <input
+                      type="checkbox"
+                      [checked]="isCategorySelected(facet.value)"
+                      (change)="toggleCategory(facet.value, controlChecked($event))"
+                    />
+                    <span class="filter-option-text">{{ facet.value }}</span>
+                    <span class="filter-option-count">{{ facet.count }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+
+          @if (levelFacets().length > 0) {
+            <div class="filter-group">
+              <span class="filter-label">Level</span>
+              <div class="filter-options">
+                @for (facet of levelFacets(); track facet.value) {
+                  <label class="filter-option">
+                    <input
+                      type="checkbox"
+                      [checked]="isLevelSelected(facet.value)"
+                      (change)="toggleLevel(facet.value, controlChecked($event))"
+                    />
+                    <span class="filter-option-text">{{ facet.value }}</span>
+                    <span class="filter-option-count">{{ facet.count }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="filter-group">
+            <span class="filter-label">Ratings</span>
+            <div class="filter-options">
+              @for (option of ratingOptions; track option.value) {
+                <label class="filter-option">
+                  <input
+                    type="radio"
+                    name="catalog-rating"
+                    [checked]="minRating() === option.value"
+                    (change)="setMinRating(option.value)"
+                  />
+                  <span class="filter-option-text">
+                    <span class="catalog-star" aria-hidden="true">★</span>
+                    {{ option.label }}
+                  </span>
+                </label>
+              }
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Price (DKK)</span>
+            <div class="filter-price">
+              <div class="filter-price-values">
+                <span>{{ coursePriceLabel(effectivePriceMin()) }}</span>
+                <span>{{ coursePriceLabel(effectivePriceMax()) }}</span>
+              </div>
+              <label class="filter-range">
+                <span class="filter-range-label">Min</span>
+                <input
+                  type="range"
+                  min="0"
+                  [max]="priceCeiling()"
+                  step="50"
+                  [value]="effectivePriceMin()"
+                  (input)="updatePriceMin(controlValue($event))"
+                />
+              </label>
+              <label class="filter-range">
+                <span class="filter-range-label">Max</span>
+                <input
+                  type="range"
+                  min="0"
+                  [max]="priceCeiling()"
+                  step="50"
+                  [value]="effectivePriceMax()"
+                  (input)="updatePriceMax(controlValue($event))"
+                />
+              </label>
+            </div>
+          </div>
+
+          @if (languageFacets().length > 0) {
+            <div class="filter-group">
+              <label class="filter-label" for="catalog-language">Language</label>
+              <select
+                id="catalog-language"
+                class="filter-select"
+                [value]="selectedLanguage()"
+                (change)="setLanguage(controlValue($event))"
+              >
+                <option value="">All languages</option>
+                @for (language of languageFacets(); track language) {
+                  <option [value]="language">{{ language }}</option>
+                }
+              </select>
+            </div>
+          }
+        </aside>
+
+        <div class="browse-results">
+          <div class="browse-results-toolbar">
+            <label class="browse-sort">
+              <span>Sort by</span>
+              <select [value]="sortBy()" (change)="setSort(controlValue($event))">
+                @for (option of sortOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+            <span class="browse-results-count">{{ resultCountLabel(catalogResultCount()) }}</span>
+          </div>
+
+          @if (catalogResults().length === 0) {
+            <p class="course-empty">No courses match your filters. Try clearing some to see more.</p>
+          } @else {
+            <ul class="browse-results-list">
+              @for (course of catalogResults(); track course.id) {
+                @let thumbnail = thumbnailUrl(course);
+                <li>
+                  <a
+                    class="browse-card"
+                    [routerLink]="['/courses', course.id]"
+                    [attr.aria-label]="'Open course: ' + course.title"
+                  >
+                    <div class="browse-card-media">
+                      @if (thumbnail) {
+                        <img
+                          [src]="thumbnail"
+                          [alt]="course.title + ' thumbnail'"
+                          [class.is-loaded]="isThumbnailLoaded(course.id)"
+                          loading="lazy"
+                          decoding="async"
+                          (load)="markThumbnailLoaded(course.id)"
+                          (error)="markThumbnailLoaded(course.id)"
+                        />
+                      } @else {
+                        <div class="catalog-card-fallback" aria-hidden="true"></div>
+                      }
+
+                      @if (course.isPremium) {
+                        <span class="catalog-pill catalog-pill-premium">Premium</span>
+                      }
+                    </div>
+
+                    <div class="browse-card-body">
+                      <h3>{{ course.title }}</h3>
+                      <p class="browse-card-author">{{ course.teacher }}</p>
+
+                      <div class="catalog-card-pills" aria-label="Course highlights">
+                        @if (course.isBestseller) {
+                          <span class="catalog-pill catalog-pill-highlight">Bestseller</span>
+                        }
+                        <span class="catalog-pill">{{ course.category || 'Uncategorized' }}</span>
+                        <span class="catalog-pill catalog-pill-rating">
+                          <span class="catalog-star" aria-hidden="true">★</span>
+                          <span>{{ ratingLabel(course.rating) }}</span>
+                        </span>
+                        <span class="catalog-pill">{{ ratingCountLabel(course.ratingCount) }}</span>
+                        <span class="catalog-pill">{{ normalizeLevel(course.level) }}</span>
+                      </div>
+                    </div>
+
+                    <div class="browse-card-aside">
+                      <p class="browse-card-price">{{ coursePriceLabel(course.priceDkk) }}</p>
+                    </div>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+    </section>
   }
 
   <footer class="site-footer">
