@@ -93,6 +93,7 @@ export class CoursesPage {
         return;
       }
 
+      this.thumbnailsReady.set(false);
       this.courseService
         .preloadCourseThumbnails(this.visibleFeaturedCourses())
         .then(() => this.thumbnailsReady.set(true));
