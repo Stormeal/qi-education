@@ -13,7 +13,7 @@ export const courseCategorySchema = z.enum([
   'Uncategorized',
 ]);
 
-export const courseLanguageSchema = z.enum(['English', 'Danish', 'German', 'Swedish', 'Norwegian']);
+export const courseLanguageSchema = z.enum(['English', 'Danish']);
 
 export const courseSheetHeaders = [
   'id',

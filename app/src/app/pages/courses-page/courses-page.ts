@@ -92,9 +92,11 @@ export class CoursesPage {
   protected readonly activeCollection = signal<CourseCollectionTab>('popular');
   protected readonly carouselStart = signal(0);
   protected readonly carouselMotion = signal<'next' | 'previous' | ''>('');
+  protected readonly carouselMotionStart = signal(0);
   protected readonly loadedThumbnailIds = signal<Record<string, boolean>>({});
   protected readonly thumbnailsReady = signal(false);
   private carouselMotionTimeout: number | null = null;
+  private thumbnailLoadToken = 0;
 
   // Browse-all filter state (synced to URL query params).
   protected readonly searchQuery = signal('');
@@ -149,10 +151,18 @@ export class CoursesPage {
         return;
       }
 
+      // Gate the whole carousel on every course's thumbnail (not just the
+      // visible window), so content only appears once all are loaded. This
+      // depends on featuredCourses() — not the paged slice — so paging never
+      // re-triggers the skeleton.
+      const courses = this.featuredCourses();
+      const token = ++this.thumbnailLoadToken;
       this.thumbnailsReady.set(false);
-      this.courseService
-        .preloadCourseThumbnails(this.visibleFeaturedCourses())
-        .then(() => this.thumbnailsReady.set(true));
+      this.courseService.preloadCourseThumbnails(courses).then(() => {
+        if (token === this.thumbnailLoadToken) {
+          this.thumbnailsReady.set(true);
+        }
+      });
     });
 
     this.readFiltersFromUrl();
@@ -210,6 +220,21 @@ export class CoursesPage {
     }
 
     return items.slice(this.currentCarouselStart(), this.currentCarouselStart() + 4);
+  });
+
+  protected readonly carouselWindowCourses = computed(() => {
+    const items = this.featuredCourses();
+
+    if (items.length <= 4) {
+      return items;
+    }
+
+    if (this.carouselMotion()) {
+      const start = Math.min(this.carouselMotionStart(), this.currentCarouselStart());
+      return items.slice(start, start + 5);
+    }
+
+    return this.visibleFeaturedCourses();
   });
 
   protected readonly canRetreatCarousel = computed(() => this.currentCarouselStart() > 0);
@@ -276,6 +301,7 @@ export class CoursesPage {
 
     this.activeCollection.set(tab);
     this.carouselStart.set(0);
+    this.carouselMotionStart.set(0);
   }
 
   protected setView(view: CourseCatalogView): void {
@@ -285,28 +311,28 @@ export class CoursesPage {
 
     this.activeView.set(view);
     this.carouselStart.set(0);
+    this.carouselMotionStart.set(0);
   }
 
   protected advanceCarousel(): void {
-    const maxStart = this.maxCarouselStart();
-    const nextStart = Math.min(this.currentCarouselStart() + 4, maxStart);
+    const nextStart = Math.min(this.currentCarouselStart() + 1, this.maxCarouselStart());
 
     if (nextStart === this.currentCarouselStart()) {
       return;
     }
 
-    this.setCarouselMotion('next');
+    this.setCarouselMotion('next', this.currentCarouselStart());
     this.carouselStart.set(nextStart);
   }
 
   protected retreatCarousel(): void {
-    const nextStart = Math.max(this.currentCarouselStart() - 4, 0);
+    const nextStart = Math.max(this.currentCarouselStart() - 1, 0);
 
     if (nextStart === this.currentCarouselStart()) {
       return;
     }
 
-    this.setCarouselMotion('previous');
+    this.setCarouselMotion('previous', this.currentCarouselStart());
     this.carouselStart.set(nextStart);
   }
 
@@ -675,11 +701,12 @@ export class CoursesPage {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
   }
 
-  private setCarouselMotion(direction: 'next' | 'previous'): void {
+  private setCarouselMotion(direction: 'next' | 'previous', start: number): void {
     if (this.carouselMotionTimeout !== null) {
       window.clearTimeout(this.carouselMotionTimeout);
     }
 
+    this.carouselMotionStart.set(start);
     this.carouselMotion.set('');
     window.requestAnimationFrame(() => {
       this.carouselMotion.set(direction);

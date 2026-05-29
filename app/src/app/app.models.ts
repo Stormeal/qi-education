@@ -67,7 +67,7 @@ export const COURSE_CATEGORIES = [
   'Uncategorized',
 ] as const;
 
-export const COURSE_LANGUAGES = ['English', 'Danish', 'German', 'Swedish', 'Norwegian'] as const;
+export const COURSE_LANGUAGES = ['English', 'Danish'] as const;
 
 export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
 export type CourseLanguage = (typeof COURSE_LANGUAGES)[number];

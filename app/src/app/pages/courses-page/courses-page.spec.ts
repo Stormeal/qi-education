@@ -76,7 +76,9 @@ const catalog: CourseListItem[] = [
   }),
 ];
 
-async function createPage(): Promise<{ component: CoursesPage; fixture: ComponentFixture<CoursesPage> }> {
+async function createPage(
+  courses: CourseListItem[] = catalog,
+): Promise<{ component: CoursesPage; fixture: ComponentFixture<CoursesPage> }> {
   await TestBed.configureTestingModule({
     imports: [CoursesPage],
     providers: [provideRouter([]), { provide: APP_BASE_HREF, useValue: '/' }],
@@ -90,7 +92,7 @@ async function createPage(): Promise<{ component: CoursesPage; fixture: Componen
   ref.setInput('userEmail', 'alex@example.com');
   ref.setInput('userRoleLabel', 'Student');
   ref.setInput('canAccessAdmin', false);
-  ref.setInput('courses', catalog);
+  ref.setInput('courses', courses);
   ref.setInput('coursesLoading', false);
   ref.setInput('coursesError', '');
   ref.setInput('canCreateCourses', false);
@@ -242,6 +244,41 @@ describe('CoursesPage browse filters', () => {
       'Uncategorized',
     ]);
     expect(ids(component.catalogResults())).toEqual(['legacy']);
+  });
+
+  it('advances and retreats the featured carousel one card at a time', async () => {
+    // Six published courses with distinct ratings for a stable popularity order.
+    const many = Array.from({ length: 6 }, (_, i) =>
+      makeCourse({ id: `c${i}`, title: `Course ${i}`, rating: 5 - i * 0.1, ratingCount: 100 - i }),
+    );
+    const { component, fixture } = await createPage(many);
+    const c = component as any;
+
+    const order: string[] = c.featuredCourses().map((x: CourseListItem) => x.id);
+    expect(order).toHaveLength(6);
+
+    const window = () => c.visibleFeaturedCourses().map((x: CourseListItem) => x.id);
+    expect(window()).toEqual(order.slice(0, 4));
+
+    // Forward: shifts by exactly one, not jumping to the end.
+    c.advanceCarousel();
+    fixture.detectChanges();
+    expect(window()).toEqual(order.slice(1, 5));
+
+    c.advanceCarousel();
+    fixture.detectChanges();
+    expect(window()).toEqual(order.slice(2, 6));
+
+    // At the end (maxStart = 6 - 4 = 2): no further advance.
+    expect(c.canAdvanceCarousel()).toBe(false);
+    c.advanceCarousel();
+    fixture.detectChanges();
+    expect(window()).toEqual(order.slice(2, 6));
+
+    // Back: one card at a time.
+    c.retreatCarousel();
+    fixture.detectChanges();
+    expect(window()).toEqual(order.slice(1, 5));
   });
 
   it('syncs active filters to the URL query params', async () => {
