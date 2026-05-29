@@ -14,6 +14,7 @@ import {
 import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 
 export interface CourseRepository {
+  readonly storageType: 'memory' | 'google-sheets';
   listCourses(): Promise<Course[]>;
   createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course>;
   updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null>;
@@ -28,6 +29,8 @@ export type CourseSeed = {
 };
 
 export class GoogleSheetsCourseRepository implements CourseRepository {
+  readonly storageType: CourseRepository['storageType'] = 'google-sheets';
+
   async listCourses(): Promise<Course[]> {
     const sheets = createSheetsClient();
     const response = await sheets.spreadsheets.values.get({
@@ -211,6 +214,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 }
 
 export class InMemoryCourseRepository implements CourseRepository {
+  readonly storageType: CourseRepository['storageType'] = 'memory';
   private readonly courses: Course[] = [
     {
       id: 'demo-course-1',
