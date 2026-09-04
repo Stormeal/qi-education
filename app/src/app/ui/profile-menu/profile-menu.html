@@ -37,6 +37,13 @@
         </svg>
         Settings
       </button>
+      <button type="button" role="menuitem" class="profile-menu-item" (click)="selectCareerPath()">
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path d="M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z" />
+          <path d="M12.6 7.4 11 11l-3.6 1.6L9 9l3.6-1.6Z" />
+        </svg>
+        Career Path
+      </button>
       @if (canAccessAdmin()) {
         <button type="button" role="menuitem" class="profile-menu-item" (click)="selectAdmin()">
           <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">

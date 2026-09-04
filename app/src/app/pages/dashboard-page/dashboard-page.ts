@@ -8,7 +8,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
   selector: 'app-dashboard-page',
   imports: [AppButton, FeedbackDialog, PageHeader],
   templateUrl: './dashboard-page.html',
-  styleUrl: '../../app.scss',
+  styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardPage {
@@ -40,4 +40,5 @@ export class DashboardPage {
   readonly coursesClicked = output<void>();
   readonly libraryClicked = output<void>();
   readonly adminClicked = output<void>();
+  readonly careerPathClicked = output<void>();
 }

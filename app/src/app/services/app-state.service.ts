@@ -35,7 +35,7 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.34';
+  readonly appVersion = '0.1.35';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -51,6 +51,7 @@ export class AppStateService {
   readonly loginError = signal('');
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
   readonly currentPath = signal(this.normalizePath(this.router.url));
+  readonly hasStartedCareerPath = signal(false);
 
   readonly isFeedbackOpen = signal(false);
   readonly feedbackPage = signal('');
@@ -549,6 +550,14 @@ export class AppStateService {
     }
 
     this.updatePath('/admin');
+  }
+
+  navigateCareerPath(): void {
+    this.updatePath('/career-path');
+  }
+
+  startCareerPath(): void {
+    this.hasStartedCareerPath.set(true);
   }
 
   openFeedback(): void {

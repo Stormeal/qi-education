@@ -29,6 +29,11 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
   },
   {
+    path: 'career-path',
+    loadComponent: () =>
+      import('./routes/career-path-route').then((module) => module.CareerPathRoute),
+  },
+  {
     path: 'courses/new',
     loadComponent: () =>
       import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),

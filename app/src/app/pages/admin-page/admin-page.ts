@@ -46,6 +46,7 @@ export class AdminPage {
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();
+  readonly careerPathClicked = output<void>();
   readonly feedbackReloaded = output<void>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();

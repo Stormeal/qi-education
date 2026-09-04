@@ -15,6 +15,7 @@ export class ProfileMenu {
   readonly loggedOut = output<void>();
   readonly profileSelected = output<void>();
   readonly settingsSelected = output<void>();
+  readonly careerPathSelected = output<void>();
   readonly adminSelected = output<void>();
 
   protected readonly isOpen = signal(false);
@@ -42,6 +43,11 @@ export class ProfileMenu {
 
   protected selectSettings(): void {
     this.settingsSelected.emit();
+    this.closeMenu();
+  }
+
+  protected selectCareerPath(): void {
+    this.careerPathSelected.emit();
     this.closeMenu();
   }
 

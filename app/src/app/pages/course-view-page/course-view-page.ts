@@ -187,6 +187,7 @@ export class CourseViewPage {
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();
+  readonly careerPathClicked = output<void>();
   readonly courseEdited = output<string>();
   readonly courseLearningOpened = output<string>();
   readonly coursePriceSaved = output<{ courseId: string; priceDkk: number | null }>();
