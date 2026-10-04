@@ -1,0 +1,74 @@
+{
+  "audit": "2026-10-04",
+  "observations": [
+    {
+      "id": "DEF-001",
+      "probe": "An unrelated teacher changes another teacher draft",
+      "status": 200
+    },
+    {
+      "id": "CONTROL",
+      "probe": "A student cannot create a course",
+      "status": 403
+    },
+    {
+      "id": "DEF-002",
+      "probe": "Teacher publishes a draft and sets its price through general PATCH",
+      "status": 200
+    },
+    {
+      "id": "DEF-002",
+      "probe": "Dedicated price endpoint correctly rejects a teacher",
+      "status": 403
+    },
+    {
+      "id": "DEF-003",
+      "probe": "Anonymous catalog includes draft metadata",
+      "status": 200,
+      "draftIncluded": true
+    },
+    {
+      "id": "DEF-003",
+      "probe": "Anonymous request receives private draft lesson content",
+      "status": 200,
+      "privateBodyIncluded": true
+    },
+    {
+      "id": "DEF-004",
+      "probe": "Student enrolls in an unpublished draft",
+      "status": 200,
+      "draftEnrolled": true
+    },
+    {
+      "id": "DEF-004",
+      "probe": "Student enrollment endpoint also accepts an archived course",
+      "status": 200
+    },
+    {
+      "id": "DEF-005",
+      "probe": "Save quiz with no correct answer and passPoints above total points",
+      "status": 200
+    },
+    {
+      "id": "DEF-005",
+      "probe": "Publish the impossible quiz",
+      "status": 200
+    },
+    {
+      "id": "DEF-003",
+      "probe": "Anonymous content DTO contains quiz scoring flags",
+      "status": 200,
+      "answerFlagsIncluded": true
+    },
+    {
+      "id": "DEF-008",
+      "probe": "Malformed JSON is classified as a server error",
+      "status": 500
+    },
+    {
+      "id": "DEF-008",
+      "probe": "Thumbnail exceeding documented 2 MB limit is classified as a server error",
+      "status": 500
+    }
+  ]
+}

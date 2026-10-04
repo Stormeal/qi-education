@@ -1,5 +1,9 @@
 # AGENTS.md
 
+For current work selection, specs, backlog, defects, and handoff, start with the
+root [AGENTS.md](../AGENTS.md) and [documentation index](../docs/README.md).
+The conventions below complement that workflow.
+
 ## Project Overview
 
 This repository is `qi-education`, an npm workspace containing:
