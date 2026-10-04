@@ -24,9 +24,11 @@ Recorded on 2026-10-04:
 1. Delivery order: **teacher journey, learner journey, platform reliability**.
 2. Teachers edit their own courses; admins can edit all courses.
 3. Work and commits use `main` unless a different branch is explicitly requested.
+4. Confirmed defects come before enhancements. Resolved defects stay documented
+   with their resolution, regression evidence, date, and fixing commit.
 
-These decisions describe intended behavior. The ownership policy is not yet
-implemented; see DEF-001 and US-T001. Other audit-generated enhancements remain
+The ownership policy is implemented and locally checked; see DEF-001 and US-T001
+for evidence and remaining release checks. Other audit-generated enhancements remain
 Proposed until selected and their outstanding decisions are resolved.
 
 The audit baseline is commit `6e19213`. An audit finding is a dated observation,

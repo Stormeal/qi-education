@@ -163,7 +163,7 @@ export class CourseViewPage {
   readonly userEmail = input.required<string>();
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
-  readonly canCreateCourses = input.required<boolean>();
+  readonly canEditCourse = input.required<boolean>();
   readonly course = input.required<CourseListItem | null>();
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();

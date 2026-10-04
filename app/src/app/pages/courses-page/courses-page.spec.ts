@@ -7,6 +7,7 @@ import { CoursesPage } from './courses-page';
 function makeCourse(partial: Partial<CourseListItem>): CourseListItem {
   return {
     id: 'course',
+    ownerUserId: '',
     title: 'Course',
     description: '',
     requirements: [],
@@ -90,6 +91,7 @@ async function createPage(
   ref.setInput('currentYear', 2026);
   ref.setInput('student', { name: 'Alex', currentRole: '', targetRole: '', pathProgress: 0 });
   ref.setInput('userEmail', 'alex@example.com');
+  ref.setInput('userId', 'teacher-a');
   ref.setInput('userRoleLabel', 'Student');
   ref.setInput('canAccessAdmin', false);
   ref.setInput('courses', courses);
@@ -112,6 +114,34 @@ async function createPage(
 function ids(courses: CourseListItem[]): string[] {
   return courses.map((course) => course.id);
 }
+
+describe('owned course drafts (DEF-001)', () => {
+  it('uses authenticated IDs instead of matching instructor names', async () => {
+    const { fixture } = await createPage([
+      Object.assign(makeCourse({ id: 'mine', title: 'My renamed course', status: 'draft', teacher: 'Renamed instructor' }), { ownerUserId: 'teacher-a' }),
+      Object.assign(makeCourse({ id: 'other', title: 'Another teachers course', status: 'draft', teacher: 'Alex' }), { ownerUserId: 'teacher-b' }),
+      Object.assign(makeCourse({ id: 'legacy', title: 'Legacy unowned course', status: 'draft', teacher: 'Alex' }), { ownerUserId: '' }),
+    ]);
+    fixture.componentRef.setInput('canCreateCourses', true);
+    fixture.detectChanges();
+    const drafts = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((button) => button.textContent?.includes('My drafts'))!;
+    drafts.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('My renamed course');
+    expect(fixture.nativeElement.textContent).not.toContain('Another teachers course');
+    expect(fixture.nativeElement.textContent).not.toContain('Legacy unowned course');
+    fixture.componentRef.setInput('canAccessAdmin', true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Another teachers course');
+    expect(fixture.nativeElement.textContent).toContain('Legacy unowned course');
+  });
+});
 
 describe('CoursesPage browse filters', () => {
   it('only includes published courses in the catalog results', async () => {

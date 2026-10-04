@@ -4,43 +4,50 @@ Updated: 2026-10-04. Working branch: `main`. Audited base: `6e19213`.
 
 ## Active work
 
-None. The application audit and documentation setup are complete. Application
-defects have been recorded, not fixed by this documentation task.
+**DEF-001 / US-T001 — Course ownership.** In progress. Owner: Codex.
+Branch: `main`. Implementation base: `ae9794a`. Spec:
+[course ownership](specs/US-T001-course-ownership.md), AC01–AC05.
+
+The user selected defects before enhancements on 2026-10-04. Start with the
+confirmed teacher authorization defect, then work through confirmed defects in
+teacher, learner, and platform order. Preserve completed defects with their
+resolution date, evidence, and fixing commit; never remove their records.
+
+Completed: owner persistence and all authoring gates, UI capabilities and denied
+direct editor entry, API/frontend regression suites, builds, and isolated browser
+walkthrough. Evidence: [DEF-001 verification](verification/2026-10-04/DEF-001.md).
+Independent review found a forged asset-reference deletion bypass; ten additional
+regressions reproduced it and the fix adds binding checks and course-scoped deletion.
+Current step: independent code review, then commit and record the exact delivery
+hash. Release checks for disposable Sheets/MongoDB and hosted behavior remain pending.
 
 ## Next candidate
 
-**US-T001 — Enforce course ownership.** Status: Ready. Owner: unassigned.
-Spec: [course ownership](specs/US-T001-course-ownership.md). Defect: DEF-001.
+**DEF-002 — General authoring bypasses admin publication/pricing controls.**
+Defect status: Open. Related story: US-T002 (Proposed). Owner: unassigned.
 
-The user has selected the policy: teachers edit their own courses; admins edit
-all courses. Start this item when instructed to implement the next teacher story.
-First implementation step: add a failing API test with two distinct teachers,
-then introduce stable owner IDs and enforce the policy on every authoring route.
-Existing courses without an owner remain admin-editable until explicitly mapped.
+Next action: define a narrow defect spec for restricted fields on POST/PATCH and
+the teacher Status control, including unchanged-price/status compatibility during
+ordinary authoring saves. Keep review comments and revision workflow separate
+from this fix. Resolve any boundary affecting behavior before marking the work Ready.
 
-## Following order
+## Defect order
 
-| Order | Item | Current state | Prerequisite |
+| Order | Defect / related story | Current state | Next prerequisite |
 | --- | --- | --- | --- |
-| 1 | US-T001 ownership | Ready | User requests implementation |
-| 2 | US-T002 review and publishing | Proposed | Ownership; confirm review/return policy |
-| 3 | US-T003 protect unsaved authoring | Proposed | Confirm recovery scope |
-| 4 | US-T004 valid assessments | Proposed | Confirm single-choice assessment policy |
-| 5 | US-T005 reliable saves | Proposed | Define revision and partial-save contract |
-| 6 | US-T006 media operations | Proposed | Define removal and signed playback policy |
-| 7 | US-T007 instructor description | Proposed | Public fields/persistence and T001 |
-| 8 | US-A001 teaching access administration | Proposed | Supported role changes and admin safeguards |
-| 9 | US-L001 protected enrollment and learning | Proposed | Teacher access/lifecycle contracts |
-| 10 | US-L002 trustworthy progress | Proposed | Define completion and persistence policy |
-| 11 | US-L003 account profile persistence | Proposed | Select storage and fields |
-| 12 | US-L004 account recovery | Proposed | Select real support/reset delivery channel |
-| 13 | US-L005 unavailable controls | Proposed | Implement versus hide/disable choice |
-| 14 | US-L006 career path previews | Proposed | Confirm imported fixture/API scope |
-| 15 | US-L007 recommendation ordering | Proposed | Real activity and primary recommendation |
-| 16 | US-L008 catalog card integrity | Proposed | Reproduce reported metadata/layout defects |
-| 17 | US-P001 repeatable flow verification | Proposed | Teacher and learner contracts |
-| 18 | US-P002 useful API errors | Proposed | Select error contract |
-| 19 | US-P003 resilient account and feedback writes | Proposed | Select uniqueness/idempotency strategy |
+| 1 | DEF-002 / US-T002 admin field restrictions | Open | Narrow restricted-field contract |
+| 2 | DEF-003 / US-T002, US-L001 private drafts/content | Open | Author/learner read DTOs and preview/entitlement policy |
+| 3 | DEF-006 / US-T003 unsaved authoring | Open | Navigation warning versus local recovery scope |
+| 4 | DEF-005 / US-T004 impossible published quizzes | Open | Scoring and publication validation contract |
+| 5 | DEF-004 / US-L001 unpublished enrollment | Open | New-enrollment eligibility; archived access separate |
+| 6 | DEF-010 / US-L001 direct learning refresh | Open | Narrow route-loading regression spec |
+| 7 | DEF-007, DEF-009 / US-L002 false progress/activity | Open | Shared progress source and empty account behavior |
+| 8 | DEF-011 / US-L005 inactive controls | Open | Implement versus hide/disable choice |
+| 9 | DEF-008 / US-P002 parser errors | Open | Preserve 400/413 contract with regression cases |
+
+Enhancement-only stories remain in [user_stories.md](user_stories.md) for later
+selection. DEF-012/DEF-013 and INV-001–INV-004 remain investigations, not confirmed
+fixes; reproduce them before prioritizing implementation.
 
 P1 access defects are release risks even while platform work is later in the
 roadmap. Do not interpret this order as approval to release known access gaps.

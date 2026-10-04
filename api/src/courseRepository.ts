@@ -26,6 +26,7 @@ export interface CourseRepository {
 export type CourseSeed = {
   id: string;
   createdAt: string;
+  ownerUserId?: string;
 };
 
 export class GoogleSheetsCourseRepository implements CourseRepository {
@@ -46,6 +47,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     const course: Course = {
       ...input,
       id: seed?.id ?? randomUUID(),
+      ownerUserId: seed?.ownerUserId ?? '',
       createdAt: seed?.createdAt ?? new Date().toISOString()
     };
 
@@ -83,6 +85,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
       ...existing,
       ...input,
       id: existing.id,
+      ownerUserId: existing.ownerUserId,
       createdAt: existing.createdAt
     };
     const sheetRowNumber = rowIndex + 2;
@@ -218,6 +221,7 @@ export class InMemoryCourseRepository implements CourseRepository {
   private readonly courses: Course[] = [
     {
       id: 'demo-course-1',
+      ownerUserId: '',
       title: 'Career Discovery Workshop',
       description: 'Map existing strengths, learning gaps, and practical next steps.',
       requirements: ['An interest in structured learning', 'A current or target career goal'],
@@ -248,6 +252,7 @@ export class InMemoryCourseRepository implements CourseRepository {
     const course: Course = {
       ...input,
       id: seed?.id ?? randomUUID(),
+      ownerUserId: seed?.ownerUserId ?? '',
       createdAt: seed?.createdAt ?? new Date().toISOString()
     };
 
@@ -267,6 +272,7 @@ export class InMemoryCourseRepository implements CourseRepository {
       ...current,
       ...input,
       id: current.id,
+      ownerUserId: current.ownerUserId,
       createdAt: current.createdAt
     };
 

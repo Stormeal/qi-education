@@ -5,6 +5,7 @@ describe('course sheet mapping', () => {
   it('round-trips the full course shape through sheet rows', () => {
     const course: Course = {
       id: 'course-1',
+      ownerUserId: 'teacher-1',
       title: 'API Automation Foundations',
       description: 'Learn API testing from the ground up.',
       level: 'Intermediate',
@@ -32,6 +33,7 @@ describe('course sheet mapping', () => {
   it('defaults legacy rows without category/languages columns', () => {
     const legacyRow = courseToSheetRow({
       id: 'legacy-1',
+      ownerUserId: '',
       title: 'Legacy Course',
       description: 'Created before the catalog filter fields existed.',
       level: 'Beginner',
@@ -62,6 +64,7 @@ describe('course sheet mapping', () => {
   it('drops unknown languages when parsing a sheet row', () => {
     const row = courseToSheetRow({
       id: 'lang-1',
+      ownerUserId: '',
       title: 'Language Parsing',
       description: 'Verifies language column parsing.',
       level: 'Beginner',

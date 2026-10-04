@@ -109,10 +109,11 @@ Roles: `student | teacher | admin`
 Course statuses: `draft → ready-for-review → published → archived`
 
 These are current status values; transition and admin-only publication enforcement
-have gaps recorded in the defect log. Owner-only teacher authoring is a confirmed
-target policy in US-T001, not an implemented guarantee.
+have gaps recorded in the defect log. US-T001 enforces owner-only teacher authoring
+on every mutation route; admins can author all courses. Legacy rows without an
+owner remain admin-editable only. Release integration checks are tracked in DEF-001.
 
-- Teachers create/edit courses and add video content
+- Teachers create courses and edit/add content to their own courses
 - Admins set pricing, catalog metadata, and publish/archive
 - Feedback marked for follow-up is auto-converted to GitHub issues via `GitHubFeedbackService`
 

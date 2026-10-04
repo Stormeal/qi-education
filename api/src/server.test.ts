@@ -15,6 +15,7 @@ import {
 } from './githubFeedback.js';
 import type { MuxVideoService, MuxWebhookEvent, MuxWebhookService } from './muxService.js';
 import { createServer } from './server.js';
+import { InMemoryAuthRepository } from './authRepository.js';
 
 describe('QI-Education API', () => {
   let server: Server;
@@ -740,8 +741,13 @@ describe('QI-Education API', () => {
 
   it('rejects thumbnail uploads when shared course rows would point at local-only assets', async () => {
     const courseRepository = new SharedCourseRepository();
-    const created = await courseRepository.createCourse(validCourse());
+    const authRepository = new InMemoryAuthRepository();
+    const teacher = (await authRepository.findByEmail('teacher@qi-education.local'))!;
+    const created = await courseRepository.createCourse(validCourse(), {
+      id: 'shared-thumbnail-course', createdAt: new Date().toISOString(), ownerUserId: teacher.id,
+    });
     const isolatedServer = createServer({
+      authRepository,
       courseRepository,
       courseAssetRepository: new InMemoryCourseAssetRepository(),
     }).listen(0);

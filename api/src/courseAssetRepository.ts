@@ -52,7 +52,7 @@ export interface CourseAssetRepository {
     binary: Buffer;
   }): Promise<CourseComponentAttachmentAsset>;
   getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null>;
-  deleteAsset(assetId: string): Promise<void>;
+  deleteAsset(assetId: string, courseId: string): Promise<void>;
 }
 
 export class MongoCourseAssetRepository implements CourseAssetRepository {
@@ -126,8 +126,8 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
       : null;
   }
 
-  async deleteAsset(assetId: string): Promise<void> {
-    await (await this.collection()).deleteOne({ _id: assetId });
+  async deleteAsset(assetId: string, courseId: string): Promise<void> {
+    await (await this.collection()).deleteOne({ _id: assetId, courseId });
   }
 }
 
@@ -208,9 +208,9 @@ export class InMemoryCourseAssetRepository implements CourseAssetRepository {
     return this.componentAssets.get(assetId) ?? null;
   }
 
-  async deleteAsset(assetId: string): Promise<void> {
-    this.assets.delete(assetId);
-    this.componentAssets.delete(assetId);
+  async deleteAsset(assetId: string, courseId: string): Promise<void> {
+    if (this.assets.get(assetId)?.courseId === courseId) this.assets.delete(assetId);
+    if (this.componentAssets.get(assetId)?.courseId === courseId) this.componentAssets.delete(assetId);
   }
 }
 

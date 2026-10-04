@@ -1,7 +1,8 @@
 # US-T001: Course ownership
 
-State: Ready for implementation when selected. Implementation: **not started**.
-Baseline: `main` at `6e19213`. Decision date: 2026-10-04.
+State: In progress; implementation and local acceptance checks complete, delivery
+recording pending. Implementation base: `main` at `ae9794a` after audit `6e19213`.
+Decision and local verification date: 2026-10-04.
 Story: [US-T001](../user_stories.md). Defect: [DEF-001](../defect_management.md).
 
 ## Problem and outcome
@@ -64,6 +65,15 @@ including raw upload routes registered before prefix normalization:
 | Mux upload | `POST /courses/:id/content/components/:componentId/mux-upload` |
 | Mux detachment | `DELETE /courses/:id/content/components/:componentId/mux-video` |
 
+Asset IDs are references, not permission grants. New courses must upload their
+thumbnail after creation; nonempty client thumbnail assignments return 403 before
+course/content creation. Content saves and attachment removal reject existing
+assets belonging to another course with 403 before writes. Asset deletion always
+includes course ID in the storage operation. Replacing an old foreign thumbnail
+reference may repair the editable course, but never deletes the foreign image.
+Missing legacy attachment assets may still be detached; scoped deletion is a
+safe no-op when no matching stored asset exists.
+
 The separate admin-only price/catalog metadata routes keep their existing role
 restriction. Signed webhook verification remains the webhook trust boundary;
 webhooks have no interactive teacher session.
@@ -82,17 +92,18 @@ this story. Do not remove a learner's enrollments during migration.
 
 ## Acceptance and verification
 
-The full BDD contract is US-T001-AC01 through AC04 in the backlog. Additional
+The full BDD contract is US-T001-AC01 through AC05 in the backlog. Additional
 boundary cases below refine those scenarios, rather than add a competing story.
 
 | Scenario | Verification required | Evidence |
 | --- | --- | --- |
-| AC01 authenticated ownership | API creation test with forged owner field; Sheets roundtrip | Pending |
-| AC02 unrelated teacher denial | Two-teacher tests for every authoring route and `/api` aliases; assert no side effects | Pending |
-| AC03 owner/admin authoring | Successful metadata/content/upload cases; immutable owner | Pending |
-| AC04 legacy and editor entry | Old 20-column row; teacher denied/admin allowed; direct URL browser check | Pending |
-| Identity boundary | Editing teacher label/display name does not grant or remove ownership | Pending |
-| Authentication boundary | Anonymous 401, student 403, disabled user denied, missing course 404 | Pending |
+| AC01 authenticated ownership | API creation test with forged owner field; Sheets roundtrip | Passed: `courseOwnership.test.ts`; current/legacy mapper tests |
+| AC02 unrelated teacher denial | Two-teacher tests for every authoring route and `/api` aliases; assert no side effects | Passed: all 14 routes, unchanged data and no storage/Mux writes |
+| AC03 owner/admin authoring | Successful metadata/content/upload cases; immutable owner | Passed: all seven operations for each actor/prefix; owner browser create/save |
+| AC04 legacy and editor entry | Old 20-column row; teacher denied/admin allowed; direct URL browser check | Passed: API legacy restriction; unrelated teacher denied URL; admin legacy browser save |
+| AC05 foreign media references | Forged bindings/deletion/cleanup through an owned course | Passed: eight API regressions and memory/Mongo deletion boundary tests |
+| Identity boundary | Editing teacher label/display name does not grant or remove ownership | Passed: same-name teacher denial; renamed instructor still owned in API, UI, and browser |
+| Authentication boundary | Anonymous 401, student 403, disabled user denied, missing course 404 | Passed: all seven operations in API tests |
 
 Test double methods should record storage/media calls so a 403 cannot conceal a
 performed side effect. Exercise at least one full owner save from the browser and
@@ -125,3 +136,6 @@ owners is a separate explicit data operation, never a blind display-name migrati
 Existing clients need an updated course DTO and editing capability before release.
 
 No implementation or migration was performed during the documentation audit.
+Implementation is now locally verified; no shared spreadsheet was changed.
+See [verification record](../verification/2026-10-04/DEF-001.md) for checks and
+the release gate. Owner transfer and legacy mapping remain outside this delivery.

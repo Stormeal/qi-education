@@ -36,6 +36,9 @@ Engineering conventions are in [.agents/AGENTS.md](.agents/AGENTS.md).
   Use isolated test stores; report any integration coverage limitations.
 - Update story, defect, spec, and queue status together. Done requires verification
   evidence and a delivery commit; Deferred or Blocked must explain the next action.
+- Prioritize confirmed defects before enhancements within the requested journey.
+  Preserve resolved defect records with the fix, date, commit, regression evidence,
+  and any remaining release checks.
 - Do not bypass git hooks. The current hook requires a semver change even for docs.
   Follow the version instructions in `docs/development_workflow.md` when committing.
 - A request to implement or commit does not automatically authorize a deployment

@@ -1,8 +1,8 @@
 # Application architecture
 
-Current implementation at audit base `6e19213` (2026-10-04). This is a description
-of the code, not a specification that all behavior is correct. Desired behavior
-lives in [user_stories.md](user_stories.md) and `specs/`.
+Updated 2026-10-04 for DEF-001 / US-T001 after audit base `6e19213`.
+This describes the current code; desired changes live in
+[user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
 
 ## Purpose and implemented journeys
 
@@ -12,14 +12,15 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
 | Account | Student signup, login, remembered session, role permissions | No reset flow; demo auth fallback without Sheets configuration |
-| Teacher | Create a draft, edit metadata/outline, text/resources/quizzes/video, thumbnails | No owner identity; any teacher can author any course; review workflow lacks enforcement |
+| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails | Legacy unowned courses require admin editing; review workflow lacks enforcement |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | API read/enrollment access gaps; no payment/entitlement system |
 | Progress/profile | Device-local completion and profile details | Not server-synced; library progress and home activity are inconsistent |
 
 Statuses are `draft`, `ready-for-review`, `published`, and `archived`. They are
-enum values today, not a fully enforced transition state machine. The new ownership
-policy is specified in US-T001 and is not implemented yet.
+enum values today, not a fully enforced transition state machine. US-T001 adds
+stable owner IDs and owner/admin authorization before authoring side effects.
+The UI uses those IDs for draft filtering, Edit actions, and direct editor entry.
 
 ## Boundaries and flow
 
@@ -82,12 +83,13 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /auth/me` (also `/me`) | Active bearer session |
 | `GET /courses`, `/courses/:id/thumbnail`, `/courses/:id/content` | Public; see DEF-003 |
 | `POST /users/me/courses/:id` | Active session; existence only, see DEF-004 |
-| `POST /courses`, `PATCH /courses/:id`, `PATCH /courses/:id/content` | Teacher/admin role; no ownership enforcement |
-| `PUT /courses/:id/thumbnail` | Teacher/admin; JPEG/PNG/WebP, 2 MB |
-| `PUT /courses/:id/content/components/:componentId/attachments` | Teacher/admin; 25 MB |
+| `POST /courses` | Active teacher/admin; server assigns authenticated owner ID |
+| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher or admin |
+| `PUT /courses/:id/thumbnail` | Owner teacher/admin; JPEG/PNG/WebP, 2 MB |
+| `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 25 MB |
 | `GET /courses/:id/content/attachments/:assetId` | Teacher/admin or enrolled user |
-| `DELETE /courses/:id/content/components/:componentId/attachments/:assetId` | Teacher/admin |
-| `POST .../components/:componentId/mux-upload`, `DELETE .../mux-video` | Teacher/admin |
+| `DELETE /courses/:id/content/components/:componentId/attachments/:assetId` | Owner teacher/admin |
+| `POST .../components/:componentId/mux-upload`, `DELETE .../mux-video` | Owner teacher/admin |
 | `PATCH /courses/:id/price`, `/courses/:id/catalog-metadata` | Admin |
 | `POST /feedback` | Active session |
 | `GET /feedback`, `PATCH /feedback/:id/triage` | Admin |
@@ -118,8 +120,13 @@ are blocked for Sheets metadata with memory assets; attachments are blocked for
 Mongo content with memory assets. These guards reduce references that would be
 lost on process restart, but are not a transaction across all stores.
 
-Course metadata writes use full row updates. Courses currently have 20 columns
-(`A:T`), Users eight (`A:H`), Feedback 13 (`A:M`). Header lists in `course.ts`,
+Course metadata writes use full row updates. Courses have 21 columns
+(`A:U`), Users eight (`A:H`), Feedback 13 (`A:M`). Column U holds `ownerUserId`;
+missing legacy values default to empty, allowing only admins to edit those courses.
+Creation sets the authenticated ID; general edits cannot transfer ownership.
+Asset deletion uses both asset and course ID. Authoring rejects existing foreign
+attachment bindings and client thumbnail references on new course creation.
+Header lists in `course.ts`,
 `auth.ts`, and `feedback.ts` define the column order. Some config/example range
 strings still say `Courses!A:R`; the course repository derives the width from its
 headers. Do not treat the config string as the complete data schema.
@@ -145,7 +152,8 @@ audit mode must not trigger real issue creation. No issues were created in this 
 ## Verification and deployment
 
 API tests use Vitest; Angular tests use the Angular/Vitest builder with jsdom.
-The audited baseline has 72 API and 24 frontend tests. There is no committed
+The audited baseline had 72 API and 24 frontend tests; DEF-001 adds regression
+coverage for totals of 111 API and 31 frontend tests. There is no committed
 browser E2E suite or root lint script. Local browser verification supplements,
 but does not replace, the unit suites.
 

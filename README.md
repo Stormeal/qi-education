@@ -14,9 +14,10 @@ Read the [development workflow](docs/development_workflow.md) before implementin
 an item and [architecture](docs/architecture.md) for the current code map.
 
 The current delivery order is teacher journey, learner journey, then platform
-reliability. Teachers should edit their own courses and admins all courses; that
-ownership policy is the first Ready story and is not implemented yet. Work and
-commits currently use `main`, unless another branch is requested.
+reliability, with confirmed defects before enhancements. Teachers edit their own
+courses and admins all courses; legacy courses without an owner are admin-only
+for editing. See DEF-001 for implementation and release verification. Work and
+commits use `main`, unless another branch is requested.
 
 ## Local Development
 
@@ -55,7 +56,7 @@ The doctor checks `api/.env`, local API health, auth storage, CORS, and content 
 The API expects one Google Sheet with a `Courses` worksheet. Add this header row:
 
 ```text
-id,title,description,level,teacher,careerGoals,status,createdAt,requirements,audience,priceDkk,partOfCareer,whatYoullLearn,thumbnailAssetId,isPremium,isBestseller,rating,ratingCount,category,languages
+id,title,description,level,teacher,careerGoals,status,createdAt,requirements,audience,priceDkk,partOfCareer,whatYoullLearn,thumbnailAssetId,isPremium,isBestseller,rating,ratingCount,category,languages,ownerUserId
 ```
 
 Authentication uses a separate `Users` worksheet. Add this header row:
@@ -102,7 +103,7 @@ Set an `AUTH_TOKEN_SECRET` value in the API environment before using login in sh
 For setup details and an isolated demo walkthrough that skips shared credentials,
 see [local development](docs/local_development.md). Do not copy empty optional
 credentials from `.env.example` unchanged; omit unused optional values or provide
-valid ones. Current worksheet widths are Courses `A:T`, Users `A:H`, Feedback `A:M`.
+valid ones. Current worksheet widths are Courses `A:U`, Users `A:H`, Feedback `A:M`.
 
 Preferred environment variable names:
 

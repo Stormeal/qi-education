@@ -1,15 +1,16 @@
 # User stories
 
 Updated: 2026-10-04. Priority order chosen by the user: **teachers, learners,
-platform reliability**. This file records desired changes, not implemented
-capabilities. Current behavior is documented in [architecture.md](architecture.md).
+platform reliability**, with confirmed defects before enhancements. Story status
+and evidence distinguish desired changes from delivered behavior. Current behavior
+is documented in [architecture.md](architecture.md).
 Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 ## Backlog
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-T001 | Enforce course ownership | Ready | P1 | None | DEF-001 |
+| US-T001 | Enforce course ownership | In progress | P1 | None | DEF-001 |
 | US-T002 | Submit, review, and publish courses safely | Proposed | P1 | T001 | DEF-002, DEF-003 |
 | US-T003 | Protect unsaved authoring work | Proposed | P2 | None | DEF-006 |
 | US-T004 | Publish valid, answerable quizzes | Proposed | P2 | T002 | DEF-005 |
@@ -32,7 +33,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
 convenience. An item is not Done without scenario evidence and a delivery commit.
-No story below is currently implemented as a result of this audit.
+US-T001 implementation has passed local acceptance checks and awaits delivery
+recording. Other audit-generated stories remain Proposed.
 
 ## Teacher journey
 
@@ -41,11 +43,14 @@ No story below is currently implemented as a result of this audit.
 **As a teacher, I want only myself and admins to edit my courses, so that my
 authoring work is protected from changes by unrelated teachers.**
 
-State: Ready. Owner: unassigned. Policy confirmed by the user on 2026-10-04.
+State: In progress. Owner: Codex. Policy confirmed by the user on 2026-10-04.
 Scope: stable owner IDs, all authoring routes, and role-appropriate editor access.
 Spec: [US-T001-course-ownership.md](specs/US-T001-course-ownership.md).
 Legacy policy: courses without a verified owner remain editable by admins only;
 never infer ownership from a teacher display name. Collaboration is out of scope.
+Acceptance evidence: [DEF-001 verification](verification/2026-10-04/DEF-001.md).
+Local checks passed; delivery commit recording is pending. Shared Sheets/MongoDB
+and hosted release verification remain separate checks.
 
 ```gherkin
 Feature: Course ownership
@@ -72,6 +77,13 @@ Feature: Course ownership
     When a teacher opens its editor or attempts to save
     Then the UI explains that editing is unavailable and the API denies the mutation
     And an admin can still edit the course
+
+  Scenario: US-T001-AC05 Foreign media references cannot change another course
+    Given I can edit my course and an asset belongs to another course
+    When I forge that asset reference or trigger cleanup through my own course
+    Then new foreign attachment and thumbnail assignments are denied before writes
+    And the other course's asset remains stored
+    And replacing an existing invalid thumbnail reference safely repairs only my course
 ```
 
 ### US-T002 — Submit, review, and publish courses safely

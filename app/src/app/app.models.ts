@@ -74,6 +74,7 @@ export type CourseLanguage = (typeof COURSE_LANGUAGES)[number];
 
 export type CourseListItem = {
   id: string;
+  ownerUserId: string;
   title: string;
   description: string;
   requirements: string[];

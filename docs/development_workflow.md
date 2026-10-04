@@ -68,6 +68,9 @@ There is currently no lint script or permanent browser E2E suite.
 - Update the spec and scenario-to-test map to match the delivered behavior.
 - Mark a defect Fixed only with reproduction/regression evidence. Mark it Verified
   after the required environment checks; record the fixing commit and date.
+  Keep its original reproduction and add a resolution section explaining the fix,
+  passing checks, and remaining release verification. Fixed means resolved in code;
+  it does not imply a production deployment. Never delete resolved defect records.
 - Mark the story Done only when its criteria pass and its delivery commit is recorded.
   A local commit is not a deployment; track release verification separately.
 - Clear or replace the active queue record. Preserve useful handoff notes for partial work.

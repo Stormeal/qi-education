@@ -36,6 +36,7 @@ export const courseSheetHeaders = [
   'ratingCount',
   'category',
   'languages',
+  'ownerUserId',
 ] as const;
 
 export const createCourseSchema = z.object({
@@ -95,6 +96,7 @@ export type UpdateCourseThumbnailInput = z.infer<typeof updateCourseThumbnailSch
 export type Course = CreateCourseInput & {
   id: string;
   createdAt: string;
+  ownerUserId: string;
 };
 
 export function courseFromSheetRow(row: string[]): Course {
@@ -119,6 +121,7 @@ export function courseFromSheetRow(row: string[]): Course {
     ratingCount: parseRatingCount(row[17]),
     category: courseCategorySchema.catch('Uncategorized').parse(row[18]?.trim() || 'Uncategorized'),
     languages: parseLanguages(row[19]),
+    ownerUserId: row[20]?.trim() ?? '',
   };
 }
 
@@ -144,6 +147,7 @@ export function courseToSheetRow(course: Course): string[] {
     String(course.ratingCount),
     course.category,
     course.languages.join(', '),
+    course.ownerUserId,
   ];
 }
 

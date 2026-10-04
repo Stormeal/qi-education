@@ -33,7 +33,8 @@ Never commit `.env` or log credentials.
 | HTTP | `PORT`, comma-separated `CORS_ORIGIN` |
 
 Use the header order exported in `api/src/course.ts`, `auth.ts`, and `feedback.ts`.
-Current sheet widths: Courses `A:T`, Users `A:H`, Feedback `A:M`. Share a test sheet
+Current sheet widths: Courses `A:U`, Users `A:H`, Feedback `A:M`. Column U is
+`ownerUserId`; old rows default to an empty owner and admin-only editing. Share a test sheet
 with the service account before running integration checks. Shared Sheets plus
 memory content/assets will block some authoring operations by design.
 

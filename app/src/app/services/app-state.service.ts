@@ -28,6 +28,7 @@ import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { SessionService } from './session.service';
+import { canEditCourse } from '../utils/course-permissions';
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
@@ -38,7 +39,7 @@ export class AppStateService {
   private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.39';
+  readonly appVersion = '0.1.40';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -306,6 +307,19 @@ export class AppStateService {
   readonly editingCourse = computed(() => {
     const editId = this.courseEditingId();
     return editId ? this.availableCourses().find((course) => course.id === editId) ?? null : null;
+  });
+  readonly selectedCourseCanEdit = computed(() => this.canEditCourse(this.selectedCourse()));
+  readonly canUseCourseEditor = computed(() =>
+    this.courseFormMode() === 'edit'
+      ? this.canEditCourse(this.editingCourse())
+      : this.loginState()?.user.status === 'active' && !!this.loginState()?.permissions.canCreateCourses,
+  );
+  readonly courseEditorAccessMessage = computed(() => {
+    if (this.coursesError()) return this.coursesError();
+    if (this.courseFormMode() === 'edit' && !this.editingCourse()) {
+      return this.coursesLoading() ? 'Loading course…' : 'Course not found.';
+    }
+    return 'You do not have permission to edit this course.';
   });
   readonly courseContentId = computed(() => {
     const editId = this.courseEditingId();
@@ -788,7 +802,7 @@ export class AppStateService {
   openEditCourse(courseId: string): void {
     const course = this.availableCourses().find((item) => item.id === courseId);
 
-    if (!course) {
+    if (!this.canEditCourse(course) || !course) {
       return;
     }
 
@@ -822,6 +836,10 @@ export class AppStateService {
     this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
     this.initialCourseContentSnapshot.set('');
     void this.updatePath(`/courses/${encodeURIComponent(course.id)}/edit`);
+  }
+
+  canEditCourse(course: CourseListItem | null | undefined): boolean {
+    return canEditCourse(course, this.loginState()?.user);
   }
 
   updateCourseTitle(value: string): void {
@@ -1674,6 +1692,11 @@ export class AppStateService {
       return;
     }
 
+    if (this.courseFormMode() === 'edit' && !this.canEditCourse(this.editingCourse())) {
+      this.courseCreateError.set('You do not have permission to edit this course.');
+      return;
+    }
+
     const draft = this.courseDraft();
     const mode = this.courseFormMode();
     const courseId = this.courseEditingId();
@@ -1866,8 +1889,8 @@ export class AppStateService {
       return;
     }
 
-    if (!this.loginState()?.permissions.canCreateCourses) {
-      this.courseThumbnailError.set('Teacher or admin access is required.');
+    if (!this.canEditCourse(this.editingCourse())) {
+      this.courseThumbnailError.set('You do not have permission to edit this course.');
       return;
     }
 
@@ -2023,7 +2046,7 @@ export class AppStateService {
   private async loadCourseContentWhenNeeded(): Promise<void> {
     const courseId = this.courseContentId();
 
-    if (!this.loginState() || !courseId) {
+    if (!this.loginState() || !courseId || (this.isCourseEditorPage() && !this.canUseCourseEditor())) {
       this.courseContent.set(null);
       this.courseContentError.set('');
       this.loadedCourseContentId.set(null);
@@ -2175,6 +2198,8 @@ export class AppStateService {
 
       return;
     }
+
+    if (!this.canEditCourse(course)) return;
 
     this.courseCreateError.set('');
     this.courseThumbnailError.set('');

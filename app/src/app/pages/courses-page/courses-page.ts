@@ -61,6 +61,7 @@ export class CoursesPage {
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();
   readonly userEmail = input.required<string>();
+  readonly userId = input.required<string>();
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
   readonly courses = input.required<CourseListItem[]>();
@@ -189,7 +190,9 @@ export class CoursesPage {
   }
 
   protected readonly creatorCourses = computed(() =>
-    this.courses().filter((course) => course.teacher.trim() === this.student().name.trim()),
+    this.courses().filter((course) =>
+      this.canAccessAdmin() || (!!this.userId() && course.ownerUserId === this.userId()),
+    ),
   );
 
   protected readonly hasCreatorCourses = computed(() => this.creatorCourses().length > 0);

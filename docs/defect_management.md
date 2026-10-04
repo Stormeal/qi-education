@@ -10,16 +10,18 @@ P1: unauthorized changes/disclosure or a serious release risk. P2: broken core
 behavior or misleading results with a workaround. P3: smaller usability/layout issue.
 Severity is impact; delivery order is in [work_queue.md](work_queue.md).
 
-States: Open, Investigating, Fixed, Verified, Deferred, Duplicate. Fixed requires
+States: Open, Investigating, In progress, Fixed, Verified, Deferred, Duplicate. Fixed requires
 a delivery commit and regression evidence. Verified also requires the specified
 environment check. A plausible code concern without reproduction is an investigation,
 not a confirmed production defect. Capture user data only in anonymized form.
+Keep resolved defects in this file with their original reproduction, resolution
+date, fixing commit, passing regression checks, and any remaining release checks.
 
 ## Confirmed findings
 
 | ID | Defect | Severity | State | Evidence | Story |
 | --- | --- | --- | --- | --- | --- |
-| DEF-001 | Any teacher can mutate another teacher's course | P1 | Open | Isolated API | US-T001 |
+| DEF-001 | Any teacher can mutate another teacher's course | P1 | In progress | Fix passes isolated API/UI/browser checks; commit pending | US-T001 |
 | DEF-002 | General authoring routes bypass admin pricing/publication restrictions | P1 | Open | API and teacher UI | US-T002 |
 | DEF-003 | Anonymous API exposes drafts, full lessons, and quiz answer flags | P1 | Open | Isolated API | US-T002, US-L001 |
 | DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Open | Isolated API | US-L001 |
@@ -32,19 +34,33 @@ not a confirmed production defect. Capture user data only in anonymized form.
 | DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
 
 All are local/code findings. Production impact has not been verified against
-shared stores or user accounts. No application fixes are included in this audit.
+shared stores or user accounts. The audit report preserves the original findings;
+the current statuses and resolution sections below track subsequent fixes.
 
 ### DEF-001 — Any teacher can mutate another teacher's course
 
 - Expected: the user's confirmed policy permits owner teachers and admins only.
 - Reproduce: teacher A creates a draft; teacher B sends valid metadata via
   `PATCH /courses/:id` for A's course. The probe returns **200**, not 403.
-- Cause: `requireCourseCreator` checks role only; course records contain no owner ID.
+- Audit cause: `requireCourseCreator` checked role only; course records had no owner ID.
   The same role gate is used for content and media mutations.
 - Source: `api/src/server.ts` (`requireCourseCreator` and authoring routes),
   `api/src/course.ts` (course schema).
-- Verify fix: US-T001-AC01–AC04; deny every authoring route before storage/Mux calls.
-- Fix commit / verified environment: none / pending.
+- Verify fix: US-T001-AC01–AC05; deny every authoring route before storage/Mux calls.
+- Resolution implemented on 2026-10-04: authenticated `ownerUserId` on creation,
+  immutable general updates, column U persistence, and one owner/admin authorizer
+  applied to all seven metadata/content/media routes and their `/api` aliases.
+  Blank legacy owners stay admin-only. Draft filtering and editor actions use
+  stable IDs; direct forbidden URLs show denial without editable controls.
+  Review also reproduced foreign asset deletion through forged references on an
+  owned course. New foreign bindings/removals are denied; storage deletion is
+  scoped to course ID, including thumbnail replacement and rollback cleanup.
+- Regression evidence: [verification record](verification/2026-10-04/DEF-001.md).
+  All 111 API and 31 frontend tests pass; API/Pages builds and isolated browser
+  owner/unrelated-teacher/admin checks pass. The original tests failed before the fix.
+- Fix commit: pending delivery recording. Required release environment checks:
+  disposable Sheets + shared MongoDB roundtrip, followed by hosted role checks.
+  No deployment or legacy owner mapping has been performed.
 
 ### DEF-002 — General authoring bypasses admin controls
 
