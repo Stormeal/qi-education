@@ -10,7 +10,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-T001 | Enforce course ownership | In progress | P1 | None | DEF-001 |
+| US-T001 | Enforce course ownership | Done | P1 | None | DEF-001 |
 | US-T002 | Submit, review, and publish courses safely | Proposed | P1 | T001 | DEF-002, DEF-003 |
 | US-T003 | Protect unsaved authoring work | Proposed | P2 | None | DEF-006 |
 | US-T004 | Publish valid, answerable quizzes | Proposed | P2 | T002 | DEF-005 |
@@ -33,8 +33,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
 convenience. An item is not Done without scenario evidence and a delivery commit.
-US-T001 implementation has passed local acceptance checks and awaits delivery
-recording. Other audit-generated stories remain Proposed.
+US-T001 is delivered locally in `a9940cc` with passing acceptance checks.
+Other audit-generated stories remain Proposed.
 
 ## Teacher journey
 
@@ -43,14 +43,15 @@ recording. Other audit-generated stories remain Proposed.
 **As a teacher, I want only myself and admins to edit my courses, so that my
 authoring work is protected from changes by unrelated teachers.**
 
-State: In progress. Owner: Codex. Policy confirmed by the user on 2026-10-04.
+State: Done. Owner: Codex. Policy confirmed by the user on 2026-10-04.
 Scope: stable owner IDs, all authoring routes, and role-appropriate editor access.
 Spec: [US-T001-course-ownership.md](specs/US-T001-course-ownership.md).
 Legacy policy: courses without a verified owner remain editable by admins only;
 never infer ownership from a teacher display name. Collaboration is out of scope.
 Acceptance evidence: [DEF-001 verification](verification/2026-10-04/DEF-001.md).
-Local checks passed; delivery commit recording is pending. Shared Sheets/MongoDB
-and hosted release verification remain separate checks.
+Delivered 2026-10-04 in `a9940ccd9fc13a149b5eb96017c5484796b0012d`.
+Local acceptance checks pass. Shared Sheets/MongoDB and hosted release verification
+remain separate checks; no push or deployment has been performed.
 
 ```gherkin
 Feature: Course ownership

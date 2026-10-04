@@ -1,15 +1,16 @@
 # US-T001: Course ownership
 
-State: In progress; implementation and local acceptance checks complete, delivery
-recording pending. Implementation base: `main` at `ae9794a` after audit `6e19213`.
+State: Done; implementation and local acceptance checks complete.
+Delivery commit: `a9940ccd9fc13a149b5eb96017c5484796b0012d`.
+Implementation base: `main` at `ae9794a` after audit `6e19213`.
 Decision and local verification date: 2026-10-04.
 Story: [US-T001](../user_stories.md). Defect: [DEF-001](../defect_management.md).
 
 ## Problem and outcome
 
-The current `requireCourseCreator` middleware checks teacher/admin role, not a
-relationship to a course. Any teacher can edit another teacher's course. The
-course record has a free-text `teacher` display name but no authenticated owner ID.
+At the audit baseline, `requireCourseCreator` checked teacher/admin role without
+a relationship to a course. Any teacher could edit another teacher's course. The
+record had a free-text `teacher` display name but no authenticated owner ID.
 
 The user selected this policy: **teachers edit their own courses; admins edit
 all courses**. Enforce it at the API before storage or media side effects, and
@@ -119,14 +120,14 @@ one unrelated teacher's direct editor URL.
 - Catalog, course details, and editor route/page components: capability-driven actions.
 - Existing API course/server tests and relevant Angular tests: contract verification.
 
-## Implementation checklist when selected
+## Completed implementation checklist
 
-1. Reproduce DEF-001 as a regression test with two teachers and an admin.
-2. Add owner metadata and test legacy/current persistence roundtrips.
-3. Apply one ownership predicate to every authoring route before side effects.
-4. Update frontend capabilities and direct-route denied behavior.
-5. Run API/frontend tests and builds; verify owner/admin/unrelated teacher flows.
-6. Update story/defect/queue with scenario evidence and delivery commit.
+1. Reproduced DEF-001 with two teachers and an admin, including foreign media references.
+2. Added owner metadata and legacy/current persistence roundtrip tests.
+3. Applied shared authorization to all authoring routes and scoped asset deletion.
+4. Updated frontend capabilities and direct-route denied behavior.
+5. Passed API/frontend tests, builds, and owner/admin/unrelated teacher browser flows.
+6. Recorded story/defect/queue scenario evidence and delivery commit.
 
 ## Migration and release
 

@@ -21,7 +21,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 
 | ID | Defect | Severity | State | Evidence | Story |
 | --- | --- | --- | --- | --- | --- |
-| DEF-001 | Any teacher can mutate another teacher's course | P1 | In progress | Fix passes isolated API/UI/browser checks; commit pending | US-T001 |
+| DEF-001 | Any teacher can mutate another teacher's course | P1 | Fixed | Resolved 2026-10-04 in `a9940cc`; API/UI/browser checks pass | US-T001 |
 | DEF-002 | General authoring routes bypass admin pricing/publication restrictions | P1 | Open | API and teacher UI | US-T002 |
 | DEF-003 | Anonymous API exposes drafts, full lessons, and quiz answer flags | P1 | Open | Isolated API | US-T002, US-L001 |
 | DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Open | Isolated API | US-L001 |
@@ -58,7 +58,9 @@ the current statuses and resolution sections below track subsequent fixes.
 - Regression evidence: [verification record](verification/2026-10-04/DEF-001.md).
   All 111 API and 31 frontend tests pass; API/Pages builds and isolated browser
   owner/unrelated-teacher/admin checks pass. The original tests failed before the fix.
-- Fix commit: pending delivery recording. Required release environment checks:
+- Fix commit: `a9940ccd9fc13a149b5eb96017c5484796b0012d`
+  (`fix(DEF-001): enforce course and media ownership`). Status: **Fixed — resolved
+  in code on 2026-10-04**. Required release environment checks:
   disposable Sheets + shared MongoDB roundtrip, followed by hosted role checks.
   No deployment or legacy owner mapping has been performed.
 

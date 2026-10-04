@@ -4,9 +4,14 @@ Updated: 2026-10-04. Working branch: `main`. Audited base: `6e19213`.
 
 ## Active work
 
-**DEF-001 / US-T001 — Course ownership.** In progress. Owner: Codex.
-Branch: `main`. Implementation base: `ae9794a`. Spec:
-[course ownership](specs/US-T001-course-ownership.md), AC01–AC05.
+None. DEF-001 / US-T001 is delivered locally. The next candidate is DEF-002 below.
+
+## Completed delivery
+
+**DEF-001 / US-T001 — Course ownership.** Defect: Fixed (resolved in code).
+Story: Done. Owner: Codex. Date: 2026-10-04. Branch: `main`. Base: `ae9794a`.
+Fix commit: `a9940ccd9fc13a149b5eb96017c5484796b0012d`.
+Spec: [course ownership](specs/US-T001-course-ownership.md), AC01–AC05.
 
 The user selected defects before enhancements on 2026-10-04. Start with the
 confirmed teacher authorization defect, then work through confirmed defects in
@@ -18,8 +23,9 @@ direct editor entry, API/frontend regression suites, builds, and isolated browse
 walkthrough. Evidence: [DEF-001 verification](verification/2026-10-04/DEF-001.md).
 Independent review found a forged asset-reference deletion bypass; ten additional
 regressions reproduced it and the fix adds binding checks and course-scoped deletion.
-Current step: independent code review, then commit and record the exact delivery
-hash. Release checks for disposable Sheets/MongoDB and hosted behavior remain pending.
+Independent review found no remaining blocking ownership issue. All 111 API and
+31 frontend tests and all builds pass. Release checks for disposable Sheets/MongoDB
+and hosted behavior remain pending. No push, deployment, or legacy owner mapping.
 
 ## Next candidate
 
