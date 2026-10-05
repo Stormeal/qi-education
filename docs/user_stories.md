@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-04. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-05. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -17,24 +17,34 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T005 | Save authoring work without silent overwrites | Proposed | P2 | T001 | Investigation INV-001 |
 | US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
+| US-T008 | Curate valid, versioned career paths | Proposed | P2 | L006; path governance decisions | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
-| US-L002 | See trustworthy progress across learning views | Proposed | P2 | L001 | DEF-007, DEF-009 |
+| US-L002 | See trustworthy progress across learning views | Proposed | P2 | L001 | DEF-007, DEF-009, DEF-014 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
 | US-L005 | Make unavailable controls understandable | Proposed | P3 | None | DEF-011 |
 | US-L006 | Retrieve consistent career path previews | Proposed | P3 | None | GitHub #22, #23, #24 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L008 | Keep catalog metadata and badges readable | Proposed | P2 | Reproduce reported cases | DEF-012, DEF-013 |
+| US-L009 | Compare and choose a career path | Proposed | P2 | L003, L006 | None |
+| US-L010 | Follow an actionable next learning step | Proposed | P2 | L001, L002, L009 | None |
+| US-L011 | Change paths while retaining learning history | Proposed | P3 | L002, L009 | None |
+| US-L012 | Understand milestones and path completion | Proposed | P2 | L002, L006, L009 | None |
 | US-P001 | Verify complete role journeys before release | Proposed | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
+| US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
 convenience. An item is not Done without scenario evidence and a delivery commit.
 US-T001 is delivered locally in `a9940cc` with passing acceptance checks.
 Other audit-generated stories remain Proposed.
+
+The [career path audit](audits/2026-10-05/career_path_audit.md) recommends a
+sequence within that journey. Its new stories remain Proposed; path governance,
+completion rules, persistence, and curriculum decisions have not been approved.
 
 ## Teacher journey
 
@@ -277,6 +287,46 @@ Feature: User access administration
     Then the API denies access without disclosing the user list or changing permissions
 ```
 
+### US-T008 — Curate valid, versioned career paths
+
+**As a curriculum curator, I want to maintain explicit course sequences, so that
+learners follow a coherent path that can evolve without losing their history.**
+
+State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+Depends on US-L006 for path identity/read contracts. Scope: course references,
+required/optional steps, alternatives, availability, review, and revisions.
+Decisions: curator roles and ownership, teacher proposal permissions, publishing
+workflow, revision migration, and prerequisite guidance versus enforcement.
+Existing teacher course ownership does not grant path editing permission.
+
+```gherkin
+Feature: Governed career path curation
+  Scenario: US-T008-AC01 Publish a coherent path
+    Given I have the agreed path publishing permission
+    And the proposed revision has valid course references and step relationships
+    When I publish it
+    Then learners can read its target role, outcomes, ordered steps, alternatives, and availability
+    And placeholder courses remain explicitly identified and cannot accept enrollment
+
+  Scenario: US-T008-AC02 Reject invalid structure
+    Given a proposed revision contains a missing course, duplicate required step, or prerequisite cycle
+    When I submit it for publication
+    Then publication is rejected with the affected step identified
+    And the draft remains editable
+
+  Scenario: US-T008-AC03 Preserve active learners on revision
+    Given learners follow a published revision with recorded completion
+    When a curator publishes a changed sequence or withdraws a course
+    Then the agreed revision policy identifies affected learners and replacements
+    And past completion is not silently erased or double-counted
+
+  Scenario: US-T008-AC04 Deny unauthorized curation
+    Given I lack permission to edit or publish the requested path
+    When I attempt either operation through the UI or API
+    Then the change is denied before persistence
+    And permission to edit one course does not authorize editing its whole path
+```
+
 ## Learner journey
 
 ### US-L001 — Enroll and learn through authorized access
@@ -318,7 +368,7 @@ Feature: Enrollment and learning access
 **As a learner, I want consistent progress in my workspace, library, and home
 page, so that I know what to continue and what I have completed.**
 
-State: Proposed. Dependency: US-L001. Defects: DEF-007, DEF-009.
+State: Proposed. Dependency: US-L001. Defects: DEF-007, DEF-009, DEF-014.
 Decisions: which lesson types require explicit completion, video viewing, or a
 passing quiz; server persistence; how deleted/revised lessons affect totals.
 
@@ -340,6 +390,13 @@ Feature: Consistent learning progress
     When I open the home page
     Then it offers a real starting action
     And it does not display invented course activity or completion
+
+  Scenario: US-L002-AC04 Quiz position does not imply completion
+    Given I have opened a quiz without submitting any answers
+    When I view its first or last question
+    Then the question position is distinguished from completed assessment work
+    And the completion indicator does not claim that the untouched attempt is complete
+    And reaching the final question alone does not mark the lesson passed
 ```
 
 ### US-L003 — Keep profile details across devices
@@ -487,6 +544,157 @@ Feature: Catalog card integrity
     Then the complete title and badges remain readable without clipping or overlap
 ```
 
+### US-L009 — Compare and choose a career path
+
+**As a learner, I want to compare paths and save an explicit goal, so that my
+learning guidance reflects the career I actually want to pursue.**
+
+State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+Depends on US-L006 for previews and US-L003 for account goal persistence;
+read-only comparison can precede saved selection. Scope: outcomes, target role,
+steps, estimated effort, available versus preview courses, and account selection.
+Decisions: approved tracks/course mappings, minimum onboarding inputs, one versus
+multiple active paths, and relationship to the free-text profile learning goals.
+Recommendation: start with one primary path, explicitly selected by the learner.
+
+```gherkin
+Feature: Explicit career path selection
+  Scenario: US-L009-AC01 Explore without choosing
+    Given I have not selected a path
+    When I open career guidance
+    Then I can compare available path outcomes, steps, effort, and preview availability
+    And the page does not assume a goal or invent completed learning
+
+  Scenario: US-L009-AC02 Save my selected goal and path
+    Given I am signed in and have compared available paths
+    When I confirm a path and its target goal
+    Then the selection is saved for my account with the relevant path revision
+    And Home displays that goal independently of my student, teacher, or admin permissions
+    And signing in on another device restores the selection
+
+  Scenario: US-L009-AC03 Selection is separate from access
+    Given a selected path includes courses I have not enrolled in or cannot yet access
+    When I save the path
+    Then it does not silently enroll me or grant paid or private course access
+    And the required next action and course availability are explained
+
+  Scenario: US-L009-AC04 Failed selection preserves my choice
+    Given I have chosen a path but persistence fails
+    When I confirm the choice
+    Then I see a retryable error and my draft choice remains available
+    And the previously saved selection is not reported as changed
+```
+
+### US-L010 — Follow an actionable next learning step
+
+**As a learner, I want a clear next action linked to real content, so that I can
+move from my career goal into learning without reconstructing the route myself.**
+
+State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+Depends on US-L001 access, US-L002 progress, and US-L009 selection; US-L007 supplies
+primary-action ordering. Scope: stable destinations, resume, recommendation reason,
+alternatives, and availability. Decisions: deterministic recommendation priority,
+advisory versus enforced prerequisites, substitutions, and content revision behavior.
+
+```gherkin
+Feature: Actionable career guidance
+  Scenario: US-L010-AC01 Resume eligible learning
+    Given my selected path has an enrolled incomplete course
+    When I activate the primary next action
+    Then its learning workspace opens at the agreed next incomplete lesson
+    And the action identifies the course and explains why it is next
+
+  Scenario: US-L010-AC02 Review a course before enrollment
+    Given my next step is an available published course I have not joined
+    When I activate its recommendation
+    Then its actual course details and enrollment requirements are shown
+    And private lesson content is not exposed by the recommendation
+
+  Scenario: US-L010-AC03 Explain unavailable steps
+    Given a required step is withdrawn, missing, preview-only, or blocked by an agreed prerequisite
+    When I view guidance
+    Then its availability and an approved alternative or useful next action are explained
+    And no enabled action links to nonexistent or unauthorized learning content
+
+  Scenario: US-L010-AC04 Accessible action and progress
+    Given a primary action and real progress are available
+    When I use keyboard navigation or a supported mobile viewport
+    Then the action is reachable with a clear destination and visible focus
+    And named progress values can be read without interpreting bar width or color
+    And the current action is presented before historical completed steps
+```
+
+### US-L011 — Change paths while retaining learning history
+
+**As a learner, I want to change my career direction deliberately, so that I can
+follow a new goal while keeping the learning I have already completed.**
+
+State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+Depends on US-L002 and US-L009. Scope: preview impact, explicit confirmation,
+historical completion, and revised recommendations. Decisions: equivalence between
+courses/revisions, multiple active paths, and the extent of switch reversibility.
+Free-text profile edits should not silently select a different path.
+
+```gherkin
+Feature: Deliberate career path changes
+  Scenario: US-L011-AC01 Compare the impact of switching
+    Given I have a selected path with completed courses
+    When I choose another path to preview
+    Then I see retained recognized learning, new required steps, and the new goal
+    And the saved selection remains unchanged until I confirm
+
+  Scenario: US-L011-AC02 Confirm a switch
+    Given I have reviewed the switch impact
+    When I confirm the new path
+    Then it becomes the agreed active selection and next actions are recalculated
+    And completed learning and existing enrollments remain in my history
+    And a shared course or alternative is not counted twice
+
+  Scenario: US-L011-AC03 Cancel or fail safely
+    Given I am previewing a different path
+    When I cancel or the switch fails to save
+    Then my saved path and completion remain unchanged
+    And a failed save preserves the proposed choice with retry guidance
+```
+
+### US-L012 — Understand milestones and path completion
+
+**As a learner, I want milestones based on actual learning outcomes, so that I
+know what I have achieved and what meaningful step comes next.**
+
+State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+Depends on US-L002, US-L006, and US-L009. Scope: required/optional steps, alternative
+completion, milestone evidence, and honest finishing states. Decisions: completion
+rules, progress denominator, prior learning recognition, and certification wording.
+External examination/certification issuance is not implied by finishing a course.
+
+```gherkin
+Feature: Evidence-based career milestones
+  Scenario: US-L012-AC01 Complete a required step
+    Given my path has two equally weighted required steps and neither is complete
+    When the agreed completion evidence is saved for one step
+    Then path progress is 50 percent and the next required action is identified
+    And Home, the path view, and My Learning use the same saved completion
+
+  Scenario: US-L012-AC02 Handle alternatives and optional learning
+    Given a required step permits either of two courses and another course is optional
+    When I complete an accepted alternative and the optional course
+    Then the required step is counted once
+    And optional completion is visible without inflating required path progress
+
+  Scenario: US-L012-AC03 Finish a path honestly
+    Given I have completed all required steps under the agreed policy
+    When I return to guidance
+    Then it clearly identifies the completed path and offers an appropriate next goal
+    And it does not claim an external certification or job qualification without separate verified evidence
+
+  Scenario: US-L012-AC04 A failed assessment is not completion
+    Given a required step includes an assessment with a pass condition
+    When the saved assessment outcome does not meet it
+    Then the step remains incomplete and a useful retry action is shown
+    And browsing to the last question does not advance the milestone
+```
+
 ## Platform reliability
 
 ### US-P001 — Verify complete role journeys before release
@@ -560,6 +768,44 @@ Feature: Safe account and feedback writes
     Given feedback is marked for work and issue creation succeeds before persistence fails
     When triage is retried
     Then it links the existing GitHub issue instead of creating a second one
+```
+
+### US-P004 — Recover career guidance safely across failures and sessions
+
+**As a learner, I want guidance to stay honest and private during failures, so
+that I can retry safely without seeing another account's path or false success.**
+
+State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+Depends on US-L006 and US-L009; apply relevant checks to each delivered increment.
+Scope: loading/empty/error states, retry, session changes, private DTOs, and selection
+concurrency. Decisions: safe cache lifetime, revision conflict contract, and retry
+idempotency. A last known selection must be labeled stale when freshness is unknown.
+
+```gherkin
+Feature: Reliable private career guidance
+  Scenario: US-P004-AC01 Distinguish absence from failure
+    Given career guidance is loading, unavailable, missing, or genuinely unselected
+    When I open the page
+    Then it presents the matching loading, retry, missing-path, or starting state
+    And it does not replace those states with fictional progress or successful selection
+
+  Scenario: US-P004-AC02 Ignore responses from an old session
+    Given an account request is pending
+    When I log out or switch accounts before it completes
+    Then its response cannot overwrite the new account's selection or progress
+    And private cached path data is not shown to the new account
+
+  Scenario: US-P004-AC03 Preserve course and account boundaries
+    Given I request another learner's progress or a preview containing a private draft course
+    When the API processes the request
+    Then private account data and unpublished learning content are denied or omitted according to the agreed DTO
+    And a path reference alone does not bypass course entitlement
+
+  Scenario: US-P004-AC04 Resolve conflicting selections safely
+    Given two devices change the same saved selection concurrently or retry a timed-out request
+    When the writes are reconciled
+    Then the agreed revision and retry policy produces one identifiable saved outcome
+    And a rejected update preserves the user's choice with actionable feedback
 ```
 
 ## Adding a story

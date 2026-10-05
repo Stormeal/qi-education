@@ -1,8 +1,10 @@
 # Defect management
 
-Updated: 2026-10-04. Audit baseline: `6e19213` on `main`.
+Updated: 2026-10-05. Original audit baseline: `6e19213` on `main`.
 Evidence: [audit report](audits/2026-10-04/application_audit.md) and
 [isolated API probe](audits/2026-10-04/reproduce-api.mjs).
+Career path follow-up: [2026-10-05 audit](audits/2026-10-05/career_path_audit.md),
+base `9a2f30b` plus preserved, unfinished lifecycle changes.
 
 ## Triage rules
 
@@ -22,20 +24,28 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | ID | Defect | Severity | State | Evidence | Story |
 | --- | --- | --- | --- | --- | --- |
 | DEF-001 | Any teacher can mutate another teacher's course | P1 | Fixed | Resolved 2026-10-04 in `a9940cc`; API/UI/browser checks pass | US-T001 |
-| DEF-002 | General authoring routes bypass admin pricing/publication restrictions | P1 | Open | API and teacher UI | US-T002 |
-| DEF-003 | Anonymous API exposes drafts, full lessons, and quiz answer flags | P1 | Open | Isolated API | US-T002, US-L001 |
-| DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Open | Isolated API | US-L001 |
-| DEF-005 | An impossible quiz can be saved and published | P2 | Open | Isolated API | US-T004 |
+| DEF-002 | General authoring routes bypass admin pricing/publication restrictions | P1 | In progress | API and teacher UI; unfinished local fix | US-T002 |
+| DEF-003 | Anonymous API exposes drafts, full lessons, and quiz answer flags | P1 | In progress | Isolated API; unfinished local fix | US-T002, US-L001 |
+| DEF-004 | Enrollment accepts unpublished/archived courses | P1 | In progress | Isolated API; unfinished local fix | US-L001 |
+| DEF-005 | An impossible quiz can be saved and published | P2 | In progress | Isolated API; unfinished local fix | US-T004 |
 | DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Open | Browser and code | US-T003 |
 | DEF-007 | Library progress is hardcoded to 0 percent | P2 | Open | Browser and template | US-L002 |
 | DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Open | Isolated API | US-P002 |
 | DEF-009 | Dashboard presents fixture activity as account progress | P2 | Open | Browser and code | US-L002 |
 | DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Open | Browser and code | US-L001 |
 | DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
+| DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Open | Untouched quiz browser capture and computed formula | US-L002 |
 
 All are local/code findings. Production impact has not been verified against
 shared stores or user accounts. The audit report preserves the original findings;
 the current statuses and resolution sections below track subsequent fixes.
+
+DEF-002–DEF-005 are owned by Codex on `main`, base `9a2f30b`. Their local
+implementation is unfinished and has no fixing commit. See
+[work_queue.md](work_queue.md) for remaining response/session guards and final
+verification. In progress does not mean Fixed or released. The broader related
+stories remain Proposed because this selected defect batch does not deliver their
+entire review/progress/access workflow.
 
 ### DEF-001 — Any teacher can mutate another teacher's course
 
@@ -146,6 +156,9 @@ the current statuses and resolution sections below track subsequent fixes.
 - Verify fix: a two-component course shows 50% after one completion in both views;
   completion and persistence rules are to be selected in US-L002.
 - Fix commit / verified environment: none / pending.
+- Reconfirmed 2026-10-05: complete the text and pass/finish the quiz in an isolated
+  two-component enrolled course; both IDs are in browser completion storage, but
+  My Learning still shows 0%. [Evidence](audits/2026-10-05/career-library-after-completion.png).
 
 ### DEF-008 — Request errors become HTTP 500
 
@@ -171,6 +184,11 @@ the current statuses and resolution sections below track subsequent fixes.
 - Verify fix: accounts with no activity show an honest empty state; actual enrollment
   and completion update Home and My Learning consistently.
 - Fix commit / verified environment: none / pending.
+- Career path audit, 2026-10-05: a newly signed-up, unenrolled local account shows
+  38% career progress, 62% active-course progress, and a completed Chapter 3.
+  Its library is empty. An existing learner completing both real test components
+  also leaves Home unchanged. The target career role is assigned from permission
+  role, not the saved profile goal. [Audit and captures](audits/2026-10-05/career_path_audit.md).
 
 ### DEF-010 — Direct learning URL does not restore course metadata
 
@@ -197,6 +215,38 @@ the current statuses and resolution sections below track subsequent fixes.
 - Verify fix: implement the agreed feature contract or hide/disable the unfinished
   control with clear context; verify pointer and keyboard behavior.
 - Fix commit / verified environment: none / pending.
+- Reconfirmed 2026-10-05: activating Adjust track leaves `/` and its content
+  unchanged with no dialog; the dashboard template still has no event binding.
+  Full path selection/switching is Proposed in US-L009/US-L011, separate from
+  correcting the misleading enabled control.
+
+### DEF-014 — Quiz completion indicator counts position as completed work
+
+- Severity/state: P2 / Open. Discovered: 2026-10-05. Owner: unassigned.
+- Tested: `main`, base `9a2f30b` plus uncommitted DEF-002–DEF-005 work; isolated
+  Angular browser and in-memory API, no shared stores.
+- Expected contract: question position is distinct from completed assessment work
+  (Proposed US-L002-AC04); an untouched attempt must not claim completion.
+- Reproduce: enroll in a test course containing a one-question quiz; open that
+  quiz without selecting or submitting an answer. Header reads Question 1 of 1
+  and **100% complete**; its progressbar accessibility value is also 100.
+- Actual cause: `activeQuizProgressPercent` calculates `(questionIndex + 1) /
+  questionCount`, while the template labels that value as completion. Selecting
+  the last question yields 100% independently of submission or passing.
+- Impact: learners see completed-work language before doing the assessment;
+  assistive output repeats the misleading value. This does not by itself prove
+  that a quiz lesson has been marked passed; that is a separate rule.
+- Source: `app/src/app/pages/course-view-page/course-view-page.ts`
+  (`activeQuizProgressPercent`) and its template's quiz topbar/progressbar.
+- Related story: US-L002-AC04. Spec: pending selection of a narrow labeling versus
+  attempt-progress contract; do not silently expand grading behavior.
+- Regression check: untouched one- and multi-question quizzes, final-question
+  navigation, skipped questions, failed/pass outcomes, and text/accessibility values.
+  Renaming a position indicator is a valid small fix if it clearly identifies
+  position and never claims completion; real completion must use an agreed rule.
+- Evidence: [career path audit](audits/2026-10-05/career_path_audit.md) and
+  [untouched quiz capture](audits/2026-10-05/career-quiz-before-answer.png).
+- Fix commit/date: none. Verification: reproduced locally; fix checks pending.
 
 ## Existing reported defects, not yet reproduced
 

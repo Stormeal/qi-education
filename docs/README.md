@@ -16,6 +16,7 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Ownership specification](specs/US-T001-course-ownership.md) | First teacher story's detailed contract |
 | [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
 | [Audit report](audits/2026-10-04/application_audit.md) | Code review, walkthrough, evidence, and coverage limitations |
+| [Career path audit](audits/2026-10-05/career_path_audit.md) | Goal-to-learning journey, reproduced progress defects, and Proposed improvements |
 
 ## Product decisions
 
@@ -34,3 +35,7 @@ Proposed until selected and their outstanding decisions are resolved.
 The audit baseline is commit `6e19213`. An audit finding is a dated observation,
 not a promise that it still reproduces after later fixes. Use the backlog and
 defect statuses for the latest work state.
+
+The career path follow-up was performed on 2026-10-05 at `9a2f30b` plus the
+unfinished local lifecycle work. It adds DEF-014 and six Proposed stories;
+it does not implement career path features or close DEF-002–DEF-005.

@@ -1,0 +1,21 @@
+{
+  "base": "9a2f30b plus unfinished lifecycle working tree",
+  "careerPathApi": [
+    {
+      "path": "/career-paths",
+      "status": 404
+    },
+    {
+      "path": "/career-paths/technical-tester",
+      "status": 404
+    }
+  ],
+  "date": "2026-10-05",
+  "fixture": "Isolated in-memory course; newly signed-up learner",
+  "quiz": {
+    "checkedAnswers": 0,
+    "completedComponentIds": [],
+    "label": "Question 1 of 1\n100% complete",
+    "value": "100"
+  }
+}

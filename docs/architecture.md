@@ -1,8 +1,34 @@
 # Application architecture
 
 Updated 2026-10-04 for DEF-001 / US-T001 after audit base `6e19213`.
-This describes the current code; desired changes live in
+The core map below describes that committed baseline; desired changes live in
 [user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
+The career path section was checked again on 2026-10-05 at `9a2f30b` plus
+unfinished lifecycle work. Do not treat uncommitted lifecycle changes as delivered
+API contracts; see [work_queue.md](work_queue.md) for their handoff.
+
+## Career path boundary — checked 2026-10-05
+
+There is no career path model, repository, API endpoint, or dedicated route today.
+Home uses `AppStateService.student`, fixture `courses`, and fixture `nextActions`.
+Permission role chooses the displayed target and path percentage: student 38,
+teacher 74, admin 92. These values are not calculated from learning. `NextAction`
+and `CourseSummary` contain no stable course/lesson destination IDs.
+
+Course metadata has free-text `partOfCareer` and `careerGoals`; catalog search
+uses them as terms, not curriculum relationships. Accounts persist enrollments
+but have no selected path, career goal, milestone, or server progress fields.
+Profile learning goals are device-local and do not change career recommendations.
+
+Completion lives in `CourseViewPage`, under a localStorage key built from email
+and course ID. Same-browser resume selects the first incomplete component.
+Workspace completion does not update the literal library 0% or fixture dashboard.
+Quiz position is also mislabeled as completion (DEF-014). Career path selection,
+curation, revisions, switching, milestone logic, and reliable account persistence
+are Proposed capabilities, not implemented parts of the architecture.
+
+See the [career path audit](audits/2026-10-05/career_path_audit.md) for evidence,
+suggested boundaries, outstanding decisions, and delivery dependencies.
 
 ## Purpose and implemented journeys
 
