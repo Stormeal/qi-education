@@ -1,6 +1,7 @@
 # DEF-002–DEF-005 — Course lifecycle and assessment boundaries
 
-State: Verification passed for DEF-002, DEF-003, DEF-004; delivery commit pending.
+State: DEF-002, DEF-003, DEF-004 Fixed (resolved in code), 2026-10-07.
+Fix commit: `a6767f69e5254e01a47ca33b58dabe34925ea586`. Shared release checks remain pending.
 Owner: Codex. Branch: `main`. Resumed base: `ff3d68a`, selected 2026-10-07.
 Originally selected 2026-10-04. Related stories: US-T002, US-T004, US-L001.
 LC-01–04 and LC-06 are the current batch. LC-05 / DEF-005 remains unfinished;
@@ -123,7 +124,7 @@ a tested recovery procedure and isolated multi-instance Mongo/Sheets checks.
 - [x] Authenticated quiz scoring and connected learner UI feedback/errors.
 - [x] API role/lifecycle/alias matrix, frontend tests, builds, isolated browser checks.
 - [x] Independent review with no remaining blocking issue.
-- [ ] Delivery commit and synchronized resolution status.
+- [x] Delivery commit and synchronized resolution status.
 
 Scenario evidence: [2026-10-07 verification](../verification/2026-10-07/DEF-002-004.md).
 

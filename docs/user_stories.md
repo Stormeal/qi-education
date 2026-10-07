@@ -104,7 +104,7 @@ Feature: Course ownership
 so that learners receive reviewed material.**
 
 State: Proposed. Dependencies: US-T001. Defects: DEF-002, DEF-003.
-Delivered narrow defect scope on 2026-10-07: AC02 admin controls and private draft
+Delivered narrow defect scope on 2026-10-07 in `a6767f6`: AC02 admin controls and private draft
 access; see the lifecycle spec and verification. Review reasons/revisions and
 readiness remain unfinished, so this broader story is not Done.
 Scope: explicit transitions, admin-only pricing/catalog controls, and private drafts.
@@ -339,7 +339,7 @@ Feature: Governed career path curation
 learning library contains material I am authorized to use.**
 
 State: Proposed. Dependencies: US-T001, US-T002. Defects: DEF-003, DEF-004, DEF-010.
-Delivered narrow DEF-003/DEF-004 scope on 2026-10-07: published-only enrollment,
+Delivered narrow DEF-003/DEF-004 scope on 2026-10-07 in `a6767f6`: published-only enrollment,
 authorized content/resources, public title outline, redacted quizzes and server
 feedback. Working default retains existing archived access. DEF-010 and broader
 access/payment decisions remain open; this story stays Proposed.

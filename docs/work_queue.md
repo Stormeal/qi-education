@@ -4,14 +4,12 @@ Updated: 2026-10-07. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**DEF-002, DEF-003, DEF-004 — first resumed batch of three.**
-Owner: Codex. Branch: `main`. Base: `ff3d68a`. Selected on 2026-10-07.
-State: In progress. Scope: admin field restrictions, private reads/learner DTOs,
-server grading needed after answer-key redaction, and published-only enrollment.
-Next: local delivery commit and synchronized resolution records. API 185/frontend
-55 tests, API/frontend/Pages builds, isolated browser and independent review passed.
-Evidence: [batch verification](verification/2026-10-07/DEF-002-004.md).
-DEF-005 remains unfinished for the next batch; no path enhancement is selected.
+**DEF-005 — unfinished work preserved for the next batch.** Owner: Codex.
+Branch: `main`. Resumable base: `a6767f6`, delivery of DEF-002/003/004.
+State: In progress; readiness patch preserved, not applied. Next: read
+[the handoff](handoffs/DEF-005.md), check/apply the patch when resuming, review
+LC-05, and verify before delivery. Next batch candidates: DEF-005, DEF-006, DEF-010.
+No Proposed career feature is selected.
 
 ## Latest audit
 
@@ -42,6 +40,17 @@ Trusted scoring rejects invalid quizzes but does not prevent their publication.
 The historical invalid-review screenshot belongs to the unfinished prototype.
 
 ## Completed delivery
+
+**DEF-002, DEF-003, DEF-004 — Lifecycle access batch.** Fixed (resolved in code).
+Owner: Codex. Date: 2026-10-07. Branch: `main`. Base: `ff3d68a`.
+Fix commit: `a6767f69e5254e01a47ca33b58dabe34925ea586`.
+Scope: restricted teacher/admin fields, public/learner/author DTOs and asset
+entitlement, trusted server grading, published-only enrollment, and private
+response/session/coordination boundaries. API 185/frontend 55 tests, API/frontend/
+Pages builds, isolated teacher/admin/enrollment/quiz browser checks, and independent
+review pass. [Verification](verification/2026-10-07/DEF-002-004.md).
+DEF-005 and broader US-T002/US-L001 story completion are excluded. Shared-store
+and hosted release checks remain pending. No push/deployment.
 
 **DEF-001 / US-T001 — Course ownership.** Defect: Fixed (resolved in code).
 Story: Done. Owner: Codex. Date: 2026-10-04. Branch: `main`. Base: `ae9794a`.
@@ -78,11 +87,11 @@ remain Open. Their audit delivery order remains a recommendation.
 
 | Order | Defect / related story | Current state | Next prerequisite |
 | --- | --- | --- | --- |
-| 1 | DEF-002 / US-T002 admin field restrictions | In progress | Finish selected defect batch and guards |
-| 2 | DEF-003 / US-T002, US-L001 private drafts/content | In progress | Finish session guards; verify working entitlement assumptions |
+| 1 | DEF-002 / US-T002 admin field restrictions | Fixed | Shared release verification |
+| 2 | DEF-003 / US-T002, US-L001 private drafts/content | Fixed | Shared release checks; broader entitlement decisions remain Proposed |
 | 3 | DEF-006 / US-T003 unsaved authoring | Open | Navigation warning versus local recovery scope |
 | 4 | DEF-005 / US-T004 impossible published quizzes | In progress | Final readiness/grading verification |
-| 5 | DEF-004 / US-L001 unpublished enrollment | In progress | Final eligibility checks; verify archived access assumption |
+| 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
 | 6 | DEF-010 / US-L001 direct learning refresh | Open | Narrow route-loading regression spec |
 | 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | Open | Shared progress source, honest empty account, quiz position wording |
 | 8 | DEF-011 / US-L005 inactive controls | Open | Implement versus hide/disable choice |

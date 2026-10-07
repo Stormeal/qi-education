@@ -31,6 +31,8 @@ Recorded on 2026-10-04:
 4. Confirmed defects come before enhancements. Resolved defects stay documented
    with their resolution, regression evidence, date, and fixing commit.
 
+DEF-002/003/004 are resolved locally in `a6767f6` on 2026-10-07; see their
+[verification record](verification/2026-10-07/DEF-002-004.md). DEF-005 remains unfinished.
 The ownership policy is implemented and locally checked; see DEF-001 and US-T001
 for evidence and remaining release checks. Other audit-generated enhancements remain
 Proposed until selected and their outstanding decisions are resolved.
