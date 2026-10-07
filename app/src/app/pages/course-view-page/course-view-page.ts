@@ -38,8 +38,10 @@ import {
   CourseListItem,
   FeedbackOption,
   QuizQuestion,
+  QuizAssessmentResult,
   StudentSummary,
 } from '../../app.models';
+import { CourseService } from '../../services/course.service';
 import { ApiClientService } from '../../services/api-client.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -58,6 +60,7 @@ type CourseViewMode = 'details' | 'learning';
 })
 export class CourseViewPage {
   private readonly apiClient = inject(ApiClientService);
+  private readonly courseService = inject(CourseService);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly editCourseIcon = this.asSafeIcon(lucidePencil);
@@ -95,6 +98,10 @@ export class CourseViewPage {
   protected readonly quizSelectedAnswerIds = signal<Record<string, string>>({});
   protected readonly submittedQuizQuestionIds = signal<string[]>([]);
   protected readonly quizSubmitted = signal(false);
+  protected readonly quizScoring = signal(false);
+  protected readonly quizError = signal('');
+  private readonly quizResult = signal<QuizAssessmentResult | null>(null);
+  private quizAttemptGeneration = 0;
   protected readonly activeQuizQuestionIndex = signal(0);
   protected readonly allSectionsExpanded = computed(() => {
     const content = this.courseContent();
@@ -135,22 +142,12 @@ export class CourseViewPage {
   protected readonly isLastActiveQuizQuestion = computed(
     () => this.activeQuizQuestionIndex() >= this.activeQuizQuestions().length - 1,
   );
-  protected readonly activeQuizScore = computed(() =>
-    this.activeQuizQuestions().reduce((score, question) => {
-      const selectedAnswer = question.answers.find(
-        (answer) => answer.id === this.quizSelectedAnswerIds()[question.id],
-      );
-
-      return selectedAnswer?.isCorrect ? score + question.points : score;
-    }, 0),
-  );
+  protected readonly activeQuizScore = computed(() => this.quizResult()?.score ?? 0);
   protected readonly activeQuizTotalPoints = computed(() =>
     this.activeQuizQuestions().reduce((total, question) => total + question.points, 0),
   );
   protected readonly activeQuizPassed = computed(() => {
-    const component = this.activeComponent();
-
-    return component?.type === 'quiz' && this.activeQuizScore() >= component.quiz.passPoints;
+    return this.quizResult()?.passed ?? false;
   });
   protected readonly canSubmitActiveQuiz = computed(
     () => this.activeQuizQuestions().length > 0,
@@ -369,6 +366,7 @@ export class CourseViewPage {
   }
 
   protected openEnrollDialog(): void {
+    if (this.course()?.status !== 'published') return;
     this.pendingEnrollment.set(false);
     this.isEnrollDialogOpen.set(true);
   }
@@ -386,7 +384,7 @@ export class CourseViewPage {
   }
 
   protected confirmEnrollment(courseId: string): void {
-    if (this.enrollmentSubmitting()) {
+    if (this.enrollmentSubmitting() || this.course()?.status !== 'published') {
       return;
     }
 
@@ -499,7 +497,7 @@ export class CourseViewPage {
   }
 
   protected selectQuizAnswer(questionId: string, answerId: string): void {
-    if (this.quizSubmitted() || this.isQuizQuestionSubmitted(questionId)) {
+    if (this.quizSubmitted() || this.quizScoring() || this.isQuizQuestionSubmitted(questionId)) {
       return;
     }
 
@@ -525,18 +523,19 @@ export class CourseViewPage {
     return question ? this.isQuizQuestionSubmitted(question.id) : false;
   }
 
-  protected submitActiveQuizAnswer(): void {
+  protected async submitActiveQuizAnswer(): Promise<void> {
     const question = this.activeQuizQuestion();
 
-    if (!question || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) {
+    if (!question || this.quizScoring() || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) {
       return;
     }
 
-    this.submittedQuizQuestionIds.update((submitted) => [...submitted, question.id]);
+    const submitted = [...this.submittedQuizQuestionIds(), question.id];
+    if (await this.scoreActiveQuiz(submitted)) this.submittedQuizQuestionIds.set(submitted);
   }
 
   protected goToNextQuizQuestion(): void {
-    if (this.quizSubmitted()) {
+    if (this.quizSubmitted() || this.quizScoring()) {
       return;
     }
 
@@ -549,18 +548,19 @@ export class CourseViewPage {
   }
 
   protected skipActiveQuizQuestion(): void {
-    if (this.quizSubmitted()) {
+    if (this.quizSubmitted() || this.quizScoring()) {
       return;
     }
 
     this.goToNextQuizQuestion();
   }
 
-  protected finishActiveQuiz(): void {
-    if (!this.canSubmitActiveQuiz()) {
+  protected async finishActiveQuiz(): Promise<void> {
+    if (!this.canSubmitActiveQuiz() || this.quizScoring()) {
       return;
     }
 
+    if (!await this.scoreActiveQuiz(this.submittedQuizQuestionIds())) return;
     this.quizSubmitted.set(true);
 
     if (this.activeQuizPassed()) {
@@ -577,17 +577,42 @@ export class CourseViewPage {
       return '';
     }
 
-    const answer = question.answers.find((item) => item.id === answerId);
-
-    return answer?.isCorrect ? 'correct' : 'incorrect';
+    const feedback = this.quizResult()?.feedback.find((item) => item.questionId === question.id && item.answerId === answerId);
+    return feedback ? (feedback.correct ? 'correct' : 'incorrect') : '';
   }
 
   protected shouldShowAnswerDescription(question: QuizQuestion, answerId: string): boolean {
     return (
       this.isQuizQuestionSubmitted(question.id) &&
       this.selectedQuizAnswerId(question.id) === answerId &&
-      !!question.answers.find((answer) => answer.id === answerId)?.description
+      !!this.answerDescription(question.id, answerId)
     );
+  }
+
+  protected answerDescription(questionId: string, answerId: string): string {
+    return this.quizResult()?.feedback.find((item) => item.questionId === questionId && item.answerId === answerId)?.description ?? '';
+  }
+
+  private async scoreActiveQuiz(questionIds: string[]): Promise<boolean> {
+    const content = this.courseContent();
+    const component = this.activeComponent();
+    const section = content?.sections.find((item) => item.components.some((item) => item.id === component?.id));
+    if (!content || component?.type !== 'quiz' || !section) return false;
+    const generation = this.quizAttemptGeneration;
+    this.quizScoring.set(true);
+    this.quizError.set('');
+    try {
+      const answers = questionIds.map((questionId) => ({ questionId, answerId: this.selectedQuizAnswerId(questionId) }));
+      const result = await this.courseService.gradeQuiz(content._id, section.id, component.id, answers, this.authToken());
+      if (generation !== this.quizAttemptGeneration) return false;
+      this.quizResult.set(result);
+      return true;
+    } catch (error) {
+      if (generation === this.quizAttemptGeneration) this.quizError.set(error instanceof Error ? error.message : 'Unable to score this quiz. Please try again.');
+      return false;
+    } finally {
+      if (generation === this.quizAttemptGeneration) this.quizScoring.set(false);
+    }
   }
 
   protected contentSummary(): string {
@@ -689,7 +714,7 @@ export class CourseViewPage {
         component.quiz.questions.some(
           (question) =>
             !!question.question.trim() ||
-            question.answers.some((answer) => answer.text.trim() || answer.description.trim()),
+          question.answers.some((answer) => answer.text.trim() || answer.description?.trim()),
         )
       );
     }
@@ -813,13 +838,7 @@ export class CourseViewPage {
   }
 
   protected thumbnailUrl(course: CourseListItem): string {
-    if (!course.thumbnailAssetId) {
-      return '';
-    }
-
-    return this.apiClient.resourceUrl(
-      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
-    );
+    return this.courseService.thumbnailUrl(course);
   }
 
   private formatDurationShort(durationMinutes: number): string {
@@ -890,6 +909,10 @@ export class CourseViewPage {
   }
 
   private resetQuizAttempt(): void {
+    this.quizAttemptGeneration++;
+    this.quizResult.set(null);
+    this.quizScoring.set(false);
+    this.quizError.set('');
     this.quizSelectedAnswerIds.set({});
     this.submittedQuizQuestionIds.set([]);
     this.quizSubmitted.set(false);

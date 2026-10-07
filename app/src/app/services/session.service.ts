@@ -6,6 +6,10 @@ import { ApiClientService } from './api-client.service';
 export class SessionService {
   private readonly apiClient = inject(ApiClientService);
 
+  setSessionContextProvider(provider: () => unknown): void {
+    this.apiClient.setSessionContextProvider(provider);
+  }
+
   storeSession(login: LoginResponse, rememberMe: boolean): void {
     const storage = rememberMe ? window.localStorage : window.sessionStorage;
     const otherStorage = rememberMe ? window.sessionStorage : window.localStorage;

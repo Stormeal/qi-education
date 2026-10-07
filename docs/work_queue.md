@@ -1,11 +1,17 @@
 # Work queue
 
-Updated: 2026-10-05. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-07. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-No new implementation was started by the career path audit. Unfinished
-DEF-002–DEF-005 work is recorded below; new path stories remain Proposed.
+**DEF-002, DEF-003, DEF-004 — first resumed batch of three.**
+Owner: Codex. Branch: `main`. Base: `ff3d68a`. Selected on 2026-10-07.
+State: In progress. Scope: admin field restrictions, private reads/learner DTOs,
+server grading needed after answer-key redaction, and published-only enrollment.
+Next: local delivery commit and synchronized resolution records. API 185/frontend
+55 tests, API/frontend/Pages builds, isolated browser and independent review passed.
+Evidence: [batch verification](verification/2026-10-07/DEF-002-004.md).
+DEF-005 remains unfinished for the next batch; no path enhancement is selected.
 
 ## Latest audit
 
@@ -25,37 +31,15 @@ Next: follow the user's next selection; no Proposed path feature is authorized.
 
 ## Unfinished implementation handoff
 
-**DEF-002–DEF-005 — Publication, content access, enrollment, and quiz validity.**
-Owner: Codex. Branch: `main`. Base: `9a2f30b`. Selected by the user on 2026-10-04.
-Working spec: `docs/specs/DEF-002-005-course-lifecycle.md` (uncommitted local draft).
-State: In progress; interrupted by the selected career path audit. No delivery
-commit and no Fixed status. Preserve all local API/frontend edits and new tests.
-Implemented locally: restricted teacher fields, private course/content reads,
-outline and learner DTOs, published-only enrollment, quiz readiness and server
-grading, and per-course mutation coordination. Recovery notes are in the
-uncommitted `docs/course_operation_recovery.md`. These files and the implementation
-do not travel with the independent audit documentation commit; preserve the local
-checkout when resuming and reconcile its draft story references before delivery.
-Working assumptions (not confirmed product decisions): title-only public outlines,
-retained access for existing archived enrollments, and one correct quiz answer.
-
-Last verification: 182 API tests and API build passed before the latest ambiguous
-write recovery changes; the focused lock suite then passed 5 tests. Frontend full
-suite passed 37 tests before two additional regressions; the focused ownership
-suite passed 11 tests afterward. Frontend build passed before the latest polling
-guard; Pages build and final complete rerun are outstanding. Isolated browser
-checked invalid review feedback and unpublished thumbnail access. These checks do
-not constitute final delivery verification.
-On 2026-10-05 the career audit rebuilt the current API successfully and exercised
-published enrollment and quiz grading against the disposable store. Final complete
-tests, session-race regression coverage, and hosted release checks are still pending.
-
-Resume first: reproduce and guard late authoring responses after logout/navigation
-in `AppStateService.submitCourse` and attachment/Mux response handlers; an old
-author save can overwrite content in a newer learner session. Review ambiguous
-mutation failures that throw directly rather than calling `next(error)`, finish
-browser enrollment/grading, rerun full checks, update scenario evidence and all
-statuses together, then deliver on `main` with the required aligned version bump.
+**DEF-005 — Publish answerable quizzes.** Owner: Codex. Branch: `main`.
+Originally selected 2026-10-04; preserved on 2026-10-07 for the next batch.
+State: In progress, unresolved. Read [the handoff](handoffs/DEF-005.md) and LC-05
+in [the lifecycle spec](specs/DEF-002-005-course-lifecycle.md). The adjacent patch
+preserves readiness gates and tests without activating them in this three-defect
+delivery. It passed `git apply --check` on the selected batch's working tree;
+apply/review it only when DEF-005 resumes, then rerun tests and browser checks.
+Trusted scoring rejects invalid quizzes but does not prevent their publication.
+The historical invalid-review screenshot belongs to the unfinished prototype.
 
 ## Completed delivery
 
@@ -80,14 +64,15 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-**DEF-002–DEF-005 — Resume the selected defect batch if continuing defect delivery.**
-Defect status: In progress, unfinished. Related stories: US-T002, US-T004, US-L001
-(Proposed broader scope). Owner: Codex. Next action: follow the handoff above,
-starting with late authoring response/session guards and final verification.
+**Next batch of three: DEF-005, DEF-006, DEF-010.** Resume unfinished DEF-005,
+then the unsaved teacher navigation defect and direct learner URL verification.
+DEF-006 needs the narrow navigation-warning contract versus broader local recovery
+scope recorded before implementation. DEF-010 has incidental route-loading changes
+in the access batch, but needs its own spec and direct URL/error/session checks
+before closure. No Proposed career feature is selected.
 
-Career path findings DEF-007/DEF-009/DEF-014 belong to US-L002; DEF-011 has a narrow
-availability fix before broader selection/switching. They remain Open. The audit
-delivery order is a recommendation and does not supersede the user's next choice.
+Career progress/activity DEF-007/DEF-009/DEF-014 and unavailable controls DEF-011
+remain Open. Their audit delivery order remains a recommendation.
 
 ## Defect order
 

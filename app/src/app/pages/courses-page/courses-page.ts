@@ -340,13 +340,7 @@ export class CoursesPage {
   }
 
   protected thumbnailUrl(course: CourseListItem): string {
-    if (!course.thumbnailAssetId) {
-      return '';
-    }
-
-    return this.apiClient.resourceUrl(
-      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
-    );
+    return this.courseService.thumbnailUrl(course);
   }
 
   protected isThumbnailLoaded(courseId: string): boolean {

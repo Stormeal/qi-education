@@ -14,6 +14,9 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Architecture](architecture.md) | Current boundaries, storage, routes, and limitations |
 | [Local development](local_development.md) | Setup, isolated audit mode, checks, and deployment context |
 | [Ownership specification](specs/US-T001-course-ownership.md) | First teacher story's detailed contract |
+| [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | DEF-002/003/004 delivered scope and pending LC-05 |
+| [Course operation recovery](course_operation_recovery.md) | Durable ownership and required hosted recovery checks |
+| [DEF-005 handoff](handoffs/DEF-005.md) | Preserved unfinished publication readiness patch |
 | [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
 | [Audit report](audits/2026-10-04/application_audit.md) | Code review, walkthrough, evidence, and coverage limitations |
 | [Career path audit](audits/2026-10-05/career_path_audit.md) | Goal-to-learning journey, reproduced progress defects, and Proposed improvements |

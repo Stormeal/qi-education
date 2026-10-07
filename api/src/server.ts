@@ -40,6 +40,9 @@ import {
   type CourseAssetRepository,
 } from './courseAssetRepository.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
+import { canAuthorCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
+import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment.js';
+import { AmbiguousCourseWriteError, CourseBusyError, protectCourseWrite } from './courseMutationLock.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
 import {
@@ -85,6 +88,32 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
+  const withCourseLock = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
+    async (request: Request, response: Response, next: NextFunction) => {
+      try {
+        if (courses.storageType === 'google-sheets' && courseContent.storageType !== 'mongodb') {
+          response.status(503).json({ message: 'Shared course operations require MongoDB content and coordination storage.' });
+          return;
+        }
+        const courseId = String(request.params.id);
+        // Missing IDs must not create durable lock records; the handler supplies its 404.
+        if (!(await courses.listCourses()).some((course) => course.id === courseId)) {
+          await handler(request, response, next);
+          return;
+        }
+        await courseContent.withCourseMutationLock(courseId, async () => {
+          let failure: unknown;
+          await handler(request, response, (error?: unknown) => {
+            if (error) failure = error;
+          });
+          if (failure) throw failure;
+        });
+      } catch (error) {
+        if (response.headersSent) { console.error('Unable to finish course operation coordination.', error); return; }
+        next(error);
+      }
+    };
+
   app.use(cors({ origin: getCorsOrigins() }));
   app.post(
     ['/webhooks/mux', '/api/webhooks/mux'],
@@ -120,7 +149,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     authenticateRequest(auth),
     requireCourseAuthor(courses),
     express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb' }),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
@@ -157,33 +186,31 @@ export function createServer(dependencies: ServerDependencies = {}) {
           binary: request.body,
         });
 
+        let updatedCourse;
         try {
-          const updatedCourse = await courses.updateCourseThumbnail(courseId, {
+          updatedCourse = await courses.updateCourseThumbnail(courseId, {
             thumbnailAssetId: uploadedAsset._id,
           });
-
-          if (!updatedCourse) {
-            await courseAssets.deleteAsset(uploadedAsset._id, courseId);
-            response.status(404).json({ message: 'Course not found' });
-            return;
-          }
-
-          if (
-            matchingCourse.thumbnailAssetId &&
-            matchingCourse.thumbnailAssetId !== uploadedAsset._id
-          ) {
-            await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId, courseId);
-          }
-
-          response.json(updatedCourse);
         } catch (error) {
+          if (error instanceof AmbiguousCourseWriteError) throw error;
           await courseAssets.deleteAsset(uploadedAsset._id, courseId);
           throw error;
         }
+
+        if (!updatedCourse) {
+          await courseAssets.deleteAsset(uploadedAsset._id, courseId);
+          response.status(404).json({ message: 'Course not found' });
+          return;
+        }
+        // Metadata already references the new asset; old-asset cleanup cannot roll it back.
+        if (matchingCourse.thumbnailAssetId && matchingCourse.thumbnailAssetId !== uploadedAsset._id) {
+          await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId, courseId);
+        }
+        response.json(updatedCourse);
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
   app.put(
     [
@@ -193,7 +220,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     authenticateRequest(auth),
     requireCourseAuthor(courses),
     express.raw({ type: () => true, limit: '25mb' }),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const componentId = Array.isArray(request.params.componentId)
@@ -295,13 +322,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
           response.status(201).json({ attachment, content: updatedContent });
         } catch (error) {
+          if (error instanceof AmbiguousCourseWriteError) throw error;
           await courseAssets.deleteAsset(uploadedAsset._id, courseId);
           throw error;
         }
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
   app.use(express.json());
   app.use((_request, response, next) => {
@@ -458,7 +486,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     });
   });
 
-  app.post('/users/me/courses/:id', authenticateRequest(auth), async (request, response, next) => {
+  app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
     try {
       const authenticatedRequest = request as AuthenticatedRequest;
       const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -466,6 +494,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       if (!matchingCourse) {
         response.status(404).json({ message: 'Course not found' });
+        return;
+      }
+
+      if (matchingCourse.status !== 'published') {
+        response.status(403).json({ message: 'Only published courses accept enrollment.' });
         return;
       }
 
@@ -483,41 +516,46 @@ export function createServer(dependencies: ServerDependencies = {}) {
     } catch (error) {
       next(error);
     }
+  }));
+
+  app.use('/courses', (_request, response, next) => {
+    response.setHeader('Cache-Control', 'private, no-store');
+    response.vary('Authorization');
+    next();
   });
 
-  app.get('/courses', async (_request, response, next) => {
+  app.get('/courses', optionalAuthentication(auth), async (request, response, next) => {
     try {
-      response.json(await courses.listCourses());
+      response.json((await courses.listCourses()).filter((course) => canSeeCourse(course, (request as Partial<AuthenticatedRequest>).user)));
     } catch (error) {
       next(error);
     }
   });
 
-  app.get('/courses/:id/thumbnail', async (request, response, next) => {
+  app.get('/courses/:id/thumbnail', optionalAuthentication(auth), withCourseLock(async (request, response, next) => {
     try {
       const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
       const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
 
-      if (!matchingCourse || !matchingCourse.thumbnailAssetId) {
+      if (!matchingCourse || !matchingCourse.thumbnailAssetId || !canSeeCourse(matchingCourse, (request as Partial<AuthenticatedRequest>).user)) {
         response.status(404).json({ message: 'Course thumbnail not found' });
         return;
       }
 
       const asset = await courseAssets.getThumbnail(matchingCourse.thumbnailAssetId);
 
-      if (!asset) {
+      if (!asset || asset.courseId !== courseId) {
         response.status(404).json({ message: 'Course thumbnail not found' });
         return;
       }
 
       response.setHeader('Content-Type', asset.contentType);
       response.setHeader('Content-Length', String(asset.sizeBytes));
-      response.setHeader('Cache-Control', 'public, max-age=300');
       response.end(asset.binary);
     } catch (error) {
       next(error);
     }
-  });
+  }));
 
   app.post(
     '/courses',
@@ -526,6 +564,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
     async (request, response, next) => {
       try {
         const input = createCourseSchema.parse(request.body);
+
+        if ((request as AuthenticatedRequest).user.role !== 'admin' && (
+          input.status !== 'draft' || input.priceDkk !== null || input.isPremium || input.isBestseller ||
+          input.rating !== 0 || input.ratingCount !== 0 || input.category !== 'Uncategorized' || input.languages.length > 0
+        )) {
+          response.status(403).json({ message: 'Teachers create drafts; publication, pricing, and catalog settings require an admin.' });
+          return;
+        }
 
         // A new course has no uploaded assets yet. Upload after creation rather
         // than accepting a reference to another course's thumbnail.
@@ -562,10 +608,34 @@ export function createServer(dependencies: ServerDependencies = {}) {
     },
   );
 
-  app.get('/courses/:id/content', async (request, response, next) => {
+  app.get('/courses/:id/outline', optionalAuthentication(auth), withCourseLock(async (request, response, next) => {
+    try {
+      const courseId = String(request.params.id);
+      const course = (await courses.listCourses()).find((item) => item.id === courseId);
+      if (!course || !canSeeCourse(course, (request as Partial<AuthenticatedRequest>).user)) {
+        response.status(404).json({ message: 'Course not found' });
+        return;
+      }
+      const content = await courseContent.getCourseContent(courseId);
+      response.json(courseOutline(content ?? { _id: courseId, sections: [], createdAt: course.createdAt, updatedAt: course.createdAt }));
+    } catch (error) { next(error); }
+  }));
+
+  app.get('/courses/:id/content', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
     const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
 
     try {
+      const course = (await courses.listCourses()).find((item) => item.id === courseId);
+      const user = (request as AuthenticatedRequest).user;
+      if (!course) {
+        response.status(404).json({ message: 'Course not found' });
+        return;
+      }
+      const authorView = request.query.view === 'author';
+      if (!canLearnCourse(course, user) || (authorView && !canAuthorCourse(course, user))) {
+        response.status(403).json({ message: 'You do not have access to this course content.' });
+        return;
+      }
       const content = await courseContent.getCourseContent(courseId);
 
       if (!content) {
@@ -573,17 +643,17 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
 
-      response.json(content);
+      response.json(authorView ? { ...content, view: 'author' } : learnerCourseContent(content));
     } catch (error) {
       console.error(`Unable to load stored content for course ${courseId}.`, error);
       response.status(503).json({ message: 'Course content storage is unavailable.' });
     }
-  });
+  }));
 
   app.get(
     '/courses/:id/content/attachments/:assetId',
     authenticateRequest(auth),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const assetId = Array.isArray(request.params.assetId)
@@ -597,7 +667,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        if (!roleCanCreateCourses(user.role) && !user.enrolledCourseIds.includes(courseId)) {
+        if (!canLearnCourse(matchingCourse, user)) {
           response.status(403).json({ message: 'Enroll in this course before opening resources.' });
           return;
         }
@@ -619,19 +689,18 @@ export function createServer(dependencies: ServerDependencies = {}) {
         response.setHeader('Content-Type', asset.contentType);
         response.setHeader('Content-Length', String(asset.sizeBytes));
         response.setHeader('Content-Disposition', `attachment; filename="${asset.fileName}"`);
-        response.setHeader('Cache-Control', 'private, max-age=300');
         response.end(asset.binary);
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.patch(
     '/courses/:id/content',
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const input = updateCourseContentSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -655,14 +724,38 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
+
+  app.post('/courses/:id/content/components/:componentId/quiz-attempts', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
+    try {
+      const courseId = String(request.params.id);
+      const course = (await courses.listCourses()).find((item) => item.id === courseId);
+      if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
+      if (!canLearnCourse(course, (request as AuthenticatedRequest).user)) {
+        response.status(403).json({ message: 'You do not have access to this assessment.' }); return;
+      }
+      const input = quizAttemptSchema.parse(request.body);
+      const stored = await courseContent.getCourseContent(courseId);
+      const parsed = updateCourseContentSchema.safeParse(stored);
+      if (!parsed.success) { response.status(409).json({ message: 'This assessment needs correction by its author.' }); return; }
+      const section = parsed.data.sections.find((item) => item.id === input.sectionId);
+      const component = section?.components.find((item) => item.id === request.params.componentId);
+      if (!component || component.type !== 'quiz') { response.status(404).json({ message: 'Quiz not found' }); return; }
+      if (assessmentIssues([{ ...section!, components: [component] }], true).length) {
+        response.status(409).json({ message: 'This assessment needs correction by its author.' }); return;
+      }
+      const result = scoreQuiz(component, input.answers);
+      if (!result) { response.status(400).json({ message: 'Select valid answer IDs once per question.' }); return; }
+      response.json(result);
+    } catch (error) { next(error); }
+  }));
 
   app.post(
     '/courses/:id/content/components/:componentId/mux-upload',
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         if (!muxVideo) {
           response.status(503).json({ message: 'Mux video uploads are not configured.' });
@@ -700,12 +793,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        const upload = await muxVideo.createDirectUpload({
+        const upload = await protectCourseWrite(() => muxVideo!.createDirectUpload({
           courseId,
           sectionId: input.sectionId,
           componentId,
           corsOrigin: request.header('origin') ?? getCorsOrigins()[0] ?? 'http://localhost:4200',
-        });
+        }));
         const updatedSections = content.sections.map((section) =>
           section.id === input.sectionId
             ? {
@@ -743,14 +836,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.delete(
     '/courses/:id/content/components/:componentId/mux-video',
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const input = createMuxUploadSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -805,17 +898,31 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.patch(
     '/courses/:id',
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const input = updateCourseSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const current = (await courses.listCourses()).find((course) => course.id === courseId);
+        if (!current) { response.status(404).json({ message: 'Course not found' }); return; }
+        if (!Object.hasOwn(request.body, 'status')) input.status = current.status;
+        if (!Object.hasOwn(request.body, 'priceDkk')) input.priceDkk = current.priceDkk;
+        if ((request as AuthenticatedRequest).user.role !== 'admin' && (
+          (['isPremium', 'isBestseller', 'rating', 'ratingCount', 'category', 'languages'] as const).some((key) =>
+            Object.hasOwn(request.body, key) && JSON.stringify(request.body[key]) !== JSON.stringify(current[key])) ||
+          input.priceDkk !== current.priceDkk || (input.status !== current.status && (
+            !['draft', 'ready-for-review'].includes(current.status) || !['draft', 'ready-for-review'].includes(input.status)
+          ))
+        )) {
+          response.status(403).json({ message: 'Publication, archival, and pricing require an admin.' });
+          return;
+        }
         const updatedCourse = await courses.updateCourse(courseId, input);
 
         if (!updatedCourse) {
@@ -827,14 +934,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.patch(
     '/courses/:id/price',
     authenticateRequest(auth),
     requireAdmin,
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const input = updateCoursePriceSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -849,14 +956,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.delete(
     '/courses/:id/content/components/:componentId/attachments/:assetId',
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const input = createMuxUploadSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -922,14 +1029,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.patch(
     '/courses/:id/catalog-metadata',
     authenticateRequest(auth),
     requireAdmin,
-    async (request, response, next) => {
+    withCourseLock(async (request, response, next) => {
       try {
         const input = updateCourseCatalogMetadataSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -944,7 +1051,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       } catch (error) {
         next(error);
       }
-    },
+    }),
   );
 
   app.post('/feedback', authenticateRequest(auth), async (request, response, next) => {
@@ -1017,6 +1124,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
+    if (error instanceof CourseBusyError) {
+      response.status(409).json({ message: error.message });
+      return;
+    }
     if (error instanceof ZodError) {
       response.status(400).json({ message: 'Invalid request body', issues: error.issues });
       return;
@@ -1152,6 +1263,7 @@ async function updateMuxVideoComponent(
   passthrough: MuxPassthrough,
   update: MuxVideoUpdate,
 ) {
+  await courseContent.withCourseMutationLock(passthrough.courseId, async () => {
   const content = await courseContent.getCourseContent(passthrough.courseId);
 
   if (!content) {
@@ -1192,6 +1304,7 @@ async function updateMuxVideoComponent(
   );
 
   await courseContent.updateCourseContent(passthrough.courseId, updatedSections);
+  });
 }
 
 function parseMuxPassthrough(value: string | undefined): MuxPassthrough | null {
@@ -1450,6 +1563,14 @@ function requireCourseCreator(request: Request, response: Response, next: NextFu
   next();
 }
 
+function optionalAuthentication(authRepository: AuthRepository) {
+  const authenticate = authenticateRequest(authRepository);
+  return (request: Request, response: Response, next: NextFunction) => {
+    if (request.header('authorization') === undefined) { next(); return; }
+    return authenticate(request, response, next);
+  };
+}
+
 function requireCourseAuthor(courses: CourseRepository) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
@@ -1465,7 +1586,7 @@ function requireCourseAuthor(courses: CourseRepository) {
         response.status(404).json({ message: 'Course not found' });
         return;
       }
-      if (user.role !== 'admin' && (!course.ownerUserId || course.ownerUserId !== user.id)) {
+      if (!canAuthorCourse(course, user)) {
         response.status(403).json({ message: 'You do not have permission to edit this course.' });
         return;
       }

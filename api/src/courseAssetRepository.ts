@@ -1,3 +1,4 @@
+import { protectCourseWrite } from './courseMutationLock.js';
 import { randomUUID } from 'node:crypto';
 import { Binary, type Collection } from 'mongodb';
 import { apiConfig } from './config.js';
@@ -84,7 +85,8 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
       createdAt: new Date().toISOString(),
     };
 
-    await (await this.collection()).insertOne(asset);
+    const collection = await this.collection();
+    await protectCourseWrite(() => collection.insertOne(asset));
     return asset;
   }
 
@@ -114,7 +116,8 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
       createdAt: new Date().toISOString(),
     };
 
-    await (await this.collection()).insertOne(asset);
+    const collection = await this.collection();
+    await protectCourseWrite(() => collection.insertOne(asset));
     return asset;
   }
 
@@ -127,7 +130,8 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
   }
 
   async deleteAsset(assetId: string, courseId: string): Promise<void> {
-    await (await this.collection()).deleteOne({ _id: assetId, courseId });
+    const collection = await this.collection();
+    await protectCourseWrite(() => collection.deleteOne({ _id: assetId, courseId }));
   }
 }
 

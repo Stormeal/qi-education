@@ -32,7 +32,7 @@ describe('course ownership UI (DEF-001)', () => {
     state.availableCourses.set([ownedCourse]);
     state.loginState.set(login('teacher'));
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
   it('blocks editor entry for a different teacher even with the same display name', () => {
     state.loginState.set(login('teacher', 'teacher-b'));
@@ -70,5 +70,45 @@ describe('course ownership UI (DEF-001)', () => {
     expect(state.courseDraft().title).toBe('Keep my unsaved edits');
     expect(state.courseCreateError()).toContain('permission');
     expect(state.courseSubmitting()).toBe(false);
+  });
+
+  it.each(['teacher', 'admin'] as const)('DEF-002 offers only allowed status transitions for %s', (role) => {
+    state.loginState.set(login(role));
+    state.currentPath.set('/courses/owned-course/edit');
+    const fixture = TestBed.createComponent(CourseEditorRoute);
+    fixture.detectChanges();
+    const options = [...fixture.nativeElement.querySelectorAll('select option')].map((option) => (option as HTMLOptionElement).value);
+    expect(options).toContain('draft');
+    expect(options).toContain('ready-for-review');
+    expect(options.includes('published')).toBe(role === 'admin');
+    expect(options.includes('archived')).toBe(role === 'admin');
+  });
+
+  it('DEF-002 shows a published teacher course status as read-only', () => {
+    state.availableCourses.set([{ ...ownedCourse, status: 'published' }]);
+    state.currentPath.set('/courses/owned-course/edit');
+    const fixture = TestBed.createComponent(CourseEditorRoute);
+    fixture.detectChanges();
+    const status = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
+    expect(status.disabled).toBe(true);
+    expect([...status.options].map((option) => option.value)).toEqual(['published']);
+  });
+
+  it('DEF-003 discards a pending author video poll after moving to a preview', async () => {
+    vi.useFakeTimers();
+    state.currentPath.set('/courses/owned-course/edit');
+    state.loadedCourseContentId.set('owned-course');
+    const outline = { _id: 'owned-course', view: 'outline' as const, sections: [], createdAt: '', updatedAt: '' };
+    let resolve!: (value: typeof outline) => void;
+    const load = vi.spyOn(TestBed.inject(CourseService), 'loadCourseContent').mockImplementation(() => new Promise((done) => { resolve = done; }));
+    const poll = (state as unknown as { refreshMuxVideoUntilReady(id: string, component: string, attempts: number): Promise<void> })
+      .refreshMuxVideoUntilReady('owned-course', 'video', 1);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(load).toHaveBeenCalled();
+    state.currentPath.set('/courses/owned-course');
+    state.courseContent.set(outline);
+    resolve({ ...outline, view: 'author' } as unknown as typeof outline);
+    await poll;
+    expect(state.courseContent()).toBe(outline);
   });
 });

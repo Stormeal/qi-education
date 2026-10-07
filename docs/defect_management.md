@@ -1,6 +1,6 @@
 # Defect management
 
-Updated: 2026-10-05. Original audit baseline: `6e19213` on `main`.
+Updated: 2026-10-07. Original audit baseline: `6e19213` on `main`.
 Evidence: [audit report](audits/2026-10-04/application_audit.md) and
 [isolated API probe](audits/2026-10-04/reproduce-api.mjs).
 Career path follow-up: [2026-10-05 audit](audits/2026-10-05/career_path_audit.md),
@@ -40,10 +40,10 @@ All are local/code findings. Production impact has not been verified against
 shared stores or user accounts. The audit report preserves the original findings;
 the current statuses and resolution sections below track subsequent fixes.
 
-DEF-002–DEF-005 are owned by Codex on `main`, base `9a2f30b`. Their local
-implementation is unfinished and has no fixing commit. See
-[work_queue.md](work_queue.md) for remaining response/session guards and final
-verification. In progress does not mean Fixed or released. The broader related
+DEF-002, DEF-003, DEF-004 resumed on `main` at `ff3d68a` in the first batch of
+three. Verification passed on 2026-10-07; local delivery is pending. DEF-005 is
+preserved separately in [its handoff](handoffs/DEF-005.md), with no active readiness
+gate or fixing commit. In progress does not mean Fixed or released. The broader related
 stories remain Proposed because this selected defect batch does not deliver their
 entire review/progress/access workflow.
 
@@ -87,7 +87,13 @@ entire review/progress/access workflow.
   `app/src/app/pages/course-editor-page/course-editor-page.html`.
 - Verify fix: test restricted-field changes on POST/PATCH, not only dedicated routes;
   preserve ordinary teacher saves that echo an unchanged price from the current client.
-- Fix commit / verified environment: none / pending.
+- Resolution prepared 2026-10-07: teachers create drafts with default admin fields;
+  only admins change pricing, publication, archival, and catalog fields. General
+  saves preserve omitted or unchanged restricted values. Teacher Status offers
+  draft/review transitions; published/archived status is read-only for teachers.
+  Per-course coordination prevents an overlapping teacher save undoing admin state.
+- Regression evidence: [batch verification](verification/2026-10-07/DEF-002-004.md),
+  LC-01/02 and isolated teacher/admin UI. Fix commit pending; shared release checks pending.
 
 ### DEF-003 — Anonymous API exposes private authoring and assessment data
 
@@ -103,7 +109,22 @@ entire review/progress/access workflow.
 - Verify fix: anonymous/unrelated teacher/unenrolled learner denial, owner/admin
   preview, enrolled access, and a learner quiz DTO without scoring secrets.
 - Product decisions: public preview and archived learner access remain Proposed in US-L001.
-- Fix commit / verified environment: none / pending.
+- Resolution prepared 2026-10-07: catalog/media/outline/content use one lifecycle
+  access policy. Public preview returns titles/types/duration; full lessons and
+  resources require entitlement. Learner quizzes omit correctness/explanations;
+  owner/admin author preview is explicit. The API grades stored answers and returns
+  submitted-answer feedback. Private responses are no-store; private thumbnail
+  blobs are revoked on logout. Session/view guards discard late reads, saves,
+  uploads, progress events, polling and stale 401s; updated enrollment/restoration
+  restarts loaders, including refreshed/downgraded roles.
+- Review reproductions: transient reads could quarantine a course, acquisition
+  could wait indefinitely, old 401s could end a new session, and thumbnail cleanup
+  after confirmed metadata save could delete its new referenced asset. Provider
+  write boundaries, bounded lock acquisition, session-aware 401 handling, and
+  cleanup outside rollback now cover these failure cases. See regression evidence.
+- Regression evidence: [batch verification](verification/2026-10-07/DEF-002-004.md),
+  LC-03/06, role/alias matrix and connected learner/browser checks.
+  Fix commit pending; live Mongo/Sheets/Mux and hosted release checks pending.
 
 ### DEF-004 — Enrollment accepts unpublished and archived courses
 
@@ -115,7 +136,12 @@ entire review/progress/access workflow.
 - Source: `api/src/server.ts` (enrollment route).
 - Verify fix: deny draft/review/archived new enrollment; repeated published enrollment
   remains idempotent. Existing enrollment access after archival needs a product decision.
-- Fix commit / verified environment: none / pending.
+- Resolution prepared 2026-10-07: new enrollment requires published status; other
+  statuses return 403 before a write. Repeated published enrollment remains
+  idempotent. Existing archived learners retain access under the recorded working
+  default; archived courses do not permit new enrollment.
+- Regression evidence: [batch verification](verification/2026-10-07/DEF-002-004.md),
+  LC-04 and isolated enrollment/learning UI. Fix commit pending; shared release checks pending.
 
 ### DEF-005 — An impossible quiz can be published
 
@@ -129,6 +155,10 @@ entire review/progress/access workflow.
 - Verify fix: incomplete drafts remain editable; review/publication rejects impossible
   scoring with useful question-level feedback. Valid quizzes can be passed.
 - Fix commit / verified environment: none / pending.
+- Next batch: unfinished readiness gates/tests are preserved in
+  [DEF-005 handoff](handoffs/DEF-005.md). This defect remains unresolved. DEF-003
+  rejects misleading scoring for invalid stored quizzes but does not prevent
+  their publication. Reapply, review, and verify LC-05 before closing DEF-005.
 
 ### DEF-006 — Editor navigation discards unsaved work
 

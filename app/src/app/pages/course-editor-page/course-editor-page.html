@@ -183,13 +183,12 @@
               <span>Status</span>
               <select
                 [value]="courseDraft().status"
-                [disabled]="courseSubmitting()"
+                [disabled]="courseSubmitting() || statusLocked()"
                 (change)="courseStatusChanged.emit(controlValue($event))"
               >
-                <option value="draft">Draft</option>
-                <option value="ready-for-review">Ready for review</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
+                @for (option of statusOptions(); track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
               </select>
             </label>
           } @else {

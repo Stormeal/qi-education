@@ -23,8 +23,14 @@ export class ApiClientService {
   private readonly apiJsonCache = new Map<string, ApiJsonCacheEntry>();
   private readonly unauthorizedHandlers = new Set<() => void>();
   private hasLoggedApiBaseUrls = false;
+  private sessionContext: () => unknown = () => undefined;
+
+  setSessionContextProvider(provider: () => unknown): void {
+    this.sessionContext = provider;
+  }
 
   async fetch(path: string, init: RequestInit): Promise<Response> {
+    const initiatingSession = this.sessionContext();
     const apiBaseUrls = this.apiBaseUrls();
     let lastError: unknown;
 
@@ -34,7 +40,7 @@ export class ApiClientService {
       try {
         const response = await window.fetch(`${apiBaseUrl}${path}`, init);
 
-        if (response.status === 401) {
+        if (response.status === 401 && initiatingSession === this.sessionContext()) {
           this.notifyUnauthorized();
         }
 
@@ -75,7 +81,7 @@ export class ApiClientService {
     const response = await this.fetch(path, { ...init, method: init.method ?? 'GET' });
     const body = (await response.json().catch(() => ({}))) as T | { message?: string };
 
-    if (response.ok) {
+    if (response.ok && !response.headers.get('Cache-Control')?.toLowerCase().includes('no-store')) {
       this.apiJsonCache.set(cacheKey, {
         value: body,
       });

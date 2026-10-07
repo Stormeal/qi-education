@@ -1,0 +1,197 @@
+diff --git a/api/src/courseContent.ts b/api/src/courseContent.ts
+index 161d112..5aa8742 100644
+--- a/api/src/courseContent.ts
++++ b/api/src/courseContent.ts
+@@ -21,7 +21,7 @@ const quizQuestionSchema = z.object({
+
+ const quizComponentSchema = z.object({
+   passPoints: z.coerce.number().int().min(1).max(100).default(1),
+-  questions: z.array(quizQuestionSchema).min(1).max(50).default([]),
++  questions: z.array(quizQuestionSchema).max(50).default([]),
+ });
+
+ const baseCourseContentComponentSchema = z.object({
+diff --git a/api/src/server.ts b/api/src/server.ts
+index 94a0d1b..e117d3e 100644
+--- a/api/src/server.ts
++++ b/api/src/server.ts
+@@ -715,6 +715,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
+           return;
+         }
+
++        const issues = assessmentIssues(input.sections, ['ready-for-review', 'published', 'archived'].includes(matchingCourse.status));
++        if (issues.length) {
++          response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
++          return;
++        }
++
+         const attachmentIds = new Set(input.sections.flatMap((section) =>
+           section.components.flatMap((component) => component.attachments.map((attachment) => attachment.assetId)),
+         ));
+@@ -927,6 +933,19 @@ export function createServer(dependencies: ServerDependencies = {}) {
+           response.status(403).json({ message: 'Publication, archival, and pricing require an admin.' });
+           return;
+         }
++        if (['ready-for-review', 'published'].includes(input.status)) {
++          const stored = await courseContent.getCourseContent(courseId);
++          const parsed = updateCourseContentSchema.safeParse(stored);
++          if (!parsed.success) {
++            response.status(400).json({ message: 'Course assessment content needs correction before review or publication.' });
++            return;
++          }
++          const issues = assessmentIssues(parsed.data.sections, true);
++          if (issues.length) {
++            response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
++            return;
++          }
++        }
+         const updatedCourse = await courses.updateCourse(courseId, input);
+
+         if (!updatedCourse) {
+diff --git a/api/src/courseLifecycle.test.ts b/api/src/courseLifecycle.test.ts
+index eeee9bc..ff7dc78 100644
+--- a/api/src/courseLifecycle.test.ts
++++ b/api/src/courseLifecycle.test.ts
+@@ -127,6 +127,31 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
+     expect((await courses.listCourses())[0]).toMatchObject({ status: 'published', priceDkk: 500 });
+   });
+
++  it('LC-05 validates publication after any preceding in-flight draft content write', async () => {
++    await content.updateCourseContent('course', validSections);
++    const invalid = structuredClone(validSections);
++    const quiz = invalid[0].components[1];
++    if (quiz.type !== 'quiz') throw new Error('Missing fixture');
++    quiz.quiz.questions[0].answers[0].isCorrect = false;
++    let entered!: () => void;
++    let release!: () => void;
++    const started = new Promise<void>((resolve) => { entered = resolve; });
++    const resume = new Promise<void>((resolve) => { release = resolve; });
++    const update = content.updateCourseContent.bind(content);
++    vi.spyOn(content, 'updateCourseContent').mockImplementation(async (id, sections) => {
++      entered(); await resume; return update(id, sections);
++    });
++    const save = request('/courses/course/content', teacher, 'PATCH', { sections: invalid });
++    await started;
++    const publication = request('/courses/course', admin, 'PATCH', { ...metadata, status: 'published' });
++    await new Promise((resolve) => setTimeout(resolve, 100));
++    release();
++    const [saved, published] = await Promise.all([save, publication]);
++    expect(saved.status).toBe(200);
++    expect(published.status).toBe(400);
++    expect((await courses.listCourses())[0].status).toBe('draft');
++  });
++
+   it('LC-03 pairs entitlement and content reads consistently during withdrawal to draft', async () => {
+     await content.updateCourseContent('course', validSections);
+     await setStatus('published');
+@@ -243,6 +268,47 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
+       expect((await request(`${prefix}/courses/course/thumbnail`, student)).status).toBe(200);
+     });
+
++    it(`LC-05 ${prefix} preserves incomplete drafts but rejects review/publication and invalid published replacement`, async () => {
++      const sections = structuredClone(validSections);
++      const quiz = sections[0].components[1];
++      if (quiz.type !== 'quiz') throw new Error('Quiz fixture missing');
++      quiz.quiz.passPoints = 2;
++      quiz.quiz.questions[0].question = '';
++      quiz.quiz.questions[0].answers[0].isCorrect = false;
++      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
++      for (const [user, status] of [[teacher, 'ready-for-review'], [admin, 'published']] as const) {
++        const response = await request(`${prefix}/courses/course`, user, 'PATCH', { ...metadata, status });
++        expect(response.status).toBe(400);
++        const body = await response.json();
++        expect(body.message).toContain('Assessment');
++        expect(body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ componentId: 'quiz', questionId: 'q' })]));
++        expect((await courses.listCourses())[0].status).toBe('draft');
++      }
++      await content.updateCourseContent('course', validSections);
++      expect((await request(`${prefix}/courses/course`, admin, 'PATCH', { ...metadata, status: 'published' })).status).toBe(200);
++      const rejected = await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections });
++      expect(rejected.status).toBe(400);
++      expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
++      await setStatus('archived');
++      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
++      expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
++    });
++
++    it(`LC-05 ${prefix} rejects duplicate assessment IDs even in drafts and multiple correct options on submission`, async () => {
++      const sections = structuredClone(validSections);
++      const quiz = sections[0].components[1];
++      if (quiz.type !== 'quiz') throw new Error('Quiz fixture missing');
++      quiz.quiz.questions.push(structuredClone(quiz.quiz.questions[0]));
++      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
++      quiz.quiz.questions.pop();
++      quiz.quiz.questions[0].answers[1].id = 'a';
++      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
++      quiz.quiz.questions[0].answers[1].id = 'b';
++      quiz.quiz.questions[0].answers[1].isCorrect = true;
++      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
++      expect((await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, status: 'ready-for-review' })).status).toBe(400);
++    });
++
+     it(`LC-06 ${prefix} scores stored answers and returns feedback only after authorized submission`, async () => {
+       await content.updateCourseContent('course', validSections);
+       await setStatus('published');
+diff --git a/app/src/app/services/app-state.service.ts b/app/src/app/services/app-state.service.ts
+index 4a3b04c..9c1ec66 100644
+--- a/app/src/app/services/app-state.service.ts
++++ b/app/src/app/services/app-state.service.ts
+@@ -1798,6 +1798,20 @@ export class AppStateService {
+
+     try {
+       let savedCourse: CourseListItem | null = null;
++      // Persist the edited outline before asking readiness validation to inspect it.
++      // Failed review keeps the course unpublished and the edited draft available.
++      let contentSavedBeforeMetadata = false;
++      if (mode === 'edit' && metadataChanged && contentChanged && courseId && content &&
++        ['ready-for-review', 'published'].includes(draft.status)) {
++        const result = await this.courseService.saveCourseContent(courseId, content.sections, token);
++        if (!isCurrent()) return;
++        if (!result.ok) { this.courseContentError.set(result.message); return; }
++        this.courseContent.set(result.content);
++        this.initialCourseContentSnapshot.set(this.serializeCourseContent(result.content));
++        contentSavedBeforeMetadata = true;
++      }
++
++
+       if (metadataChanged) {
+         const result = await this.courseService.saveCourse(
+           mode,
+@@ -1827,7 +1841,7 @@ export class AppStateService {
+
+       const contentCourseId = savedCourse?.id ?? courseId;
+
+-      if (contentChanged && contentCourseId && content) {
++      if (contentChanged && !contentSavedBeforeMetadata && contentCourseId && content) {
+         const contentResult = await this.courseService.saveCourseContent(
+           contentCourseId,
+           content.sections,
+diff --git a/app/src/app/services/course-ownership.spec.ts b/app/src/app/services/course-ownership.spec.ts
+index 104346c..da8081e 100644
+--- a/app/src/app/services/course-ownership.spec.ts
++++ b/app/src/app/services/course-ownership.spec.ts
+@@ -111,4 +111,24 @@ describe('course ownership UI (DEF-001)', () => {
+     await poll;
+     expect(state.courseContent()).toBe(outline);
+   });
++
++  it('DEF-005 saves edited draft content before requesting review validation', async () => {
++    state.currentPath.set('/courses/owned-course/edit');
++    state.loadedCourseContentId.set('owned-course');
++    state.courseDraft.update((draft) => ({ ...draft, title: ownedCourse.title, description: ownedCourse.description,
++      teacher: ownedCourse.teacher, level: ownedCourse.level, status: 'ready-for-review' }));
++    const content = { _id: 'owned-course', view: 'author' as const, sections: [], createdAt: '', updatedAt: '' };
++    state.courseContent.set(content);
++    const calls: string[] = [];
++    const service = TestBed.inject(CourseService);
++    vi.spyOn(service, 'saveCourseContent').mockImplementation(async () => { calls.push('content'); return { ok: true, content }; });
++    vi.spyOn(service, 'saveCourse').mockImplementation(async () => { calls.push('review'); return {
++      ok: false, message: 'Assessment needs correction.' }; });
++    await state.submitCourse();
++    expect(calls).toEqual(['content', 'review']);
++    expect(state.courseCreateError()).toContain('Assessment needs correction');
++    expect(state.courseContent()).toEqual(content);
++    expect(state.courseDraft().status).toBe('ready-for-review');
++    expect(state.availableCourses()[0].status).toBe('draft');
++  });
+ });

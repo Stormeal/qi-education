@@ -38,9 +38,9 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
 | Account | Student signup, login, remembered session, role permissions | No reset flow; demo auth fallback without Sheets configuration |
-| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails | Legacy unowned courses require admin editing; review workflow lacks enforcement |
+| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails | Legacy unowned courses require admin editing; review comments/revisions and readiness are unfinished |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
-| Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | API read/enrollment access gaps; no payment/entitlement system |
+| Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
 | Progress/profile | Device-local completion and profile details | Not server-synced; library progress and home activity are inconsistent |
 
 Statuses are `draft`, `ready-for-review`, `published`, and `archived`. They are
@@ -95,7 +95,7 @@ The API client selects a configured `window.qiEducationConfig.apiBaseUrl` first.
 GitHub Pages calls the hosted Vercel API. On other hosts it tries local port 3001
 then the hosted API after a network failure. This matters for isolated testing:
 pin the API URL or keep the local API healthy before performing mutations.
-Its successful JSON response cache has explicit invalidation but no TTL.
+Course responses use private/no-store and Vary: Authorization. The client honors no-store. Private thumbnails use authenticated blobs revoked on logout. Course response guards use session identity, route, and operation generation; stale 401s cannot end a newer session. Session restoration/enrollment reset pending loaders before applying the updated session. Other successful JSON responses retain explicit invalidation and no TTL.
 
 ## API map and current access
 
@@ -107,13 +107,15 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes |
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
 | `GET /auth/me` (also `/me`) | Active bearer session |
-| `GET /courses`, `/courses/:id/thumbnail`, `/courses/:id/content` | Public; see DEF-003 |
-| `POST /users/me/courses/:id` | Active session; existence only, see DEF-004 |
-| `POST /courses` | Active teacher/admin; server assigns authenticated owner ID |
-| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher or admin |
+| `GET /courses`, `/courses/:id/thumbnail`, `/courses/:id/outline` | Public published metadata/title outlines; owner/admin private access; enrolled archived access |
+| `GET /courses/:id/content` | Authenticated owner/admin or enrolled published/archived learner; learner DTO by default; owner/admin-only `?view=author` |
+| `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
+| `POST /users/me/courses/:id` | Active session; published-only new enrollment; published retry is idempotent |
+| `POST /courses` | Teacher draft/default admin fields only; admin may set status/price/catalog; authenticated owner ID |
+| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; price/catalog/publication/archival changes are admin-only |
 | `PUT /courses/:id/thumbnail` | Owner teacher/admin; JPEG/PNG/WebP, 2 MB |
 | `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 25 MB |
-| `GET /courses/:id/content/attachments/:assetId` | Teacher/admin or enrolled user |
+| `GET /courses/:id/content/attachments/:assetId` | Owner/admin or entitled learner; asset must belong to the requested course |
 | `DELETE /courses/:id/content/components/:componentId/attachments/:assetId` | Owner teacher/admin |
 | `POST .../components/:componentId/mux-upload`, `DELETE .../mux-video` | Owner teacher/admin |
 | `PATCH /courses/:id/price`, `/courses/:id/catalog-metadata` | Admin |
@@ -159,8 +161,15 @@ headers. Do not treat the config string as the complete data schema.
 
 Course content contains sections of discriminated `text`, `resources`, `quiz`,
 and `video` components. Quizzes contain questions with four answer options,
-correctness flags, points, and a pass mark. Scoring currently happens in the client.
+correctness flags, points, and a pass mark. Learner DTOs omit correctness/explanations; the authenticated quiz-attempt route scores stored answers and returns submitted-answer feedback only. Scoring refuses invalid legacy quizzes; publication readiness remains DEF-005.
 Assets have binary payload, type, filename, size, and course/component association.
+
+Course operations pair lifecycle reads/content under per-course coordination.
+Memory uses its repository lock; Mongo uses a separate nonexpiring owner record.
+Sheets operations require Mongo coordination. Acquisition/deletion have bounded
+waits, while actual uncertain provider writes retain ownership for verified
+recovery. Pre-write reads release normally. This is not a cross-store transaction
+or stale-editor revision check. See [recovery runbook](course_operation_recovery.md).
 
 ## Integration lifecycles
 
@@ -179,7 +188,7 @@ audit mode must not trigger real issue creation. No issues were created in this 
 
 API tests use Vitest; Angular tests use the Angular/Vitest builder with jsdom.
 The audited baseline had 72 API and 24 frontend tests; DEF-001 adds regression
-coverage for totals of 111 API and 31 frontend tests. There is no committed
+coverage for totals of 111 API and 31 frontend tests. The 2026-10-07 batch has 185 API and 55 frontend tests; see its verification record. There is no committed
 browser E2E suite or root lint script. Local browser verification supplements,
 but does not replace, the unit suites.
 

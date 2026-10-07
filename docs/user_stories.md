@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-05. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-07. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -35,6 +35,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
 | US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
+| US-P005 | Recover uncertain course operations safely | Proposed | P2 | Lifecycle access | Coordination review |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -103,6 +104,9 @@ Feature: Course ownership
 so that learners receive reviewed material.**
 
 State: Proposed. Dependencies: US-T001. Defects: DEF-002, DEF-003.
+Delivered narrow defect scope on 2026-10-07: AC02 admin controls and private draft
+access; see the lifecycle spec and verification. Review reasons/revisions and
+readiness remain unfinished, so this broader story is not Done.
 Scope: explicit transitions, admin-only pricing/catalog controls, and private drafts.
 Decision to confirm: how review feedback is recorded; whether changing published
 content creates a reviewable revision. Proposed transitions: draft to review by
@@ -335,7 +339,11 @@ Feature: Governed career path curation
 learning library contains material I am authorized to use.**
 
 State: Proposed. Dependencies: US-T001, US-T002. Defects: DEF-003, DEF-004, DEF-010.
-Decisions: public preview limits; access for already-enrolled users after archival;
+Delivered narrow DEF-003/DEF-004 scope on 2026-10-07: published-only enrollment,
+authorized content/resources, public title outline, redacted quizzes and server
+feedback. Working default retains existing archived access. DEF-010 and broader
+access/payment decisions remain open; this story stays Proposed.
+Decisions: confirm public preview limits; access for already-enrolled users after archival;
 whether prices are informational or require payment. No payment system currently exists.
 
 ```gherkin
@@ -806,6 +814,38 @@ Feature: Reliable private career guidance
     When the writes are reconciled
     Then the agreed revision and retry policy produces one identifiable saved outcome
     And a rejected update preserves the user's choice with actionable feedback
+```
+
+### US-P005 — Recover uncertain course operations safely
+
+**As an operator, I want to reconcile an interrupted course write safely, so that
+learners regain access without a delayed operation overwriting the recovered course.**
+
+State: Proposed. Source: DEF-002–004 coordination review and recovery runbook.
+Depends on course lifecycle access. Scope: operator diagnostics, verified remote
+outcomes, owner-scoped recovery, and disposal-store rehearsal. Decisions: operator
+identity/permissions, provider evidence required for finality, and manual versus
+assisted recovery. No time-based takeover is permitted with unfenced Sheets writes.
+
+```gherkin
+Feature: Verified course operation recovery
+  Scenario: US-P005-AC01 Preserve an uncertain owner
+    Given a provider write timed out and its remote outcome is unknown
+    When another course operation arrives
+    Then ownership is retained and the successor receives retry guidance
+    And logs identify the course and owner without credentials
+
+  Scenario: US-P005-AC02 Recover only after finality
+    Given the originating invocation has stopped and provider evidence establishes its final outcome
+    When an authorized operator reconciles the course and releases the exact owner
+    Then a harmless read verifies the intended persisted state before writes resume
+    And another owner's lock is never removed
+
+  Scenario: US-P005-AC03 Avoid unsupported recovery
+    Given final remote outcome or owner termination cannot be established
+    When recovery is requested
+    Then ownership remains in place with a concrete investigation action
+    And age alone never authorizes takeover
 ```
 
 ## Adding a story

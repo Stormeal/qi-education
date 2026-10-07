@@ -1,3 +1,4 @@
+import { protectCourseWrite } from './courseMutationLock.js';
 import { google } from 'googleapis';
 import { apiConfig } from './config.js';
 
@@ -29,7 +30,7 @@ export async function ensureWorksheetHeaders(range: string, headers: string[]) {
   const sheetExists = metadata.data.sheets?.some((sheet) => sheet.properties?.title === sheetTitle);
 
   if (!sheetExists) {
-    await sheets.spreadsheets.batchUpdate({
+    await protectCourseWrite(() => sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
         requests: [
@@ -42,7 +43,7 @@ export async function ensureWorksheetHeaders(range: string, headers: string[]) {
           }
         ]
       }
-    });
+    }));
   }
 
   const headerRange = `${sheetTitle}!A1:${toColumnName(headers.length)}1`;
@@ -54,14 +55,14 @@ export async function ensureWorksheetHeaders(range: string, headers: string[]) {
   const headersMatch = headers.every((header, index) => (existingHeaders[index] ?? '') === header);
 
   if (existingHeaders.length < headers.length || !headersMatch) {
-    await sheets.spreadsheets.values.update({
+    await protectCourseWrite(() => sheets.spreadsheets.values.update({
       spreadsheetId,
       range: headerRange,
       valueInputOption: 'RAW',
       requestBody: {
         values: [headers]
       }
-    });
+    }));
   }
 }
 

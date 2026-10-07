@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
   CourseComponentType,
   CourseContentDocument,
@@ -7,6 +7,7 @@ import {
   FeedbackOption,
   StudentSummary,
 } from '../../app.models';
+import { CourseService } from '../../services/course.service';
 import { ApiClientService } from '../../services/api-client.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
@@ -22,6 +23,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 })
 export class CourseEditorPage {
   private readonly apiClient = inject(ApiClientService);
+  private readonly courseService = inject(CourseService);
 
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
@@ -32,6 +34,14 @@ export class CourseEditorPage {
   readonly courseFormMode = input.required<'create' | 'edit'>();
   readonly editingCourse = input.required<CourseListItem | null>();
   readonly courseDraft = input.required<CourseCreateDraft>();
+  protected readonly statusLocked = computed(() => !this.canAccessAdmin() &&
+    ['published', 'archived'].includes(this.editingCourse()?.status ?? 'draft'));
+  protected readonly statusOptions = computed(() => {
+    const all = [{ value: 'draft', label: 'Draft' }, { value: 'ready-for-review', label: 'Ready for review' },
+      { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
+    if (this.canAccessAdmin()) return all;
+    return this.statusLocked() ? all.filter((option) => option.value === this.editingCourse()?.status) : all.slice(0, 2);
+  });
   readonly courseSubmitting = input.required<boolean>();
   readonly courseCreateError = input.required<string>();
   readonly courseSaveNotice = input.required<string>();
@@ -230,13 +240,7 @@ export class CourseEditorPage {
   }
 
   protected thumbnailUrl(course: CourseListItem | null): string {
-    if (!course?.thumbnailAssetId) {
-      return '';
-    }
-
-    return this.apiClient.resourceUrl(
-      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
-    );
+    return this.courseService.thumbnailUrl(course);
   }
 
   private formatDuration(durationMinutes: number): string {

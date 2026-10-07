@@ -146,8 +146,8 @@ export type MuxVideo = {
 export type QuizAnswerOption = {
   id: string;
   text: string;
-  description: string;
-  isCorrect: boolean;
+  description?: string;
+  isCorrect?: boolean;
 };
 
 export type QuizQuestion = {
@@ -212,9 +212,18 @@ export type CourseSection = {
 
 export type CourseContentDocument = {
   _id: string;
+  view?: 'outline' | 'learner' | 'author';
   sections: CourseSection[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type QuizAssessmentResult = {
+  score: number;
+  totalPoints: number;
+  passPoints: number;
+  passed: boolean;
+  feedback: { questionId: string; answerId: string; correct: boolean; description: string }[];
 };
 
 export type NextAction = {

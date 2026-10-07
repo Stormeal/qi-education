@@ -39,7 +39,7 @@ export class AppStateService {
   private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
 
-  readonly appVersion = '0.1.42';
+  readonly appVersion = '0.1.43';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -331,6 +331,39 @@ export class AppStateService {
     return this.selectedCourseId();
   });
   readonly loadedCourseContentId = signal<string | null>(null);
+  private loadedCourseContentView = '';
+  private pendingCourseContentKey = '';
+  private courseContentGeneration = 0;
+  private courseOperationGeneration = 0;
+
+  private courseResponseIsCurrent(): () => boolean {
+    const session = this.loginState();
+    const path = this.currentPath();
+    const generation = this.courseOperationGeneration;
+    return () => session === this.loginState() && path === this.currentPath() &&
+      generation === this.courseOperationGeneration;
+  }
+
+  private resetCourseOperations(): void {
+    this.courseOperationGeneration++;
+    this.courseContentGeneration++;
+    this.courseCatalogLoadPromise = null;
+    this.pendingCourseContentKey = '';
+    this.loadedCourseContentView = '';
+    this.courseSubmitting.set(false);
+    this.courseContentSaving.set(false);
+    this.courseContentLoading.set(false);
+    this.coursesLoading.set(false);
+    this.coursePriceSaving.set(false);
+    this.courseCatalogSaving.set(false);
+    this.courseThumbnailUploading.set(false);
+    this.courseEnrollmentSubmitting.set(false);
+    this.attachmentUploadComponentId.set('');
+    this.attachmentUploadProgress.set({});
+    this.attachmentUploadStage.set({});
+    this.muxUploadComponentId.set('');
+    this.muxUploadProgress.set({});
+  }
   private courseSaveNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private coursePriceNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private courseCatalogNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -341,9 +374,9 @@ export class AppStateService {
   );
 
   constructor() {
+    this.sessionService.setSessionContextProvider(() => this.loginState());
     this.sessionService.onUnauthorized(() => {
-      this.loginState.set(null);
-      this.password.set('');
+      this.logout();
       this.loginError.set('Please log in again.');
       this.isFeedbackOpen.set(false);
       void this.navigateHome();
@@ -355,7 +388,9 @@ export class AppStateService {
         takeUntilDestroyed(),
       )
       .subscribe((event) => {
-        this.currentPath.set(this.normalizePath(event.urlAfterRedirects));
+        const path = this.normalizePath(event.urlAfterRedirects);
+        if (path !== this.currentPath()) this.resetCourseOperations();
+        this.currentPath.set(path);
         this.syncCourseEditorDraftFromPath();
         void this.loadCoursesWhenNeeded();
         void this.loadCourseContentWhenNeeded();
@@ -512,7 +547,12 @@ export class AppStateService {
   }
 
   logout(): void {
+    this.resetCourseOperations();
     this.loginState.set(null);
+    this.courseService.clearPrivateThumbnails();
+    this.availableCourses.set([]);
+    this.courseCatalogLoadPromise = null;
+    this.coursesLoading.set(false);
     this.password.set('');
     this.loginError.set('');
     this.isFeedbackOpen.set(false);
@@ -560,13 +600,18 @@ export class AppStateService {
 
     try {
       const restored = await this.authService.restoreSession(restoredSession.token);
+      if (this.loginState() !== restoredSession) return;
 
       if (!restored) {
-        this.loginState.set(null);
-        this.sessionService.clearStoredSession();
+        this.logout();
         return;
       }
 
+      this.resetCourseOperations();
+      this.availableCourses.set([]);
+      this.courseContent.set(null);
+      this.loadedCourseContentId.set(null);
+      this.courseService.clearPrivateThumbnails();
       this.loginState.set({
         token: restoredSession.token,
         user: restored.user,
@@ -576,8 +621,7 @@ export class AppStateService {
       this.loadCoursesWhenNeeded();
       this.loadAdminFeedbackWhenNeeded();
     } catch {
-      this.loginState.set(null);
-      this.sessionService.clearStoredSession();
+      if (this.loginState() === restoredSession) this.logout();
     } finally {
       this.isSessionRestoring.set(false);
     }
@@ -1082,6 +1126,7 @@ export class AppStateService {
     file: File,
     markerId: string,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.attachmentUploadComponentId()) {
       return;
     }
@@ -1131,6 +1176,8 @@ export class AppStateService {
         this.courseContentSaving.set(true);
         const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
 
+        if (!isCurrent()) return;
+
         if (!saveResult.ok) {
           this.courseContentError.set(saveResult.message);
           this.attachmentUploadError.set(saveResult.message);
@@ -1151,12 +1198,15 @@ export class AppStateService {
         token,
         markerId,
         (progress) => {
+          if (!isCurrent()) return;
           this.attachmentUploadProgress.update((currentProgress) => ({
             ...currentProgress,
             [component.id]: Math.min(progress, 95),
           }));
         },
       );
+
+      if (!isCurrent()) return;
 
       if (!result.ok) {
         this.attachmentUploadError.set(result.message);
@@ -1168,8 +1218,10 @@ export class AppStateService {
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
     } catch {
+      if (!isCurrent()) return;
       this.attachmentUploadError.set('Unable to upload the attachment. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.courseContentSaving.set(false);
       this.attachmentUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
       this.attachmentUploadStage.update(({ [component.id]: _removedStage, ...stage }) => stage);
@@ -1182,6 +1234,7 @@ export class AppStateService {
     componentIndex: number,
     assetId: string,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const content = this.courseContent();
     const section = content?.sections[sectionIndex];
     const component = section?.components[componentIndex];
@@ -1224,6 +1277,8 @@ export class AppStateService {
         token,
       );
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         if (result.message !== 'Upload cancelled.') {
           this.attachmentUploadError.set(result.message);
@@ -1233,6 +1288,8 @@ export class AppStateService {
 
       const updatedContent = this.removeAttachmentMarker(this.normalizeCourseContent(result.content), assetId);
       const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token);
+
+      if (!isCurrent()) return;
 
       if (!saveResult.ok) {
         this.attachmentUploadError.set(saveResult.message);
@@ -1244,8 +1301,10 @@ export class AppStateService {
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
     } catch {
+      if (!isCurrent()) return;
       this.attachmentUploadError.set('Unable to remove the attachment. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.attachmentUploadComponentId.set('');
     }
   }
@@ -1256,6 +1315,7 @@ export class AppStateService {
     assetId: string,
     fileName: string,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
     const courseId = this.courseEditingId();
     const content = this.courseContent();
@@ -1272,6 +1332,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.downloadComponentAttachment(courseId, assetId, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.attachmentUploadError.set(result.message);
         return;
@@ -1284,6 +1346,7 @@ export class AppStateService {
       link.click();
       URL.revokeObjectURL(url);
     } catch {
+      if (!isCurrent()) return;
       this.attachmentUploadError.set('Unable to download the attachment. Please try again.');
     }
   }
@@ -1293,6 +1356,7 @@ export class AppStateService {
     componentIndex: number,
     file: File,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.muxUploadComponentId()) {
       return;
     }
@@ -1332,6 +1396,8 @@ export class AppStateService {
         this.courseContentSaving.set(true);
         const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
 
+        if (!isCurrent()) return;
+
         if (!saveResult.ok) {
           this.courseContentError.set(saveResult.message);
           this.muxUploadError.set(saveResult.message);
@@ -1351,6 +1417,8 @@ export class AppStateService {
         token,
       );
 
+      if (!isCurrent()) return;
+
       if (!uploadResult.ok) {
         this.muxUploadError.set(uploadResult.message);
         return;
@@ -1363,12 +1431,14 @@ export class AppStateService {
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'uploading');
 
       await this.uploadFileToMux(uploadResult.uploadUrl, file, (progress) => {
+          if (!isCurrent()) return;
         this.muxUploadProgress.update((currentProgress) => ({
           ...currentProgress,
           [component.id]: progress,
         }));
       });
 
+      if (!isCurrent()) return;
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'processing');
       this.muxUploadProgress.update((currentProgress) => ({
         ...currentProgress,
@@ -1376,17 +1446,20 @@ export class AppStateService {
       }));
       void this.refreshMuxVideoUntilReady(courseId, component.id);
     } catch {
+      if (!isCurrent()) return;
       const message = 'Unable to upload the video to Mux. Please try again.';
 
       this.muxUploadError.set(message);
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'errored', message);
     } finally {
+      if (!isCurrent()) return;
       this.courseContentSaving.set(false);
       this.muxUploadComponentId.set('');
     }
   }
 
   async removeCourseComponentMuxVideo(sectionIndex: number, componentIndex: number): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.muxUploadComponentId()) {
       return;
     }
@@ -1417,6 +1490,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.removeMuxVideo(courseId, section.id, component.id, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.muxUploadError.set(result.message);
         return;
@@ -1428,8 +1503,10 @@ export class AppStateService {
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
       this.muxUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
     } catch {
+      if (!isCurrent()) return;
       this.muxUploadError.set('Unable to remove the video. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.muxUploadComponentId.set('');
     }
   }
@@ -1675,6 +1752,7 @@ export class AppStateService {
   }
 
   async submitCourse(): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.courseSubmitting()) {
       return;
     }
@@ -1726,7 +1804,6 @@ export class AppStateService {
 
     try {
       let savedCourse: CourseListItem | null = null;
-
       if (metadataChanged) {
         const result = await this.courseService.saveCourse(
           mode,
@@ -1735,6 +1812,8 @@ export class AppStateService {
           user.displayName,
           courseId,
         );
+
+        if (!isCurrent()) return;
 
         if (!result.ok) {
           this.courseCreateError.set(result.message);
@@ -1760,6 +1839,8 @@ export class AppStateService {
           content.sections,
           token,
         );
+
+        if (!isCurrent()) return;
 
         if (!contentResult.ok) {
           this.courseContentError.set(contentResult.message);
@@ -1794,6 +1875,7 @@ export class AppStateService {
         void this.updatePath(`/courses/${encodeURIComponent(savedCourse.id)}/edit`);
       }
     } catch {
+      if (!isCurrent()) return;
       if (contentChanged && !metadataChanged) {
         this.courseContentError.set(
           'Unable to reach the API while saving content. Please try again.',
@@ -1806,6 +1888,7 @@ export class AppStateService {
         );
       }
     } finally {
+      if (!isCurrent()) return;
       this.courseSubmitting.set(false);
       this.courseContentSaving.set(false);
     }
@@ -1816,6 +1899,7 @@ export class AppStateService {
   }
 
   async saveCoursePrice(courseId: string, priceDkk: number | null): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
 
     if (!token || !this.loginState()?.permissions.hasAdminAccess) {
@@ -1827,6 +1911,8 @@ export class AppStateService {
 
     try {
       const result = await this.courseService.saveCoursePrice(courseId, priceDkk, token);
+
+      if (!isCurrent()) return;
 
       if (!result.ok) {
         this.showCoursePriceNotice(result.message, true);
@@ -1843,8 +1929,10 @@ export class AppStateService {
       );
       this.showCoursePriceNotice('Course price saved.', false);
     } catch {
+      if (!isCurrent()) return;
       this.showCoursePriceNotice('Unable to save course price. Please try again.', true);
     } finally {
+      if (!isCurrent()) return;
       this.coursePriceSaving.set(false);
     }
   }
@@ -1853,6 +1941,7 @@ export class AppStateService {
     courseId: string,
     metadata: CourseCatalogMetadataDraft,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
 
     if (!token || !this.loginState()?.permissions.hasAdminAccess) {
@@ -1865,6 +1954,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.saveCourseCatalogMetadata(courseId, metadata, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.showCourseCatalogNotice(result.message, true);
         return;
@@ -1875,13 +1966,16 @@ export class AppStateService {
       );
       this.showCourseCatalogNotice('Catalog settings saved.', false);
     } catch {
+      if (!isCurrent()) return;
       this.showCourseCatalogNotice('Unable to save catalog settings. Please try again.', true);
     } finally {
+      if (!isCurrent()) return;
       this.courseCatalogSaving.set(false);
     }
   }
 
   async uploadCourseThumbnail(file: File): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
     const courseId = this.courseEditingId();
 
@@ -1910,23 +2004,30 @@ export class AppStateService {
     try {
       const result = await this.courseService.uploadCourseThumbnail(courseId, file, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.courseThumbnailError.set(result.message);
         return;
       }
 
+      await this.courseService.preloadCourseThumbnails([result.course], token);
+      if (!isCurrent()) return;
       this.availableCourses.update((courses) =>
         courses.map((course) => (course.id === result.course.id ? result.course : course)),
       );
       this.showCourseSaveNotice('Course thumbnail updated.');
     } catch {
+      if (!isCurrent()) return;
       this.courseThumbnailError.set('Unable to upload the course thumbnail. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.courseThumbnailUploading.set(false);
     }
   }
 
   async enrollInCourse(courseId: string): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
 
     if (!token || this.courseEnrollmentSubmitting()) {
@@ -1945,6 +2046,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.enrollCourse(courseId, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.courseEnrollmentError.set(result.message);
         return;
@@ -1955,11 +2058,15 @@ export class AppStateService {
         user: result.login.user,
         permissions: result.login.permissions,
       };
+      this.resetCourseOperations();
       this.loginState.set(loginState);
       this.sessionService.updateStoredLoginState(loginState);
+      void this.loadCourseContentWhenNeeded();
     } catch {
+      if (!isCurrent()) return;
       this.courseEnrollmentError.set('Unable to reach the API. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.courseEnrollmentSubmitting.set(false);
     }
   }
@@ -2003,41 +2110,48 @@ export class AppStateService {
   }
 
   private async loadCoursesWhenNeeded(): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const currentPath = this.currentPath();
 
     if (
       !this.loginState() ||
-      (!currentPath.startsWith('/courses') && currentPath !== '/library') ||
+      (!currentPath.startsWith('/courses') && !currentPath.startsWith('/library')) ||
       this.coursesLoading()
     ) {
       return;
     }
 
+    const token = this.loginState()!.token;
     this.coursesLoading.set(true);
     this.coursesError.set('');
 
     try {
       const courses = await this.loadCourseCatalog();
+      if (!isCurrent()) return;
       this.availableCourses.set(courses);
-      this.courseService.warmCourseThumbnailCache(courses);
+      await this.courseService.preloadCourseThumbnails(courses, token);
+      if (!isCurrent()) return;
       this.syncCourseEditorDraftFromPath(true);
       await this.loadCourseContentWhenNeeded();
     } catch (error) {
+      if (!isCurrent()) return;
       this.coursesError.set(
         error instanceof Error ? error.message : 'Unable to reach the API. Please try again.',
       );
     } finally {
+      if (!isCurrent()) return;
       this.coursesLoading.set(false);
     }
   }
 
   private async loadCourseCatalog(): Promise<CourseListItem[]> {
     if (!this.courseCatalogLoadPromise) {
-      this.courseCatalogLoadPromise = this.courseService
-        .listCourses()
+      const pending = this.courseService
+        .listCourses(this.loginState()!.token)
         .finally(() => {
-          this.courseCatalogLoadPromise = null;
+          if (this.courseCatalogLoadPromise === pending) this.courseCatalogLoadPromise = null;
         });
+      this.courseCatalogLoadPromise = pending;
     }
 
     return this.courseCatalogLoadPromise;
@@ -2045,45 +2159,54 @@ export class AppStateService {
 
   private async loadCourseContentWhenNeeded(): Promise<void> {
     const courseId = this.courseContentId();
-
-    if (!this.loginState() || !courseId || (this.isCourseEditorPage() && !this.canUseCourseEditor())) {
+    const token = this.loginState()?.token;
+    if (!token || !courseId || (this.isCourseEditorPage() && !this.canUseCourseEditor())) {
+      this.courseContentGeneration++;
+      this.pendingCourseContentKey = '';
+      this.loadedCourseContentView = '';
       this.courseContent.set(null);
       this.courseContentError.set('');
       this.loadedCourseContentId.set(null);
       this.courseContentLoading.set(false);
       return;
     }
-
-    if (this.courseContentLoading() || this.loadedCourseContentId() === courseId) {
-      return;
-    }
-
+    const view = this.isCourseEditorPage() ? 'author' : this.currentPath().startsWith('/library/') ? 'learner' : 'outline';
+    const key = `${courseId}:${view}:${token}`;
+    if (this.pendingCourseContentKey === key || (this.loadedCourseContentId() === courseId && this.loadedCourseContentView === key)) return;
+    const isCurrent = this.courseResponseIsCurrent();
+    const generation = ++this.courseContentGeneration;
+    this.pendingCourseContentKey = key;
+    this.courseContent.set(null);
     this.courseContentLoading.set(true);
     this.courseContentError.set('');
-
     try {
-      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId));
+      const response = view === 'outline' ? await this.courseService.loadCourseOutline(courseId, token) :
+        await this.courseService.loadCourseContent(courseId, token, view);
+      if (generation !== this.courseContentGeneration || !isCurrent()) return;
+      const loadedContent = this.normalizeCourseContent(response);
       this.courseContent.set(loadedContent);
       this.loadedCourseContentId.set(courseId);
+      this.loadedCourseContentView = key;
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
     } catch (error) {
-      if (error instanceof Error && error.message === 'Course content not found') {
+      if (generation !== this.courseContentGeneration || !isCurrent()) return;
+      if (view === 'author' && error instanceof Error && error.message === 'Course content not found') {
         const emptyContent = this.createEmptyCourseContent(courseId);
-
         this.courseContent.set(emptyContent);
         this.loadedCourseContentId.set(courseId);
+        this.loadedCourseContentView = key;
         this.initialCourseContentSnapshot.set(this.serializeCourseContent(emptyContent));
-        this.courseContentError.set('');
       } else {
         this.courseContent.set(null);
-        this.courseContentError.set(
-          error instanceof Error
-            ? error.message
-            : 'Unable to load course content. Please try again.',
-        );
+        this.loadedCourseContentId.set(null);
+        this.loadedCourseContentView = '';
+        this.courseContentError.set(error instanceof Error ? error.message : 'Unable to load course content. Please try again.');
       }
     } finally {
-      this.courseContentLoading.set(false);
+      if (generation === this.courseContentGeneration && isCurrent()) {
+        this.pendingCourseContentKey = '';
+        this.courseContentLoading.set(false);
+      }
     }
   }
 
@@ -2463,14 +2586,21 @@ export class AppStateService {
     componentId: string,
     remainingAttempts = 12,
   ): Promise<void> {
-    if (remainingAttempts <= 0 || this.loadedCourseContentId() !== courseId) {
+    const token = this.loginState()?.token;
+    const generation = this.courseContentGeneration;
+    const isCurrent = this.courseResponseIsCurrent();
+    const stillEditing = () => isCurrent() && this.loginState()?.token === token && generation === this.courseContentGeneration &&
+      this.isCourseEditorPage() && this.courseContentId() === courseId && this.canUseCourseEditor() && this.loadedCourseContentId() === courseId;
+    if (!token || remainingAttempts <= 0 || !stillEditing()) {
       return;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 5000));
+    if (!stillEditing()) return;
 
     try {
-      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId));
+      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId, token, 'author'));
+      if (!stillEditing()) return;
       this.courseContent.set(loadedContent);
       this.loadedCourseContentId.set(courseId);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
@@ -2641,6 +2771,7 @@ export class AppStateService {
   }
 
   private normalizeCourseContent(content: CourseContentDocument): CourseContentDocument {
+    if (content.view === 'outline' || content.view === 'learner') return content;
     return {
       ...content,
       sections: content.sections.map((section) => ({
