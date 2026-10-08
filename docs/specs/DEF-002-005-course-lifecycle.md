@@ -4,8 +4,10 @@ State: DEF-002, DEF-003, DEF-004 Fixed (resolved in code), 2026-10-07.
 Fix commit: `a6767f69e5254e01a47ca33b58dabe34925ea586`. Shared release checks remain pending.
 Owner: Codex. Branch: `main`. Resumed base: `ff3d68a`, selected 2026-10-07.
 Originally selected 2026-10-04. Related stories: US-T002, US-T004, US-L001.
-LC-01–04 and LC-06 are the current batch. LC-05 / DEF-005 remains unfinished;
-its code and tests are preserved in the [handoff](../handoffs/DEF-005.md).
+LC-01–04 and LC-06 were delivered in that batch. LC-05 / DEF-005 resumed
+2026-10-08 at `159f45b`; handoff patch applied and reviewed. Delivery commit pending.
+See [the historical handoff](../handoffs/DEF-005.md) and
+[current verification](../verification/2026-10-08/DEF-005-006-010.md).
 
 ## Selected scope
 
@@ -120,13 +122,14 @@ a tested recovery procedure and isolated multi-instance Mongo/Sheets checks.
 - [x] Record working defaults and access matrix; broader product decisions remain Proposed.
 - [x] Shared read authorization, public/learner DTOs, no-store, late response and 401 guards.
 - [x] Enrollment lifecycle guards, idempotency, and pending-view restart.
-- [ ] LC-05 draft/readiness validation; preserved for the next batch.
+- [x] LC-05 draft/readiness validation, including empty drafts, blank answers, and unattainable scores.
 - [x] Authenticated quiz scoring and connected learner UI feedback/errors.
 - [x] API role/lifecycle/alias matrix, frontend tests, builds, isolated browser checks.
 - [x] Independent review with no remaining blocking issue.
 - [x] Delivery commit and synchronized resolution status.
 
 Scenario evidence: [2026-10-07 verification](../verification/2026-10-07/DEF-002-004.md).
+LC-05 evidence: [2026-10-08 verification](../verification/2026-10-08/DEF-005-006-010.md).
 
 Use only isolated stores for mutation verification. Keep schema/storage interfaces
 compatible with Sheets and MongoDB. Existing invalid published quizzes must be

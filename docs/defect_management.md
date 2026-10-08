@@ -1,6 +1,6 @@
 # Defect management
 
-Updated: 2026-10-07. Original audit baseline: `6e19213` on `main`.
+Updated: 2026-10-08. Original audit baseline: `6e19213` on `main`.
 Evidence: [audit report](audits/2026-10-04/application_audit.md) and
 [isolated API probe](audits/2026-10-04/reproduce-api.mjs).
 Career path follow-up: [2026-10-05 audit](audits/2026-10-05/career_path_audit.md),
@@ -27,12 +27,12 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-002 | General authoring routes bypass admin pricing/publication restrictions | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-T002 |
 | DEF-003 | Anonymous API exposes drafts, full lessons, and quiz answer flags | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-T002, US-L001 |
 | DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-L001 |
-| DEF-005 | An impossible quiz can be saved and published | P2 | In progress | Isolated API; unfinished local fix | US-T004 |
-| DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Open | Browser and code | US-T003 |
+| DEF-005 | An impossible quiz can be saved and published | P2 | In progress | LC-05 regressions and isolated review checks pass; delivery pending | US-T004 |
+| DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | In progress | NW-01–05; user confirmed warnings only | US-T003 |
 | DEF-007 | Library progress is hardcoded to 0 percent | P2 | Open | Browser and template | US-L002 |
 | DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Open | Isolated API | US-P002 |
 | DEF-009 | Dashboard presents fixture activity as account progress | P2 | Open | Browser and code | US-L002 |
-| DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Open | Browser and code | US-L001 |
+| DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | In progress | DL-01–04; earlier runtime fix being verified | US-L001 |
 | DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Open | Untouched quiz browser capture and computed formula | US-L002 |
 
@@ -42,10 +42,10 @@ the current statuses and resolution sections below track subsequent fixes.
 
 DEF-002, DEF-003, DEF-004 resumed on `main` at `ff3d68a` in the first batch of
 three. Resolved in local code on 2026-10-07 in `a6767f6`; verification passed. DEF-005 is
-preserved separately in [its handoff](handoffs/DEF-005.md), with no active readiness
-gate or fixing commit. In progress does not mean Fixed or released. The broader related
-stories remain Proposed because this selected defect batch does not deliver their
-entire review/progress/access workflow.
+resumed with DEF-006/010 on 2026-10-08 at `159f45b`. The current batch's
+[verification](verification/2026-10-08/DEF-005-006-010.md) records the selected
+contracts, original reproductions, regressions and release limitations. Local
+recovery and broader career/access workflows are outside this delivery.
 
 ### DEF-001 — Any teacher can mutate another teacher's course
 
@@ -157,11 +157,17 @@ entire review/progress/access workflow.
   `app/src/app/pages/course-view-page/course-view-page.ts` (client scoring).
 - Verify fix: incomplete drafts remain editable; review/publication rejects impossible
   scoring with useful question-level feedback. Valid quizzes can be passed.
-- Fix commit / verified environment: none / pending.
-- Next batch: unfinished readiness gates/tests are preserved in
-  [DEF-005 handoff](handoffs/DEF-005.md). This defect remains unresolved. DEF-003
-  rejects misleading scoring for invalid stored quizzes but does not prevent
-  their publication. Reapply, review, and verify LC-05 before closing DEF-005.
+- Resolution implemented 2026-10-08: incomplete draft quizzes remain editable;
+  review/publication and reviewed/published/archived replacement validate question
+  text, four answer texts, exactly one correct option, and attainable pass marks.
+  All content saves reject ambiguous IDs. Combined draft outline/review saves write
+  content first; serialized API validation reads that current stored content.
+- Regression evidence: LC-05 in `courseLifecycle.test.ts`, submission-order UI test,
+  and [batch verification](verification/2026-10-08/DEF-005-006-010.md). Five API and
+  one frontend reproduction failed before implementation; corrected quiz review
+  now succeeds in the isolated browser. API 196/frontend 82 checks pass.
+- Fix commit pending local delivery. Shared-store and hosted release checks remain
+  pending; invalid legacy published quizzes still need author/admin correction.
 
 ### DEF-006 — Editor navigation discards unsaved work
 
@@ -175,7 +181,18 @@ entire review/progress/access workflow.
   `app/src/app/services/app-state.service.ts` (`cancelCreateCourse`, draft synchronization).
 - Verify fix: links, Cancel, browser back, unchanged drafts, and failed saves; test
   refresh recovery separately only if selected in US-T003.
-- Fix commit / verified environment: none / pending.
+- User confirmed warnings only on 2026-10-08. No recoverable draft persistence.
+- Resolution implemented 2026-10-08: real router guards and beforeunload warning
+  compare saved metadata/outline snapshots and focused editor buffers. Declining
+  departure preserves edits; unchanged/reverted/saved editors do not warn. Draft
+  initialization runs once per path before thumbnail warmup; successful partial
+  metadata saves update their snapshot. Voluntary logout respects Stay; expired
+  sessions clear private state without a prompt.
+- Regression evidence: NW-01–05 in `course-navigation.spec.ts`, including focused
+  lesson/section edits, Markdown no-change, failed/partial saves, delayed loading,
+  editor-ID changes and listener cleanup. Original navigation and review-found
+  edge cases reproduced before fixes. [Browser/check evidence](verification/2026-10-08/DEF-005-006-010.md).
+- Fix commit pending local delivery. Hosted/browser release checks remain pending.
 
 ### DEF-007 — My Learning progress remains 0 percent
 
@@ -235,7 +252,15 @@ entire review/progress/access workflow.
   `selectedCourse`), `app/src/app/app.routes.ts`.
 - Verify fix: direct URL, refresh, expired session, missing course, and unauthorized
   course; preserve the correct loading state until restoration completes.
-- Fix commit / verified environment: none / pending.
+- Resolution verified in the selected 2026-10-08 batch: `a6767f6` already widened
+  catalog loading to nested library routes and restarted private loaders after
+  restoration. The original failure no longer reproduces; no extra runtime change
+  was necessary. Six dedicated real-router tests cover deferred session/catalog/
+  content lookup, missing data, API errors, expired sessions and restored enrollment.
+- Runtime fix commit: `a6767f69e5254e01a47ca33b58dabe34925ea586` (2026-10-07).
+  Dedicated verification commit pending local delivery. Evidence:
+  [DL-01–04](verification/2026-10-08/DEF-005-006-010.md). Hosted URLs and live shared
+  storage remain release checks; local verification does not imply deployment.
 
 ### DEF-011 — Feature controls silently do nothing
 

@@ -63,6 +63,7 @@
     (courseSubmitted)="state.submitCourse()"
     (courseThumbnailSelected)="state.uploadCourseThumbnail($event)"
     (courseSectionAdded)="state.addCourseSection()"
+    (courseEditorBufferChanged)="state.courseEditorBufferDirty.set($event)"
     (courseSectionRemoved)="state.removeCourseSection($event)"
     (courseSectionTitleChanged)="state.updateCourseSectionTitle($event.sectionIndex, $event.value)"
     (courseComponentAdded)="state.addCourseComponent($event.sectionIndex, $event.type)"

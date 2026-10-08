@@ -711,6 +711,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
+        const issues = assessmentIssues(input.sections, ['ready-for-review', 'published', 'archived'].includes(matchingCourse.status));
+        if (issues.length) {
+          response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
+          return;
+        }
+
         const attachmentIds = new Set(input.sections.flatMap((section) =>
           section.components.flatMap((component) => component.attachments.map((attachment) => attachment.assetId)),
         ));
@@ -922,6 +928,19 @@ export function createServer(dependencies: ServerDependencies = {}) {
         )) {
           response.status(403).json({ message: 'Publication, archival, and pricing require an admin.' });
           return;
+        }
+        if (['ready-for-review', 'published'].includes(input.status)) {
+          const stored = await courseContent.getCourseContent(courseId);
+          const parsed = updateCourseContentSchema.safeParse(stored);
+          if (!parsed.success) {
+            response.status(400).json({ message: 'Course assessment content needs correction before review or publication.' });
+            return;
+          }
+          const issues = assessmentIssues(parsed.data.sections, true);
+          if (issues.length) {
+            response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
+            return;
+          }
         }
         const updatedCourse = await courses.updateCourse(courseId, input);
 

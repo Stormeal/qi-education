@@ -1,11 +1,11 @@
 # Application architecture
 
-Updated 2026-10-04 for DEF-001 / US-T001 after audit base `6e19213`.
-The core map below describes that committed baseline; desired changes live in
+Updated 2026-10-08 for the selected DEF-005/006/010 batch after base `159f45b`.
+The core map describes the current implementation; desired changes live in
 [user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
 The career path section was checked again on 2026-10-05 at `9a2f30b` plus
-unfinished lifecycle work. Do not treat uncommitted lifecycle changes as delivered
-API contracts; see [work_queue.md](work_queue.md) for their handoff.
+unfinished lifecycle work. Access was delivered in `a6767f6`; see
+[work_queue.md](work_queue.md) for subsequent delivery and verification records.
 
 ## Career path boundary — checked 2026-10-05
 
@@ -69,7 +69,7 @@ future organization, not paths a fresh contributor can navigate today.
 
 | Path | Responsibility |
 | --- | --- |
-| `app/src/app/app.routes.ts` | Lazy route table; no `canDeactivate` guard today |
+| `app/src/app/app.routes.ts` | Lazy routes; unsaved-change `canDeactivate` guards on new/edit course routes |
 | `app/src/app/routes/` | Thin wrappers bind shared state to pages and session/login states |
 | `app/src/app/pages/` | Login, dashboard, catalog, course/editor, library, profile, admin, terms |
 | `app/src/app/ui/` | CourseBuilder, header, profile menu, feedback dialog, skeletons/buttons |
@@ -90,6 +90,16 @@ Changes need a full data-flow check; avoid a wholesale refactor as a side effect
 fixing one story. Draft saves compare JSON snapshots. Loaded content normalizes
 legacy quiz structures. Completion lives in the course-view page rather than a
 shared server-backed progress service.
+
+Course navigation compares metadata/content snapshots and focused builder buffers.
+Native confirmation protects links, Cancel, Back, editor-ID changes and voluntary
+logout; beforeunload protects refresh/external departure. Declined navigation keeps
+the editor and restores the canceled browser history position; forced session
+expiry clears private state. Metadata initializes before
+thumbnail warmup and once per editor path. Successful partial metadata saves advance
+their snapshot. Unchanged Markdown text keeps its original storage representation.
+No recoverable local drafts are persisted. Nested library routes load catalog metadata
+and entitled content after restored session identity/permissions have been applied.
 
 The API client selects a configured `window.qiEducationConfig.apiBaseUrl` first.
 GitHub Pages calls the hosted Vercel API. On other hosts it tries local port 3001
@@ -161,7 +171,14 @@ headers. Do not treat the config string as the complete data schema.
 
 Course content contains sections of discriminated `text`, `resources`, `quiz`,
 and `video` components. Quizzes contain questions with four answer options,
-correctness flags, points, and a pass mark. Learner DTOs omit correctness/explanations; the authenticated quiz-attempt route scores stored answers and returns submitted-answer feedback only. Scoring refuses invalid legacy quizzes; publication readiness remains DEF-005.
+correctness flags, points, and a pass mark. Learner DTOs omit correctness/explanations;
+the authenticated quiz-attempt route scores stored answers and returns submitted-answer
+feedback only. Scoring refuses invalid legacy quizzes. Incomplete draft quizzes are
+editable, including empty question lists, but review/publication requires nonblank
+questions/options, exactly one correct answer, and an attainable pass mark. Replacement
+of reviewed/published/archived content enforces the same readiness gate; all content
+saves reject duplicate section/component/question/answer identities. Combined draft
+content/review saves persist the outline first, so validation sees the latest quiz.
 Assets have binary payload, type, filename, size, and course/component association.
 
 Course operations pair lifecycle reads/content under per-course coordination.

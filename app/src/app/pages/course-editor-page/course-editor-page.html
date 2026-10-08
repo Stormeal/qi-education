@@ -284,6 +284,7 @@
             [attachmentUploadStage]="attachmentUploadStage()"
             [attachmentUploadError]="attachmentUploadError()"
             (courseSectionAdded)="courseSectionAdded.emit()"
+            (courseEditorBufferChanged)="courseEditorBufferChanged.emit($event)"
             (courseSectionRemoved)="courseSectionRemoved.emit($event)"
             (courseSectionTitleChanged)="courseSectionTitleChanged.emit($event)"
             (courseComponentAdded)="courseComponentAdded.emit($event)"

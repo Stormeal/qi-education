@@ -1,15 +1,18 @@
 # Work queue
 
-Updated: 2026-10-07. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-08. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**DEF-005 — unfinished work preserved for the next batch.** Owner: Codex.
-Branch: `main`. Resumable base: `a6767f6`, delivery of DEF-002/003/004.
-State: In progress; readiness patch preserved, not applied. Next: read
-[the handoff](handoffs/DEF-005.md), check/apply the patch when resuming, review
-LC-05, and verify before delivery. Next batch candidates: DEF-005, DEF-006, DEF-010.
-No Proposed career feature is selected.
+**DEF-005, DEF-006, DEF-010 — selected three-defect batch.** Owner: Codex.
+Branch: `main`. Base: `159f45b`. Started: 2026-10-08. State: In progress.
+Contracts: lifecycle LC-05, navigation NW-01–05, direct learning DL-01–04.
+DEF-005 handoff tests reproduced five readiness failures before implementation.
+DEF-006 scope confirmed by the user: warnings only; local draft recovery remains
+Proposed. DEF-010 includes verification of incidental fixes in `a6767f6`.
+Next: apply/review readiness gates, reproduce navigation failures, verify routed
+learning and isolated browser journeys, synchronize resolutions and commit locally.
+No Proposed career feature is selected. No push/deployment is authorized.
 
 ## Latest audit
 
@@ -27,17 +30,11 @@ Documentation delivery: local `docs(career-path)` commit in this file's Git hist
 audit base and evidence are recorded in the report. No push/deployment.
 Next: follow the user's next selection; no Proposed path feature is authorized.
 
-## Unfinished implementation handoff
+## Historical implementation handoff
 
-**DEF-005 — Publish answerable quizzes.** Owner: Codex. Branch: `main`.
-Originally selected 2026-10-04; preserved on 2026-10-07 for the next batch.
-State: In progress, unresolved. Read [the handoff](handoffs/DEF-005.md) and LC-05
-in [the lifecycle spec](specs/DEF-002-005-course-lifecycle.md). The adjacent patch
-preserves readiness gates and tests without activating them in this three-defect
-delivery. It passed `git apply --check` on the selected batch's working tree;
-apply/review it only when DEF-005 resumes, then rerun tests and browser checks.
-Trusted scoring rejects invalid quizzes but does not prevent their publication.
-The historical invalid-review screenshot belongs to the unfinished prototype.
+DEF-005 resumed on 2026-10-08. Its preserved patch is now applied; do not reapply
+it to current main. [The handoff](handoffs/DEF-005.md) keeps the original record
+and links to current verification. Local delivery commit pending.
 
 ## Completed delivery
 
@@ -73,15 +70,11 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-**Next batch of three: DEF-005, DEF-006, DEF-010.** Resume unfinished DEF-005,
-then the unsaved teacher navigation defect and direct learner URL verification.
-DEF-006 needs the narrow navigation-warning contract versus broader local recovery
-scope recorded before implementation. DEF-010 has incidental route-loading changes
-in the access batch, but needs its own spec and direct URL/error/session checks
-before closure. No Proposed career feature is selected.
-
-Career progress/activity DEF-007/DEF-009/DEF-014 and unavailable controls DEF-011
-remain Open. Their audit delivery order remains a recommendation.
+**Next batch candidates: DEF-007, DEF-009, DEF-014.** These confirmed career
+progress/activity defects share US-L002; define its selected narrow behavior
+contract before implementation. No Proposed path feature is authorized.
+DEF-011 and DEF-008 remain Open in their existing order. Follow the user's next
+selection; do not automatically begin another batch.
 
 ## Defect order
 
@@ -89,10 +82,10 @@ remain Open. Their audit delivery order remains a recommendation.
 | --- | --- | --- | --- |
 | 1 | DEF-002 / US-T002 admin field restrictions | Fixed | Shared release verification |
 | 2 | DEF-003 / US-T002, US-L001 private drafts/content | Fixed | Shared release checks; broader entitlement decisions remain Proposed |
-| 3 | DEF-006 / US-T003 unsaved authoring | Open | Navigation warning versus local recovery scope |
-| 4 | DEF-005 / US-T004 impossible published quizzes | In progress | Final readiness/grading verification |
+| 3 | DEF-006 / US-T003 unsaved authoring | In progress | Warnings only verified; delivery pending |
+| 4 | DEF-005 / US-T004 impossible published quizzes | In progress | Readiness verified; delivery pending |
 | 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
-| 6 | DEF-010 / US-L001 direct learning refresh | Open | Narrow route-loading regression spec |
+| 6 | DEF-010 / US-L001 direct learning refresh | In progress | Dedicated route/refresh checks verified; delivery pending |
 | 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | Open | Shared progress source, honest empty account, quiz position wording |
 | 8 | DEF-011 / US-L005 inactive controls | Open | Implement versus hide/disable choice |
 | 9 | DEF-008 / US-P002 parser errors | Open | Preserve 400/413 contract with regression cases |

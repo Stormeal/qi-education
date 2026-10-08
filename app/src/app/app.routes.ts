@@ -1,4 +1,9 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanDeactivateFn, Routes } from '@angular/router';
+import { AppStateService } from './services/app-state.service';
+
+const unsavedCourseGuard: CanDeactivateFn<unknown> = () =>
+  inject(AppStateService).confirmDiscardCourseChanges();
 
 export const routes: Routes = [
   {
@@ -34,6 +39,7 @@ export const routes: Routes = [
   },
   {
     path: 'courses/new',
+    canDeactivate: [unsavedCourseGuard],
     loadComponent: () =>
       import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),
   },
@@ -44,6 +50,7 @@ export const routes: Routes = [
   },
   {
     path: 'courses/:id/edit',
+    canDeactivate: [unsavedCourseGuard],
     loadComponent: () =>
       import('./routes/course-editor-route').then((module) => module.CourseEditorRoute),
   },

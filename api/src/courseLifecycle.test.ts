@@ -165,6 +165,31 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     expect((await courses.listCourses())[0]).toMatchObject({ status: 'published', priceDkk: 500 });
   });
 
+  it('LC-05 validates publication after any preceding in-flight draft content write', async () => {
+    await content.updateCourseContent('course', validSections);
+    const invalid = structuredClone(validSections);
+    const quiz = invalid[0].components[1];
+    if (quiz.type !== 'quiz') throw new Error('Missing fixture');
+    quiz.quiz.questions[0].answers[0].isCorrect = false;
+    let entered!: () => void;
+    let release!: () => void;
+    const started = new Promise<void>((resolve) => { entered = resolve; });
+    const resume = new Promise<void>((resolve) => { release = resolve; });
+    const update = content.updateCourseContent.bind(content);
+    vi.spyOn(content, 'updateCourseContent').mockImplementation(async (id, sections) => {
+      entered(); await resume; return update(id, sections);
+    });
+    const save = request('/courses/course/content', teacher, 'PATCH', { sections: invalid });
+    await started;
+    const publication = request('/courses/course', admin, 'PATCH', { ...metadata, status: 'published' });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    release();
+    const [saved, published] = await Promise.all([save, publication]);
+    expect(saved.status).toBe(200);
+    expect(published.status).toBe(400);
+    expect((await courses.listCourses())[0].status).toBe('draft');
+  });
+
   it('LC-03 pairs entitlement and content reads consistently during withdrawal to draft', async () => {
     await content.updateCourseContent('course', validSections);
     await setStatus('published');
@@ -279,6 +304,62 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       expect((await request(resourcePath, student)).status).toBe(200);
       expect((await request(resourcePath, otherTeacher)).status).toBe(403);
       expect((await request(`${prefix}/courses/course/thumbnail`, student)).status).toBe(200);
+    });
+
+    it(`LC-05 ${prefix} preserves incomplete drafts but rejects review/publication and invalid published replacement`, async () => {
+      const sections = structuredClone(validSections);
+      const quiz = sections[0].components[1];
+      if (quiz.type !== 'quiz') throw new Error('Quiz fixture missing');
+      quiz.quiz.passPoints = 2;
+      quiz.quiz.questions[0].question = '';
+      quiz.quiz.questions[0].answers[0].isCorrect = false;
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
+      for (const [user, status] of [[teacher, 'ready-for-review'], [admin, 'published']] as const) {
+        const response = await request(`${prefix}/courses/course`, user, 'PATCH', { ...metadata, status });
+        expect(response.status).toBe(400);
+        const body = await response.json();
+        expect(body.message).toContain('Assessment');
+        expect(body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ componentId: 'quiz', questionId: 'q' })]));
+        expect((await courses.listCourses())[0].status).toBe('draft');
+      }
+      await content.updateCourseContent('course', validSections);
+      expect((await request(`${prefix}/courses/course`, admin, 'PATCH', { ...metadata, status: 'published' })).status).toBe(200);
+      const rejected = await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections });
+      expect(rejected.status).toBe(400);
+      expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
+      await setStatus('archived');
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
+      expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
+    });
+
+    it(`LC-05 ${prefix} rejects duplicate assessment IDs even in drafts and multiple correct options on submission`, async () => {
+      const sections = structuredClone(validSections);
+      const quiz = sections[0].components[1];
+      if (quiz.type !== 'quiz') throw new Error('Quiz fixture missing');
+      quiz.quiz.questions.push(structuredClone(quiz.quiz.questions[0]));
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
+      quiz.quiz.questions.pop();
+      quiz.quiz.questions[0].answers[1].id = 'a';
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
+      quiz.quiz.questions[0].answers[1].id = 'b';
+      quiz.quiz.questions[0].answers[1].isCorrect = true;
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
+      expect((await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, status: 'ready-for-review' })).status).toBe(400);
+    });
+
+    it.each(['empty questions', 'blank answer', 'unreachable pass mark'])(`LC-05 ${prefix} permits %s in drafts but refuses review`, async (problem) => {
+      const sections = structuredClone(validSections);
+      const quiz = sections[0].components[1];
+      if (quiz.type !== 'quiz') throw new Error('Quiz fixture missing');
+      if (problem === 'empty questions') quiz.quiz.questions = [];
+      if (problem === 'blank answer') quiz.quiz.questions[0].answers[1].text = '';
+      if (problem === 'unreachable pass mark') quiz.quiz.passPoints = 2;
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
+      expect((await content.getCourseContent('course'))?.sections).toEqual(sections);
+      const rejected = await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, status: 'ready-for-review' });
+      expect(rejected.status).toBe(400);
+      expect((await rejected.json()).issues).toEqual(expect.arrayContaining([expect.objectContaining({ componentId: 'quiz' })]));
+      expect((await courses.listCourses())[0].status).toBe('draft');
     });
 
     it(`LC-06 ${prefix} scores stored answers and returns feedback only after authorized submission`, async () => {

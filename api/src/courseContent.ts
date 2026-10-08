@@ -21,7 +21,7 @@ const quizQuestionSchema = z.object({
 
 const quizComponentSchema = z.object({
   passPoints: z.coerce.number().int().min(1).max(100).default(1),
-  questions: z.array(quizQuestionSchema).min(1).max(50).default([]),
+  questions: z.array(quizQuestionSchema).max(50).default([]),
 });
 
 const baseCourseContentComponentSchema = z.object({

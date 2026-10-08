@@ -14,9 +14,11 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Architecture](architecture.md) | Current boundaries, storage, routes, and limitations |
 | [Local development](local_development.md) | Setup, isolated audit mode, checks, and deployment context |
 | [Ownership specification](specs/US-T001-course-ownership.md) | First teacher story's detailed contract |
-| [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | DEF-002/003/004 delivered scope and pending LC-05 |
+| [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | Access and quiz readiness contracts |
+| [Unsaved navigation specification](specs/DEF-006-unsaved-navigation.md) | Warning and discard behavior; recovery excluded |
+| [Direct learning specification](specs/DEF-010-direct-learning.md) | Remembered session, loading, errors and entitlement |
 | [Course operation recovery](course_operation_recovery.md) | Durable ownership and required hosted recovery checks |
-| [DEF-005 handoff](handoffs/DEF-005.md) | Preserved unfinished publication readiness patch |
+| [DEF-005 handoff](handoffs/DEF-005.md) | Historical publication readiness patch and delivery record |
 | [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
 | [Audit report](audits/2026-10-04/application_audit.md) | Code review, walkthrough, evidence, and coverage limitations |
 | [Career path audit](audits/2026-10-05/career_path_audit.md) | Goal-to-learning journey, reproduced progress defects, and Proposed improvements |
@@ -32,7 +34,10 @@ Recorded on 2026-10-04:
    with their resolution, regression evidence, date, and fixing commit.
 
 DEF-002/003/004 are resolved locally in `a6767f6` on 2026-10-07; see their
-[verification record](verification/2026-10-07/DEF-002-004.md). DEF-005 remains unfinished.
+[verification record](verification/2026-10-07/DEF-002-004.md).
+DEF-005/006/010 are the selected 2026-10-08 batch; see their
+[verification record](verification/2026-10-08/DEF-005-006-010.md) and current queue.
+The user confirmed **warnings only** for DEF-006; local draft recovery remains Proposed.
 The ownership policy is implemented and locally checked; see DEF-001 and US-T001
 for evidence and remaining release checks. Other audit-generated enhancements remain
 Proposed until selected and their outstanding decisions are resolved.

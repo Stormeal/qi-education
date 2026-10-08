@@ -139,8 +139,11 @@ Feature: Course review and publication
 navigation or a failed save does not erase my work.**
 
 State: Proposed. Defect: DEF-006. Scope: metadata and course outline edits.
-Decision to confirm: navigation warning only, or local draft recovery after refresh.
-The proposed scenarios include recovery; implement only after that choice is confirmed.
+User confirmed **warnings only** on 2026-10-08. Selected DEF-006 implements AC01/02
+and standard browser departure warnings under [NW-01–05](specs/DEF-006-unsaved-navigation.md).
+AC03 local recovery remains Proposed and is outside this batch. The broader story
+stays Proposed until recovery is separately selected. Verification:
+[DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md). Delivery commit pending.
 
 ```gherkin
 Feature: Authoring draft protection
@@ -169,9 +172,11 @@ Feature: Authoring draft protection
 every published quiz and understand what they answered.**
 
 State: Proposed. Dependency: US-T002. Defect: DEF-005.
-Decision to confirm: retain the current single-choice learner interaction. Proposed
-rule: exactly one correct answer per question; incomplete questions may be saved
-as drafts but cannot be submitted or published.
+Selected DEF-005 retains the existing single-choice interaction: exactly one correct
+answer per question. Incomplete questions may be saved as drafts but cannot be
+submitted or published. AC01–03 map to LC-05/06 in
+[the lifecycle spec](specs/DEF-002-005-course-lifecycle.md). Verification:
+[DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md). Delivery commit pending.
 
 ```gherkin
 Feature: Assessment readiness
@@ -341,8 +346,11 @@ learning library contains material I am authorized to use.**
 State: Proposed. Dependencies: US-T001, US-T002. Defects: DEF-003, DEF-004, DEF-010.
 Delivered narrow DEF-003/DEF-004 scope on 2026-10-07 in `a6767f6`: published-only enrollment,
 authorized content/resources, public title outline, redacted quizzes and server
-feedback. Working default retains existing archived access. DEF-010 and broader
-access/payment decisions remain open; this story stays Proposed.
+feedback. Working default retains existing archived access. DEF-010 / AC04 is verified
+in the selected 2026-10-08 batch using [DL-01–04](specs/DEF-010-direct-learning.md).
+Its runtime fix was already included in `a6767f6`; dedicated regression/browser
+evidence is recorded [here](verification/2026-10-08/DEF-005-006-010.md).
+Broader access/payment decisions remain Proposed. Current batch delivery commit pending.
 Decisions: confirm public preview limits; access for already-enrolled users after archival;
 whether prices are informational or require payment. No payment system currently exists.
 

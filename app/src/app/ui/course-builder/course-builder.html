@@ -37,7 +37,8 @@
               [class.is-editing]="isSectionRenaming(sectionIndex)"
               [attr.role]="isSectionRenaming(sectionIndex) ? 'textbox' : null"
               [attr.aria-label]="'Section title'"
-              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); finishSectionRename()"
+              (input)="courseEditorBufferChanged.emit(editableText($event) !== section.title)"
+              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); courseEditorBufferChanged.emit(false); finishSectionRename()"
               (keydown)="renameKeydown($event)"
             >
               {{ section.title }}

@@ -87,6 +87,7 @@ export class CourseEditorPage {
   readonly courseSubmitted = output<void>();
   readonly courseThumbnailSelected = output<File>();
   readonly courseSectionAdded = output<void>();
+  readonly courseEditorBufferChanged = output<boolean>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
   readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();

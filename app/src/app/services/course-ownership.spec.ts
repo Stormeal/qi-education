@@ -111,4 +111,24 @@ describe('course ownership UI (DEF-001)', () => {
     await poll;
     expect(state.courseContent()).toBe(outline);
   });
+
+  it('DEF-005 saves edited draft content before requesting review validation', async () => {
+    state.currentPath.set('/courses/owned-course/edit');
+    state.loadedCourseContentId.set('owned-course');
+    state.courseDraft.update((draft) => ({ ...draft, title: ownedCourse.title, description: ownedCourse.description,
+      teacher: ownedCourse.teacher, level: ownedCourse.level, status: 'ready-for-review' }));
+    const content = { _id: 'owned-course', view: 'author' as const, sections: [], createdAt: '', updatedAt: '' };
+    state.courseContent.set(content);
+    const calls: string[] = [];
+    const service = TestBed.inject(CourseService);
+    vi.spyOn(service, 'saveCourseContent').mockImplementation(async () => { calls.push('content'); return { ok: true, content }; });
+    vi.spyOn(service, 'saveCourse').mockImplementation(async () => { calls.push('review'); return {
+      ok: false, message: 'Assessment needs correction.' }; });
+    await state.submitCourse();
+    expect(calls).toEqual(['content', 'review']);
+    expect(state.courseCreateError()).toContain('Assessment needs correction');
+    expect(state.courseContent()).toEqual(content);
+    expect(state.courseDraft().status).toBe('ready-for-review');
+    expect(state.availableCourses()[0].status).toBe('draft');
+  });
 });
