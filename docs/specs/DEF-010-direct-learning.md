@@ -49,5 +49,6 @@ Browser evidence uses only the disposable local API. Live Sheets/MongoDB, hosted
 session restoration, and deployed URLs require separate release verification.
 
 Original direct URL/refresh reproduction now passes; runtime fix: `a6767f6`.
-Dedicated verification delivery commit pending. Evidence:
+State: Fixed (resolved in code). Dedicated verification completed 2026-10-08;
+regression/browser delivery commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`. Evidence:
 [batch verification](../verification/2026-10-08/DEF-005-006-010.md).

@@ -50,12 +50,13 @@ Implementation checklist:
 - [x] Reproduce unguarded routing with real Angular navigation regressions.
 - [x] Add route and browser departure guards; avoid clearing drafts before routing.
 - [x] Verify save/revert/failure, logout, course-ID changes and browser Back.
-- [ ] Record delivery commit; isolated browser evidence and review are complete.
+- [x] Record isolated browser evidence, review, and delivery commit.
 
 Verification maps NW-01/02 to router tests, NW-03 to before-unload tests and a
 browser check, NW-04 to failed/partial-save regressions, and NW-05 to logout tests.
 Browser confirmation text and availability are controlled by the browser; no
 draft is persisted locally when the user chooses to leave.
 
-Implementation and isolated regressions verified 2026-10-08. Delivery commit pending.
+State: Fixed (resolved in code), 2026-10-08. Implementation and isolated regressions
+verified; delivery commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
 Evidence: [batch verification](../verification/2026-10-08/DEF-005-006-010.md).

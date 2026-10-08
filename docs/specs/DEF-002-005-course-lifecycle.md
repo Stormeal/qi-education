@@ -5,7 +5,8 @@ Fix commit: `a6767f69e5254e01a47ca33b58dabe34925ea586`. Shared release checks re
 Owner: Codex. Branch: `main`. Resumed base: `ff3d68a`, selected 2026-10-07.
 Originally selected 2026-10-04. Related stories: US-T002, US-T004, US-L001.
 LC-01–04 and LC-06 were delivered in that batch. LC-05 / DEF-005 resumed
-2026-10-08 at `159f45b`; handoff patch applied and reviewed. Delivery commit pending.
+2026-10-08 at `159f45b`; handoff patch applied and reviewed. DEF-005 is now Fixed
+(resolved in code), delivered 2026-10-08 in `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
 See [the historical handoff](../handoffs/DEF-005.md) and
 [current verification](../verification/2026-10-08/DEF-005-006-010.md).
 

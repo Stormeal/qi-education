@@ -4,15 +4,10 @@ Updated: 2026-10-08. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**DEF-005, DEF-006, DEF-010 — selected three-defect batch.** Owner: Codex.
-Branch: `main`. Base: `159f45b`. Started: 2026-10-08. State: In progress.
-Contracts: lifecycle LC-05, navigation NW-01–05, direct learning DL-01–04.
-DEF-005 handoff tests reproduced five readiness failures before implementation.
-DEF-006 scope confirmed by the user: warnings only; local draft recovery remains
-Proposed. DEF-010 includes verification of incidental fixes in `a6767f6`.
-Next: apply/review readiness gates, reproduce navigation failures, verify routed
-learning and isolated browser journeys, synchronize resolutions and commit locally.
-No Proposed career feature is selected. No push/deployment is authorized.
+No active implementation. DEF-005, DEF-006 and DEF-010 were delivered locally on
+2026-10-08; see Completed delivery below. Follow the user's next selection before
+starting another batch. No Proposed career feature is selected.
+No push/deployment is authorized.
 
 ## Latest audit
 
@@ -34,9 +29,22 @@ Next: follow the user's next selection; no Proposed path feature is authorized.
 
 DEF-005 resumed on 2026-10-08. Its preserved patch is now applied; do not reapply
 it to current main. [The handoff](handoffs/DEF-005.md) keeps the original record
-and links to current verification. Local delivery commit pending.
+and links to current verification. Delivery commit: `3feeea4` (2026-10-08).
 
 ## Completed delivery
+
+**DEF-005, DEF-006, DEF-010 — Assessment, navigation and direct learning batch.**
+Fixed (resolved in code). Owner: Codex. Date: 2026-10-08. Branch: `main`.
+Base: `159f45b`. Delivery: `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
+Contracts: LC-05, NW-01–05, DL-01–04. DEF-005 gates review/publication on answerable
+quizzes and saves edited drafts before submission. DEF-006 warns before abandoning
+metadata, outline and focused editor buffers; Stay preserves edits and Back history.
+The user selected warnings only; local recovery remains Proposed. DEF-010's
+runtime fix is `a6767f6`; dedicated direct URL/refresh/error/access checks pass.
+API 196/frontend 82 tests, API/frontend/Pages builds, isolated browser journeys
+and independent review pass. US-T004 is Done; US-T003/US-L001 retain broader
+Proposed scope. [Verification](verification/2026-10-08/DEF-005-006-010.md).
+Shared-service and hosted release checks remain pending. No push/deployment.
 
 **DEF-002, DEF-003, DEF-004 — Lifecycle access batch.** Fixed (resolved in code).
 Owner: Codex. Date: 2026-10-07. Branch: `main`. Base: `ff3d68a`.
@@ -82,10 +90,10 @@ selection; do not automatically begin another batch.
 | --- | --- | --- | --- |
 | 1 | DEF-002 / US-T002 admin field restrictions | Fixed | Shared release verification |
 | 2 | DEF-003 / US-T002, US-L001 private drafts/content | Fixed | Shared release checks; broader entitlement decisions remain Proposed |
-| 3 | DEF-006 / US-T003 unsaved authoring | In progress | Warnings only verified; delivery pending |
-| 4 | DEF-005 / US-T004 impossible published quizzes | In progress | Readiness verified; delivery pending |
+| 3 | DEF-006 / US-T003 unsaved authoring | Fixed | Hosted/browser release verification; recovery remains Proposed |
+| 4 | DEF-005 / US-T004 impossible published quizzes | Fixed | Shared release verification; legacy invalid quizzes need correction |
 | 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
-| 6 | DEF-010 / US-L001 direct learning refresh | In progress | Dedicated route/refresh checks verified; delivery pending |
+| 6 | DEF-010 / US-L001 direct learning refresh | Fixed | Shared-store and hosted direct URL/refresh release checks |
 | 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | Open | Shared progress source, honest empty account, quiz position wording |
 | 8 | DEF-011 / US-L005 inactive controls | Open | Implement versus hide/disable choice |
 | 9 | DEF-008 / US-P002 parser errors | Open | Preserve 400/413 contract with regression cases |

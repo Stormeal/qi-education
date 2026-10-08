@@ -35,7 +35,8 @@ Recorded on 2026-10-04:
 
 DEF-002/003/004 are resolved locally in `a6767f6` on 2026-10-07; see their
 [verification record](verification/2026-10-07/DEF-002-004.md).
-DEF-005/006/010 are the selected 2026-10-08 batch; see their
+DEF-005/006/010 are resolved locally; fixes and dedicated verification were delivered
+on 2026-10-08 in `3feeea4`. See their
 [verification record](verification/2026-10-08/DEF-005-006-010.md) and current queue.
 The user confirmed **warnings only** for DEF-006; local draft recovery remains Proposed.
 The ownership policy is implemented and locally checked; see DEF-001 and US-T001

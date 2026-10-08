@@ -27,12 +27,12 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-002 | General authoring routes bypass admin pricing/publication restrictions | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-T002 |
 | DEF-003 | Anonymous API exposes drafts, full lessons, and quiz answer flags | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-T002, US-L001 |
 | DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-L001 |
-| DEF-005 | An impossible quiz can be saved and published | P2 | In progress | LC-05 regressions and isolated review checks pass; delivery pending | US-T004 |
-| DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | In progress | NW-01–05; user confirmed warnings only | US-T003 |
+| DEF-005 | An impossible quiz can be saved and published | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; LC-05 regression/browser checks pass | US-T004 |
+| DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; warnings-only NW-01–05 checks pass | US-T003 |
 | DEF-007 | Library progress is hardcoded to 0 percent | P2 | Open | Browser and template | US-L002 |
 | DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Open | Isolated API | US-P002 |
 | DEF-009 | Dashboard presents fixture activity as account progress | P2 | Open | Browser and code | US-L002 |
-| DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | In progress | DL-01–04; earlier runtime fix being verified | US-L001 |
+| DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Fixed | Runtime fix `a6767f6`; DL-01–04 verified 2026-10-08 in `3feeea4` | US-L001 |
 | DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Open | Untouched quiz browser capture and computed formula | US-L002 |
 
@@ -41,8 +41,9 @@ shared stores or user accounts. The audit report preserves the original findings
 the current statuses and resolution sections below track subsequent fixes.
 
 DEF-002, DEF-003, DEF-004 resumed on `main` at `ff3d68a` in the first batch of
-three. Resolved in local code on 2026-10-07 in `a6767f6`; verification passed. DEF-005 is
-resumed with DEF-006/010 on 2026-10-08 at `159f45b`. The current batch's
+three. Resolved in local code on 2026-10-07 in `a6767f6`; verification passed. DEF-005,
+DEF-006 and DEF-010 were delivered locally on 2026-10-08 in `3feeea4`, base `159f45b`.
+All three are Fixed (resolved in code). This batch's
 [verification](verification/2026-10-08/DEF-005-006-010.md) records the selected
 contracts, original reproductions, regressions and release limitations. Local
 recovery and broader career/access workflows are outside this delivery.
@@ -166,12 +167,14 @@ recovery and broader career/access workflows are outside this delivery.
   and [batch verification](verification/2026-10-08/DEF-005-006-010.md). Five API and
   one frontend reproduction failed before implementation; corrected quiz review
   now succeeds in the isolated browser. API 196/frontend 82 checks pass.
-- Fix commit pending local delivery. Shared-store and hosted release checks remain
+- Status: **Fixed — resolved in code**, 2026-10-08.
+  Fix commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
+  Shared-store and hosted release checks remain
   pending; invalid legacy published quizzes still need author/admin correction.
 
 ### DEF-006 — Editor navigation discards unsaved work
 
-- Expected proposed contract: warn before abandoning changed metadata or outline,
+- Expected contract: warn before abandoning changed metadata or outline,
   and preserve the draft when the user chooses to stay. Recovery scope is US-T003.
 - Reproduce: change an existing course title without saving; use Catalog; reopen
   the editor. Navigation is immediate with no discard prompt and the original title returns.
@@ -192,7 +195,9 @@ recovery and broader career/access workflows are outside this delivery.
   lesson/section edits, Markdown no-change, failed/partial saves, delayed loading,
   editor-ID changes and listener cleanup. Original navigation and review-found
   edge cases reproduced before fixes. [Browser/check evidence](verification/2026-10-08/DEF-005-006-010.md).
-- Fix commit pending local delivery. Hosted/browser release checks remain pending.
+- Status: **Fixed — resolved in code**, 2026-10-08.
+  Fix commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
+  Hosted/browser release checks remain pending; recovery remains Proposed.
 
 ### DEF-007 — My Learning progress remains 0 percent
 
@@ -258,7 +263,8 @@ recovery and broader career/access workflows are outside this delivery.
   was necessary. Six dedicated real-router tests cover deferred session/catalog/
   content lookup, missing data, API errors, expired sessions and restored enrollment.
 - Runtime fix commit: `a6767f69e5254e01a47ca33b58dabe34925ea586` (2026-10-07).
-  Dedicated verification commit pending local delivery. Evidence:
+  Status: **Fixed — resolved in code**; dedicated verification completed 2026-10-08.
+  Regression/browser delivery commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`. Evidence:
   [DL-01–04](verification/2026-10-08/DEF-005-006-010.md). Hosted URLs and live shared
   storage remain release checks; local verification does not imply deployment.
 

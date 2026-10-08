@@ -13,7 +13,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T001 | Enforce course ownership | Done | P1 | None | DEF-001 |
 | US-T002 | Submit, review, and publish courses safely | Proposed | P1 | T001 | DEF-002, DEF-003 |
 | US-T003 | Protect unsaved authoring work | Proposed | P2 | None | DEF-006 |
-| US-T004 | Publish valid, answerable quizzes | Proposed | P2 | T002 | DEF-005 |
+| US-T004 | Publish valid, answerable quizzes | Done | P2 | T002 authorization delivered | DEF-005 |
 | US-T005 | Save authoring work without silent overwrites | Proposed | P2 | T001 | Investigation INV-001 |
 | US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
@@ -143,7 +143,8 @@ User confirmed **warnings only** on 2026-10-08. Selected DEF-006 implements AC01
 and standard browser departure warnings under [NW-01–05](specs/DEF-006-unsaved-navigation.md).
 AC03 local recovery remains Proposed and is outside this batch. The broader story
 stays Proposed until recovery is separately selected. Verification:
-[DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md). Delivery commit pending.
+[DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md).
+AC01/02 delivery commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`, 2026-10-08.
 
 ```gherkin
 Feature: Authoring draft protection
@@ -171,12 +172,15 @@ Feature: Authoring draft protection
 **As a teacher, I want clear assessment validation, so that learners can complete
 every published quiz and understand what they answered.**
 
-State: Proposed. Dependency: US-T002. Defect: DEF-005.
+State: Done. Owner: Codex. Completed: 2026-10-08. Defect: DEF-005.
+Dependency: US-T002 authorization boundaries delivered in `a6767f6`; its broader
+review workflow remains Proposed. Assessment delivery commit:
+`3feeea4de8d056ba1e88789103a280df52c5d2f0`.
 Selected DEF-005 retains the existing single-choice interaction: exactly one correct
 answer per question. Incomplete questions may be saved as drafts but cannot be
 submitted or published. AC01–03 map to LC-05/06 in
 [the lifecycle spec](specs/DEF-002-005-course-lifecycle.md). Verification:
-[DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md). Delivery commit pending.
+[DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md). All three criteria pass.
 
 ```gherkin
 Feature: Assessment readiness
@@ -350,7 +354,8 @@ feedback. Working default retains existing archived access. DEF-010 / AC04 is ve
 in the selected 2026-10-08 batch using [DL-01–04](specs/DEF-010-direct-learning.md).
 Its runtime fix was already included in `a6767f6`; dedicated regression/browser
 evidence is recorded [here](verification/2026-10-08/DEF-005-006-010.md).
-Broader access/payment decisions remain Proposed. Current batch delivery commit pending.
+AC04 regression/browser delivery: `3feeea4de8d056ba1e88789103a280df52c5d2f0`, 2026-10-08.
+Broader access/payment decisions remain Proposed.
 Decisions: confirm public preview limits; access for already-enrolled users after archival;
 whether prices are informational or require payment. No payment system currently exists.
 
