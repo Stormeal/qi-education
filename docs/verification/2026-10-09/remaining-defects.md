@@ -1,7 +1,7 @@
 # DEF-008/011/012/013 verification
 
 Date: 2026-10-09. Owner: Codex. Branch: `main`. Base: `797d55c`.
-Implemented and checked at app/root version 0.1.49. Fix commit pending.
+Implemented and checked at app/root version 0.1.49. Fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`.
 Contract: [RD-01-06](../../specs/DEF-008-011-012-013-remaining-defects.md).
 
 ## Reproduction and regression evidence
@@ -93,8 +93,10 @@ checks successfully. No further product changes followed the review.
 
 ## Delivery and release boundary
 
-Local fix commit pending. Resolution documentation will record that hash after
-delivery. The approved category data repair is already applied to the shared
+Local fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. Resolution
+documentation records it in the follow-up version 0.1.50 commit. That follow-up
+changes documentation and the aligned version only; product checks above were
+run on the delivered 0.1.49 implementation. The approved category data repair is already applied to the shared
 sheet and observable in the hosted API. Application code has not been pushed or
 deployed. Hosted frontend checks after deployment and live upload/storage provider
 checks remain separate release work. INV-001-004 remain unconfirmed investigations;

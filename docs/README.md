@@ -45,8 +45,7 @@ DEF-007/009/014 are resolved locally on 2026-10-09 in `6729b74`; current local
 completion rules are retained. [Verification](verification/2026-10-09/DEF-007-009-014.md) records
 the regressions and isolated walkthrough. Cross-device and career-path progress
 remain Proposed.
-DEF-008/011/012/013 implementation and acceptance checks pass on 2026-10-09;
-delivery record is pending the local fix commit. [Verification](verification/2026-10-09/remaining-defects.md)
+DEF-008/011/012/013 are resolved on 2026-10-09; delivery commit `79c2ea5`. [Verification](verification/2026-10-09/remaining-defects.md)
 includes safe request errors, hidden unfinished controls, responsive cards and
 the user's approved shared category correction. Other shared records were preserved.
 The ownership policy is implemented and locally checked; see DEF-001 and US-T001

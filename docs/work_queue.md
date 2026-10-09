@@ -4,18 +4,11 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**Remaining defects - DEF-008/011, plus DEF-012/013 reproduction.** In progress.
-Owner: Codex. Selected: 2026-10-09. Branch: `main`. Base: `797d55c`.
-Contract: [remaining defects](specs/DEF-008-011-012-013-remaining-defects.md), RD-01-06.
-User authorized remaining defect fixes; Proposed features remain unselected.
-Completed: parser and availability regressions reproduced/fixed; card layout
-reproduced and verified at seven widths; category data cause confirmed read-only.
-User explicitly approved seven shared category corrections; applied and verified
-with every other field/header unchanged and fresh hosted API read correct.
-222 API/101 frontend tests, all three builds, isolated browser checks and fresh
-independent review pass. Version 0.1.49; only resolution documentation changes remain.
-Next: verify documentation links/statuses, commit locally and record the fixing hash.
-No push/deployment is authorized.
+No active implementation. DEF-008/011/012/013 were delivered on 2026-10-09;
+all documented confirmed defects are Fixed. Follow the user's next selection;
+INV-001-004 remain investigations and Proposed features remain unselected.
+The user approved only the seven DEF-012 shared category corrections; they are
+applied and verified. No other shared mutation or application push/deployment.
 
 ## Latest audit
 
@@ -40,6 +33,22 @@ it to current main. [The handoff](handoffs/DEF-005.md) keeps the original record
 and links to current verification. Delivery commit: `3feeea4` (2026-10-08).
 
 ## Completed delivery
+
+**DEF-008, DEF-011, DEF-012, DEF-013 - Remaining defect closure.** Fixed.
+Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `797d55c`.
+Fix/delivery record commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. Contract: RD-01-06.
+Parser boundaries preserve safe 400/413/415 without reclassifying application
+failures. Unfinished Home/workspace controls are hidden. Catalog cards display
+full wrapping titles/badges without clipping at seven tested responsive widths.
+DEF-012 was confirmed as missing category data; the user explicitly approved
+seven category cell corrections. Applied and verified all other fields/headers
+unchanged; fresh hosted API read returns the corrected categories.
+222 API/101 frontend tests, API/frontend/Pages builds, isolated browser and
+carousel/keyboard/filter checks, and fresh independent review pass.
+[Verification](verification/2026-10-09/remaining-defects.md). US-L005/US-L008 Done;
+US-P002 broader error DTO/dependency recovery remains Proposed. Category warning
+prevention is Proposed as US-A002. Hosted application/provider release checks
+remain separate. No application push/deployment.
 
 **DEF-007, DEF-009, DEF-014 - Honest local learning progress.** Fixed (resolved in code).
 Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `0a4b522`.
@@ -100,7 +109,7 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 ## Next candidate
 
 The user selected all remaining defects on 2026-10-09. DEF-008/011/012/013 are
-implemented and verified in the active batch; local delivery records remain.
+Fixed with delivery record `79c2ea5`. No active defect batch remains.
 No further confirmed defect is waiting for implementation. INV-001-004 require
 separate evidence and selection; Proposed enhancements remain unselected.
 
@@ -115,13 +124,13 @@ separate evidence and selection; Proposed enhancements remain unselected.
 | 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
 | 6 | DEF-010 / US-L001 direct learning refresh | Fixed | Shared-store and hosted direct URL/refresh release checks |
 | 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | Fixed | Hosted/browser release checks; cross-device progress remains Proposed |
-| 8 | DEF-011 / US-L005 inactive controls | In progress | Verified; delivery commit |
-| 9 | DEF-008 / US-P002 parser errors | In progress | Verified; delivery commit |
-| 10 | DEF-012 / US-L008 missing categories | In progress | Approved repair verified; delivery record |
-| 11 | DEF-013 / US-L008 card clipping | In progress | Verified; delivery commit |
+| 8 | DEF-011 / US-L005 inactive controls | Fixed | Hosted/provider release checks |
+| 9 | DEF-008 / US-P002 parser errors | Fixed | Hosted/provider release checks |
+| 10 | DEF-012 / US-L008 missing categories | Fixed | Approved repair verified; hosted browser release check |
+| 11 | DEF-013 / US-L008 card clipping | Fixed | Hosted/provider release checks |
 
 Enhancement-only stories remain in [user_stories.md](user_stories.md) for later
-selection. DEF-012/013 are reproduced and corrected in the active batch. INV-001-004
+selection. DEF-012/013 are reproduced and resolved in `79c2ea5`. INV-001-004
 remain investigations; reproduce them before prioritizing implementation.
 
 P1 access defects are release risks even while platform work is later in the

@@ -43,3 +43,5 @@ if it changed. It saves the correction backup in ignored local scratch storage.
 
 After application, verify the public API DTO and published catalog's category
 labels/filter; publishing updated application code is a separate action.
+
+Delivery record/script commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. Resolved 2026-10-09.

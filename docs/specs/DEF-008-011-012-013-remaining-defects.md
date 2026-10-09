@@ -2,7 +2,7 @@
 
 ## Record
 
-- State: In progress. Owner: Codex. Selected: 2026-10-09.
+- State: Fixed. Owner: Codex. Selected: 2026-10-09.
 - Branch/base: `main`, `797d55c` (clean; origin refreshed).
 - Defects: [DEF-008, DEF-011, DEF-012, DEF-013](../defect_management.md).
 - Stories: US-P002-AC01, US-L005, US-L008 in [the backlog](../user_stories.md).
@@ -79,11 +79,11 @@ verified, with before values and a fresh dry-run retained as evidence.
   unfinished actions according to the preference, retain working actions.
 - [x] Run frontend/API suites, API/frontend/Pages builds, isolated browser checks
   and fresh independent review. Update backlog, defects, architecture and queue.
-- [ ] Align versions and commit locally, then record the fixing hash. No push.
+- [x] Align versions and commit locally, then record the fixing hash. No push.
 
 ## Verification and delivery
 
 RD-01-06 pass. [Verification](../verification/2026-10-09/remaining-defects.md)
 records 222 API/101 frontend tests, all builds, browser/layout evidence, shared
 category repair and clean independent review. Other shared provider writes and
-hosted application deployment checks are excluded. Fix commit pending.
+hosted application deployment checks are excluded. Fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce` (2026-10-09). Resolution record version: 0.1.50.

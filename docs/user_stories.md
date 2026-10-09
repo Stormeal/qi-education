@@ -24,10 +24,10 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L002 | See trustworthy progress across learning views | Proposed | P2 | L001 | DEF-007, DEF-009, DEF-014 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
-| US-L005 | Make unavailable controls understandable | In progress | P3 | None | DEF-011 |
+| US-L005 | Make unavailable controls understandable | Done | P3 | None | DEF-011 |
 | US-L006 | Retrieve consistent career path previews | Proposed | P3 | None | GitHub #22, #23, #24 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
-| US-L008 | Keep catalog metadata and badges readable | In progress | P2 | Reproduced; approved data correction applied | DEF-012, DEF-013 |
+| US-L008 | Keep catalog metadata and badges readable | Done | P2 | Reproduced; approved data correction applied | DEF-012, DEF-013 |
 | US-L009 | Compare and choose a career path | Proposed | P2 | L003, L006 | None |
 | US-L010 | Follow an actionable next learning step | Proposed | P2 | L001, L002, L009 | None |
 | US-L011 | Change paths while retaining learning history | Proposed | P3 | L002, L009 | None |
@@ -42,7 +42,8 @@ Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
 convenience. An item is not Done without scenario evidence and a delivery commit.
 US-T001 is delivered locally in `a9940cc` with passing acceptance checks.
-Other audit-generated stories remain Proposed.
+US-T004, US-L005 and US-L008 are also delivered; other audit-generated stories
+retain their current Proposed scope.
 
 The [career path audit](audits/2026-10-05/career_path_audit.md) recommends a
 sequence within that journey. Its new stories remain Proposed; path governance,
@@ -505,11 +506,11 @@ Feature: Password recovery
 **As a learner, I want controls to lead to real behavior or explain their
 unavailability, so that I do not click features that silently do nothing.**
 
-State: In progress. Defect: DEF-011. Scope: Adjust track, Q&A, and Notes.
+State: Done. Defect: DEF-011. Scope: Adjust track, Q&A, and Notes.
 Selected fix: hide unfinished controls under the stated default; full features
 remain Proposed. Existing overview and real navigation/quiz actions are preserved.
 Spec: [remaining defect closure](specs/DEF-008-011-012-013-remaining-defects.md), RD-04.
-Acceptance checks pass; delivery commit pending. [Evidence](verification/2026-10-09/remaining-defects.md).
+Acceptance checks pass; delivered 2026-10-09 in `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. [Evidence](verification/2026-10-09/remaining-defects.md).
 
 ```gherkin
 Feature: Honest feature availability
@@ -584,13 +585,13 @@ Feature: Home recommendation emphasis
 **As a learner, I want correct categories and readable course labels,
 so that I can compare courses without misleading or obscured metadata.**
 
-State: In progress. Sources: [#42](https://github.com/Stormeal/qi-education/issues/42)
+State: Done. Sources: [#42](https://github.com/Stormeal/qi-education/issues/42)
 and [#44](https://github.com/Stormeal/qi-education/issues/44). DEF-012/013 were
 investigated and reproduced on 2026-10-09. Valid category mapping already works;
 the user approved correction of seven missing shared categories. Responsive
 card clipping was reproduced with representative titles and fixed.
 Spec: [remaining defect closure](specs/DEF-008-011-012-013-remaining-defects.md), RD-05/06.
-Both acceptance checks pass; delivery commit pending.
+Both acceptance checks pass; delivered 2026-10-09 in `79c2ea5fd2721594f4b1f2c603982d80ef909bce`.
 [Evidence and limitations](verification/2026-10-09/remaining-defects.md).
 
 ```gherkin
@@ -791,7 +792,7 @@ can recover without losing my work.**
 State: Proposed. Defect: DEF-008. Decisions: stable error codes and field-error DTO;
 preserve the current `message` field for compatibility.
 US-P002-AC01 is implemented and verified locally through DEF-008/RD-01-03 on
-2026-10-09; delivery commit pending. [Evidence](verification/2026-10-09/remaining-defects.md).
+2026-10-09 in `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. [Evidence](verification/2026-10-09/remaining-defects.md).
 The broader error DTO/dependency recovery contract remains Proposed.
 
 ```gherkin

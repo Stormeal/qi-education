@@ -30,12 +30,12 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-005 | An impossible quiz can be saved and published | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; LC-05 regression/browser checks pass | US-T004 |
 | DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; warnings-only NW-01–05 checks pass | US-T003 |
 | DEF-007 | Library progress is hardcoded to 0 percent | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
-| DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | In progress | RD-01-03 pass; delivery commit pending | US-P002 |
+| DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Fixed | Resolved 2026-10-09 in `79c2ea5`; RD-01-03 pass | US-P002 |
 | DEF-009 | Dashboard presents fixture activity as account progress | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Fixed | Runtime fix `a6767f6`; DL-01–04 verified 2026-10-08 in `3feeea4` | US-L001 |
-| DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | In progress | RD-04 pass; delivery commit pending | US-L005 |
-| DEF-012 | Published catalog categories are missing in stored metadata | P2 | In progress | Approved seven-cell repair verified; delivery record pending | US-L008 |
-| DEF-013 | Catalog titles/badges are clipped at responsive widths | P3 | In progress | RD-06 browser reproduction and correction verified | US-L008 |
+| DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Fixed | Resolved 2026-10-09 in `79c2ea5`; RD-04 pass | US-L005 |
+| DEF-012 | Published catalog categories are missing in stored metadata | P2 | Fixed | Approved data repair verified 2026-10-09; record `79c2ea5` | US-L008 |
+| DEF-013 | Catalog titles/badges are clipped at responsive widths | P3 | Fixed | Resolved 2026-10-09 in `79c2ea5`; RD-06 pass | US-L008 |
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
@@ -246,7 +246,8 @@ recovery and broader career/access workflows are outside this delivery.
 - Regression evidence: RD-01-03 in `requestErrors.test.ts`; malformed JSON,
   oversized JSON/thumbnail/attachment and aliases, MIME, gzip/charset/encoding,
   validation, application errors, and rejected-upload preservation checks pass.
-  [Verification](verification/2026-10-09/remaining-defects.md). Delivery commit pending.
+  [Verification](verification/2026-10-09/remaining-defects.md). Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
+  Fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. Hosted/provider release checks remain separate.
 
 ### DEF-009 — Dashboard account activity is synthetic
 
@@ -318,7 +319,8 @@ recovery and broader career/access workflows are outside this delivery.
 - Regression evidence: two real-router regressions failed before removal, then
   passed. Isolated pointer/keyboard navigation, overview and quiz entry pass.
   RD-04 [verification](verification/2026-10-09/remaining-defects.md).
-  Delivery commit pending.
+  Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
+  Fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`. Hosted/provider release checks remain separate.
 - Reconfirmed 2026-10-05: activating Adjust track leaves `/` and its content
   unchanged with no dialog; the dashboard template still has no event binding.
   Full path selection/switching is Proposed in US-L009/US-L011, separate from
@@ -392,7 +394,9 @@ state, preserving the report links and the actual verified cause.
   before/after values, fresh zero-change dry-run and RD-05 connected regressions
   in [batch verification](verification/2026-10-09/remaining-defects.md).
   Nine isolated script safety checks and category API/card/filter checks pass.
-- Delivery record/script commit pending. No application push/deployment.
+- Status: **Fixed - approved data correction applied and verified**, 2026-10-09.
+  Owner: Codex. Delivery record/script commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`.
+  No application push/deployment.
   Hosted frontend refresh/filter verification remains a release check.
   Preventive category publication guidance is Proposed in US-A002.
 
@@ -417,7 +421,9 @@ state, preserving the report links and the actual verified cause.
   passes at 320/390/860/980/1200/1210/1440 px afterward. Two-line title, carousel
   pointer-next/keyboard-previous and category/detail navigation checks pass.
   [Screenshots and verification](verification/2026-10-09/remaining-defects.md), RD-06.
-- Delivery commit pending; hosted responsive/browser checks remain release work.
+- Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
+  Fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`.
+  Hosted responsive/browser checks remain release work.
 
 ## Investigations requiring further evidence
 
