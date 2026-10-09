@@ -39,7 +39,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
 | US-P005 | Recover uncertain course operations safely | Proposed | P2 | Lifecycle access | Coordination review; Investigation INV-006 |
 | US-P006 | Keep courses available when a class uses them together | Proposed | P1 | Lifecycle access; P005 lock decision | Investigations INV-005, INV-007, INV-011, INV-012, INV-018 |
-| US-P007 | Treat stored text as data, never as code | Proposed | P1 | None | Investigations INV-008, INV-009 |
+| US-P007 | Treat stored text as data, never as code | In progress | P1 | None | Investigations INV-008, INV-009 |
 | US-P008 | Fail safely on misconfiguration, abuse, and unchecked releases | Proposed | P2 | None | Investigations INV-013, INV-014, INV-015, INV-016 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
@@ -1026,7 +1026,9 @@ Feature: Course availability under class load
 wherever it is shown or stored, so that opening a course or the data sheet cannot
 run someone else's code or leak account data.**
 
-State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+State: In progress. Editor half (AC01, AC02) fixed locally 2026-10-09 by Claude Code as
+DEF-P007-EDITOR: [editor markup spec](specs/US-P007-editor-markup.md). Spreadsheet half
+(AC03, AC04) is with Codex. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
 INV-008, INV-009. Scope: every place the editor inserts stored lesson HTML,
 server acceptance of lesson HTML, and every spreadsheet write of user-supplied
 text. Decisions: sanitize in the editor only or also on save; how attachment cards

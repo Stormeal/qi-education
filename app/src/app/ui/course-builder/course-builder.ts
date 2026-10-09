@@ -39,6 +39,7 @@ import { CourseComponent, CourseComponentType, CourseContentDocument } from '../
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
+import { inertHtml } from '../../utils/inert-html';
 
 type ComponentPickerState = {
   sectionIndex: number;
@@ -508,10 +509,9 @@ export class CourseBuilder {
       return [];
     }
 
-    const container = this.document.createElement('div');
-    container.innerHTML = this.richTextComponentId === component.id
+    const container = inertHtml(this.document, this.richTextComponentId === component.id
       ? this.richTextDraftHtml || this.richTextHtml()
-      : this.renderRichContent(component.content);
+      : this.renderRichContent(component.content));
 
     const flatItems = Array.from(container.querySelectorAll('h1, h2, h3'))
       .map((heading, index): TextOutlineItem => ({
@@ -798,8 +798,7 @@ export class CourseBuilder {
   }
 
   private renderEditorContent(component: Extract<CourseComponent, { type: 'text' }>): string {
-    const container = this.document.createElement('div');
-    container.innerHTML = this.renderRichContent(component.content);
+    const container = inertHtml(this.document, this.renderRichContent(component.content));
     const attachments = new Map(component.attachments.map((attachment) => [attachment.assetId, attachment]));
 
     for (const card of Array.from(container.querySelectorAll<HTMLElement>('.rich-attachment-card'))) {
@@ -840,8 +839,7 @@ export class CourseBuilder {
   }
 
   private normalizeRichTextHtml(html: string): string {
-    const container = this.document.createElement('div');
-    container.innerHTML = html;
+    const container = inertHtml(this.document, html);
 
     for (const pending of Array.from(container.querySelectorAll('[data-attachment-pending="true"]'))) {
       pending.removeAttribute('data-attachment-pending');
@@ -1293,8 +1291,7 @@ export class CourseBuilder {
   }
 
   private htmlToMarkdown(html: string): string {
-    const container = this.document.createElement('div');
-    container.innerHTML = html;
+    const container = inertHtml(this.document, html);
 
     return Array.from(container.childNodes)
       .map((node) => this.nodeToMarkdown(node).trim())

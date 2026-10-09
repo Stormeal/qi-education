@@ -37,6 +37,9 @@ npm run api:build         # TypeScript compilation
 npm run app:test          # Angular/Vitest frontend tests
 npm run api:test          # Vitest backend tests
 
+# Cross-role release journey (teacher -> admin review -> learner) over HTTP, in-memory stores
+npm run verify:journeys
+
 # Run a single test file
 npm --prefix app test -- --run --reporter=verbose <path-to-spec>
 npm --prefix api test -- <path-to-test>
@@ -93,6 +96,14 @@ Other parser errors currently become 500 (DEF-008). Bearer tokens are required o
 `AppStateService` uses Angular signals throughout. Course draft changes are detected by comparing JSON snapshots (serialized on load, re-serialized on edit). Content normalization runs on load to handle legacy quiz format migration. Sheets repositories also maintain worksheet headers. The rendered app version lives in `AppStateService.appVersion`.
 
 The catalog carousel's skeleton gate is the `thumbnailsReady` signal in `courses-page.ts`; its `effect` reactively re-runs on `visibleFeaturedCourses()`, so it covers carousel paging too — but it must reset to `false` at the start of each run or the skeleton won't reappear on later pages.
+
+### Frontend spec isolation
+
+Spec files share `localStorage`/`sessionStorage`, and file order differs on CI. Every new spec must clear both in `beforeEach`; a stored login left by another spec otherwise changes what renders (e.g. the session-restore screen instead of the login page).
+
+### Career paths
+
+Paths are curated by admins and stored in MongoDB; a learner saves one selected path per account. Path completion is **computed** from existing lesson completion (`LearningProgressService`), which lives in the browser only — so path progress is per-browser, not cross-device, and a step is complete when any one of its courses is 100% complete. Only required steps count.
 
 ### Video Upload Flow
 
