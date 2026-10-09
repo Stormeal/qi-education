@@ -395,7 +395,9 @@ Selected narrow defect batch, 2026-10-09: AC01 on this browser, AC03 and AC04 un
 completion and trusted passing quiz rules are retained. Cross-device AC02 and
 broader revision/completion policies remain Proposed; this does not select them.
 The local criteria pass route/page regressions and isolated browser checks:
-[verification](verification/2026-10-09/DEF-007-009-014.md). Delivery commit pending.
+[verification](verification/2026-10-09/DEF-007-009-014.md). Local AC01/03/04
+delivery: `6729b740e4b421b015ad9d1b97af1b44749f9707`, 2026-10-09. The full story remains
+Proposed because cross-device AC02 and broader policies are outside this batch.
 Decisions: which lesson types require explicit completion, video viewing, or a
 passing quiz; server persistence; how deleted/revised lessons affect totals.
 

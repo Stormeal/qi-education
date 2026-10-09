@@ -29,12 +29,12 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-L001 |
 | DEF-005 | An impossible quiz can be saved and published | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; LC-05 regression/browser checks pass | US-T004 |
 | DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; warnings-only NW-01–05 checks pass | US-T003 |
-| DEF-007 | Library progress is hardcoded to 0 percent | P2 | In progress | Browser and template | US-L002 |
+| DEF-007 | Library progress is hardcoded to 0 percent | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Open | Isolated API | US-P002 |
-| DEF-009 | Dashboard presents fixture activity as account progress | P2 | In progress | Browser and code | US-L002 |
+| DEF-009 | Dashboard presents fixture activity as account progress | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Fixed | Runtime fix `a6767f6`; DL-01–04 verified 2026-10-08 in `3feeea4` | US-L001 |
 | DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
-| DEF-014 | Quiz completion indicator counts question position as completed work | P2 | In progress | Untouched quiz browser capture and computed formula | US-L002 |
+| DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 
 All are local/code findings. Production impact has not been verified against
 shared stores or user accounts. The audit report preserves the original findings;
@@ -222,7 +222,8 @@ recovery and broader career/access workflows are outside this delivery.
 - Regression evidence: LP-01/02/04 in `learning-progress.spec.ts` and
   [isolated browser/check record](verification/2026-10-09/DEF-007-009-014.md).
   Original 0% rendering reproduced before the fix. 98 frontend/196 API tests pass.
-- Delivery commit pending. Hosted browser/storage checks remain release work;
+- Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
+  Fix commit: `6729b740e4b421b015ad9d1b97af1b44749f9707`. Hosted browser/storage checks remain release work;
   cross-device completion remains Proposed.
 
 ### DEF-008 — Request errors become HTTP 500
@@ -262,7 +263,8 @@ recovery and broader career/access workflows are outside this delivery.
 - Regression evidence: LP-01/03/04; original empty-account fixture rendering failed
   before implementation. [Verification](verification/2026-10-09/DEF-007-009-014.md)
   includes learner completion, another account, refresh and Browse courses.
-- Delivery commit pending. Hosted checks remain release work; broader career
+- Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
+  Fix commit: `6729b740e4b421b015ad9d1b97af1b44749f9707`. Hosted checks remain release work; broader career
   selection/progress features remain Proposed.
 
 ### DEF-010 — Direct learning URL does not restore course metadata
@@ -306,7 +308,7 @@ recovery and broader career/access workflows are outside this delivery.
 
 ### DEF-014 — Quiz completion indicator counts position as completed work
 
-- Severity/state: P2 / In progress. Discovered: 2026-10-05. Owner: Codex.
+- Severity/state: P2 / Fixed. Discovered: 2026-10-05. Owner: Codex.
 - Tested: `main`, base `9a2f30b` plus uncommitted DEF-002–DEF-005 work; isolated
   Angular browser and in-memory API, no shared stores.
 - Expected contract: question position is distinct from completed assessment work
@@ -339,7 +341,8 @@ recovery and broader career/access workflows are outside this delivery.
   final multi-question position, skipped answers, failure, retry and passing.
   [Browser evidence](verification/2026-10-09/DEF-007-009-014.md) shows 50% course
   progress through a failed quiz, and 100% only after successful completion.
-- Delivery commit pending. Hosted accessibility/browser checks remain release work.
+- Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
+  Fix commit: `6729b740e4b421b015ad9d1b97af1b44749f9707`. Hosted accessibility/browser checks remain release work.
 
 ## Existing reported defects, not yet reproduced
 

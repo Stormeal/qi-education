@@ -3,7 +3,7 @@
 ## Record
 
 - Related story: [US-L002](../user_stories.md); selected defects only.
-- State: In progress. Owner: Codex. Selected: 2026-10-09.
+- State: Fixed (resolved in code). Owner: Codex. Selected: 2026-10-09.
 - Branch/base: `main`, `0a4b522`. No push or deployment.
 - Existing completion rules and local persistence are retained. Cross-device
   storage, path selection/completion and revision recognition remain Proposed.
@@ -91,7 +91,7 @@ on main within the user's authorized defect batch.
 - [x] Connect workspace, library and Home; verify live navigation and resume.
 - [x] Rename quiz position copy/accessibility; preserve trusted grading behavior.
 - [x] Run frontend/API tests and builds, isolated browser checks and independent review.
-- [ ] Record scenario evidence, resolved statuses, date and delivery commit.
+- [x] Record scenario evidence, resolved statuses, date and delivery commit.
 
 ## Verification and delivery
 
@@ -108,4 +108,5 @@ hosted URLs and live providers remain separate release checks.
 
 Implementation verified locally 2026-10-09: 98 frontend/196 API tests and API,
 frontend and Pages builds pass. Independent review has no remaining findings.
-Delivery commit pending; shared/hosted release checks remain separate.
+Delivery commit: `6729b740e4b421b015ad9d1b97af1b44749f9707`.
+Shared/hosted release checks remain separate.
