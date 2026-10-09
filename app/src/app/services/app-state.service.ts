@@ -58,7 +58,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.65';
+  readonly appVersion = '0.1.67';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -296,6 +296,7 @@ export class AppStateService {
   });
   readonly loadedCourseContentId = signal<string | null>(null);
   private loadedCourseContentView = '';
+  private readonly pendingMuxPolls = new Set<string>();
   private pendingCourseContentKey = '';
   private courseContentGeneration = 0;
   private courseOperationGeneration = 0;
@@ -1411,9 +1412,11 @@ export class AppStateService {
         [component.id]: 100,
       }));
       void this.refreshMuxVideoUntilReady(courseId, component.id);
-    } catch {
+    } catch (error) {
       if (!isCurrent()) return;
-      const message = 'Unable to upload the video to Mux. Please try again.';
+      const message = error instanceof Error && error.message === 'Video upload made no progress for 10 minutes.'
+        ? `${error.message} Remove the video and upload it again.`
+        : 'Unable to upload the video to Mux. Remove the video and upload it again.';
 
       this.muxUploadError.set(message);
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'errored', message);
@@ -2253,6 +2256,13 @@ export class AppStateService {
       this.loadedCourseContentId.set(courseId);
       this.loadedCourseContentView = key;
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
+      if (view === 'author') {
+        for (const section of loadedContent.sections) for (const component of section.components) {
+          if (component.type === 'video' && component.mux && ['waiting', 'uploading', 'processing'].includes(component.mux.status)) {
+            void this.refreshMuxVideoUntilReady(courseId, component.id);
+          }
+        }
+      }
     } catch (error) {
       if (generation !== this.courseContentGeneration || !isCurrent()) return;
       if (view === 'author' && error instanceof Error && error.message === 'Course content not found') {
@@ -2616,14 +2626,27 @@ export class AppStateService {
         file,
         dynamicChunkSize: true,
       });
+      let finished = false;
+      const failStalledUpload = () => {
+        if (finished) return;
+        finished = true;
+        reject(new Error('Video upload made no progress for 10 minutes.'));
+        upload.abort();
+      };
+      let inactivityTimer = setTimeout(failStalledUpload, 10 * 60_000);
 
       upload.on('progress', (event) => {
+        if (finished) return;
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(failStalledUpload, 10 * 60_000);
         const progress = typeof event.detail === 'number' ? event.detail : 0;
 
         onProgress(Math.round(progress));
       });
-      upload.on('success', () => resolve());
+      upload.on('success', () => { finished = true; clearTimeout(inactivityTimer); resolve(); });
       upload.on('error', (event) => {
+        finished = true;
+        clearTimeout(inactivityTimer);
         const detail = event.detail;
         const message = typeof detail === 'string' ? detail : 'Mux upload failed.';
 
@@ -2632,38 +2655,53 @@ export class AppStateService {
     });
   }
 
-  private async refreshMuxVideoUntilReady(
-    courseId: string,
-    componentId: string,
-    remainingAttempts = 12,
-  ): Promise<void> {
+  private async refreshMuxVideoUntilReady(courseId: string, componentId: string): Promise<void> {
     const token = this.loginState()?.token;
     const generation = this.courseContentGeneration;
     const isCurrent = this.courseResponseIsCurrent();
-    const stillEditing = () => isCurrent() && this.loginState()?.token === token && generation === this.courseContentGeneration &&
-      this.isCourseEditorPage() && this.courseContentId() === courseId && this.canUseCourseEditor() && this.loadedCourseContentId() === courseId;
-    if (!token || remainingAttempts <= 0 || !stillEditing()) {
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    if (!stillEditing()) return;
-
+    const initial = this.courseContent();
+    const initialComponent = initial && this.findCourseComponent(initial, componentId);
+    const uploadId = initialComponent?.type === 'video' ? initialComponent.mux?.uploadId : undefined;
+    const key = `${generation}:${courseId}:${componentId}:${uploadId}`;
+    if (!token || !uploadId || this.pendingMuxPolls.has(key)) return;
+    const stillEditing = () => {
+      const content = this.courseContent();
+      const component = content && this.findCourseComponent(content, componentId);
+      return isCurrent() && this.loginState()?.token === token && generation === this.courseContentGeneration &&
+        this.isCourseEditorPage() && this.courseContentId() === courseId && this.canUseCourseEditor() &&
+        this.loadedCourseContentId() === courseId && component?.type === 'video' &&
+        component.mux?.uploadId === uploadId && ['waiting', 'uploading', 'processing'].includes(component.mux.status);
+    };
+    this.pendingMuxPolls.add(key);
+    const started = Date.now();
     try {
-      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId, token, 'author'));
-      if (!stillEditing()) return;
-      this.applyCourseBackgroundRefresh(loadedContent);
-      this.loadedCourseContentId.set(courseId);
-
-      const component = this.findCourseComponent(loadedContent, componentId);
-      if (component?.type === 'video' && (component.mux?.status === 'ready' || component.mux?.status === 'errored')) {
-        return;
+      while (stillEditing()) {
+        // Each poll costs two Google Sheets reads against a shared 60-per-minute quota, so keep it slow.
+        await new Promise((resolve) => setTimeout(resolve, Date.now() - started < 10 * 60_000 ? 15_000 : 60_000));
+        if (!stillEditing()) return;
+        try {
+          const loaded = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId, token, 'author'));
+          if (!stillEditing()) return;
+          this.applyCourseBackgroundRefresh(loaded);
+          const component = this.findCourseComponent(loaded, componentId);
+          if (component?.type === 'video' && component.mux?.uploadId === uploadId) {
+            // Media callbacks are independent of unsaved lesson text. Keep the
+            // original draft revision and conflict guard, but show provider state.
+            this.courseContent.update((current) => current ? { ...current, sections: current.sections.map((section) => ({
+              ...section, components: section.components.map((local) =>
+                local.id === componentId && local.type === 'video' && local.mux?.uploadId === uploadId
+                  ? { ...local, mux: component.mux } : local),
+            })) } : null);
+          }
+          if (component?.type !== 'video' || !component.mux || component.mux.uploadId !== uploadId ||
+              ['ready', 'errored'].includes(component.mux.status)) return;
+        } catch {
+          // A transient read failure must not permanently stop processing updates.
+        }
       }
-    } catch {
-      return;
+    } finally {
+      this.pendingMuxPolls.delete(key);
     }
-
-    await this.refreshMuxVideoUntilReady(courseId, componentId, remainingAttempts - 1);
   }
 
   private findCourseComponent(content: CourseContentDocument, componentId: string): CourseComponent | null {

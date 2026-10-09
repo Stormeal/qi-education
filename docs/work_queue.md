@@ -52,6 +52,26 @@ and links to current verification. Delivery commit: `3feeea4` (2026-10-08).
 
 ## Completed delivery
 
+**US-T006 / INV-002 — Video operations; INV-016 / US-P008-AC04 — Main checks.**
+Done (selected video scope and main CI trigger). Owner: Codex. Branch: `main`. Base: `f602307`. Isolated clone:
+`qi-education-codex-media`; no shared environment or provider mutations.
+Scope: Mux service/routes/webhook, upload/polling and builder video panel, CI main
+trigger. Decisions: public playback; preserve assets referenced by published or
+working content; cleanup failures must not block removal. Implemented and verified
+with isolated stubs and stores. No push.
+2026-10-10 continuation: user's instruction to proceed follows the requested
+exception for the existing video-polling test fixture in `course-ownership.spec.ts`.
+Only that fixture is corrected; no ownership implementation changes.
+Spec: [video operations](specs/US-T006-video-operations.md).
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build,
+all six journeys; independent review has no important outstanding findings.
+Confirmed defects: DEF-T006-CLEANUP/PUBLIC/POLLING/UPLOAD-FAILURE. CI main trigger
+implemented; Pages workflow untouched. Live provider gaps are listed in the spec.
+Delivery: `cb38175` (version 0.1.65). Next: Claude reviews the combined result;
+perform disposable live-provider/hosted rehearsal only under release authorization.
+No push, deployment, or shared-service mutation.
+
+
 **US-P006 API increment / US-P007 spreadsheet half / US-P005 expiry increment.** Delivered locally.
 Owner: Codex. Selected/date: 2026-10-09. Branch/base: `main` / `f8d4c2f`.
 Implementation commit: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2` (version 0.1.62).

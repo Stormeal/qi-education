@@ -15,7 +15,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T003 | Protect unsaved authoring work | Done | P2 | None | DEF-006 |
 | US-T004 | Publish valid, answerable quizzes | Done | P2 | T002 authorization delivered | DEF-005 |
 | US-T005 | Save authoring work without silent overwrites | Done | P2 | T001 | DEF-015 / INV-001 |
-| US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
+| US-T006 | Manage media with clear operational states | Done (video scope) | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
 | US-T008 | Curate valid, versioned career paths | In progress | P2 | L006; path governance decisions | None |
 | US-T009 | Attach lesson files within limits the service can honor | In progress | P2 | T001; storage decision | Investigation INV-010 |
@@ -250,9 +250,12 @@ Feature: Reliable course saves
 **As a teacher, I want uploads, processing, and removal to have clear outcomes,
 so that I can maintain course material without broken references.**
 
-State: Proposed. Dependency: US-T001. Investigation: INV-002.
-Decisions: whether removal deletes Mux assets or only detaches them; retention and
-cleanup; public versus signed playback. Live integrations remain unverified by this audit.
+State: Done (video scope), 2026-10-10; delivery `cb38175`. Dependency: US-T001. Investigation: INV-002,
+confirmed as DEF-T006-CLEANUP, DEF-T006-PUBLIC and DEF-T006-POLLING.
+Decisions selected 2026-10-09: delete unreferenced assets; retain published/working
+references; log failed cleanup without blocking removal. Public playback only.
+Spec: [video operations](specs/US-T006-video-operations.md). Live integrations
+remain unverified; this session uses isolated stores and provider stubs.
 
 ```gherkin
 Feature: Course media operations
@@ -1096,6 +1099,9 @@ INV-013, INV-014, INV-015, INV-016. Scope: production startup checks, sign-in
 attempt limits, the local frontend's API target, and checks on pushes to `main`.
 Decisions: attempt limits and where they are enforced (host firewall or API);
 whether a failing check should block the API deployment or only report.
+
+AC04 delivered 2026-10-10 in `cb38175`: main push checks; all other criteria remain Proposed.
+See [video operations / main checks](specs/US-T006-video-operations.md).
 
 ```gherkin
 Feature: Safe operation of the live service

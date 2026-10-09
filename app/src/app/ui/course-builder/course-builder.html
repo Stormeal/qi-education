@@ -391,7 +391,7 @@
               }
 
               <div class="mux-upload-toolbar">
-                <div class="mux-upload-copy">
+                <div class="mux-upload-copy" role="status" aria-live="polite">
                   <strong>{{ muxStatusLabel(component) }}</strong>
                   <small>{{ muxStatusDescription(component) }}</small>
                   @if (muxUploadError()) {

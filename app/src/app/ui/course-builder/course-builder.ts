@@ -4,6 +4,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
   effect,
   inject,
@@ -63,6 +64,10 @@ type TextOutlineItem = {
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class CourseBuilder {
+  private readonly videoClock = signal(Date.now());
+  private readonly videoPendingSince = new Map<string, number>();
+  private readonly videoClockTimer = setInterval(() => this.videoClock.set(Date.now()), 5000);
+  private readonly stopVideoClock = inject(DestroyRef).onDestroy(() => clearInterval(this.videoClockTimer));
   private readonly document = inject(DOCUMENT);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly collapsedSections = new Set<number>();
@@ -429,6 +434,7 @@ export class CourseBuilder {
       return 'Ready for upload';
     }
 
+    if (this.muxVideoDelayed(component)) return 'Still processing after 10 minutes';
     switch (component.mux.status) {
       case 'waiting':
         return 'Preparing upload';
@@ -464,9 +470,12 @@ export class CourseBuilder {
       return 'Select a video file and QI Education will prepare the Mux upload automatically.';
     }
 
+    if (this.muxVideoDelayed(component)) {
+      return 'This video is taking longer than expected. We are still checking. You can wait, or remove the video and upload it again.';
+    }
     switch (component.mux.status) {
       case 'waiting':
-        return 'The upload slot is ready. Your file upload is about to begin.';
+        return 'Waiting for the file upload. If the upload was interrupted, remove the video and upload it again.';
       case 'uploading':
         return `${this.muxUploadProgressValue(component)}% uploaded`;
       case 'processing':
@@ -474,10 +483,20 @@ export class CourseBuilder {
       case 'ready':
         return 'Students will see this video when they open this component.';
       case 'errored':
-        return component.mux.errorMessage || 'Mux could not process this video.';
+        return `${component.mux.errorMessage || 'Mux could not process this video.'} Remove the video and upload it again.`;
       default:
         return 'Video status is updating.';
     }
+  }
+
+  private muxVideoDelayed(component: CourseComponent): boolean {
+    if (component.type !== 'video' || !component.mux || !['waiting', 'processing'].includes(component.mux.status)) return false;
+    const key = component.mux.uploadId || component.id;
+    if (!this.videoPendingSince.has(key)) {
+      const updated = Date.parse(this.courseContent()?.updatedAt ?? '');
+      this.videoPendingSince.set(key, Math.min(this.videoClock(), Number.isFinite(updated) ? updated : this.videoClock()));
+    }
+    return this.videoClock() - this.videoPendingSince.get(key)! >= 10 * 60_000;
   }
 
   protected muxVideoSelected(
