@@ -58,7 +58,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.71';
+  readonly appVersion = '0.1.72';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -297,6 +297,8 @@ export class AppStateService {
   readonly loadedCourseContentId = signal<string | null>(null);
   private loadedCourseContentView = '';
   private readonly pendingMuxPolls = new Set<string>();
+  // Replaceable in tests: module-level fakes of the upload library are not applied on every platform.
+  private createChunkedUpload = UpChunk.createUpload;
   private pendingCourseContentKey = '';
   private courseContentGeneration = 0;
   private courseOperationGeneration = 0;
@@ -2621,7 +2623,7 @@ export class AppStateService {
     onProgress: (progress: number) => void,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const upload = UpChunk.createUpload({
+      const upload = this.createChunkedUpload({
         endpoint: uploadUrl,
         file,
         dynamicChunkSize: true,
