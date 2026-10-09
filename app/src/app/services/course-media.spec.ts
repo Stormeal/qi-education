@@ -82,11 +82,15 @@ describe('US-T006 pending video polling', () => {
     state.courseContent.set(empty);
     vi.spyOn(service, 'saveCourseContent').mockResolvedValue({ ok: true, content: empty });
     const create = vi.spyOn(service, 'createMuxUpload').mockResolvedValue({ ok: true, uploadId: 'upload', uploadUrl: 'https://isolated.test/upload', content: pending });
+    const transfer = vi.spyOn(state as unknown as { uploadFileToMux(): Promise<void> }, 'uploadFileToMux');
     const uploading = state.uploadCourseComponentMuxVideo(0, 0, new File(['isolated'], 'video.mp4', { type: 'video/mp4' }));
     await vi.advanceTimersByTimeAsync(0);
+    const transferResult = transfer.mock.results[0] as { type: string; value: unknown } | undefined;
+    const reason = transferResult?.type === 'throw' ? String(transferResult.value)
+      : await Promise.race([(transferResult?.value as Promise<void> | undefined)?.then(() => 'resolved', (e) => `rejected: ${e}`), Promise.resolve('pending')]);
     // Report why an upload stopped early before asserting that it is still running.
-    expect({ error: state.muxUploadError(), saveError: state.courseContentError(), conflict: state.courseSaveConflict(), draft: !!state.recoverableCourseDraft() })
-      .toEqual({ error: '', saveError: '', conflict: false, draft: false });
+    expect({ reason, transferCalls: transfer.mock.calls.length, fakeCalls: vi.mocked(createUpload).mock.calls.length, error: state.muxUploadError(), saveError: state.courseContentError(), conflict: state.courseSaveConflict(), draft: !!state.recoverableCourseDraft() })
+      .toEqual({ reason: 'pending', transferCalls: 1, fakeCalls: 1, error: '', saveError: '', conflict: false, draft: false });
     expect(state.muxUploadComponentId()).toBe('video');
     await vi.advanceTimersByTimeAsync(10 * 60_000);
     await uploading;
