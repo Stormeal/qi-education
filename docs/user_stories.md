@@ -941,7 +941,8 @@ Feature: Reliable private career guidance
 **As an operator, I want to reconcile an interrupted course write safely, so that
 learners regain access without a delayed operation overwriting the recovered course.**
 
-State: In progress (selected expiry increment verified; delivery commit pending).
+State: In progress (selected expiry increment delivered 2026-10-09 in `67ec9f2`;
+broader operator tooling remains Proposed).
 Owner: Codex. Spec: [bounded lock recovery](specs/US-P005-lock-recovery.md).
 Source: DEF-002–004 coordination review and recovery runbook.
 INV-006 (2026-10-09 code audit) questions the no-takeover decision below: any provider
@@ -954,8 +955,8 @@ assisted recovery. Alex approved expiry beyond the host maximum on 2026-10-09.
 The selected increment permits owner-scoped reclaim after 31 minutes (beyond
 Vercel's 30-minute maximum), including legacy records. Invalid/young ownership
 fails closed. Previously accepted remote writes still require reconciliation;
-expiry cannot fence them. The historical no-age-takeover criteria below are
-superseded for this selected increment by the linked spec; operator tooling remains Proposed.
+expiry cannot fence them. The criteria below reflect the approved bounded-expiry
+increment; operator tooling remains Proposed.
 
 ```gherkin
 Feature: Verified course operation recovery
@@ -983,7 +984,8 @@ Feature: Verified course operation recovery
 **As a learner, I want lessons to load when my whole class opens the same course,
 so that a busy moment does not show errors or an "updating" message.**
 
-State: In progress (selected API increment verified; delivery commit pending).
+State: In progress (selected API increment delivered 2026-10-09 in `67ec9f2`;
+hosted minute-budget verification and optional AC06 remain).
 Owner: Codex. Spec: [API class load](specs/US-P006-class-load.md).
 Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
 INV-005, INV-007, INV-011, INV-012 reproduced as DEF-P006-01–04. INV-018 remains
@@ -1045,7 +1047,7 @@ State: In progress. Editor half (AC01, AC02) fixed locally 2026-10-09 by Claude 
 DEF-P007-EDITOR: [editor markup spec](specs/US-P007-editor-markup.md). Spreadsheet half
 (AC03, AC04) is locally verified by Codex as DEF-P007-SHEETS: all nine data-write
 paths use RAW; `=1+1` and `007` round-trip unchanged in the isolated emulator.
-[Spreadsheet spec](specs/US-P007-spreadsheet-text.md); delivery commit pending.
+[Spreadsheet spec](specs/US-P007-spreadsheet-text.md); delivered 2026-10-09 in `67ec9f2`.
 Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
 INV-008, INV-009. Scope: every place the editor inserts stored lesson HTML,
 server acceptance of lesson HTML, and every spreadsheet write of user-supplied

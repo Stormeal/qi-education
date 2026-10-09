@@ -1,6 +1,8 @@
 # US-P006: API availability under class load
 
-State: In progress. Owner: Codex. Branch/base: main / f8d4c2f. Selected 2026-10-09.
+State: In progress (selected API increment delivered; hosted AC02 budget and
+optional AC06 remain). Owner: Codex. Branch/base: main / f8d4c2f. Selected 2026-10-09.
+Delivery: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2` (version 0.1.62).
 Related investigations: INV-005, INV-007, INV-011, INV-012 (reproduce before promotion).
 
 ## Contract and decisions
@@ -28,7 +30,7 @@ AC06 is optional after this scope; private caching policy is unchanged until tes
 - [x] Replace read-route coordination with review context; retain write locks.
 - [x] Verify parallel reads, forbidden access, live/private review compatibility,
   attachment denial, catalog projection and cross-role journey (GREEN).
-- [ ] Full combined-tree checks, review own diff, version bump and local commit.
+- [x] Full combined-tree checks, independent review, version bump and local commit.
 
 ## Reproduction on f8d4c2f (2026-10-09)
 
@@ -72,7 +74,7 @@ AC06 deferred as permitted by the user; no thumbnail cache-policy change.
 Initial combined suite: 316 API tests, 128 frontend tests, six journey scenarios, API build
 and Pages build pass. Pages retains three existing stylesheet budget warnings.
 Final suite after review fixes: 319 API tests and all other checks pass again.
-Local delivery commit pending. No browser/product UI change in this API
+Local delivery: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2`. No browser/product UI change in this API
 batch; HTTP regressions exercise the client contracts. Hosted quota/finality pending.
 
 No UI change or shared-store migration. Evidence and route counts are recorded here

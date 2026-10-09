@@ -480,32 +480,45 @@ stub; no shared mutations. `platformLoad.test.ts` contains five RED regressions.
 
 | Defect | Promoted investigation | Reproduction | State |
 | --- | --- | --- | --- |
-| DEF-P006-01 | INV-005 | Distinct client per call; me 3, catalog 4, outline/content/thumbnail/quiz 5 Sheets reads | Confirmed P1 |
-| DEF-P006-02 | INV-007 | Only 1 of 20 readers enters while first content read is paused | Confirmed P1 |
-| DEF-P006-03 | INV-011 | Catalog of 50 seeded courses plus demo performs 51 full content reads | Confirmed P2 |
-| DEF-P006-04 | INV-012 | Saving ten 4 MiB attachment references fetches 41,943,040 binary bytes | Confirmed P2 |
+| DEF-P006-01 | INV-005 | Distinct client per call; me 3, catalog 4, outline/content/thumbnail/quiz 5 Sheets reads | Fixed P1 |
+| DEF-P006-02 | INV-007 | Only 1 of 20 readers enters while first content read is paused | Fixed P1 |
+| DEF-P006-03 | INV-011 | Catalog of 50 seeded courses plus demo performs 51 full content reads | Fixed P2 |
+| DEF-P006-04 | INV-012 | Saving ten 4 MiB attachment references fetches 41,943,040 binary bytes | Fixed P2 |
 
 Contract/final evidence: [US-P006 spec](specs/US-P006-class-load.md).
 Provider quota exhaustion is not reproduced by these isolated counts; disposable
-Sheets load and hosted Mongo verification remain release checks. Delivery pending.
+Sheets load and hosted Mongo verification remain release checks. Fixed 2026-10-09
+in `67ec9f2a8da47c31a835ff1ffc430087520ab7a2`: shared client, 1/2 reads per route,
+concurrent readers, batched review metadata and asset-owner projections. Independent
+review's author snapshot/save-token race is covered by a RED-to-GREEN regression.
+319 API / 128 frontend tests, six journey checks and both builds pass locally.
+Fixed means resolved in code; no deployment or hosted quota verification.
 
 ### DEF-P007-SHEETS — Spreadsheet text becomes formula/number
 
-Promoted INV-009, 2026-10-09, owner Codex, P1 Confirmed. Isolated Sheets emulator
+Promoted INV-009, 2026-10-09, owner Codex, P1 Fixed. Isolated Sheets emulator
 through real auth/course/feedback repositories: `=1+1` reads back as `2`; `007`
 as `7`; `+01` and `-01` lose their formatting. Reproduced all nine data write
 paths (audit said eight) with `spreadsheetText.test.ts` before the mode change.
 No shared cell mutations. Contract: [spreadsheet text](specs/US-P007-spreadsheet-text.md).
 Live provider round trips remain a disposable spreadsheet release check.
+Resolution: nine RAW data writes in `67ec9f2a8da47c31a835ff1ffc430087520ab7a2`;
+five RED-to-GREEN round-trip cases, 319 API / 128 frontend tests and all builds pass.
+No historical shared cells repaired; not yet hosted-Verified.
 
 ### DEF-P005-LOCK — Interrupted mutation leaves permanent ownership
 
-Promoted INV-006, 2026-10-09, owner Codex, P1 Confirmed. Fake collection/clock:
+Promoted INV-006, 2026-10-09, owner Codex, P1 Fixed. Fake collection/clock:
 a Sheets 429 wrapped as an uncertain write retains its owner; even after 31
 minutes, the next mutation times out with 409. A simulated killed legacy owner
 behaves the same. `lockRecovery.test.ts` reproduced both before implementation.
 Alex approved bounded expiry beyond the host maximum. Contract and accepted
 remote-write finality risk: [lock recovery](specs/US-P005-lock-recovery.md).
+Resolution: 31-minute owner/timestamp-scoped reclaim in
+`67ec9f2a8da47c31a835ff1ffc430087520ab7a2`. Eight expiry/race/malformed timestamp
+regressions and existing lock/lifecycle suites pass; 319 API / 128 frontend tests
+and all builds pass. Young/uncertain owners remain held until the approved bound.
+Hosted clocks, durability and uncertain provider outcomes require release checks.
 
 | ID | Concern and code evidence | Next verification | Related story |
 | --- | --- | --- | --- |

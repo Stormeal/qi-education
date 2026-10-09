@@ -1,6 +1,7 @@
 # US-P007: Literal spreadsheet text
 
-State: In progress (spreadsheet half). Owner: Codex. Branch/base: main / f8d4c2f.
+State: Done (spreadsheet half). Owner: Codex. Branch/base: main / f8d4c2f.
+Delivery: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2` (2026-10-09, version 0.1.62).
 Selected 2026-10-09. Related investigation: INV-009. Claude owns HTML/editor scope.
 
 US-P007-AC03/04: user text including `=1+1`, `+1`, `-1`, `@name`, and `007`
@@ -20,7 +21,7 @@ Promoted INV-009 to DEF-P007-SHEETS. Five RED-to-GREEN cases in
 name, course title and feedback text through create and subsequent writes;
 feedback issue URL also remains literal. All nine data calls assert RAW.
 Combined-tree verification: 316 API / 128 frontend tests, six role-journey checks,
-API and Pages builds pass on 2026-10-09. Delivery commit pending.
+API and Pages builds pass on 2026-10-09; final suite after review fixes: 319 API.
 
 Existing shared formula cells are not repaired. Real provider round trips remain a
-disposable spreadsheet release check. Delivery evidence/commit pending.
+disposable spreadsheet release check. HTML/editor work belongs to Claude's spec.

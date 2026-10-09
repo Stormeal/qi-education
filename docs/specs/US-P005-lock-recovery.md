@@ -1,6 +1,8 @@
 # US-P005: Bounded course mutation ownership
 
-State: In progress (expiry increment). Owner: Codex. Branch/base: main / f8d4c2f.
+State: Done (expiry increment; broader operator tooling remains Proposed).
+Owner: Codex. Branch/base: main / f8d4c2f.
+Delivery: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2` (2026-10-09, version 0.1.62).
 Selected 2026-10-09. Related investigation: INV-006.
 
 Alex's decision: allow expiry longer than Vercel's maximum function duration.
@@ -30,7 +32,7 @@ must not run operations beyond the supported host bound.
 - [x] Reproduce retained/abandoned ownership with fake collection and fake clock.
 - [x] Confirm host duration, choose expiry with margin, implement owner-scoped reclaim.
 - [x] Verify boundaries, legacy records, live contention, late cleanup and failures.
-- [ ] Record full checks and delivery commit; hosted durability remains pending.
+- [x] Record full checks and delivery commit; hosted durability remains pending.
 
 Promoted INV-006 as DEF-P005-LOCK. `lockRecovery.test.ts` proves retained Sheets
 429 ownership before expiry, recovery after expiry, exact-boundary legacy killed
@@ -44,3 +46,4 @@ retain ownership (two additional RED-to-GREEN cases).
 Combined 316 API / 128 frontend tests and six journey scenarios, API and Pages
 builds pass locally 2026-10-09. Operator UI/auth tooling remains Proposed; no shared
 records changed. Hosted MongoDB reclaim/clock/provider behavior remains pending.
+Final combined API suite after the two review fixes: 319 tests pass.

@@ -4,26 +4,6 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**US-P006 / US-P007 spreadsheet half / US-P005 — API reliability.** In progress.
-Owner: Codex. Selected by user 2026-10-09. Branch: `main`. Base: `f8d4c2f`.
-Scope: reproduce INV-005/007/011/012, reduce reads and avoid reader locks;
-then INV-009 literal Sheets writes; then INV-006 bounded abandoned-owner recovery.
-Alex approved expiry beyond Vercel's maximum invocation duration in this session.
-API ownership excludes Claude's career-path files/routes and `journey.test.ts`.
-Reproduced INV-005/007/011/012 with five RED regressions in `platformLoad.test.ts`.
-Defect IDs reserved for this work: DEF-P006-01 through DEF-P006-04;
-DEF-P007-SHEETS and DEF-P005-LOCK for subsequent reproductions (no numeric collisions).
-Implemented: shared Sheets client, request/in-flight read reuse, metadata-only
-catalog and ownership projections, lock-free readers, nine RAW data writes,
-31-minute owner-scoped expiry. Independent review's malformed timestamps and
-split author content/save-token races fixed with RED-to-GREEN regressions.
-Next: final combined-tree checks after version bump, then local delivery commit.
-AC06 deferred; hosted quota/durability/provider finality checks remain separate.
-At commit time only, Codex must update the shared app package version and
-`app/src/app/services/app-state.service.ts` version string to satisfy the hook;
-this is the required exception to API-only ownership. No other app edits authorized.
-Specs: `US-P006-class-load.md`, `US-P007-spreadsheet-text.md`, `US-P005-lock-recovery.md`.
-
 **US-L009 / US-L012 / US-T008 (with the US-L006 read foundation) — Career paths.** In progress.
 Owner: Claude Code. Selected by user 2026-10-09. Branch: `main`. Base: `5211365`.
 Spec, decisions and scenario map: [career paths](specs/US-L009-L012-T008-career-paths.md).
@@ -68,6 +48,28 @@ it to current main. [The handoff](handoffs/DEF-005.md) keeps the original record
 and links to current verification. Delivery commit: `3feeea4` (2026-10-08).
 
 ## Completed delivery
+
+**US-P006 API increment / US-P007 spreadsheet half / US-P005 expiry increment.** Delivered locally.
+Owner: Codex. Selected/date: 2026-10-09. Branch/base: `main` / `f8d4c2f`.
+Implementation commit: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2` (version 0.1.62).
+INV-005/007/011/012/009/006 reproduced before fixing; promoted as DEF-P006-01–04,
+DEF-P007-SHEETS and DEF-P005-LOCK, now Fixed. Specs: [class load](specs/US-P006-class-load.md),
+[spreadsheet text](specs/US-P007-spreadsheet-text.md), [lock recovery](specs/US-P005-lock-recovery.md).
+Shared client; authenticated course reads 5 → 2 Sheets calls; concurrent-only
+fetch sharing; 20 simultaneous readers; all five read routes remain available
+under a held writer. Catalog uses one metadata-only batch; saving ten 4 MiB
+attachment references reads zero binary bytes. Nine RAW writes preserve literal
+`=1+1` and `007`. Alex approved 31-minute expiry beyond Vercel's 30-minute max;
+owner/timestamp predicates protect successors, malformed timestamps fail closed.
+Independent review's split author content/save-token race and timestamp parsing
+findings fixed with RED-to-GREEN regressions. 319 API / 128 frontend tests,
+six `verify:journeys` scenarios, API build and Pages build pass on the combined tree.
+Claude's career-path routes/files and release journey were preserved. Only app edits:
+package/rendered version strings at commit time, the exception recorded here before
+editing; the docs-only delivery-record commit also requires an aligned bump.
+Remaining: AC06 deferred as permitted; disposable-provider/cold-instance quota,
+Mongo expiry/clock/durability and uncertain provider outcome checks before release.
+Broader US-P005 operator tooling remains Proposed. No shared mutations, push or deployment.
 
 **US-T003 / US-T005 — Local draft recovery and reliable saves.** Done.
 Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `5211365`.
