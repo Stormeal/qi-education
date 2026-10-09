@@ -58,18 +58,19 @@
                     <div class="learning-quiz-player">
                       <header class="learning-quiz-topbar">
                         <span>Question {{ activeQuizQuestionNumber() }} of {{ activeQuizQuestions().length }}</span>
-                        <span>{{ activeQuizProgressPercent() }}% complete</span>
+                        <span>{{ activeQuizPositionPercent() }}% through questions</span>
                       </header>
 
                       <div
                         class="learning-quiz-progress"
                         role="progressbar"
-                        [attr.aria-valuenow]="activeQuizProgressPercent()"
+                        [attr.aria-valuenow]="activeQuizPositionPercent()"
+                        [attr.aria-valuetext]="'Question ' + activeQuizQuestionNumber() + ' of ' + activeQuizQuestions().length"
                         aria-valuemin="0"
                         aria-valuemax="100"
-                        aria-label="Quiz progress"
+                        aria-label="Question position"
                       >
-                        <span [style.width.%]="activeQuizProgressPercent()"></span>
+                        <span [style.width.%]="activeQuizPositionPercent()"></span>
                       </div>
 
                       <section class="learning-quiz-prompt" aria-labelledby="learning-player-title">
@@ -222,6 +223,9 @@
               <div>
                 <h2>Course content</h2>
                 <p>{{ contentSummary() }}</p>
+                @if (courseProgress() && !courseContentLoading() && !courseContentError()) {
+                  <p>{{ courseProgress()!.completed }} of {{ courseProgress()!.total }} completed · {{ courseProgress()!.percent }}%</p>
+                }
               </div>
               @if (hasRealCurriculum()) {
                 <button type="button" (click)="toggleAllSections()">

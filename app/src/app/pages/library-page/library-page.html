@@ -29,6 +29,7 @@
       <app-loading-skeleton variant="course-card" [count]="3" />
     } @else if (coursesError()) {
       <p class="course-error" role="alert">{{ coursesError() }}</p>
+      <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
     } @else if (courses().length === 0) {
       <div class="library-empty">
         <span aria-hidden="true"></span>
@@ -53,12 +54,19 @@
               <span>{{ course.description }}</span>
             </div>
             <div class="library-course-side">
-              <strong>0%</strong>
-              <span>Progress</span>
+              @let value = courseProgress(course.id);
+              @if (value?.progressState === 'ready') {
+                <strong>{{ value!.progress }}%</strong>
+                <span>{{ value!.completed }} of {{ value!.total }} completed</span>
+              } @else {
+                <strong>{{ value?.progressState === 'error' ? 'Unavailable' : 'Loading…' }}</strong>
+                <span>Progress</span>
+              }
             </div>
           </a>
         }
       </div>
+      <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Refresh progress</app-button>
     }
   </section>
 

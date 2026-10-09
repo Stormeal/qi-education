@@ -29,12 +29,12 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-004 | Enrollment accepts unpublished/archived courses | P1 | Fixed | Resolved 2026-10-07 in `a6767f6`; batch regression checks pass | US-L001 |
 | DEF-005 | An impossible quiz can be saved and published | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; LC-05 regression/browser checks pass | US-T004 |
 | DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; warnings-only NW-01–05 checks pass | US-T003 |
-| DEF-007 | Library progress is hardcoded to 0 percent | P2 | Open | Browser and template | US-L002 |
+| DEF-007 | Library progress is hardcoded to 0 percent | P2 | In progress | Browser and template | US-L002 |
 | DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Open | Isolated API | US-P002 |
-| DEF-009 | Dashboard presents fixture activity as account progress | P2 | Open | Browser and code | US-L002 |
+| DEF-009 | Dashboard presents fixture activity as account progress | P2 | In progress | Browser and code | US-L002 |
 | DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Fixed | Runtime fix `a6767f6`; DL-01–04 verified 2026-10-08 in `3feeea4` | US-L001 |
 | DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
-| DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Open | Untouched quiz browser capture and computed formula | US-L002 |
+| DEF-014 | Quiz completion indicator counts question position as completed work | P2 | In progress | Untouched quiz browser capture and computed formula | US-L002 |
 
 All are local/code findings. Production impact has not been verified against
 shared stores or user accounts. The audit report preserves the original findings;
@@ -210,10 +210,20 @@ recovery and broader career/access workflows are outside this delivery.
   `app/src/app/pages/course-view-page/course-view-page.ts`.
 - Verify fix: a two-component course shows 50% after one completion in both views;
   completion and persistence rules are to be selected in US-L002.
-- Fix commit / verified environment: none / pending.
 - Reconfirmed 2026-10-05: complete the text and pass/finish the quiz in an isolated
   two-component enrolled course; both IDs are in browser completion storage, but
   My Learning still shows 0%. [Evidence](audits/2026-10-05/career-library-after-completion.png).
+
+- Resolution implemented 2026-10-09: shared LearningProgressService uses existing
+  account/course keys and current outline IDs for workspace, library and Home.
+  Duplicate/stale IDs cannot inflate progress; 100% requires every current lesson.
+  Pending/error outlines show loading/unavailable with retry. Session-only values
+  survive navigation if persistence fails. Same-browser resume remains supported.
+- Regression evidence: LP-01/02/04 in `learning-progress.spec.ts` and
+  [isolated browser/check record](verification/2026-10-09/DEF-007-009-014.md).
+  Original 0% rendering reproduced before the fix. 98 frontend/196 API tests pass.
+- Delivery commit pending. Hosted browser/storage checks remain release work;
+  cross-device completion remains Proposed.
 
 ### DEF-008 — Request errors become HTTP 500
 
@@ -238,12 +248,22 @@ recovery and broader career/access workflows are outside this delivery.
 - Source: `app/src/app/services/app-state.service.ts`, dashboard route/page components.
 - Verify fix: accounts with no activity show an honest empty state; actual enrollment
   and completion update Home and My Learning consistently.
-- Fix commit / verified environment: none / pending.
 - Career path audit, 2026-10-05: a newly signed-up, unenrolled local account shows
   38% career progress, 62% active-course progress, and a completed Chapter 3.
   Its library is empty. An existing learner completing both real test components
   also leaves Home unchanged. The target career role is assigned from permission
   role, not the saved profile goal. [Audit and captures](audits/2026-10-05/career_path_audit.md).
+
+- Resolution implemented 2026-10-09: Home renders actual enrolled course titles,
+  shared completion, next incomplete lesson and real learning links. Empty accounts
+  receive Browse courses. Catalog/outline failures have honest states and retry.
+  Fictional chapters, role-derived career percentages and claimed matched
+  recommendations have been removed. Career progress is explicitly unavailable.
+- Regression evidence: LP-01/03/04; original empty-account fixture rendering failed
+  before implementation. [Verification](verification/2026-10-09/DEF-007-009-014.md)
+  includes learner completion, another account, refresh and Browse courses.
+- Delivery commit pending. Hosted checks remain release work; broader career
+  selection/progress features remain Proposed.
 
 ### DEF-010 — Direct learning URL does not restore course metadata
 
@@ -286,7 +306,7 @@ recovery and broader career/access workflows are outside this delivery.
 
 ### DEF-014 — Quiz completion indicator counts position as completed work
 
-- Severity/state: P2 / Open. Discovered: 2026-10-05. Owner: unassigned.
+- Severity/state: P2 / In progress. Discovered: 2026-10-05. Owner: Codex.
 - Tested: `main`, base `9a2f30b` plus uncommitted DEF-002–DEF-005 work; isolated
   Angular browser and in-memory API, no shared stores.
 - Expected contract: question position is distinct from completed assessment work
@@ -302,15 +322,24 @@ recovery and broader career/access workflows are outside this delivery.
   that a quiz lesson has been marked passed; that is a separate rule.
 - Source: `app/src/app/pages/course-view-page/course-view-page.ts`
   (`activeQuizProgressPercent`) and its template's quiz topbar/progressbar.
-- Related story: US-L002-AC04. Spec: pending selection of a narrow labeling versus
-  attempt-progress contract; do not silently expand grading behavior.
+- Related story: US-L002-AC04. Selected contract: LP-05 in
+  [the local progress spec](specs/DEF-007-009-014-learning-progress.md); position
+  labeling is delivered without expanding grading behavior.
 - Regression check: untouched one- and multi-question quizzes, final-question
   navigation, skipped questions, failed/pass outcomes, and text/accessibility values.
   Renaming a position indicator is a valid small fix if it clearly identifies
   position and never claims completion; real completion must use an agreed rule.
 - Evidence: [career path audit](audits/2026-10-05/career_path_audit.md) and
   [untouched quiz capture](audits/2026-10-05/career-quiz-before-answer.png).
-- Fix commit/date: none. Verification: reproduced locally; fix checks pending.
+
+- Resolution implemented 2026-10-09: percentage describes position through questions,
+  with Question position and Question X of Y accessible text. It does not claim
+  assessment completion. Existing trusted server scoring/Finish rules remain intact.
+- Regression evidence: LP-05 in route/page tests covers untouched one-question and
+  final multi-question position, skipped answers, failure, retry and passing.
+  [Browser evidence](verification/2026-10-09/DEF-007-009-014.md) shows 50% course
+  progress through a failed quiz, and 100% only after successful completion.
+- Delivery commit pending. Hosted accessibility/browser checks remain release work.
 
 ## Existing reported defects, not yet reproduced
 

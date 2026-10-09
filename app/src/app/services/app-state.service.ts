@@ -17,7 +17,6 @@ import {
   FeedbackTriageUpdate,
   LoginState,
   MuxVideoStatus,
-  NextAction,
   QuizComponentContent,
   SignupRequest,
   UserProfileDetails,
@@ -28,6 +27,7 @@ import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { SessionService } from './session.service';
+import { LearningProgressService } from './learning-progress.service';
 import { canEditCourse } from '../utils/course-permissions';
 
 @Injectable({ providedIn: 'root' })
@@ -38,8 +38,9 @@ export class AppStateService {
   private readonly feedbackService = inject(FeedbackService);
   private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
+  private readonly learningProgress = inject(LearningProgressService);
 
-  readonly appVersion = '0.1.46';
+  readonly appVersion = '0.1.47';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -155,91 +156,20 @@ export class AppStateService {
   ];
 
   readonly student = computed(() => ({
-    name: this.loginState()?.user.displayName || 'Alex',
+    name: this.loginState()?.user.displayName || 'Learner',
     currentRole: this.currentRoleLabel(this.loginState()?.user.role),
-    targetRole: this.targetRoleLabel(this.loginState()?.user.role),
-    pathProgress: this.pathProgressValue(this.loginState()?.user.role),
+    targetRole: this.profileLearningGoals(),
+    pathProgress: null,
   }));
 
-  readonly courses = signal<CourseSummary[]>([
-    {
-      title: 'ISTQB Foundation 4.0',
-      teacher: 'Testhuset',
-      level: 'Foundation',
-      status: 'In progress',
-      progress: 62,
-      nextLesson: 'Test techniques overview',
-      goals: ['Core testing', 'Certification'],
-    },
-    {
-      title: 'Agile Tester Extension',
-      teacher: 'Testhuset',
-      level: 'Specialist',
-      status: 'Recommended',
-      progress: 0,
-      nextLesson: 'Agile testing mindset',
-      goals: ['Agile projects', 'Team quality'],
-    },
-    {
-      title: 'Test Management Basics',
-      teacher: 'Testhuset',
-      level: 'Management',
-      status: 'Recommended',
-      progress: 0,
-      nextLesson: 'Planning risk-based test work',
-      goals: ['Risk', 'Leadership'],
-    },
-  ]);
-
-  readonly nextActions = computed<NextAction[]>(() => {
-    const role = this.loginState()?.user.role;
-    const roleSpecificAction: NextAction =
-      role === 'admin'
-        ? {
-            title: 'Review platform administration',
-            chapter: 'Admin',
-            meta: 'Check user roles, access levels, and learning operations.',
-            state: 'next',
-            progress: 0,
-          }
-        : role === 'teacher'
-          ? {
-              title: 'Create a new course draft',
-              chapter: 'Teacher tools',
-              meta: 'Build the next Testhuset learning module.',
-              state: 'next',
-              progress: 0,
-            }
-          : {
-              title: 'Pick a specialization track',
-              chapter: 'Next step',
-              meta: 'Agile, technical, or management.',
-              state: 'next',
-              progress: 0,
-            };
-
-    return [
-      {
-        title: 'Test analysis and design',
-        chapter: 'Chapter 3',
-        meta: 'Finished before the current chapter.',
-        state: 'complete',
-        progress: 100,
-      },
-      {
-        title: 'Test design techniques',
-        chapter: 'Chapter 4',
-        meta: 'Current chapter in ISTQB Foundation 4.0.',
-        state: 'current',
-        progress: 62,
-      },
-      roleSpecificAction,
-    ];
-  });
-
-  readonly activeCourse = computed(
-    () => this.courses().find((course) => course.status === 'In progress') ?? this.courses()[0],
-  );
+  readonly courses = computed<CourseSummary[]>(() => this.enrolledCourses().map(course => {
+    const progress = this.learningProgress.summary(this.loginState()?.user.email ?? '', course.id);
+    return { id: course.id, title: course.title, teacher: course.teacher, level: course.level,
+      status: progress.state !== 'ready' ? 'Unavailable' : progress.total > 0 && progress.completed === progress.total ? 'Completed' : 'In progress',
+      progress: progress.percent, progressState: progress.state, completed: progress.completed, total: progress.total,
+      nextLesson: progress.nextLesson, goals: course.careerGoals };
+  }));
+  readonly activeCourse = computed(() => this.courses().find(course => course.status !== 'Completed') ?? this.courses()[0] ?? null);
 
   readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
   readonly isLibraryPage = computed(() => this.currentPath() === '/library');
@@ -354,6 +284,7 @@ export class AppStateService {
   }
 
   private resetCourseOperations(): void {
+    this.learningProgress.cancelLoads();
     this.courseOperationGeneration++;
     this.courseContentGeneration++;
     this.courseCatalogLoadPromise = null;
@@ -377,10 +308,6 @@ export class AppStateService {
   private coursePriceNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private courseCatalogNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
-
-  readonly recommendedCourses = computed(() =>
-    this.courses().filter((course) => course.status === 'Recommended'),
-  );
 
   constructor() {
     this.sessionService.setSessionContextProvider(() => this.loginState());
@@ -482,6 +409,7 @@ export class AppStateService {
       }
 
       const login = result.login;
+      this.learningProgress.reset();
       this.loginState.set({
         token: login.token,
         user: login.user,
@@ -543,6 +471,7 @@ export class AppStateService {
       }
 
       const login = result.login;
+      this.learningProgress.reset();
       this.loginState.set({
         token: login.token,
         user: login.user,
@@ -572,6 +501,7 @@ export class AppStateService {
 
   logout(forced = false): void {
     if (!forced && !this.confirmDiscardCourseChanges()) return;
+    this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
     this.courseEditorBufferDirty.set(false);
     this.resetCourseOperations();
@@ -636,6 +566,7 @@ export class AppStateService {
 
       this.resetCourseOperations();
       this.initializedCourseEditorPath = '';
+      this.learningProgress.reset();
       this.availableCourses.set([]);
       this.courseContent.set(null);
       this.loadedCourseContentId.set(null);
@@ -653,6 +584,10 @@ export class AppStateService {
     } finally {
       this.isSessionRestoring.set(false);
     }
+  }
+
+  retryLearningProgress(): void {
+    void this.loadCoursesWhenNeeded();
   }
 
   navigateHome(): void {
@@ -2100,7 +2035,7 @@ export class AppStateService {
 
     if (
       !this.loginState() ||
-      (!currentPath.startsWith('/courses') && !currentPath.startsWith('/library')) ||
+      (currentPath !== '/' && currentPath !== '/admin' && !currentPath.startsWith('/courses') && !currentPath.startsWith('/library')) ||
       this.coursesLoading()
     ) {
       return;
@@ -2114,6 +2049,7 @@ export class AppStateService {
       const courses = await this.loadCourseCatalog();
       if (!isCurrent()) return;
       this.availableCourses.set(courses);
+      void this.learningProgress.loadCourses(this.enrolledCourses(), token);
       this.syncCourseEditorDraftFromPath(true);
       await this.courseService.preloadCourseThumbnails(courses, token);
       if (!isCurrent()) return;
@@ -2973,25 +2909,4 @@ export class AppStateService {
     }
   }
 
-  private targetRoleLabel(role: UserRole | undefined): string {
-    switch (role) {
-      case 'admin':
-        return 'Full platform oversight';
-      case 'teacher':
-        return 'Course creator';
-      default:
-        return 'ISTQB Advanced Test Analyst';
-    }
-  }
-
-  private pathProgressValue(role: UserRole | undefined): number {
-    switch (role) {
-      case 'admin':
-        return 92;
-      case 'teacher':
-        return 74;
-      default:
-        return 38;
-    }
-  }
 }

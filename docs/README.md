@@ -17,6 +17,7 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | Access and quiz readiness contracts |
 | [Unsaved navigation specification](specs/DEF-006-unsaved-navigation.md) | Warning and discard behavior; recovery excluded |
 | [Direct learning specification](specs/DEF-010-direct-learning.md) | Remembered session, loading, errors and entitlement |
+| [Local learning progress specification](specs/DEF-007-009-014-learning-progress.md) | Real course progress, honest Home and quiz position |
 | [Course operation recovery](course_operation_recovery.md) | Durable ownership and required hosted recovery checks |
 | [DEF-005 handoff](handoffs/DEF-005.md) | Historical publication readiness patch and delivery record |
 | [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
@@ -39,6 +40,10 @@ DEF-005/006/010 are resolved locally; fixes and dedicated verification were deli
 on 2026-10-08 in `3feeea4`. See their
 [verification record](verification/2026-10-08/DEF-005-006-010.md) and current queue.
 The user confirmed **warnings only** for DEF-006; local draft recovery remains Proposed.
+DEF-007/009/014 are the selected 2026-10-09 batch; current local completion rules
+are retained. [Verification](verification/2026-10-09/DEF-007-009-014.md) records
+the regressions and isolated walkthrough. Cross-device and career-path progress
+remain Proposed.
 The ownership policy is implemented and locally checked; see DEF-001 and US-T001
 for evidence and remaining release checks. Other audit-generated enhancements remain
 Proposed until selected and their outstanding decisions are resolved.

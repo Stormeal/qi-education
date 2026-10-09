@@ -25,13 +25,13 @@ describe('trusted quiz feedback (DEF-003)', () => {
     ] }).compileComponents();
   });
 
-  function setup() {
+  function setup(document = content) {
     const fixture = TestBed.createComponent(CourseViewPage);
     const inputs = { appVersion: 'test', currentYear: 2026, student: { name: 'Learner', initials: 'L', role: 'Student' },
       authToken: 'session', userEmail: 'learner@example.test', userRoleLabel: 'Student', canAccessAdmin: false, canEditCourse: false,
       course: { id: 'course', title: 'Quiz course', status: 'published', priceDkk: null, requirements: [], whatYoullLearn: [], careerGoals: [],
         thumbnailAssetId: '', category: 'Uncategorized', languages: [] },
-      coursesLoading: false, coursesError: '', courseContent: content, courseContentLoading: false, courseContentError: '',
+      coursesLoading: false, coursesError: '', courseContent: document, courseContentLoading: false, courseContentError: '',
       priceSaving: false, priceSaveNotice: '', priceSaveNoticeError: false, catalogSaving: false, catalogSaveNotice: '', catalogSaveNoticeError: false,
       viewMode: 'learning', isEnrolled: true, enrollmentSubmitting: false, enrollmentError: '', isFeedbackOpen: false,
       feedbackSubmitted: false, feedbackPage: '', feedbackRating: '', feedbackText: '', feedbackSubmitting: false, feedbackError: '', feedbackOptions: [],
@@ -69,5 +69,26 @@ describe('trusted quiz feedback (DEF-003)', () => {
     button('Finish quiz').click(); await fixture.whenStable(); fixture.detectChanges();
     expect(body.textContent).toContain('Score: 1 / 1');
     expect(body.querySelector('.learning-complete-badge')).not.toBeNull();
+  });
+
+  it('LP-05 final question position and skipped answers do not complete a multi-question quiz', async () => {
+    const document = structuredClone(content);
+    const component = document.sections[0].components[0];
+    if (component.type !== 'quiz') throw new Error('Expected quiz fixture');
+    const secondQuestion = structuredClone(component.quiz.questions[0]);
+    secondQuestion.id = 'q2'; secondQuestion.question = 'Second question?';
+    secondQuestion.answers.forEach(answer => { answer.id += '2'; });
+    component.quiz.questions.push(secondQuestion);
+    const { body, fixture, button } = setup(document);
+    expect(body.textContent).toContain('Question 1 of 2');
+    button('Skip').click(); fixture.detectChanges();
+    expect(body.textContent).toContain('Question 2 of 2');
+    expect(body.textContent).not.toContain('100% complete');
+    expect(body.querySelector('[role=progressbar]')?.getAttribute('aria-valuetext')).toBe('Question 2 of 2');
+    expect(body.querySelector('.learning-complete-badge')).toBeNull();
+    gradeQuiz.mockResolvedValue({ score: 0, totalPoints: 2, passPoints: 1, passed: false, feedback: [] });
+    button('Skip').click(); await fixture.whenStable(); fixture.detectChanges();
+    expect(body.textContent).toContain('Try again');
+    expect(localStorage.getItem('qi-education:course-progress:learner@example.test:course') ?? '').not.toContain('quiz');
   });
 });

@@ -33,7 +33,7 @@ export type StudentSummary = {
   name: string;
   currentRole: string;
   targetRole: string;
-  pathProgress: number;
+  pathProgress: number | null;
 };
 
 export type UserProfileDetails = {
@@ -45,11 +45,15 @@ export type UserProfileDetails = {
 };
 
 export type CourseSummary = {
+  id: string;
   title: string;
   teacher: string;
   level: string;
   status: string;
-  progress: number;
+  progress: number | null;
+  progressState: 'loading' | 'ready' | 'error';
+  completed: number;
+  total: number;
   nextLesson: string;
   goals: string[];
 };

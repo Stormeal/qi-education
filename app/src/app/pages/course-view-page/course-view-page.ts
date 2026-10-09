@@ -10,6 +10,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   lucideBanknote,
@@ -43,6 +44,7 @@ import {
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
 import { ApiClientService } from '../../services/api-client.service';
+import { LearningProgressService } from '../../services/learning-progress.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -61,6 +63,7 @@ type CourseViewMode = 'details' | 'learning';
 export class CourseViewPage {
   private readonly apiClient = inject(ApiClientService);
   private readonly courseService = inject(CourseService);
+  private readonly learningProgress = inject(LearningProgressService);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly editCourseIcon = this.asSafeIcon(lucidePencil);
@@ -94,7 +97,12 @@ export class CourseViewPage {
   protected readonly expandedSectionIds = signal<string[]>([]);
   protected readonly expandedComponentIds = signal<string[]>([]);
   protected readonly activeComponentId = signal('');
-  protected readonly completedComponentIds = signal<string[]>([]);
+  protected readonly completedComponentIds = computed(() =>
+    this.learningProgress.completedIds(this.userEmail(), this.courseContent()?._id ?? ''));
+  protected readonly courseProgress = computed(() => {
+    const content = this.courseContent();
+    return content ? this.learningProgress.forContent(this.userEmail(), content) : null;
+  });
   protected readonly quizSelectedAnswerIds = signal<Record<string, string>>({});
   protected readonly submittedQuizQuestionIds = signal<string[]>([]);
   protected readonly quizSubmitted = signal(false);
@@ -132,7 +140,7 @@ export class CourseViewPage {
   protected readonly activeQuizQuestionNumber = computed(() =>
     this.activeQuizQuestions().length > 0 ? this.activeQuizQuestionIndex() + 1 : 0,
   );
-  protected readonly activeQuizProgressPercent = computed(() => {
+  protected readonly activeQuizPositionPercent = computed(() => {
     const totalQuestions = this.activeQuizQuestions().length;
 
     return totalQuestions > 0
@@ -210,15 +218,13 @@ export class CourseViewPage {
         this.expandedSectionIds.set([]);
         this.expandedComponentIds.set([]);
         this.activeComponentId.set('');
-        this.completedComponentIds.set([]);
         this.resetQuizAttempt();
         return;
       }
 
       this.expandedSectionIds.set([content.sections[0].id]);
       this.expandedComponentIds.set([]);
-      this.completedComponentIds.set(this.loadCompletedComponentIds(content._id));
-      this.activeComponentId.set(this.initialActiveComponentId(content));
+      this.activeComponentId.set(untracked(() => this.initialActiveComponentId(content)));
       this.resetQuizAttempt();
     });
 
@@ -890,9 +896,8 @@ export class CourseViewPage {
       return;
     }
 
-    const completed = [...this.completedComponentIds(), componentId];
-    this.completedComponentIds.set(completed);
-    this.storeCompletedComponentIds(completed);
+    const content = this.courseContent();
+    if (content) this.learningProgress.complete(this.userEmail(), content, componentId);
   }
 
   private goToNextComponent(): void {
@@ -925,37 +930,9 @@ export class CourseViewPage {
 
   private initialActiveComponentId(content: CourseContentDocument): string {
     const components = content.sections.flatMap((section) => section.components);
-    const completed = this.loadCompletedComponentIds(content._id);
+    const completed = this.learningProgress.completedIds(this.userEmail(), content._id);
 
     return components.find((component) => !completed.includes(component.id))?.id ?? components[0]?.id ?? '';
   }
 
-  private completedStorageKey(): string {
-    const userId = this.userEmail() || 'anonymous';
-    const courseId = this.courseContent()?._id ?? this.course()?.id ?? 'course';
-
-    return `qi-education:course-progress:${userId}:${courseId}`;
-  }
-
-  private loadCompletedComponentIds(courseId: string): string[] {
-    try {
-      const userId = this.userEmail() || 'anonymous';
-      const rawValue = window.localStorage.getItem(`qi-education:course-progress:${userId}:${courseId}`);
-      const parsedValue: unknown = rawValue ? JSON.parse(rawValue) : [];
-
-      return Array.isArray(parsedValue)
-        ? parsedValue.filter((value): value is string => typeof value === 'string')
-        : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private storeCompletedComponentIds(completed: string[]): void {
-    try {
-      window.localStorage.setItem(this.completedStorageKey(), JSON.stringify(completed));
-    } catch {
-      return;
-    }
-  }
 }

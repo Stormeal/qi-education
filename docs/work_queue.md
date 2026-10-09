@@ -1,13 +1,18 @@
 # Work queue
 
-Updated: 2026-10-08. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-No active implementation. DEF-005, DEF-006 and DEF-010 were delivered locally on
-2026-10-08; see Completed delivery below. Follow the user's next selection before
-starting another batch. No Proposed career feature is selected.
-No push/deployment is authorized.
+**DEF-007, DEF-009, DEF-014 — selected three-defect batch.** Owner: Codex.
+Branch: `main`. Base: `0a4b522`. Started: 2026-10-09. State: In progress.
+Contract: [honest local learning progress](specs/DEF-007-009-014-learning-progress.md),
+LP-01-05. Preserve existing explicit completion/server-graded quiz rules and local
+account/course keys. Share real progress, remove invented account activity, and
+label quiz position honestly. Broader US-L002 persistence/path decisions remain
+Proposed. Verification: 98 frontend/196 API tests, API/frontend/Pages builds, isolated
+browser completion/refresh/account checks and final independent review pass.
+Next: commit the verified fixes and synchronize resolved statuses. No push/deployment authorized.
 
 ## Latest audit
 
@@ -94,7 +99,7 @@ selection; do not automatically begin another batch.
 | 4 | DEF-005 / US-T004 impossible published quizzes | Fixed | Shared release verification; legacy invalid quizzes need correction |
 | 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
 | 6 | DEF-010 / US-L001 direct learning refresh | Fixed | Shared-store and hosted direct URL/refresh release checks |
-| 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | Open | Shared progress source, honest empty account, quiz position wording |
+| 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | In progress | Verified locally; delivery commit pending |
 | 8 | DEF-011 / US-L005 inactive controls | Open | Implement versus hide/disable choice |
 | 9 | DEF-008 / US-P002 parser errors | Open | Preserve 400/413 contract with regression cases |
 

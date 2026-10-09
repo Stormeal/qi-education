@@ -390,6 +390,12 @@ Feature: Enrollment and learning access
 page, so that I know what to continue and what I have completed.**
 
 State: Proposed. Dependency: US-L001. Defects: DEF-007, DEF-009, DEF-014.
+Selected narrow defect batch, 2026-10-09: AC01 on this browser, AC03 and AC04 under
+[LP-01-05](specs/DEF-007-009-014-learning-progress.md). Existing ordinary lesson
+completion and trusted passing quiz rules are retained. Cross-device AC02 and
+broader revision/completion policies remain Proposed; this does not select them.
+The local criteria pass route/page regressions and isolated browser checks:
+[verification](verification/2026-10-09/DEF-007-009-014.md). Delivery commit pending.
 Decisions: which lesson types require explicit completion, video viewing, or a
 passing quiz; server persistence; how deleted/revised lessons affect totals.
 

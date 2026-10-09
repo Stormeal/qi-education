@@ -1,29 +1,35 @@
 # Application architecture
 
-Updated 2026-10-08 for the selected DEF-005/006/010 batch after base `159f45b`.
+Updated 2026-10-09 for the selected DEF-007/009/014 batch after base `0a4b522`.
 The core map describes the current implementation; desired changes live in
 [user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
 The career path section was checked again on 2026-10-05 at `9a2f30b` plus
 unfinished lifecycle work. Access was delivered in `a6767f6`; see
 [work_queue.md](work_queue.md) for subsequent delivery and verification records.
 
-## Career path boundary — checked 2026-10-05
+## Career path and local progress boundary — checked 2026-10-09
 
 There is no career path model, repository, API endpoint, or dedicated route today.
-Home uses `AppStateService.student`, fixture `courses`, and fixture `nextActions`.
-Permission role chooses the displayed target and path percentage: student 38,
-teacher 74, admin 92. These values are not calculated from learning. `NextAction`
-and `CourseSummary` contain no stable course/lesson destination IDs.
+Home now derives enrolled course summaries from catalog metadata, current title
+outlines and shared local completion. Each course has a stable learning link.
+Career path progress is explicitly unavailable; role-based percentages, fictional
+chapters/courses and claims of matched recommendations have been removed.
 
 Course metadata has free-text `partOfCareer` and `careerGoals`; catalog search
 uses them as terms, not curriculum relationships. Accounts persist enrollments
 but have no selected path, career goal, milestone, or server progress fields.
 Profile learning goals are device-local and do not change career recommendations.
 
-Completion lives in `CourseViewPage`, under a localStorage key built from email
-and course ID. Same-browser resume selects the first incomplete component.
-Workspace completion does not update the literal library 0% or fixture dashboard.
-Quiz position is also mislabeled as completion (DEF-014). Career path selection,
+`LearningProgressService` owns the existing localStorage arrays keyed by email
+and course ID, shared by workspace, library and Home. Resume selects the first
+incomplete current component. Percentages count unique current component IDs,
+ignore stale/duplicate records and reserve 100% for full completion; empty courses
+remain 0%. Non-quiz completion retains Mark complete/video-ended triggers; quiz
+completion still requires a trusted passing score and Finish quiz. Question
+position is labeled separately in visible and accessible output. Outline loading
+and failure have distinct states and retry. Route changes retain memory when
+storage writes fail; account replacement/logout clears memory and invalidates
+pending loads. Persistence across devices remains unimplemented. Career path selection,
 curation, revisions, switching, milestone logic, and reliable account persistence
 are Proposed capabilities, not implemented parts of the architecture.
 
@@ -38,10 +44,10 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
 | Account | Student signup, login, remembered session, role permissions | No reset flow; demo auth fallback without Sheets configuration |
-| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails | Legacy unowned courses require admin editing; review comments/revisions and readiness are unfinished |
+| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness gates | Legacy unowned courses require admin editing; review comments/revisions are unfinished |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
-| Progress/profile | Device-local completion and profile details | Not server-synced; library progress and home activity are inconsistent |
+| Progress/profile | Shared device-local completion in workspace/library/Home and local profile details | Not server-synced; no selected career path or career completion model |
 
 Statuses are `draft`, `ready-for-review`, `published`, and `archived`. They are
 enum values today, not a fully enforced transition state machine. US-T001 adds
@@ -77,6 +83,7 @@ future organization, not paths a fresh contributor can navigate today.
 | `services/app-state.service.ts` | Signals, session/navigation, authoring drafts, uploads, feedback |
 | `services/api-client.service.ts` | Fetch, response cache, base URL selection/fallback, 401 notifications |
 | `services/course.service.ts` | Course requests, thumbnail warmup, attachment XMLHttpRequest |
+| `services/learning-progress.service.ts` | Shared local completion, current-outline summaries, loading/errors and session cache boundaries |
 | `services/auth.service.ts`, `session.service.ts` | Auth requests and stored token/session restoration |
 | `services/profile.service.ts` | Profile data keyed by user ID in localStorage |
 
@@ -88,8 +95,8 @@ to `/`. Authentication views are rendered by route wrappers rather than a separa
 `AppStateService` is approximately 2,900 lines and handles many unrelated concerns.
 Changes need a full data-flow check; avoid a wholesale refactor as a side effect of
 fixing one story. Draft saves compare JSON snapshots. Loaded content normalizes
-legacy quiz structures. Completion lives in the course-view page rather than a
-shared server-backed progress service.
+legacy quiz structures. LearningProgressService centralizes local completion;
+there is still no server progress endpoint.
 
 Course navigation compares metadata/content snapshots and focused builder buffers.
 Native confirmation protects links, Cancel, Back, editor-ID changes and voluntary
