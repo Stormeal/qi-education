@@ -39,6 +39,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-012 | Published catalog categories are missing in stored metadata | P2 | Fixed | Approved data repair verified 2026-10-09; record `79c2ea5` | US-L008 |
 | DEF-013 | Catalog titles/badges are clipped at responsive widths | P3 | Fixed | Resolved 2026-10-09 in `79c2ea5`; RD-06 pass | US-L008 |
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
+| DEF-015 | A stale authoring save silently replaces newer course work | P2 | Fixed | Resolved 2026-10-09 in `d674ee3`; stale/race/partial-save regressions and browser checks pass | US-T005 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -189,7 +190,9 @@ recovery and broader career/access workflows are outside this delivery.
   `app/src/app/services/app-state.service.ts` (`cancelCreateCourse`, draft synchronization).
 - Verify fix: links, Cancel, browser back, unchanged drafts, and failed saves; test
   refresh recovery separately only if selected in US-T003.
-- User confirmed warnings only on 2026-10-08. No recoverable draft persistence.
+- User confirmed warnings only for the DEF-006 batch on 2026-10-08. That fix remains
+  preserved. Local recovery was separately selected and delivered under US-T003
+  on 2026-10-09 in `d674ee3`; see its spec and verification.
 - Resolution implemented 2026-10-08: real router guards and beforeunload warning
   compare saved metadata/outline snapshots and focused editor buffers. Declining
   departure preserves edits; unchanged/reverted/saved editors do not warn. Draft
@@ -202,7 +205,8 @@ recovery and broader career/access workflows are outside this delivery.
   edge cases reproduced before fixes. [Browser/check evidence](verification/2026-10-08/DEF-005-006-010.md).
 - Status: **Fixed — resolved in code**, 2026-10-08.
   Fix commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
-  Hosted/browser release checks remain pending; recovery remains Proposed.
+  Hosted/browser release checks remain pending. Recovery was delivered separately
+  under US-T003 in `d674ee3` on 2026-10-09.
 
 ### DEF-007 — My Learning progress remains 0 percent
 
@@ -441,11 +445,37 @@ for enrolled learners and authorized authors during revision. See
 [US-T002 verification](verification/2026-10-09/US-T002.md). Shared provider and
 hosted release checks remain separate; no push/deployment for this delivery.
 
+## US-T005 reliable-save follow-up
+
+### DEF-015 — Stale authoring overwrite
+
+- Reproduced 2026-10-09 on `5211365`, explicit in-memory repositories only.
+- Load owner-author snapshot version 0 in two sessions. Save a newer title,
+  then submit the old full metadata with a different title from the stale session.
+- Actual: both PATCHes return 200; stale title replaces newer title, version 2.
+- Expected: stale request conflicts, preserving newer stored work and local draft.
+- Related: INV-001 is reproduced and resolved by this record.
+- Resolution: Fixed 2026-10-09 in `d674ee3a24c487923ca8f8586afefb27bd191753`. Full metadata and
+  outline saves require the loaded revision inside the per-course lock. Stale writes
+  return 409; missing/malformed revisions return 428. Successful writes acknowledge
+  the new version. The first legacy save writes data/version together so provider
+  failure cannot change data under an unchanged token. Local drafts survive conflicts
+  and partial saves; retries use the last acknowledged version.
+- Regression evidence: `courseSave.test.ts` tests both API prefixes, stale metadata
+  and outlines, simultaneous writers, missing versions, partial failure/retry and
+  a peer freezing a revision. `course-save.spec.ts` covers local retention,
+  reconciliation, partial outcomes and media refresh/busy guards. 276 API/122
+  frontend tests and all builds pass; isolated browser recovery, two-editor conflict,
+  latest preview and reconciled save pass. [Verification](verification/2026-10-09/US-T003-T005.md).
+- Release checks: hosted MongoDB coordination/failure behavior, Sheets composition,
+  Mux/media processing and accepted native refresh in supported browsers remain
+  separate. No shared-provider mutation probes were run. Fixed means resolved in code.
+
 ## Investigations requiring further evidence
 
 | ID | Concern and code evidence | Next verification | Related story |
 | --- | --- | --- | --- |
-| INV-001 | Full-document saves lack revision checks; metadata and content save sequentially | Controlled concurrent saves and a storage failure after metadata success | US-T005 |
+| INV-001 | Reproduced as DEF-015; resolved 2026-10-09 in `d674ee3` | Stale/race/partial-failure API regressions and isolated browser pass; shared release checks remain | US-T005 |
 | INV-002 | Mux removal detaches the component; service exposes no provider deletion. Signed policy config exists but playback token flow is absent | Mock lifecycle probes, then isolated real Mux upload/removal/signed playback | US-T006 |
 | INV-003 | Signup checks email then appends; Sheets enrollment reads then rewrites a user row. No atomic uniqueness/update protection is evident | Concurrent operations against a dedicated test spreadsheet | US-P003 |
 | INV-004 | Feedback triage creates an issue before persisting the link | Fail persistence after stub issue creation, retry, and inspect duplicates | US-P003 |

@@ -14,6 +14,8 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Architecture](architecture.md) | Current boundaries, storage, routes, and limitations |
 | [Local development](local_development.md) | Setup, isolated audit mode, checks, and deployment context |
 | [Course review specification](specs/US-T002-course-review.md) | US-T002 revisions, review history, behavior contract and delivery evidence |
+| [Draft recovery specification](specs/US-T003-draft-recovery.md) | Local recovery, account isolation and explicit Restore/Discard |
+| [Reliable saves specification](specs/US-T005-reliable-saves.md) | Revision preconditions, conflicts and safe partial retries |
 | [Ownership specification](specs/US-T001-course-ownership.md) | First teacher story's detailed contract |
 | [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | Access and quiz readiness contracts |
 | [Unsaved navigation specification](specs/DEF-006-unsaved-navigation.md) | Warning and discard behavior; recovery excluded |
@@ -42,7 +44,10 @@ DEF-002/003/004 are resolved locally in `a6767f6` on 2026-10-07; see their
 DEF-005/006/010 are resolved locally; fixes and dedicated verification were delivered
 on 2026-10-08 in `3feeea4`. See their
 [verification record](verification/2026-10-08/DEF-005-006-010.md) and current queue.
-The user confirmed **warnings only** for DEF-006; local draft recovery remains Proposed.
+The user confirmed **warnings only** for the DEF-006 batch. Local draft recovery
+was separately selected on 2026-10-09 and delivered with reliable saves in `d674ee3`.
+US-T003/US-T005 are Done and DEF-015 is Fixed; [verification](verification/2026-10-09/US-T003-T005.md)
+records recovery, conflict/partial-save checks and remaining hosted/provider coverage.
 DEF-007/009/014 are resolved locally on 2026-10-09 in `6729b74`; current local
 completion rules are retained. [Verification](verification/2026-10-09/DEF-007-009-014.md) records
 the regressions and isolated walkthrough. Cross-device and career-path progress

@@ -12,9 +12,9 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | --- | --- | --- | --- | --- | --- |
 | US-T001 | Enforce course ownership | Done | P1 | None | DEF-001 |
 | US-T002 | Submit, review, and publish courses safely | Done | P1 | T001 | DEF-002, DEF-003 |
-| US-T003 | Protect unsaved authoring work | Proposed | P2 | None | DEF-006 |
+| US-T003 | Protect unsaved authoring work | Done | P2 | None | DEF-006 |
 | US-T004 | Publish valid, answerable quizzes | Done | P2 | T002 authorization delivered | DEF-005 |
-| US-T005 | Save authoring work without silent overwrites | Proposed | P2 | T001 | Investigation INV-001 |
+| US-T005 | Save authoring work without silent overwrites | Done | P2 | T001 | DEF-015 / INV-001 |
 | US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
 | US-T008 | Curate valid, versioned career paths | Proposed | P2 | L006; path governance decisions | None |
@@ -153,12 +153,14 @@ Feature: Course review and publication
 **As a teacher, I want to keep or intentionally discard unsaved edits, so that
 navigation or a failed save does not erase my work.**
 
-State: Proposed. Defect: DEF-006. Scope: metadata and course outline edits.
+State: Done. Defect: DEF-006 remains Fixed. Scope: metadata and course outline edits.
 User confirmed **warnings only** on 2026-10-08. Selected DEF-006 implements AC01/02
 and standard browser departure warnings under [NW-01–05](specs/DEF-006-unsaved-navigation.md).
-AC03 local recovery remains Proposed and is outside this batch. The broader story
-stays Proposed until recovery is separately selected. Verification:
+User selected AC03 device-local recovery on 2026-10-09. Current contract:
+[draft recovery](specs/US-T003-draft-recovery.md). Earlier verification:
 [DEF-005/006/010](verification/2026-10-08/DEF-005-006-010.md).
+AC03 delivery: `d674ee3a24c487923ca8f8586afefb27bd191753`, 2026-10-09.
+[Verification](verification/2026-10-09/US-T003-T005.md): AC01–03 and DR-01–03 pass.
 AC01/02 delivery commit: `3feeea4de8d056ba1e88789103a280df52c5d2f0`, 2026-10-08.
 
 ```gherkin
@@ -222,9 +224,11 @@ Feature: Assessment readiness
 **As a teacher, I want reliable save results and conflict detection, so that a
 stale browser tab cannot silently erase newer course work.**
 
-State: Proposed. Dependency: US-T001. Investigation: INV-001.
-Decisions: revision format and reconciliation UX; whether metadata/content become
-one transaction or retain explicit partial-save outcomes across Sheets and MongoDB.
+State: Done. Dependency: US-T001. Defect: DEF-015 Fixed (reproduced INV-001).
+Contract: [reliable saves](specs/US-T005-reliable-saves.md). Versioned private
+snapshots, manual reconciliation, and explicit sequential partial-save outcomes.
+Delivery: `d674ee3a24c487923ca8f8586afefb27bd191753`, 2026-10-09.
+[Verification](verification/2026-10-09/US-T003-T005.md): AC01–02 and RS-01–03 pass.
 
 ```gherkin
 Feature: Reliable course saves

@@ -4,7 +4,7 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-No implementation item is active. US-T002 is delivered locally; see Completed
+No Codex implementation item is active. US-T003/US-T005 are delivered; see Completed
 delivery below. Await the user's next selection; Proposed stories are not authorized.
 
 ## Latest audit
@@ -38,6 +38,21 @@ it to current main. [The handoff](handoffs/DEF-005.md) keeps the original record
 and links to current verification. Delivery commit: `3feeea4` (2026-10-08).
 
 ## Completed delivery
+
+**US-T003 / US-T005 — Local draft recovery and reliable saves.** Done.
+Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `5211365`.
+Delivery commit: `d674ee3a24c487923ca8f8586afefb27bd191753`. DEF-015 Fixed; DEF-006 remains Fixed.
+Contracts: T003 AC01–03/DR-01–03; T005 AC01–02/RS-01–03.
+Account/course scoped device-local metadata, outline and focused-text recovery,
+separate document records with an explicit chooser, Restore/Discard and storage errors.
+Versioned full saves reject stale edits, preserve local work and offer manual latest
+comparison/reconciliation. Partial saves identify acknowledged details and unsaved
+lessons; safe retries advance only confirmed baselines. Media refresh/busy guards.
+276 API/122 frontend tests, API/frontend/Pages builds, isolated recovery/two-editor
+browser checks and one final review's five RED-to-GREEN regressions pass.
+[Verification](verification/2026-10-09/US-T003-T005.md). User authorized commit and push;
+`main` push triggers Pages. Shared-provider and hosted verification remain separate.
+Concurrent career-path/journey edits are preserved outside this delivery.
 
 **US-T002 - Full review history and uninterrupted course revisions.** Done.
 Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `96e9ff9`.
@@ -125,8 +140,8 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-US-T002 is Done. All documented confirmed defects remain Fixed. Await the user's
-next selected story or investigation; no Proposed enhancement is authorized by
+US-T002, US-T003 and US-T005 are Done. All documented confirmed defects remain Fixed.
+Await the user's next selected story or investigation; no Proposed enhancement is authorized by
 this delivery. Shared-provider/hosted release checks require a separate release.
 
 ## Defect order
@@ -135,7 +150,7 @@ this delivery. Shared-provider/hosted release checks require a separate release.
 | --- | --- | --- | --- |
 | 1 | DEF-002 / US-T002 admin field restrictions | Fixed | Shared release verification |
 | 2 | DEF-003 / US-T002, US-L001 private drafts/content | Fixed | Shared release checks; broader entitlement decisions remain Proposed |
-| 3 | DEF-006 / US-T003 unsaved authoring | Fixed | Hosted/browser release verification; recovery remains Proposed |
+| 3 | DEF-006 / US-T003 unsaved authoring | Fixed | Hosted/browser release verification; recovery delivered in US-T003 |
 | 4 | DEF-005 / US-T004 impossible published quizzes | Fixed | Shared release verification; legacy invalid quizzes need correction |
 | 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
 | 6 | DEF-010 / US-L001 direct learning refresh | Fixed | Shared-store and hosted direct URL/refresh release checks |
@@ -144,10 +159,11 @@ this delivery. Shared-provider/hosted release checks require a separate release.
 | 9 | DEF-008 / US-P002 parser errors | Fixed | Hosted/provider release checks |
 | 10 | DEF-012 / US-L008 missing categories | Fixed | Approved repair verified; hosted browser release check |
 | 11 | DEF-013 / US-L008 card clipping | Fixed | Hosted/provider release checks |
+| 12 | DEF-015 / US-T005 stale authoring saves | Fixed | Hosted/provider and accepted-refresh release checks |
 
 Enhancement-only stories remain in [user_stories.md](user_stories.md) for later
-selection. DEF-012/013 are reproduced and resolved in `79c2ea5`. INV-001-004
-remain investigations; reproduce them before prioritizing implementation.
+selection. DEF-012/013 are reproduced and resolved in `79c2ea5`. INV-001 is resolved
+through DEF-015; INV-002–004 remain investigations; reproduce them before prioritizing implementation.
 
 P1 access defects are release risks even while platform work is later in the
 roadmap. Do not interpret this order as approval to release known access gaps.

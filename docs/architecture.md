@@ -1,6 +1,6 @@
 # Application architecture
 
-Updated 2026-10-09 through US-T002, implementation base `96e9ff9`.
+Updated 2026-10-09 through US-T003/US-T005, delivery `d674ee3`, base `5211365`.
 The core map describes the current implementation; desired changes live in
 [user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
 The career path section was checked again on 2026-10-05 at `9a2f30b` plus
@@ -117,7 +117,15 @@ the editor and restores the canceled browser history position; forced session
 expiry clears private state. Metadata initializes before
 thumbnail warmup and once per editor path. Successful partial metadata saves advance
 their snapshot. Unchanged Markdown text keeps its original storage representation.
-No recoverable local drafts are persisted. Nested library routes load catalog metadata
+Device-local authoring drafts include metadata, outlines and focused text, scoped
+to the authorized account/course and a fresh document UUID. Returning offers a
+Restore/Discard choice (with a title/date selector when several drafts exist). Records
+expire after seven days and are bounded to 2 MB; storage failures are reported.
+Confirmed saves or explicit discards clear the corresponding record. Stale recovery
+requires manual comparison/reconciliation. Pending recovery blocks editing/review.
+Background media refresh retains dirty outlines and focused buffers. Outline controls
+remain busy through media writes to prevent response replacement of newer edits.
+Nested library routes load catalog metadata
 and entitled content after restored session identity/permissions have been applied.
 
 The API client selects a configured `window.qiEducationConfig.apiBaseUrl` first.
@@ -141,7 +149,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
 | `POST /users/me/courses/:id` | Active session; published-only new enrollment; published retry is idempotent |
 | `POST /courses` | All roles create drafts; teachers use default admin fields; authenticated owner ID |
-| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; editable working draft only; no direct status/price changes |
+| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; editable working draft only; required loaded revision; no direct status/price changes |
 | `POST /courses/:id/review` | Owner/admin start and submit revisions; admin return/publish/archive; loaded revision ID and version required |
 | `PUT /courses/:id/thumbnail` | Owner teacher/admin; JPEG/PNG/WebP, 2 MB |
 | `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 25 MB |
@@ -210,23 +218,30 @@ Memory uses its repository lock; Mongo uses a separate nonexpiring owner record.
 Sheets operations require Mongo coordination. Acquisition/deletion have bounded
 waits, while actual uncertain provider writes retain ownership for verified
 recovery. Pre-write reads release normally. Publication is one Mongo document write, not a cross-store transaction. Review
-actions use revision/version checks; general stale-editor protection remains Proposed. See [recovery runbook](course_operation_recovery.md).
+actions and full authoring saves use revision/version checks (US-T005). See [recovery runbook](course_operation_recovery.md).
 
 ## Course review storage and views
 
 `CourseReviewService` composes public course metadata from live snapshots and
 selects working metadata/content inside authoring operations. Raw Sheet records
 remain authoritative for identity/owner and admin price/catalog controls. Legacy
-courses are initialized lazily. A first legacy draft edit retains its original
-provider write and materializes a versioned workflow before reporting success;
-subsequent authoring writes use working snapshots. No headers or shared rows are
+courses are initialized lazily. The first and subsequent authoring edits write
+the private snapshot and its version together in one course-content write, without
+first changing raw Sheet metadata or raw lesson sections. No headers or shared rows are
 migrated. Stored `sections` and live snapshots change in the publication write.
 
 Review events store action, revision ID, authenticated actor ID/name, date and
 return reason. Owner/admin author content includes full review state/history;
 public and learner DTOs omit it. History is never silently trimmed. Document-limit
 or uncertain writes fail safely and retain coordination for the recovery runbook.
-Review-action concurrency does not solve general stale editor saves (US-T005).
+Full metadata/outline saves require `X-Course-Revision` JSON `{version, revisionId}`
+from the private author snapshot. The per-course lock checks it before writing: 428
+for missing/malformed, 409 `AUTHORING_CONFLICT` for stale versions. Private mutation
+responses acknowledge the new review version; catalog/learner DTOs remain separate.
+Field-specific media writes check supplied versions; the new frontend always sends
+them. Metadata and lessons remain sequential saves: partial metadata success advances
+only its baseline/version, retains unsaved lessons, and retries safely. Conflicts
+preserve local edits and require explicit comparison/reconciliation or discard.
 
 Submitted content has a read-only lesson/quiz/media/resource preview. Archive only
 changes live availability, preserving unsaved private authoring buffers. Existing
