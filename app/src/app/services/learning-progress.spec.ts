@@ -64,6 +64,21 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     return { state, harness, body, button, resolveOutline, retryOutline: () => { failOutline = false; failCatalog = false; } };
   }
 
+  it('RD-04 hides unfinished Home controls and keeps Browse courses operable', async () => {
+    const { body, button, harness } = await open('/', { empty: true });
+    expect([...body().querySelectorAll('button')].some(item => item.textContent?.includes('Adjust track'))).toBe(false);
+    button('Browse courses').click(); await harness.fixture.whenStable();
+    expect(body().querySelector('app-courses-page')).not.toBeNull();
+  });
+
+  it('RD-04 presents readable course overview without nonfunctional tabs', async () => {
+    const { body, button, harness } = await open('/library/course');
+    expect([...body().querySelectorAll('button')].some(item => /^(Q&A|Notes|Overview)$/.test(item.textContent?.trim() ?? ''))).toBe(false);
+    expect(body().querySelector('.learning-overview-body')?.textContent).toContain('Real enrolled course');
+    button('Mark complete').click(); harness.detectChanges();
+    expect(body().textContent).toContain('Question 1 of 1');
+  });
+
   it('LP-01 shares explicit lesson completion across workspace, library, Home and resume', async () => {
     const { harness, body, button } = await open('/library/course');
     button('Mark complete').click(); harness.detectChanges();

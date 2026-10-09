@@ -1,0 +1,65 @@
+[
+  {
+    "id": "57b5596a-84ad-4a88-8758-65064af370a4",
+    "title": "ISTQB Foundation 4.0",
+    "category": "Software Testing",
+    "row": 3,
+    "before": "",
+    "range": "Courses!S3",
+    "needsChange": true
+  },
+  {
+    "id": "e96e9ab7-d5aa-4c64-b065-104557be83af",
+    "title": "ISTQB Test Automation Engineer",
+    "category": "Automation Testing",
+    "row": 4,
+    "before": "Uncategorized",
+    "range": "Courses!S4",
+    "needsChange": true
+  },
+  {
+    "id": "0a1aae45-aab2-4194-9e28-e85b1f9e891e",
+    "title": "Automation with Playwright",
+    "category": "Automation Testing",
+    "row": 5,
+    "before": "Uncategorized",
+    "range": "Courses!S5",
+    "needsChange": true
+  },
+  {
+    "id": "d5e08fde-ab8a-476d-85de-7234471e93b1",
+    "title": "Fundamental Postman",
+    "category": "API Testing",
+    "row": 6,
+    "before": "",
+    "range": "Courses!S6",
+    "needsChange": true
+  },
+  {
+    "id": "b0e7c6ef-e1a9-48cf-bf9a-a50cba1c4b3e",
+    "title": "Advanced Playwright and AI",
+    "category": "Automation Testing",
+    "row": 7,
+    "before": "Uncategorized",
+    "range": "Courses!S7",
+    "needsChange": true
+  },
+  {
+    "id": "92c00a67-0d0b-4b8a-a50b-93d5006d44de",
+    "title": "ISTQB Advanced Test Analyst",
+    "category": "Software Testing",
+    "row": 9,
+    "before": "",
+    "range": "Courses!S9",
+    "needsChange": true
+  },
+  {
+    "id": "467b3cb7-b81f-4e0c-8daa-f5a30602458d",
+    "title": "Automation with Leapwork",
+    "category": "Automation Testing",
+    "row": 10,
+    "before": "Uncategorized",
+    "range": "Courses!S10",
+    "needsChange": true
+  }
+]

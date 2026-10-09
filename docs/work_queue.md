@@ -4,9 +4,17 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-No active implementation. DEF-007, DEF-009 and DEF-014 were delivered locally
-on 2026-10-09; see Completed delivery. Follow the user's next selection before
-starting another batch. No Proposed career feature is selected.
+**Remaining defects - DEF-008/011, plus DEF-012/013 reproduction.** In progress.
+Owner: Codex. Selected: 2026-10-09. Branch: `main`. Base: `797d55c`.
+Contract: [remaining defects](specs/DEF-008-011-012-013-remaining-defects.md), RD-01-06.
+User authorized remaining defect fixes; Proposed features remain unselected.
+Completed: parser and availability regressions reproduced/fixed; card layout
+reproduced and verified at seven widths; category data cause confirmed read-only.
+User explicitly approved seven shared category corrections; applied and verified
+with every other field/header unchanged and fresh hosted API read correct.
+222 API/101 frontend tests, all three builds, isolated browser checks and fresh
+independent review pass. Version 0.1.49; only resolution documentation changes remain.
+Next: verify documentation links/statuses, commit locally and record the fixing hash.
 No push/deployment is authorized.
 
 ## Latest audit
@@ -91,12 +99,10 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-**Next confirmed defects: DEF-011 and DEF-008.** DEF-011 needs a focused
-implement-versus-hide/disable decision; full path, Q&A and Notes features remain
-Proposed. DEF-008 has a defined HTTP 400/413 contract. Only two confirmed defects
-remain Open. A third item requires reproducing DEF-012/DEF-013 or an investigation,
-or a different user selection. Do not silently turn an unconfirmed report into a
-confirmed defect or start another batch automatically.
+The user selected all remaining defects on 2026-10-09. DEF-008/011/012/013 are
+implemented and verified in the active batch; local delivery records remain.
+No further confirmed defect is waiting for implementation. INV-001-004 require
+separate evidence and selection; Proposed enhancements remain unselected.
 
 ## Defect order
 
@@ -109,12 +115,14 @@ confirmed defect or start another batch automatically.
 | 5 | DEF-004 / US-L001 unpublished enrollment | Fixed | Shared release verification |
 | 6 | DEF-010 / US-L001 direct learning refresh | Fixed | Shared-store and hosted direct URL/refresh release checks |
 | 7 | DEF-007, DEF-009, DEF-014 / US-L002 false progress/activity | Fixed | Hosted/browser release checks; cross-device progress remains Proposed |
-| 8 | DEF-011 / US-L005 inactive controls | Open | Implement versus hide/disable choice |
-| 9 | DEF-008 / US-P002 parser errors | Open | Preserve 400/413 contract with regression cases |
+| 8 | DEF-011 / US-L005 inactive controls | In progress | Verified; delivery commit |
+| 9 | DEF-008 / US-P002 parser errors | In progress | Verified; delivery commit |
+| 10 | DEF-012 / US-L008 missing categories | In progress | Approved repair verified; delivery record |
+| 11 | DEF-013 / US-L008 card clipping | In progress | Verified; delivery commit |
 
 Enhancement-only stories remain in [user_stories.md](user_stories.md) for later
-selection. DEF-012/DEF-013 and INV-001–INV-004 remain investigations, not confirmed
-fixes; reproduce them before prioritizing implementation.
+selection. DEF-012/013 are reproduced and corrected in the active batch. INV-001-004
+remain investigations; reproduce them before prioritizing implementation.
 
 P1 access defects are release risks even while platform work is later in the
 roadmap. Do not interpret this order as approval to release known access gaps.

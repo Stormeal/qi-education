@@ -1,6 +1,6 @@
 # Application architecture
 
-Updated 2026-10-09 for the selected DEF-007/009/014 batch after base `0a4b522`.
+Updated 2026-10-09 through the remaining DEF-008/011/012/013 batch after base `797d55c`.
 The core map describes the current implementation; desired changes live in
 [user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
 The career path section was checked again on 2026-10-05 at `9a2f30b` plus
@@ -35,6 +35,15 @@ are Proposed capabilities, not implemented parts of the architecture.
 
 See the [career path audit](audits/2026-10-05/career_path_audit.md) for evidence,
 suggested boundaries, outstanding decisions, and delivery dependencies.
+
+Home's unfinished Adjust track control and workspace Q&A/Notes tabs are hidden.
+The existing course overview remains readable without a fake tab button. Full
+career/Q&A/Notes behavior remains Proposed. Catalog cards size to their content;
+full titles and badges wrap within featured and list cards at responsive widths.
+A category is explicit metadata, not inferred from other populated fields. Empty
+legacy category cells retain Uncategorized. Seven published category cells were
+corrected with the user's explicit approval on 2026-10-09; no schema/ownership
+migration accompanied that repair. See [verification](verification/2026-10-09/remaining-defects.md).
 
 ## Purpose and implemented journeys
 
@@ -142,7 +151,10 @@ Mux webhooks register explicit aliases before JSON middleware.
 
 `server.ts` constructs/injects dependencies and contains the route handlers. Zod
 validates input. Error handling returns `{ message }`, with `issues` for Zod errors;
-other parser errors currently lose their intended HTTP status (DEF-008).
+parser callbacks preserve safe 400/413/415 responses for invalid JSON, oversized
+bodies and unsupported/corrupt encodings. Application failures retain generic 500;
+input bodies and internal errors are never echoed. Thumbnail MIME is checked
+before the missing-body check, preserving unsupported-type 415 feedback.
 
 Authentication uses salted scrypt hashes and an HMAC-signed JWT-shaped token with
 a default 12-hour lifetime. Protected requests look up the active user again,

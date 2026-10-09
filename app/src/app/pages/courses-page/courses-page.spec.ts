@@ -144,6 +144,19 @@ describe('owned course drafts (DEF-001)', () => {
 });
 
 describe('CoursesPage browse filters', () => {
+  it('RD-05 uses the stored category on the card and in the interactive category filter', async () => {
+    const { fixture } = await createPage();
+    const body = fixture.nativeElement as HTMLElement;
+    expect(body.querySelector('.browse-card[href="/courses/api"]')?.textContent).toContain('API Testing');
+    const category = [...body.querySelectorAll<HTMLLabelElement>('label.filter-option')]
+      .find(label => label.textContent?.includes('API Testing'))!;
+    category.querySelector<HTMLInputElement>('input')!.click();
+    fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges();
+    const results = [...body.querySelectorAll<HTMLAnchorElement>('.browse-card')].map(card => card.getAttribute('href'));
+    expect(results).toEqual(['/courses/api']);
+    expect(body.querySelector('.browse-card')?.textContent).not.toContain('Uncategorized');
+  });
+
   it('only includes published courses in the catalog results', async () => {
     const { component } = await createPage();
     const result = ids((component as any).catalogResults());

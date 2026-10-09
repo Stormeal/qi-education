@@ -18,6 +18,7 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Unsaved navigation specification](specs/DEF-006-unsaved-navigation.md) | Warning and discard behavior; recovery excluded |
 | [Direct learning specification](specs/DEF-010-direct-learning.md) | Remembered session, loading, errors and entitlement |
 | [Local learning progress specification](specs/DEF-007-009-014-learning-progress.md) | Real course progress, honest Home and quiz position |
+| [Remaining defect specification](specs/DEF-008-011-012-013-remaining-defects.md) | Request errors, feature availability and catalog integrity |
 | [Course operation recovery](course_operation_recovery.md) | Durable ownership and required hosted recovery checks |
 | [DEF-005 handoff](handoffs/DEF-005.md) | Historical publication readiness patch and delivery record |
 | [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
@@ -44,6 +45,10 @@ DEF-007/009/014 are resolved locally on 2026-10-09 in `6729b74`; current local
 completion rules are retained. [Verification](verification/2026-10-09/DEF-007-009-014.md) records
 the regressions and isolated walkthrough. Cross-device and career-path progress
 remain Proposed.
+DEF-008/011/012/013 implementation and acceptance checks pass on 2026-10-09;
+delivery record is pending the local fix commit. [Verification](verification/2026-10-09/remaining-defects.md)
+includes safe request errors, hidden unfinished controls, responsive cards and
+the user's approved shared category correction. Other shared records were preserved.
 The ownership policy is implemented and locally checked; see DEF-001 and US-T001
 for evidence and remaining release checks. Other audit-generated enhancements remain
 Proposed until selected and their outstanding decisions are resolved.

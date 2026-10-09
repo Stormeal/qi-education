@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-07. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-09. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -19,14 +19,15 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
 | US-T008 | Curate valid, versioned career paths | Proposed | P2 | L006; path governance decisions | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
+| US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L002 | See trustworthy progress across learning views | Proposed | P2 | L001 | DEF-007, DEF-009, DEF-014 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
-| US-L005 | Make unavailable controls understandable | Proposed | P3 | None | DEF-011 |
+| US-L005 | Make unavailable controls understandable | In progress | P3 | None | DEF-011 |
 | US-L006 | Retrieve consistent career path previews | Proposed | P3 | None | GitHub #22, #23, #24 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
-| US-L008 | Keep catalog metadata and badges readable | Proposed | P2 | Reproduce reported cases | DEF-012, DEF-013 |
+| US-L008 | Keep catalog metadata and badges readable | In progress | P2 | Reproduced; approved data correction applied | DEF-012, DEF-013 |
 | US-L009 | Compare and choose a career path | Proposed | P2 | L003, L006 | None |
 | US-L010 | Follow an actionable next learning step | Proposed | P2 | L001, L002, L009 | None |
 | US-L011 | Change paths while retaining learning history | Proposed | P3 | L002, L009 | None |
@@ -340,6 +341,31 @@ Feature: Governed career path curation
     And permission to edit one course does not authorize editing its whole path
 ```
 
+### US-A002 - Warn about missing category before publication
+
+**As an admin, I want missing category metadata called out before publication,
+so that learners can find released courses using category filters.**
+
+State: Proposed. Discovered through DEF-012's confirmed data cause on 2026-10-09.
+Depends on US-T002's publication contract. Decisions: warning versus blocking;
+when Uncategorized is an intentional approved category; legacy course handling.
+The criteria below propose a warning; no publication behavior is changed now.
+
+```gherkin
+Feature: Explicit catalog category review
+  Scenario: US-A002-AC01 Missing category
+    Given a course is otherwise ready to publish and has no assigned category
+    When I prepare to confirm publication
+    Then I see a missing category warning and can edit its category
+    And the course remains unchanged until I confirm an action
+
+  Scenario: US-A002-AC02 Assigned category
+    Given I have selected and saved a valid course category
+    When I publish the course
+    Then its card displays that category
+    And the course is included by the matching category filter
+```
+
 ## Learner journey
 
 ### US-L001 — Enroll and learn through authorized access
@@ -479,8 +505,11 @@ Feature: Password recovery
 **As a learner, I want controls to lead to real behavior or explain their
 unavailability, so that I do not click features that silently do nothing.**
 
-State: Proposed. Defect: DEF-011. Scope: Adjust track, Q&A, and Notes.
-Decision: implement these separately or hide/disable them until their contracts exist.
+State: In progress. Defect: DEF-011. Scope: Adjust track, Q&A, and Notes.
+Selected fix: hide unfinished controls under the stated default; full features
+remain Proposed. Existing overview and real navigation/quiz actions are preserved.
+Spec: [remaining defect closure](specs/DEF-008-011-012-013-remaining-defects.md), RD-04.
+Acceptance checks pass; delivery commit pending. [Evidence](verification/2026-10-09/remaining-defects.md).
 
 ```gherkin
 Feature: Honest feature availability
@@ -555,10 +584,14 @@ Feature: Home recommendation emphasis
 **As a learner, I want correct categories and readable course labels,
 so that I can compare courses without misleading or obscured metadata.**
 
-State: Proposed. Sources: [#42](https://github.com/Stormeal/qi-education/issues/42)
-and [#44](https://github.com/Stormeal/qi-education/issues/44). Defects DEF-012/013 are
-reported, not reproduced by this audit. First obtain isolated fixtures matching
-the reported records and viewport; do not infer a fix from the issue title.
+State: In progress. Sources: [#42](https://github.com/Stormeal/qi-education/issues/42)
+and [#44](https://github.com/Stormeal/qi-education/issues/44). DEF-012/013 were
+investigated and reproduced on 2026-10-09. Valid category mapping already works;
+the user approved correction of seven missing shared categories. Responsive
+card clipping was reproduced with representative titles and fixed.
+Spec: [remaining defect closure](specs/DEF-008-011-012-013-remaining-defects.md), RD-05/06.
+Both acceptance checks pass; delivery commit pending.
+[Evidence and limitations](verification/2026-10-09/remaining-defects.md).
 
 ```gherkin
 Feature: Catalog card integrity
@@ -757,6 +790,9 @@ can recover without losing my work.**
 
 State: Proposed. Defect: DEF-008. Decisions: stable error codes and field-error DTO;
 preserve the current `message` field for compatibility.
+US-P002-AC01 is implemented and verified locally through DEF-008/RD-01-03 on
+2026-10-09; delivery commit pending. [Evidence](verification/2026-10-09/remaining-defects.md).
+The broader error DTO/dependency recovery contract remains Proposed.
 
 ```gherkin
 Feature: API error feedback

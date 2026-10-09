@@ -1,6 +1,6 @@
 # Defect management
 
-Updated: 2026-10-08. Original audit baseline: `6e19213` on `main`.
+Updated: 2026-10-09. Original audit baseline: `6e19213` on `main`.
 Evidence: [audit report](audits/2026-10-04/application_audit.md) and
 [isolated API probe](audits/2026-10-04/reproduce-api.mjs).
 Career path follow-up: [2026-10-05 audit](audits/2026-10-05/career_path_audit.md),
@@ -30,14 +30,17 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-005 | An impossible quiz can be saved and published | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; LC-05 regression/browser checks pass | US-T004 |
 | DEF-006 | Leaving the course editor silently discards unsaved changes | P2 | Fixed | Resolved 2026-10-08 in `3feeea4`; warnings-only NW-01–05 checks pass | US-T003 |
 | DEF-007 | Library progress is hardcoded to 0 percent | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
-| DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | Open | Isolated API | US-P002 |
+| DEF-008 | Malformed JSON and oversized uploads become HTTP 500 | P2 | In progress | RD-01-03 pass; delivery commit pending | US-P002 |
 | DEF-009 | Dashboard presents fixture activity as account progress | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-010 | Direct learning URL/refresh falsely reports course missing | P2 | Fixed | Runtime fix `a6767f6`; DL-01–04 verified 2026-10-08 in `3feeea4` | US-L001 |
-| DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | Open | Browser and templates | US-L005 |
+| DEF-011 | Adjust track, Q&A, and Notes controls have no action | P3 | In progress | RD-04 pass; delivery commit pending | US-L005 |
+| DEF-012 | Published catalog categories are missing in stored metadata | P2 | In progress | Approved seven-cell repair verified; delivery record pending | US-L008 |
+| DEF-013 | Catalog titles/badges are clipped at responsive widths | P3 | In progress | RD-06 browser reproduction and correction verified | US-L008 |
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 
-All are local/code findings. Production impact has not been verified against
-shared stores or user accounts. The audit report preserves the original findings;
+Most findings were reproduced in isolated local/code checks. DEF-012 was
+confirmed by read-only inspection of shared course metadata and corrected only
+after explicit user approval. Other shared/provider release checks remain pending. The audit report preserves the original findings;
 the current statuses and resolution sections below track subsequent fixes.
 
 DEF-002, DEF-003, DEF-004 resumed on `main` at `ff3d68a` in the first batch of
@@ -236,7 +239,14 @@ recovery and broader career/access workflows are outside this delivery.
 - Source: `api/src/server.ts` (raw/json parsers and final error middleware).
 - Verify fix: malformed JSON, oversized thumbnail/attachment, unsupported MIME, invalid
   Zod fields, and unexpected exceptions have appropriate safe JSON responses.
-- Fix commit / verified environment: none / pending.
+- Implementation checked 2026-10-09: JSON/raw parser callbacks return safe
+  400/413/415 messages. Unsupported thumbnail MIME returns 415 before checking
+  missing bytes. Application/storage exceptions retain generic 500 even with
+  parser-like fields; Zod retains compatible 400/issues responses.
+- Regression evidence: RD-01-03 in `requestErrors.test.ts`; malformed JSON,
+  oversized JSON/thumbnail/attachment and aliases, MIME, gzip/charset/encoding,
+  validation, application errors, and rejected-upload preservation checks pass.
+  [Verification](verification/2026-10-09/remaining-defects.md). Delivery commit pending.
 
 ### DEF-009 — Dashboard account activity is synthetic
 
@@ -300,7 +310,15 @@ recovery and broader career/access workflows are outside this delivery.
   `app/src/app/pages/dashboard-page/dashboard-page.html` (Adjust track).
 - Verify fix: implement the agreed feature contract or hide/disable the unfinished
   control with clear context; verify pointer and keyboard behavior.
-- Fix commit / verified environment: none / pending.
+- Implementation checked 2026-10-09: unfinished controls are hidden under the
+  stated default; the optional presentation preference had no reply before work.
+  The fake Overview button is removed; course overview content remains readable.
+  Full track/Q&A/Notes features remain Proposed, rather than being implemented
+  as part of this defect fix.
+- Regression evidence: two real-router regressions failed before removal, then
+  passed. Isolated pointer/keyboard navigation, overview and quiz entry pass.
+  RD-04 [verification](verification/2026-10-09/remaining-defects.md).
+  Delivery commit pending.
 - Reconfirmed 2026-10-05: activating Adjust track leaves `/` and its content
   unchanged with no dialog; the dashboard template still has no event binding.
   Full path selection/switching is Proposed in US-L009/US-L011, separate from
@@ -344,15 +362,62 @@ recovery and broader career/access workflows are outside this delivery.
 - Status: **Fixed - resolved in code**, 2026-10-09. Owner: Codex.
   Fix commit: `6729b740e4b421b015ad9d1b97af1b44749f9707`. Hosted accessibility/browser checks remain release work.
 
-## Existing reported defects, not yet reproduced
+## Imported reports and reproduced follow-up
 
-| ID | Report | Severity | State | Required reproduction | Story |
-| --- | --- | --- | --- | --- | --- |
-| DEF-012 | [GitHub #42](https://github.com/Stormeal/qi-education/issues/42): incorrect Uncategorized on populated courses | P2 provisional | Investigating | Matching test sheet row, API DTO, list card, category filter | US-L008 |
-| DEF-013 | [GitHub #44](https://github.com/Stormeal/qi-education/issues/44): badges obscured by two-line course titles | P3 provisional | Investigating | Matching title, badges, card, and desktop/mobile viewport | US-L008 |
+DEF-012 and DEF-013 were imported as Investigating on 2026-10-04 from existing
+GitHub reports. They were not treated as fixed or obsolete from descriptions
+alone. The following reproduction and resolution records supersede that initial
+state, preserving the report links and the actual verified cause.
 
-Imported on 2026-10-04 to preserve existing work. Neither report is declared
-reproduced, fixed, or obsolete based only on an issue description.
+### DEF-012 - Catalog category fallback despite populated course fields
+
+- Original report: [GitHub #42](https://github.com/Stormeal/qi-education/issues/42),
+  Uncategorized on populated list cards. Initial severity P2 provisional;
+  confirmed as a P2 catalog data defect on 2026-10-09.
+- Expected: a valid category explicitly stored in column S survives repository,
+  API, card and category filter. Other populated fields do not imply a category.
+- Reproduction: read-only shared-sheet inspection at `797d55c` found all seven
+  published rows with blank category or already Uncategorized. Their mapper/DTO
+  faithfully retained the fallback. Isolated full row fixtures with API Testing
+  correctly traverse repository/API/card/filter; no category mapping code bug
+  was reproduced. No source record/viewport was identified in the original issue.
+- Cause: missing/unassigned course category metadata, rather than a valid stored
+  category being lost. Source: course sheet column S; `courseFromSheetRow`.
+- Resolution applied 2026-10-09 with explicit user approval: Foundation/Advanced
+  Test Analyst -> Software Testing; Test Automation Engineer, both Playwright
+  courses and Leapwork -> Automation Testing; Fundamental Postman -> API Testing.
+  Only seven category cells changed. Old values were backed up; every other sheet
+  value and header remained unchanged. Hosted API read returns corrected labels.
+- Evidence: [approved correction](verification/2026-10-09/DEF-012-category-correction.md),
+  before/after values, fresh zero-change dry-run and RD-05 connected regressions
+  in [batch verification](verification/2026-10-09/remaining-defects.md).
+  Nine isolated script safety checks and category API/card/filter checks pass.
+- Delivery record/script commit pending. No application push/deployment.
+  Hosted frontend refresh/filter verification remains a release check.
+  Preventive category publication guidance is Proposed in US-A002.
+
+### DEF-013 - Wrapping catalog titles and badges are clipped
+
+- Original report: [GitHub #44](https://github.com/Stormeal/qi-education/issues/44),
+  pills almost hidden with two-line titles. Initial P3 provisional;
+  reproduced as a P3 catalog layout defect on 2026-10-09.
+- Expected: complete titles, all badges and price remain readable without clipping
+  or overlap on featured/list cards at desktop/mobile widths (US-L008-AC02).
+- Reproduction: isolated fixtures at base `797d55c`, 1440/390 px, show truncated
+  featured titles and horizontally clipped rating/category/level pills. The
+  rendered 390 px check reports six failures. Representative two/multi-line and
+  unbroken titles were used because the issue lacks the historical record/viewport.
+- Cause: featured cards/carousel use fixed height and clamped titles; badge rows
+  do not wrap and hide their scrollbar. Long unbroken list titles can overflow.
+  Source: `courses-page.scss`, featured and list card templates.
+- Implementation checked 2026-10-09: content-sized cards, full wrapping titles,
+  and wrapping badge rows keep all metadata inside the card. Existing carousel
+  controls and visual styling remain in place.
+- Regression evidence: read-only rendered browser check fails before the fix;
+  passes at 320/390/860/980/1200/1210/1440 px afterward. Two-line title, carousel
+  pointer-next/keyboard-previous and category/detail navigation checks pass.
+  [Screenshots and verification](verification/2026-10-09/remaining-defects.md), RD-06.
+- Delivery commit pending; hosted responsive/browser checks remain release work.
 
 ## Investigations requiring further evidence
 

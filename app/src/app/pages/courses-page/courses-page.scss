@@ -102,11 +102,10 @@
 
 .featured-carousel {
   position: relative;
-  height: 350px;
+  min-height: 350px;
 }
 
 .featured-viewport {
-  height: 100%;
   clip-path: inset(-140px -120px);
 }
 
@@ -114,7 +113,6 @@
   display: grid;
   grid-template-columns: repeat(5, calc((100% - 54px) / 4));
   gap: 18px;
-  height: 100%;
 }
 
 .featured-grid.is-moving-next {
@@ -127,7 +125,7 @@
 
 .catalog-card {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
   height: 100%;
   min-height: 350px;
   border: 1px solid rgba(108, 101, 88, 0.14);
@@ -246,16 +244,13 @@
   display: grid;
   grid-template-rows: auto auto auto 1fr;
   gap: 10px;
-  min-height: 0;
+  min-width: 0;
   padding: 16px 16px 18px;
 }
 
 .catalog-card-body h3 {
-  display: -webkit-box;
   min-height: 2.36em;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
   margin: 0;
   color: #171b4a;
   font-size: 18px;
@@ -270,15 +265,9 @@
 
 .catalog-card-pills {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.catalog-card-pills::-webkit-scrollbar {
-  display: none;
 }
 
 .catalog-card-price {
@@ -752,6 +741,7 @@
   font-size: 18px;
   line-height: 1.18;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 .browse-card-author {

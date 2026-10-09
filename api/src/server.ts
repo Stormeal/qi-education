@@ -1,6 +1,6 @@
 import cors from 'cors';
 import { randomUUID } from 'node:crypto';
-import express, { type NextFunction, type Request, type Response } from 'express';
+import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { ZodError } from 'zod';
 import {
   createSessionToken,
@@ -117,7 +117,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use(cors({ origin: getCorsOrigins() }));
   app.post(
     ['/webhooks/mux', '/api/webhooks/mux'],
-    express.raw({ type: 'application/json' }),
+    withRequestBodyErrors(express.raw({ type: 'application/json' })),
     async (request, response, next) => {
       try {
         if (!muxWebhook) {
@@ -148,7 +148,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     ['/courses/:id/thumbnail', '/api/courses/:id/thumbnail'],
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb' }),
+    withRequestBodyErrors(express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb' })),
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -167,15 +167,15 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        if (!Buffer.isBuffer(request.body) || request.body.byteLength === 0) {
-          response.status(400).json({ message: 'Thumbnail image data is required.' });
-          return;
-        }
-
         const contentType = normalizeThumbnailContentType(request.header('content-type'));
 
         if (!contentType) {
           response.status(415).json({ message: 'Only JPEG, PNG, and WebP thumbnails are supported.' });
+          return;
+        }
+
+        if (!Buffer.isBuffer(request.body) || request.body.byteLength === 0) {
+          response.status(400).json({ message: 'Thumbnail image data is required.' });
           return;
         }
 
@@ -219,7 +219,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     ],
     authenticateRequest(auth),
     requireCourseAuthor(courses),
-    express.raw({ type: () => true, limit: '25mb' }),
+    withRequestBodyErrors(express.raw({ type: () => true, limit: '25mb' })),
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -331,7 +331,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
-  app.use(express.json());
+  app.use(withRequestBodyErrors(express.json()));
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
     response.setHeader('X-QI-Education-Content-Storage', courseContent.storageType);
@@ -1157,6 +1157,31 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
 
   return app;
+}
+
+// Only classify errors produced at the parser boundary. Application exceptions
+// with similar status/type fields must still reach the safe generic 500 handler.
+function withRequestBodyErrors(parser: RequestHandler): RequestHandler {
+  return (request, response, next) => {
+    parser(request, response, (error?: unknown) => {
+      if (error && typeof error === 'object' && 'status' in error) {
+        if (error.status === 400) {
+          response.status(400).json({ message: 'type' in error && error.type === 'entity.parse.failed'
+            ? 'Invalid JSON request body.' : 'Invalid request body.' });
+          return;
+        }
+        if (error.status === 413) {
+          response.status(413).json({ message: 'Request body exceeds the size limit.' });
+          return;
+        }
+        if (error.status === 415) {
+          response.status(415).json({ message: 'Unsupported request body encoding.' });
+          return;
+        }
+      }
+      next(error);
+    });
+  };
 }
 
 function createAuthResponse(user: AuthUser, secret: string) {
