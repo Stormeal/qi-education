@@ -427,7 +427,7 @@ state, preserving the report links and the actual verified cause.
 
 ## US-T002 lifecycle follow-up
 
-Verified 2026-10-09, delivery commit pending. DEF-002, DEF-003 and DEF-005 remain
+Verified 2026-10-09. Delivery commit: `86196cfc088e32bed99a9435b0d3f31739b646a4`. DEF-002, DEF-003 and DEF-005 remain
 **Fixed — resolved in code** with their original fix dates/commits and evidence.
 US-T002 replaces the earlier Status selector/direct admin status changes with
 explicit revision/submission/admin decision actions. Submitted snapshots are

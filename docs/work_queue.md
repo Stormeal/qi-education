@@ -4,19 +4,9 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**US-T002 - Submit, review, and publish courses safely.** In progress, 2026-10-09.
-Owner: Codex. Branch: `main`. Implementation base:
-`96e9ff90bd8ad04363ac2d5bedf5ac105d0ec7e7`.
-Spec: [course review](specs/US-T002-course-review.md), AC01-08.
-Confirmed: full decision history; separate reviewed revisions preserve uninterrupted
-learner access. Current live content remains until admin approval. Submitted revisions
-are frozen; returns require reasons. Work uses isolated repositories only.
-Completed: atomic workflow storage, API authoring/review enforcement, typed editor
-actions/history/read-only preview, isolated browser and final review corrections.
-Verification: [US-T002](verification/2026-10-09/US-T002.md), AC01-08 pass.
-Next: record local delivery commit; mark story/spec/queue Done together.
-Preserve unrelated concurrent code-audit documentation unstaged.
-No new push/deployment or shared mutation is authorized for this implementation.
+No implementation item is active. US-T002 is delivered locally; see Completed
+delivery below. Await the user's next selection; Proposed stories are not authorized.
+Unrelated concurrent code-audit documentation remains preserved and uncommitted.
 
 ## Latest audit
 
@@ -41,6 +31,18 @@ it to current main. [The handoff](handoffs/DEF-005.md) keeps the original record
 and links to current verification. Delivery commit: `3feeea4` (2026-10-08).
 
 ## Completed delivery
+
+**US-T002 - Full review history and uninterrupted course revisions.** Done.
+Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `96e9ff9`.
+Delivery commit: `86196cfc088e32bed99a9435b0d3f31739b646a4`. Contract: AC01-08.
+Private editable revisions, frozen submissions, required admin return reasons and
+full chronological history. Atomic approval replaces live metadata/lessons/pointers;
+existing learners retain access throughout review. Read-only reviewer preview,
+versioned actions and retained live resource access. Final review's five findings
+fixed with RED-to-GREEN regressions. 264 API/108 frontend tests, all builds and
+isolated teacher/admin/learner browser pass. [Verification](verification/2026-10-09/US-T002.md).
+Earlier Fixed records remain preserved. Shared-provider and hosted release checks
+are separate. No push/deployment; unrelated audit changes excluded from delivery.
 
 **DEF-008, DEF-011, DEF-012, DEF-013 - Remaining defect closure.** Fixed.
 Owner: Codex. Date: 2026-10-09. Branch: `main`. Base: `797d55c`.
@@ -116,10 +118,9 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-US-T002 is the user's current selection. Resume its Active work record when the
-two product decisions are answered; do not select another Proposed story while
-this handoff is active. All documented confirmed defects remain Fixed. INV-001-004
-still require separate evidence and selection.
+US-T002 is Done. All documented confirmed defects remain Fixed. Await the user's
+next selected story or investigation; no Proposed enhancement is authorized by
+this delivery. Shared-provider/hosted release checks require a separate release.
 
 ## Defect order
 

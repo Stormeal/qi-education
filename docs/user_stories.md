@@ -11,7 +11,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
 | US-T001 | Enforce course ownership | Done | P1 | None | DEF-001 |
-| US-T002 | Submit, review, and publish courses safely | In progress | P1 | T001 | DEF-002, DEF-003 |
+| US-T002 | Submit, review, and publish courses safely | Done | P1 | T001 | DEF-002, DEF-003 |
 | US-T003 | Protect unsaved authoring work | Proposed | P2 | None | DEF-006 |
 | US-T004 | Publish valid, answerable quizzes | Done | P2 | T002 authorization delivered | DEF-005 |
 | US-T005 | Save authoring work without silent overwrites | Proposed | P2 | T001 | Investigation INV-001 |
@@ -42,7 +42,7 @@ Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
 convenience. An item is not Done without scenario evidence and a delivery commit.
 US-T001 is delivered locally in `a9940cc` with passing acceptance checks.
-US-T004, US-L005 and US-L008 are also delivered. US-T002 is selected and in progress; other audit-generated stories retain their Proposed scope.
+US-T004, US-L005 and US-L008 are also delivered. US-T002 is delivered; other audit-generated stories retain their Proposed scope.
 
 The [career path audit](audits/2026-10-05/career_path_audit.md) recommends a
 sequence within that journey. Its new stories remain Proposed; path governance,
@@ -104,14 +104,15 @@ Feature: Course ownership
 **As a teacher, I want to submit a course for admin review and see its outcome,
 so that learners receive reviewed material.**
 
-State: In progress. Owner: Codex. Selected 2026-10-09.
+State: Done. Owner: Codex. Completed 2026-10-09.
+Delivery commit: `86196cfc088e32bed99a9435b0d3f31739b646a4`.
 Dependencies: US-T001. Defects: DEF-002, DEF-003.
 User confirmed full review history and separate published revisions to preserve
 uninterrupted learner access. Spec and AC01-08:
 [course review](specs/US-T002-course-review.md). Implementation base: `96e9ff9`.
 Delivered narrow defect scope on 2026-10-07 in `a6767f6`: AC02 admin controls and private draft
 access; see the lifecycle spec and verification. The broader review/revision flow
-now passes AC01-08; local delivery commit pending. Verification:
+passes AC01-08 and is delivered locally. Verification:
 [US-T002](verification/2026-10-09/US-T002.md).
 Scope: explicit transitions, admin-only pricing/catalog controls, and private drafts.
 Confirmed transitions and revision/history behavior are specified in the linked
@@ -180,7 +181,7 @@ every published quiz and understand what they answered.**
 
 State: Done. Owner: Codex. Completed: 2026-10-08. Defect: DEF-005.
 Dependency: US-T002 authorization boundaries delivered in `a6767f6`; its broader
-review workflow is in progress. Assessment delivery commit:
+review workflow is delivered in `86196cf`. Assessment delivery commit:
 `3feeea4de8d056ba1e88789103a280df52c5d2f0`.
 Selected DEF-005 retains the existing single-choice interaction: exactly one correct
 answer per question. Incomplete questions may be saved as drafts but cannot be

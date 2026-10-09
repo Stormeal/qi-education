@@ -3,7 +3,8 @@
 ## Record
 
 - Story: [US-T002](../user_stories.md#us-t002--submit-review-and-publish-courses-safely).
-- State: In progress; implementation verified, local delivery commit pending.
+- State: Done, verified and delivered locally 2026-10-09.
+- Delivery commit: `86196cfc088e32bed99a9435b0d3f31739b646a4`.
 - Policies confirmed by the user on 2026-10-09.
 - Owner: Codex. Branch: `main`.
 - Implementation base: `96e9ff90bd8ad04363ac2d5bedf5ac105d0ec7e7`.
@@ -209,7 +210,7 @@ checklist in the project spec rather than creating a competing work queue.
 - [x] Run API/frontend suites and API/frontend/Pages builds. Walk teacher submission,
   admin return, teacher correction/resubmission, publication, and chosen edit policy
   in an isolated browser/API/store fixture; record integration limitations.
-- [ ] Obtain fresh independent final review, address material findings, align semver,
+- [x] Obtain fresh independent final review, address material findings, align semver,
   and commit locally on main. Record delivery commit and acceptance evidence in
   story/spec/queue; preserve resolved defect records. Do not push or deploy.
 
@@ -227,7 +228,8 @@ checklist in the project spec rather than creating a competing work queue.
 
 Detailed tests, browser steps, final review corrections, provider limitations and
 release checks: [US-T002 verification](../verification/2026-10-09/US-T002.md).
-Implementation verified on 2026-10-09; delivery reference is recorded after commit.
+Implementation verified on 2026-10-09. Delivery: `86196cfc088e32bed99a9435b0d3f31739b646a4`.
+No push/deployment; shared-provider release checks remain separate.
 
 ## Implementation plan
 

@@ -42,7 +42,7 @@ export class AppStateService {
   private readonly sessionService = inject(SessionService);
   private readonly learningProgress = inject(LearningProgressService);
 
-  readonly appVersion = '0.1.52';
+  readonly appVersion = '0.1.53';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
