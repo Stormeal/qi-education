@@ -1,24 +1,14 @@
 @if (state.isSessionRestoring()) {
   <app-session-restore-state />
 } @else if (state.loginState()) {
-  <app-profile-page
+  <app-career-path-page
     [appVersion]="state.appVersion"
     [currentYear]="state.currentYear"
-    [displayName]="state.loginState()?.user?.displayName ?? ''"
-    [email]="state.loginState()?.user?.email ?? ''"
-    [roleLabel]="state.student().currentRole"
+    [student]="state.student()"
+    [userEmail]="state.loginState()?.user?.email ?? ''"
+    [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
-    [memberSince]="state.profileMemberSince()"
-    [enrolledCount]="state.enrolledCourseIds().length"
-    [avatarColor]="state.profileAvatarColor()"
-    [avatarColorOptions]="state.avatarColorOptions"
-    [bio]="state.profileBio()"
-    [jobTitle]="state.profileJobTitle()"
-    [company]="state.profileCompany()"
-    [learningGoals]="state.profileLearningGoals()"
-    [profileSaving]="state.profileSaving()"
-    [profileSaved]="state.profileSaved()"
-    [profileDirty]="state.profileDirty()"
+    [hasStartedCareerPath]="state.hasStartedCareerPath()"
     [isFeedbackOpen]="state.isFeedbackOpen()"
     [feedbackSubmitted]="state.feedbackSubmitted()"
     [feedbackPage]="state.feedbackPage()"
@@ -33,17 +23,11 @@
     (feedbackOpened)="state.openFeedback()"
     (loggedOut)="state.logout()"
     (adminClicked)="state.navigateAdmin()"
-    (careerPathClicked)="state.navigateCareerPath()"
-    (bioChanged)="state.updateProfileBio($event)"
-    (jobTitleChanged)="state.updateProfileJobTitle($event)"
-    (companyChanged)="state.updateProfileCompany($event)"
-    (learningGoalsChanged)="state.updateProfileLearningGoals($event)"
-    (avatarColorSelected)="state.selectProfileAvatarColor($event)"
-    (profileSaveClicked)="state.saveProfile()"
     (feedbackClosed)="state.closeFeedback()"
     (feedbackRatingSelected)="state.selectFeedbackRating($event)"
     (feedbackTextChanged)="state.updateFeedbackText($event)"
     (feedbackSubmittedClicked)="state.submitFeedback()"
+    (startCareerPathClicked)="state.startCareerPath()"
   />
 } @else {
   <app-login-page

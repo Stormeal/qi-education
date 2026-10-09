@@ -88,6 +88,7 @@ export class CoursesPage {
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
   readonly adminClicked = output<void>();
+  readonly careerPathClicked = output<void>();
 
   protected readonly activeView = signal<CourseCatalogView>('published');
   protected readonly activeCollection = signal<CourseCollectionTab>('popular');

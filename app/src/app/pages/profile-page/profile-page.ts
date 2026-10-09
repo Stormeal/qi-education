@@ -47,6 +47,7 @@ export class ProfilePage {
   readonly feedbackOpened = output<void>();
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();
+  readonly careerPathClicked = output<void>();
   readonly bioChanged = output<string>();
   readonly jobTitleChanged = output<string>();
   readonly companyChanged = output<string>();

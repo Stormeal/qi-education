@@ -24,6 +24,7 @@
     (feedbackOpened)="state.openFeedback()"
     (loggedOut)="state.logout()"
     (adminClicked)="state.navigateAdmin()"
+    (careerPathClicked)="state.navigateCareerPath()"
     (feedbackReloaded)="state.reloadAdminFeedback()"
     (feedbackClosed)="state.closeFeedback()"
     (feedbackRatingSelected)="state.selectFeedbackRating($event)"
@@ -62,6 +63,7 @@
     (feedbackTextChanged)="state.updateFeedbackText($event)"
     (feedbackSubmittedClicked)="state.submitFeedback()"
     (adminClicked)="state.navigateAdmin()"
+    (careerPathClicked)="state.navigateCareerPath()"
   />
 } @else {
   <app-login-page

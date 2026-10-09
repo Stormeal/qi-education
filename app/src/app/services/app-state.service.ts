@@ -42,7 +42,8 @@ export class AppStateService {
   private readonly sessionService = inject(SessionService);
   private readonly learningProgress = inject(LearningProgressService);
 
-  readonly appVersion = '0.1.55';
+
+  readonly appVersion = '0.1.56';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -58,6 +59,7 @@ export class AppStateService {
   readonly loginError = signal('');
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
   readonly currentPath = signal(this.normalizePath(this.router.url));
+  readonly hasStartedCareerPath = signal(false);
 
   readonly profileBio = signal('');
   readonly profileJobTitle = signal('');
@@ -630,6 +632,14 @@ export class AppStateService {
     }
 
     this.updatePath('/admin');
+  }
+
+  navigateCareerPath(): void {
+    this.updatePath('/career-path');
+  }
+
+  startCareerPath(): void {
+    this.hasStartedCareerPath.set(true);
   }
 
   navigateProfile(): void {

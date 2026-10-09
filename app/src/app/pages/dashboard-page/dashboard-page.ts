@@ -43,4 +43,5 @@ export class DashboardPage {
   readonly coursesClicked = output<void>();
   readonly libraryClicked = output<void>();
   readonly adminClicked = output<void>();
+  readonly careerPathClicked = output<void>();
 }

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qi-education-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "app:dev"],
+      "port": 4200
+    }
+  ]
+}
