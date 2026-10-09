@@ -57,7 +57,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.63';
+  readonly appVersion = '0.1.64';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1147,8 +1147,9 @@ export class AppStateService {
       return;
     }
 
-    if (file.size > 25 * 1024 * 1024) {
-      this.attachmentUploadError.set('Attachments must be 25 MB or smaller.');
+    // Keep in step with the API upload limit (api/src/server.ts); the host caps bodies near 4.5 MB.
+    if (file.size > 4 * 1024 * 1024) {
+      this.attachmentUploadError.set('Attachments must be 4 MB or smaller.');
       return;
     }
 

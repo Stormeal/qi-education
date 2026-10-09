@@ -50,9 +50,9 @@ describe('request error contract (DEF-008)', () => {
   it.each([
     { path: '/courses/course/thumbnail', bytes: 2 * 1024 * 1024 + 1, type: 'image/png' },
     { path: '/api/courses/course/thumbnail', bytes: 2 * 1024 * 1024 + 1, type: 'image/png' },
-    { path: '/courses/course/content/components/text/attachments', bytes: 25 * 1024 * 1024 + 1, type: 'application/pdf' },
-    { path: '/api/courses/course/content/components/text/attachments', bytes: 25 * 1024 * 1024 + 1, type: 'application/pdf' },
-  ])('RD-02 returns 413 and preserves data for $path', async ({ path, bytes, type }) => {
+    { path: '/courses/course/content/components/text/attachments', bytes: 4 * 1024 * 1024 + 1, type: 'application/pdf', limit: '4 MB' },
+    { path: '/api/courses/course/content/components/text/attachments', bytes: 4 * 1024 * 1024 + 1, type: 'application/pdf', limit: '4 MB' },
+  ])('RD-02 returns 413 and preserves data for $path', async ({ path, bytes, type, limit = '' }) => {
     const savedCourse = structuredClone(await courses.listCourses());
     const savedContent = structuredClone(await content.getCourseContent('course'));
     const thumbnailWrite = vi.spyOn(assets, 'saveThumbnail');
@@ -61,7 +61,10 @@ describe('request error contract (DEF-008)', () => {
       authorization: `Bearer ${token}`, 'Content-Type': type, 'X-Section-Id': 's',
     }, body: Buffer.alloc(bytes) });
     expect(response.status).toBe(413);
-    expect(await response.json()).toEqual({ message: expect.stringMatching(/(large|limit|size)/i) });
+    const body = await response.json();
+    expect(body).toEqual({ message: expect.stringMatching(/(large|limit|size)/i) });
+    expect(body.message).toContain(limit); // US-T009-AC03: the API names the same limit as the editor
+
     expect(await courses.listCourses()).toEqual(savedCourse);
     expect(await content.getCourseContent('course')).toEqual(savedContent);
     expect(thumbnailWrite).not.toHaveBeenCalled(); expect(attachmentWrite).not.toHaveBeenCalled();

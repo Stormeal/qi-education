@@ -494,6 +494,12 @@ review's author snapshot/save-token race is covered by a RED-to-GREEN regression
 319 API / 128 frontend tests, six journey checks and both builds pass locally.
 Fixed means resolved in code; no deployment or hosted quota verification.
 
+### DEF-P007-EDITOR — Stored lesson markup could run script in the course editor
+
+Promoted from INV-008, P1. Fixed 2026-10-09 in `9f4cb68` (Claude Code). Reproduction, cause,
+fix and browser evidence: [editor markup spec](specs/US-P007-editor-markup.md). The API still
+stores author HTML unfiltered; the editor and learner views are the enforcement points.
+
 ### DEF-P007-SHEETS — Spreadsheet text becomes formula/number
 
 Promoted INV-009, 2026-10-09, owner Codex, P1 Fixed. Isolated Sheets emulator

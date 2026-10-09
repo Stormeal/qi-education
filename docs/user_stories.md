@@ -18,7 +18,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
 | US-T008 | Curate valid, versioned career paths | In progress | P2 | L006; path governance decisions | None |
-| US-T009 | Attach lesson files within limits the service can honor | Proposed | P2 | T001; storage decision | Investigation INV-010 |
+| US-T009 | Attach lesson files within limits the service can honor | In progress | P2 | T001; storage decision | Investigation INV-010 |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
@@ -391,7 +391,12 @@ Feature: Explicit catalog category review
 **As a teacher, I want the stated attachment limit to match what the service
 accepts, so that an upload either succeeds or tells me clearly why it cannot.**
 
-State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+State: In progress. Decision (Claude Code as tech lead, 2026-10-09): keep database storage
+with one 4 MB limit; direct-to-storage upload for larger files stays Proposed. Delivered in
+code: the API upload limit and the editor check are both 4 MB with the same message
+(AC02, AC03; `requestErrors.test.ts`, `course-save.spec.ts`). AC01 needs the hosted check in the
+[teacher rehearsal checklist](release/teacher-rehearsal-checklist.md).
+Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
 INV-010. Depends on US-T001. Scope: one size limit shared by editor and API,
 upload and download, and the message shown. Decisions: keep database storage with
 a limit under the host's 4.5 MB body cap, or add direct-to-storage upload for

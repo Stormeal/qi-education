@@ -251,7 +251,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
     ],
     authenticateRequest(auth),
     requireCourseAuthor(storedCourses),
-    withRequestBodyErrors(express.raw({ type: () => true, limit: '25mb' })),
+    // The host rejects request and response bodies above about 4.5 MB, so larger files could never arrive or be downloaded.
+    withRequestBodyErrors(express.raw({ type: () => true, limit: '4mb' }), 'Attachment is too large. Attachments must be 4 MB or smaller.'),
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -1306,7 +1307,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
 // Only classify errors produced at the parser boundary. Application exceptions
 // with similar status/type fields must still reach the safe generic 500 handler.
-function withRequestBodyErrors(parser: RequestHandler): RequestHandler {
+function withRequestBodyErrors(parser: RequestHandler, tooLargeMessage = 'Request body exceeds the size limit.'): RequestHandler {
   return (request, response, next) => {
     parser(request, response, (error?: unknown) => {
       if (error && typeof error === 'object' && 'status' in error) {
@@ -1316,7 +1317,7 @@ function withRequestBodyErrors(parser: RequestHandler): RequestHandler {
           return;
         }
         if (error.status === 413) {
-          response.status(413).json({ message: 'Request body exceeds the size limit.' });
+          response.status(413).json({ message: tooLargeMessage });
           return;
         }
         if (error.status === 415) {

@@ -107,4 +107,11 @@ describe('US-T003/005 draft and save behavior', () => {
     resolve({ ok: false, message: 'Isolated failure' }); await upload;
     expect(state.courseContentSaving()).toBe(false);
   });
+  it('US-T009-AC02 refuses an attachment over 4 MB before any upload starts', async () => {
+    state.courseContent.set({ ...content, sections: [{ id: 's', title: 'Section', components: [{ id: 'text', title: 'Lesson', type: 'text', content: 'Body', resourceUrl: '', durationMinutes: 1, attachments: [] }] }] });
+    const upload = vi.spyOn(service, 'uploadComponentAttachment');
+    await state.uploadCourseComponentAttachment(0, 0, new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'slides.pdf', { type: 'application/pdf' }), 'marker');
+    expect(state.attachmentUploadError()).toBe('Attachments must be 4 MB or smaller.');
+    expect(upload).not.toHaveBeenCalled();
+  });
 });

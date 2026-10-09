@@ -27,6 +27,7 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
 | [Audit report](audits/2026-10-04/application_audit.md) | Code review, walkthrough, evidence, and coverage limitations |
 | [Career path audit](audits/2026-10-05/career_path_audit.md) | Goal-to-learning journey, reproduced progress defects, and Proposed improvements |
+| [Teacher rehearsal checklist](release/teacher-rehearsal-checklist.md) | Live-site walk of the full teacher, admin and learner path before a real teacher uses it |
 | [Code audit](audits/2026-10-09/code_audit.md) | Whole-repo code reading: load, security, and maintenance; unreproduced investigations and Proposed stories |
 
 ## Product decisions
