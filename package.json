@@ -1,6 +1,6 @@
 {
   "name": "qi-education",
-  "version": "0.1.58",
+  "version": "0.1.59",
   "private": true,
   "engines": {
     "node": "22.x"
@@ -14,6 +14,7 @@
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",
     "api:test": "npm --prefix api test",
+    "verify:journeys": "git log -1 --format=\"Journey checks for commit %H\" && npm --prefix api test -- src/journey.test.ts --reporter=verbose",
     "env:pull": "npx vercel env pull api/.env --environment=development --yes",
     "doctor": "node scripts/doctor.mjs"
   },

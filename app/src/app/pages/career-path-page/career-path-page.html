@@ -21,16 +21,31 @@
         <p class="cp-eyebrow"><span class="cp-eyebrow-dot" aria-hidden="true"></span>career_path.sys</p>
         <h1>Chart the route from where you are to <span class="cp-accent">where you're headed</span>.</h1>
         <p class="cp-welcome-sub">
-          Upload your CV, answer a few quick questions, and we'll map the certifications and
-          courses that get you there.
+          Answer a few quick questions, compare the paths, and follow the courses that get you there.
         </p>
       </header>
 
       <section class="cp-content" id="career-path-content">
+        @if (careerPath.state() === 'loading') {
+          <div class="cp-empty" role="status"><p>Loading career paths&hellip;</p></div>
+        } @else if (careerPath.state() === 'error') {
+          <div class="cp-empty" role="alert">
+            <h2>Career paths are unavailable</h2>
+            <p>We could not load career paths or your saved choice. Nothing was changed.</p>
+            <button type="button" class="cp-btn cp-btn-primary" (click)="careerPath.reload()">Retry</button>
+          </div>
+        } @else if (careerPath.paths().length === 0) {
+          <div class="cp-empty">
+            <p class="cp-empty-kicker">No flight plans yet</p>
+            <h2>No career paths are published yet</h2>
+            <p>Paths appear here once they are published. You can keep learning from the catalog meanwhile.</p>
+            <button type="button" class="cp-btn cp-btn-primary" (click)="coursesClicked.emit()">Browse courses</button>
+          </div>
+        } @else {
         @if (wizardStep() !== 'intro') {
           <ol class="cp-wizard-steps" aria-label="Career path setup progress">
             <li
-              [class.is-current]="wizardStep() === 'upload' || wizardStep() === 'processing'"
+              [class.is-current]="wizardStep() === 'upload'"
               [class.is-done]="wizardStep() === 'questions' || wizardStep() === 'choose-career' || wizardStep() === 'roadmap'"
             >
               <span class="cp-wizard-step-index">01</span>
@@ -67,25 +82,26 @@
                 </svg>
               </span>
               <p class="cp-empty-kicker">No flight plan filed</p>
-              <h2>You haven't started a Career Path yet</h2>
+              <h2>You haven't chosen a Career Path yet</h2>
               <p>
-                Upload your CV and answer a few quick questions, and we'll map out a certification
-                and course path to get you there.
+                Answer a few quick questions, compare the available paths, and choose the one that
+                matches where you want to go.
               </p>
               <button type="button" class="cp-btn cp-btn-primary" (click)="beginWizard()">
                 Start Career Path
                 <span class="cp-btn-arrow" aria-hidden="true">&rarr;</span>
               </button>
+              <button type="button" class="cp-btn cp-btn-ghost" (click)="continueToCareerChoice()">Just compare paths</button>
             </div>
           }
 
           @case ('upload') {
             <div class="cp-step">
-              <p class="cp-step-kicker">Stage 01</p>
+              <p class="cp-step-kicker">Stage 01 &middot; Preview</p>
               <h2>Upload your CV</h2>
-              <p class="cp-step-intro">
-                We'll scan it to build a digital profile of your skills, experience, and
-                certifications, so we can recommend the right path.
+              <p class="cp-notice">
+                Preview only: CV analysis is not built yet. Your file stays on this device, is not
+                uploaded or read, and does not affect the paths you are shown.
               </p>
               <label
                 class="cp-dropzone"
@@ -110,17 +126,7 @@
                   (change)="onCvFileSelected($event)"
                 />
               </label>
-            </div>
-          }
-
-          @case ('processing') {
-            <div class="cp-step cp-processing">
-              <span class="cp-scan" aria-hidden="true">
-                <span class="cp-scan-ring"></span>
-                <span class="cp-scan-ring cp-scan-ring--delay"></span>
-              </span>
-              <h2>Analyzing your CV<span class="cp-cursor" aria-hidden="true">_</span></h2>
-              <p class="cp-step-intro">Pulling out your skills, experience, and certifications.</p>
+              <button type="button" class="cp-btn cp-btn-secondary" (click)="continueToQuestions()">Skip this step</button>
             </div>
           }
 
@@ -128,7 +134,10 @@
             <div class="cp-step">
               <p class="cp-step-kicker">Stage 02</p>
               <h2>A few quick questions</h2>
-              <p class="cp-step-intro">Yes or no is all we need &mdash; this helps us recommend the right career.</p>
+              <p class="cp-step-intro">Yes or no is all we need &mdash; your answers only decide which path we suggest first.</p>
+              @if (cvFileName()) {
+                <p class="cp-notice">Preview: {{ cvFileName() }} was not uploaded or analysed.</p>
+              }
               <div class="cp-questions">
                 @for (question of careerQuestions; track question.id; let i = $index) {
                   <div class="cp-question-row">
@@ -139,6 +148,7 @@
                         type="button"
                         class="cp-yes-no-option"
                         [class.is-selected]="questionAnswers()[question.id] === true"
+                        [attr.aria-pressed]="questionAnswers()[question.id] === true"
                         (click)="answerQuestion(question.id, true)"
                       >
                         Yes
@@ -147,6 +157,7 @@
                         type="button"
                         class="cp-yes-no-option"
                         [class.is-selected]="questionAnswers()[question.id] === false"
+                        [attr.aria-pressed]="questionAnswers()[question.id] === false"
                         (click)="answerQuestion(question.id, false)"
                       >
                         No
@@ -170,56 +181,50 @@
           @case ('choose-career') {
             <div class="cp-step">
               <p class="cp-step-kicker">Stage 03</p>
-              @if (digitalCv(); as cv) {
-                <div class="cp-dossier">
-                  <div class="cp-dossier-head">
-                    <h2>Digital CV</h2>
-                    <span class="cp-dossier-source">source // {{ cv.fileName }}</span>
-                  </div>
-                  <p class="cp-dossier-headline">{{ cv.headline }}</p>
-                  <div class="cp-dossier-grid">
-                    <div>
-                      <span class="cp-dossier-label">Skills detected</span>
-                      <div class="cp-chip-list">
-                        @for (skill of cv.skills; track skill) {
-                          <span class="cp-chip">{{ skill }}</span>
-                        }
-                      </div>
-                    </div>
-                    <div>
-                      <span class="cp-dossier-label">Work history</span>
-                      <ul class="cp-experience-list">
-                        @for (item of cv.experience; track item.role) {
-                          <li>
-                            <strong>{{ item.role }}</strong>
-                            <span>{{ item.company }} &middot; {{ item.period }}</span>
-                          </li>
-                        }
-                      </ul>
-                    </div>
-                    <div>
-                      <span class="cp-dossier-label">Certifications</span>
-                      <div class="cp-chip-list">
-                        @for (cert of cv.certifications; track cert) {
-                          <span class="cp-chip is-cert">{{ cert }}</span>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <h2 class="cp-choose-heading">Compare paths and choose your target career</h2>
+              <p class="cp-step-intro">
+                Choosing a path saves your goal. It does not enroll you in courses or unlock paid content.
+              </p>
+              @if (saveError()) {
+                <p class="cp-notice is-error" role="alert">{{ saveError() }}</p>
               }
-
-              <h2 class="cp-choose-heading">Choose your target career</h2>
               <div class="cp-career-grid">
-                @for (career of orderedCareerOptions(); track career.id) {
-                  <button type="button" class="cp-career-card" (click)="selectCareer(career.id)">
-                    @if (career.id === recommendedCareerId()) {
-                      <span class="cp-career-recommended">Recommended</span>
+                @for (path of orderedPaths(); track path.id) {
+                  <article class="cp-career-card" [class.is-draft-choice]="path.id === draftPathId()">
+                    @if (path.id === suggestedPathId()) {
+                      <span class="cp-career-recommended">Suggested from your answers</span>
                     }
-                    <h3>{{ career.title }}</h3>
-                    <p>{{ career.description }}</p>
-                    <span class="cp-career-cta">Select <span aria-hidden="true">&rarr;</span></span>
-                  </button>
+                    @if (path.id === careerPath.selection()?.pathId) {
+                      <span class="cp-career-recommended">Your current path</span>
+                    }
+                    <h3>{{ path.title }}</h3>
+                    <p>{{ path.summary }}</p>
+                    @if (path.outcomes.length) {
+                      <ul class="cp-path-list" aria-label="Outcomes">
+                        @for (outcome of path.outcomes; track outcome) { <li>{{ outcome }}</li> }
+                      </ul>
+                    }
+                    <ol class="cp-path-list" aria-label="Steps">
+                      @for (step of path.steps; track step.id) {
+                        <li>{{ step.title }}@if (!step.required) { <em> (optional)</em> }</li>
+                      }
+                    </ol>
+                    @let facts = pathFacts(path);
+                    <p class="cp-path-facts">
+                      {{ facts.required }} required {{ facts.required === 1 ? 'step' : 'steps' }}@if (facts.optional) { &middot; {{ facts.optional }} optional }
+                      @if (path.estimatedHours) { &middot; about {{ path.estimatedHours }} hours }
+                      &middot; {{ facts.available }} {{ facts.available === 1 ? 'course' : 'courses' }} available now
+                      @if (facts.preview) { &middot; {{ facts.preview }} not available yet }
+                    </p>
+                    <button
+                      type="button"
+                      class="cp-btn cp-btn-primary"
+                      [disabled]="saving()"
+                      (click)="choosePath(path.id)"
+                    >
+                      {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry saving this path' : 'Choose this path' }}
+                    </button>
+                  </article>
                 }
               </div>
             </div>
@@ -228,84 +233,102 @@
           @case ('roadmap') {
             <div class="cp-step cp-step-roadmap">
               <p class="cp-step-kicker">Stage 04</p>
+              @if (careerPath.selectedPath(); as path) {
+                @let progress = careerPath.progress();
+                <h2>Your flight path to {{ path.title }}</h2>
+                <p class="cp-step-intro">
+                  {{ progress?.completed }} of {{ progress?.total }} required steps complete &middot; {{ progress?.percent }}%
+                </p>
+                @if (careerPath.selection()?.revision !== path.revision) {
+                  <p class="cp-notice">This path was updated after you chose it. Courses you completed still count.</p>
+                }
+                @if (progress?.finished) {
+                  <p class="cp-notice" role="status">
+                    You completed every required step of this path. Finishing it does not grant an external
+                    certification; exams are taken separately. You can choose a new target below.
+                  </p>
+                }
 
-              @if (digitalCv(); as cv) {
-                <div class="cp-profile-tags">
-                  <span class="cp-profile-label">Skills</span>
-                  <div class="cp-profile-skills">
-                    @for (skill of cv.skills; track skill) {
-                      <span class="cp-profile-tag">{{ skill }}</span>
-                    }
-                  </div>
+                <ol class="cp-roadmap-track" aria-label="Career path roadmap">
+                  <li class="cp-roadmap-stage is-start">
+                    <span class="cp-roadmap-stage-label">Start</span>
+                    <div class="cp-roadmap-stage-title">You today</div>
+                  </li>
+                  @for (milestone of milestones(); track milestone.id) {
+                    <li
+                      class="cp-roadmap-stage"
+                      [class.is-complete]="milestone.status === 'complete'"
+                      [class.is-current]="milestone.status === 'current'"
+                    >
+                      <div class="cp-roadmap-stage-inner">
+                        <div class="cp-roadmap-stage-header">
+                          @if (milestone.status === 'current') {
+                            <span class="cp-roadmap-stage-marker" aria-hidden="true">📍</span>
+                          }
+                          @if (milestone.status === 'complete') {
+                            <span class="cp-roadmap-stage-marker" aria-hidden="true">✓</span>
+                          }
+                          <div class="cp-roadmap-stage-title">{{ milestone.title }}</div>
+                        </div>
+                        <div class="cp-roadmap-stage-description">{{ milestone.description }}</div>
+                      </div>
+                    </li>
+                  }
+                  <li class="cp-roadmap-stage is-goal">
+                    <span class="cp-roadmap-stage-label">Goal</span>
+                    <div class="cp-roadmap-stage-title">{{ path.title }}</div>
+                  </li>
+                </ol>
+
+                <div class="cp-milestones">
+                  @for (milestone of milestones(); track milestone.id; let i = $index) {
+                    <article
+                      class="cp-milestone"
+                      [class.is-complete]="milestone.status === 'complete'"
+                      [class.is-current]="milestone.status === 'current'"
+                    >
+                      <span class="cp-milestone-ghost-index" aria-hidden="true">{{ i + 1 }}</span>
+                      <div class="cp-milestone-body">
+                        <div class="cp-milestone-head">
+                          <h3>{{ milestone.title }}</h3>
+                          <span class="cp-milestone-badge">{{ milestone.status === 'complete' ? 'Complete' : !milestone.required ? 'Optional' : milestone.status === 'current' ? 'Next step' : 'Upcoming' }}</span>
+                        </div>
+                        <p>{{ milestone.description }}</p>
+                        <div class="cp-milestone-courses">
+                          <span class="cp-milestone-courses-label">
+                            {{ milestone.courses.length > 1 ? 'Complete any one of these courses' : 'Course' }}
+                          </span>
+                          <ul>
+                            @for (course of milestone.courses; track $index) {
+                              <li>
+                                @if (course.available) {
+                                  <a [routerLink]="['/courses', course.courseId]">{{ course.title }}</a>
+                                  <span class="cp-course-state">
+                                    {{ course.percent === null ? '' : course.percent === 100 ? 'Completed' : course.percent + '% complete' }}
+                                  </span>
+                                } @else {
+                                  {{ course.title }}
+                                  <span class="cp-course-state">{{ course.placeholder ? 'Preview — not available yet' : 'Not currently available' }}</span>
+                                }
+                              </li>
+                            }
+                          </ul>
+                        </div>
+                      </div>
+                    </article>
+                  }
                 </div>
+              } @else {
+                <h2>Your saved path is no longer published</h2>
+                <p class="cp-step-intro">Your completed courses are kept. Choose another path to continue.</p>
               }
 
-              <h2>Your flight path to {{ selectedCareer()?.title }}</h2>
-
-              <ol class="cp-roadmap-track" aria-label="Career path roadmap">
-                <li class="cp-roadmap-stage is-start">
-                  <span class="cp-roadmap-stage-label">Start</span>
-                  <div class="cp-roadmap-stage-title">{{ digitalCv()?.headline }}</div>
-                </li>
-                @for (milestone of activeMilestones(); track milestone.id) {
-                  <li
-                    class="cp-roadmap-stage"
-                    [class.is-complete]="milestone.status === 'complete'"
-                    [class.is-current]="milestone.status === 'current'"
-                  >
-                    <div class="cp-roadmap-stage-inner">
-                      <div class="cp-roadmap-stage-header">
-                        @if (milestone.status === 'current') {
-                          <span class="cp-roadmap-stage-marker">📍</span>
-                        }
-                        @if (milestone.status === 'complete') {
-                          <span class="cp-roadmap-stage-marker">✓</span>
-                        }
-                        <div class="cp-roadmap-stage-title">{{ milestone.title }}</div>
-                      </div>
-                      <div class="cp-roadmap-stage-description">{{ milestone.description }}</div>
-                    </div>
-                  </li>
-                }
-                <li class="cp-roadmap-stage is-goal">
-                  <span class="cp-roadmap-stage-label">Goal</span>
-                  <div class="cp-roadmap-stage-title">{{ selectedCareer()?.title }}</div>
-                </li>
-              </ol>
-
-              <div class="cp-milestones">
-                @for (milestone of activeMilestones(); track milestone.id; let i = $index) {
-                  <article
-                    class="cp-milestone"
-                    [class.is-complete]="milestone.status === 'complete'"
-                    [class.is-current]="milestone.status === 'current'"
-                  >
-                    <span class="cp-milestone-ghost-index" aria-hidden="true">{{ i + 1 }}</span>
-                    <div class="cp-milestone-body">
-                      <div class="cp-milestone-head">
-                        <h3>{{ milestone.title }}</h3>
-                        <span class="cp-milestone-badge">{{ milestone.status === 'complete' ? 'Complete' : milestone.status === 'current' ? 'In progress' : 'Upcoming' }}</span>
-                      </div>
-                      <p>{{ milestone.description }}</p>
-                      <div class="cp-milestone-courses">
-                        <span class="cp-milestone-courses-label">Suggested courses</span>
-                        <ul>
-                          @for (course of milestone.suggestedCourses; track course) {
-                            <li>{{ course }}</li>
-                          }
-                        </ul>
-                      </div>
-                    </div>
-                  </article>
-                }
-              </div>
-
               <div class="cp-roadmap-actions">
-                <button type="button" class="cp-btn cp-btn-secondary" (click)="changeCareer()">Change target career</button>
-                <button type="button" class="cp-btn cp-btn-ghost" (click)="restartWizard()">Re-upload CV</button>
+                <button type="button" class="cp-btn cp-btn-secondary" (click)="continueToCareerChoice()">Change target career</button>
               </div>
             </div>
           }
+        }
         }
       </section>
 

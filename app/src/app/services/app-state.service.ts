@@ -29,6 +29,7 @@ import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { SessionService } from './session.service';
+import { CareerPathService } from './career-path.service';
 import { LearningProgressService } from './learning-progress.service';
 import { canEditCourse } from '../utils/course-permissions';
 import { CourseDraftRecoveryService, CourseEditorBuffer, RecoverableCourseDraft } from './course-draft-recovery.service';
@@ -42,6 +43,7 @@ export class AppStateService {
   private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
   private readonly learningProgress = inject(LearningProgressService);
+  private readonly careerPaths = inject(CareerPathService);
   private readonly courseDraftRecovery = inject(CourseDraftRecoveryService);
   private draftRecoveryContext = '';
   private restoredDraftKey = '';
@@ -55,7 +57,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.58';
+  readonly appVersion = '0.1.59';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -71,7 +73,6 @@ export class AppStateService {
   readonly loginError = signal('');
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
   readonly currentPath = signal(this.normalizePath(this.router.url));
-  readonly hasStartedCareerPath = signal(false);
 
   readonly profileBio = signal('');
   readonly profileJobTitle = signal('');
@@ -397,6 +398,14 @@ export class AppStateService {
         void this.loadAdminFeedbackWhenNeeded();
       });
 
+    effect(() => {
+      const login = this.loginState();
+      const path = this.currentPath();
+      if (login && (path === '/' || path === '/career-path' || path === '/admin')) {
+        untracked(() => void this.careerPaths.load(login.token, login.user.email));
+      }
+    });
+
     this.syncCourseEditorDraftFromPath();
     this.restoreStoredSession();
   }
@@ -676,10 +685,6 @@ export class AppStateService {
 
   navigateCareerPath(): void {
     this.updatePath('/career-path');
-  }
-
-  startCareerPath(): void {
-    this.hasStartedCareerPath.set(true);
   }
 
   navigateProfile(): void {

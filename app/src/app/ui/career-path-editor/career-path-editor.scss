@@ -1,0 +1,113 @@
+.cpe {
+  flex: 0 0 auto;
+  max-height: 70vh;
+  overflow: auto;
+  margin-bottom: 12px;
+  border: 1px solid rgba(108, 101, 88, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+
+  summary {
+    cursor: pointer;
+  }
+
+  h2 {
+    display: inline;
+    margin: 0;
+    color: #171b4a;
+    font-size: 1.1rem;
+  }
+
+  label {
+    display: grid;
+    gap: 4px;
+    font-size: 0.85rem;
+  }
+
+  input[type='text'],
+  input[type='number'],
+  textarea,
+  select {
+    font: inherit;
+    padding: 6px 8px;
+    border: 1px solid rgba(108, 101, 88, 0.35);
+    border-radius: 6px;
+  }
+
+  button {
+    font: inherit;
+    padding: 6px 12px;
+    border: 1px solid rgba(108, 101, 88, 0.35);
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  button[aria-current='true'],
+  .cpe-primary {
+    background: #171b4a;
+    color: #fff;
+  }
+}
+
+.cpe-list {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+  }
+}
+
+.cpe-new,
+.cpe-actions,
+.cpe-course,
+.cpe-prerequisites {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.cpe-form,
+.cpe-step {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.cpe-step {
+  border: 1px solid rgba(108, 101, 88, 0.25);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.cpe label.cpe-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cpe-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.cpe-error {
+  margin: 0;
+  color: #9f1239;
+}
+
+.cpe-message {
+  margin: 0;
+  color: #0f766e;
+}

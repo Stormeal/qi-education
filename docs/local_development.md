@@ -86,6 +86,7 @@ Do not use production users to create/delete audit courses or trigger issue crea
 | Command | Coverage |
 | --- | --- |
 | `npm run api:test` | API/repository/schema unit tests |
+| `npm run verify:journeys` | US-P001 role journey over HTTP with in-memory stores; prints the tested commit |
 | `npm run app:test -- --watch=false` | Angular tests, once |
 | `npm run api:build` | API TypeScript compilation |
 | `npm run app:build` | Normal frontend bundle |

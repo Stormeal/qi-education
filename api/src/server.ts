@@ -18,6 +18,16 @@ import {
 } from './auth.js';
 import { createAuthRepository, type AuthRepository } from './authRepository.js';
 import {
+  careerPathContentSchema,
+  careerPathIdSchema,
+  careerPathIssues,
+  careerPathSeeds,
+  learnerCareerPath,
+  selectCareerPathSchema,
+  type CareerPathDocument,
+} from './careerPath.js';
+import { createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
+import {
   apiConfig,
   getCorsOrigins,
   hasGoogleSheetsConfig,
@@ -65,6 +75,7 @@ import {
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
+  careerPathRepository?: CareerPathRepository;
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
   feedbackRepository?: FeedbackRepository;
@@ -84,6 +95,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const storedCourses = dependencies.courseRepository ?? createCourseRepository();
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
+  const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
@@ -529,7 +541,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   }));
 
-  app.use('/courses', (_request, response, next) => {
+  app.use(['/courses', '/career-paths', '/admin/career-paths', '/users/me/career-path'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'private, no-store');
     response.vary('Authorization');
     next();
@@ -1114,6 +1126,88 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
+
+  // Seeds are unsaved starting drafts: admins see them, learners never do until one is published.
+  const allCareerPaths = async (): Promise<CareerPathDocument[]> => {
+    const stored = await careerPaths.listPaths();
+    const storedIds = new Set(stored.map((path) => path._id));
+    return [...stored, ...Object.entries(careerPathSeeds).filter(([id]) => !storedIds.has(id))
+      .map(([id, draft]) => ({ _id: id, revision: 0, published: null, draft, updatedAt: '' }))];
+  };
+  const adminCareerPath = async (path: CareerPathDocument) =>
+    ({ id: path._id, revision: path.revision, published: path.published, draft: path.draft, updatedAt: path.updatedAt,
+      learners: await careerPaths.countSelections(path._id) });
+
+  app.get('/career-paths', async (_request, response, next) => {
+    try {
+      const catalog = await courses.listCourses();
+      response.json((await careerPaths.listPaths()).flatMap((path) => learnerCareerPath(path, catalog) ?? []));
+    } catch (error) { next(error); }
+  });
+
+  app.get('/career-paths/:id', async (request, response, next) => {
+    try {
+      const path = (await careerPaths.listPaths()).find((item) => item._id === request.params.id);
+      const view = path && learnerCareerPath(path, await courses.listCourses());
+      if (!view) { response.status(404).json({ message: 'Career path not found' }); return; }
+      response.json(view);
+    } catch (error) { next(error); }
+  });
+
+  app.get('/users/me/career-path', authenticateRequest(auth), async (request, response, next) => {
+    try {
+      response.json({ selection: await careerPaths.getSelection((request as AuthenticatedRequest).user.id) });
+    } catch (error) { next(error); }
+  });
+
+  // Selecting a path records a goal only; it never enrolls or grants course access.
+  app.put('/users/me/career-path', authenticateRequest(auth), async (request, response, next) => {
+    try {
+      const { pathId } = selectCareerPathSchema.parse(request.body);
+      const path = (await careerPaths.listPaths()).find((item) => item._id === pathId);
+      if (!path?.published) { response.status(404).json({ message: 'Career path not found' }); return; }
+      const selection = { _id: (request as AuthenticatedRequest).user.id, pathId, revision: path.revision,
+        selectedAt: new Date().toISOString() };
+      await careerPaths.saveSelection(selection);
+      response.json({ selection });
+    } catch (error) { next(error); }
+  });
+
+  app.get('/admin/career-paths', authenticateRequest(auth), requireAdmin, async (_request, response, next) => {
+    try {
+      response.json(await Promise.all((await allCareerPaths()).map(adminCareerPath)));
+    } catch (error) { next(error); }
+  });
+
+  // shortcut: last save wins between two admins editing the same path, add a revision check if curators multiply.
+  app.put('/admin/career-paths/:id', authenticateRequest(auth), requireAdmin, async (request, response, next) => {
+    try {
+      const id = careerPathIdSchema.parse(request.params.id);
+      const draft = careerPathContentSchema.parse(request.body);
+      const existing = (await allCareerPaths()).find((path) => path._id === id);
+      const path = { _id: id, revision: existing?.revision ?? 0, published: existing?.published ?? null, draft,
+        updatedAt: new Date().toISOString() };
+      await careerPaths.savePath(path);
+      response.json(await adminCareerPath(path));
+    } catch (error) { next(error); }
+  });
+
+  app.post('/admin/career-paths/:id/publish', authenticateRequest(auth), requireAdmin, async (request, response, next) => {
+    try {
+      const existing = (await allCareerPaths()).find((path) => path._id === request.params.id);
+      if (!existing?.draft) { response.status(404).json({ message: 'Career path draft not found' }); return; }
+      const issues = careerPathIssues(existing.draft, await storedCourses.listCourses());
+      if (issues.length) {
+        response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
+        return;
+      }
+      // Learner completion lives in course records, so a new revision cannot erase or double-count it.
+      const path = { ...existing, revision: existing.revision + 1, published: existing.draft,
+        updatedAt: new Date().toISOString() };
+      await careerPaths.savePath(path);
+      response.json(await adminCareerPath(path));
+    } catch (error) { next(error); }
+  });
 
   app.post('/feedback', authenticateRequest(auth), async (request, response, next) => {
     try {

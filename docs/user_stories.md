@@ -17,7 +17,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T005 | Save authoring work without silent overwrites | Done | P2 | T001 | DEF-015 / INV-001 |
 | US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
-| US-T008 | Curate valid, versioned career paths | Proposed | P2 | L006; path governance decisions | None |
+| US-T008 | Curate valid, versioned career paths | In progress | P2 | L006; path governance decisions | None |
 | US-T009 | Attach lesson files within limits the service can honor | Proposed | P2 | T001; storage decision | Investigation INV-010 |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
@@ -29,11 +29,11 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L006 | Retrieve consistent career path previews | Proposed | P3 | None | GitHub #22, #23, #24 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L008 | Keep catalog metadata and badges readable | Done | P2 | Reproduced; approved data correction applied | DEF-012, DEF-013 |
-| US-L009 | Compare and choose a career path | Proposed | P2 | L003, L006 | None |
+| US-L009 | Compare and choose a career path | In progress | P2 | L003, L006 | None |
 | US-L010 | Follow an actionable next learning step | Proposed | P2 | L001, L002, L009 | None |
 | US-L011 | Change paths while retaining learning history | Proposed | P3 | L002, L009 | None |
-| US-L012 | Understand milestones and path completion | Proposed | P2 | L002, L006, L009 | None |
-| US-P001 | Verify complete role journeys before release | Proposed | P2 | Teacher/learner contracts | None |
+| US-L012 | Understand milestones and path completion | In progress | P2 | L002, L006, L009 | None |
+| US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
 | US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
@@ -324,7 +324,9 @@ Feature: User access administration
 **As a curriculum curator, I want to maintain explicit course sequences, so that
 learners follow a coherent path that can evolve without losing their history.**
 
-State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+In progress since 2026-10-09 (Claude Code): implemented locally, uncommitted. Contract, decisions and checks:
+[career paths spec](specs/US-L009-L012-T008-career-paths.md).
+Source: [career path audit](audits/2026-10-05/career_path_audit.md).
 Depends on US-L006 for path identity/read contracts. Scope: course references,
 required/optional steps, alternatives, availability, review, and revisions.
 Decisions: curator roles and ownership, teacher proposal permissions, publishing
@@ -660,7 +662,9 @@ Feature: Catalog card integrity
 **As a learner, I want to compare paths and save an explicit goal, so that my
 learning guidance reflects the career I actually want to pursue.**
 
-State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+In progress since 2026-10-09 (Claude Code): implemented locally, uncommitted. Contract, decisions and checks:
+[career paths spec](specs/US-L009-L012-T008-career-paths.md).
+Source: [career path audit](audits/2026-10-05/career_path_audit.md).
 Depends on US-L006 for previews and US-L003 for account goal persistence;
 read-only comparison can precede saved selection. Scope: outcomes, target role,
 steps, estimated effort, available versus preview courses, and account selection.
@@ -773,7 +777,9 @@ Feature: Deliberate career path changes
 **As a learner, I want milestones based on actual learning outcomes, so that I
 know what I have achieved and what meaningful step comes next.**
 
-State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+In progress since 2026-10-09 (Claude Code): implemented locally, uncommitted. Contract, decisions and checks:
+[career paths spec](specs/US-L009-L012-T008-career-paths.md).
+Source: [career path audit](audits/2026-10-05/career_path_audit.md).
 Depends on US-L002, US-L006, and US-L009. Scope: required/optional steps, alternative
 completion, milestone evidence, and honest finishing states. Decisions: completion
 rules, progress denominator, prior learning recognition, and certification wording.
@@ -813,8 +819,16 @@ Feature: Evidence-based career milestones
 **As a maintainer, I want repeatable journey verification, so that changes do
 not pass unit tests while breaking teaching or learning.**
 
-State: Proposed. Depends on agreed teacher/learner contracts. No permanent browser
-E2E suite exists today. Decisions: CI browser runner, isolated fixtures, and test ownership.
+State: In progress (Claude Code, 2026-10-09; local, uncommitted). First increment: an
+API-level journey, `api/src/journey.test.ts`, run by `npm run verify:journeys` and by
+every `npm run api:test` (CI and the Pages deploy). It drives the real Express app
+over HTTP with in-memory stores and a GitHub stub that fails if called: teacher
+authoring, cross-teacher/student/anonymous denial, submit, admin-only publish,
+enrollment, learner content without answer flags, and server-graded quiz pass/fail.
+The command prints the tested commit; a failing step names its scenario (AC01, AC02).
+Not covered: the Angular UI and browser-stored lesson progress. No permanent browser
+E2E suite exists yet. Open decision: whether to add a browser runner (new dependency
+and CI browser install). Isolated fixtures: in-memory stores. Ownership: runs with the API suite.
 
 ```gherkin
 Feature: Journey verification

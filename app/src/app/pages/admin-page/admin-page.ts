@@ -6,6 +6,7 @@ import {
   FeedbackTriageUpdate,
   StudentSummary,
 } from '../../app.models';
+import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -17,7 +18,7 @@ type FeedbackTab = 'current' | 'archived';
 
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, AppButton, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [DatePipe, AppButton, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

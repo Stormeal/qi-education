@@ -26,8 +26,21 @@
   <section class="db-stats" aria-label="Learning summary">
     <article class="db-stat db-stat-hero">
       <span class="db-stat-label">Career path</span>
-      <strong class="db-stat-value">Unavailable</strong>
-      <p class="db-stat-meta">Career path progress is not available yet.</p>
+      @if (careerPath.selectedPath(); as path) {
+        <strong class="db-stat-value">{{ careerPath.progress()?.percent }}%</strong>
+        <p class="db-stat-meta">
+          <a routerLink="/career-path">{{ path.title }}</a> &middot;
+          {{ careerPath.progress()?.completed }} of {{ careerPath.progress()?.total }} required steps
+        </p>
+      } @else if (careerPath.state() === 'error') {
+        <strong class="db-stat-value">Unavailable</strong>
+        <p class="db-stat-meta">Career path could not be loaded.</p>
+      } @else if (careerPath.state() === 'loading') {
+        <strong class="db-stat-value">Loading…</strong>
+      } @else {
+        <strong class="db-stat-value">Not chosen</strong>
+        <p class="db-stat-meta"><a routerLink="/career-path">Choose a career path</a></p>
+      }
     </article>
 
     <article class="db-stat">

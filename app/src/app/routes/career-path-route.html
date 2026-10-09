@@ -8,7 +8,6 @@
     [userEmail]="state.loginState()?.user?.email ?? ''"
     [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
-    [hasStartedCareerPath]="state.hasStartedCareerPath()"
     [isFeedbackOpen]="state.isFeedbackOpen()"
     [feedbackSubmitted]="state.feedbackSubmitted()"
     [feedbackPage]="state.feedbackPage()"
@@ -27,7 +26,6 @@
     (feedbackRatingSelected)="state.selectFeedbackRating($event)"
     (feedbackTextChanged)="state.updateFeedbackText($event)"
     (feedbackSubmittedClicked)="state.submitFeedback()"
-    (startCareerPathClicked)="state.startCareerPath()"
   />
 } @else {
   <app-login-page

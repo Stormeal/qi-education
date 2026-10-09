@@ -273,3 +273,35 @@ export type FeedbackTriageUpdate = {
   workStatus: NonNullable<FeedbackEntry['workStatus']>;
   priority?: FeedbackEntry['priority'];
 };
+
+export type CareerPathCourse = { courseId: string; title: string; placeholder: boolean; available: boolean };
+export type CareerPathStep = {
+  id: string;
+  title: string;
+  description: string;
+  required: boolean;
+  courses: CareerPathCourse[];
+  prerequisiteStepIds: string[];
+};
+export type CareerPath = {
+  id: string;
+  revision: number;
+  title: string;
+  summary: string;
+  outcomes: string[];
+  estimatedHours: number;
+  steps: CareerPathStep[];
+};
+export type CareerPathSelection = { pathId: string; revision: number; selectedAt: string };
+export type CareerPathDraft = Omit<CareerPath, 'id' | 'revision' | 'steps'> & {
+  steps: (Omit<CareerPathStep, 'courses'> & { courses: { courseId: string; title: string }[] })[];
+};
+export type AdminCareerPath = {
+  id: string;
+  revision: number;
+  published: CareerPathDraft | null;
+  draft: CareerPathDraft | null;
+  updatedAt: string;
+  learners: number;
+};
+export type CareerPathIssue = { stepId: string; message: string };

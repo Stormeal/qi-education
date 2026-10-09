@@ -1,0 +1,91 @@
+<details class="cpe">
+  <summary><h2>Career paths</h2></summary>
+
+  @if (error()) { <p class="cpe-error" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="cpe-message" role="status">{{ message() }}</p> }
+
+  <ul class="cpe-list">
+    @for (path of paths(); track path.id) {
+      <li>
+        <button type="button" [attr.aria-current]="path.id === editingId()" (click)="edit(path)">
+          {{ (path.draft ?? path.published)?.title }}
+        </button>
+        <span>{{ statusLabel(path) }}</span>
+      </li>
+    }
+  </ul>
+  <form class="cpe-new" (submit)="createPath(newTitle.value); $event.preventDefault()">
+    <label>New path target role <input #newTitle type="text" maxlength="120" /></label>
+    <button type="submit">Add path</button>
+  </form>
+
+  @if (draft(); as path) {
+    <form class="cpe-form" (submit)="$event.preventDefault()">
+      <h3>Editing: {{ editingId() }}</h3>
+      @for (issue of stepIssues(''); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
+      <label>Target role <input type="text" name="title" maxlength="120" [(ngModel)]="path.title" /></label>
+      <label>Summary <textarea name="summary" rows="2" maxlength="600" [(ngModel)]="path.summary"></textarea></label>
+      <label>Outcomes, one per line
+        <textarea name="outcomes" rows="3" [ngModel]="outcomesText()" (ngModelChange)="outcomesText.set($event)"></textarea>
+      </label>
+      <label>Estimated hours <input type="number" name="hours" min="0" max="2000" [(ngModel)]="path.estimatedHours" /></label>
+
+      @for (step of path.steps; track step; let i = $index) {
+        <fieldset class="cpe-step">
+          <legend>Step {{ i + 1 }}</legend>
+          @for (issue of stepIssues(step.id); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
+          <label>Title <input type="text" [name]="'title' + i" maxlength="160" [(ngModel)]="step.title" /></label>
+          <label>Description <textarea [name]="'description' + i" rows="2" maxlength="600" [(ngModel)]="step.description"></textarea></label>
+          <label class="cpe-check"><input type="checkbox" [name]="'required' + i" [(ngModel)]="step.required" /> Required for path completion</label>
+
+          @if (path.steps.length > 1) {
+            <div class="cpe-prerequisites" role="group" aria-label="Comes after">
+              <span>Comes after:</span>
+              @for (other of path.steps; track other) {
+                @if (other !== step) {
+                  <label class="cpe-check">
+                    <input
+                      type="checkbox"
+                      [checked]="step.prerequisiteStepIds.includes(other.id)"
+                      (change)="togglePrerequisite(step, other.id, $any($event.target).checked)"
+                    />
+                    {{ other.title || other.id }}
+                  </label>
+                }
+              }
+            </div>
+          }
+
+          <p class="cpe-hint">Courses: the first is the primary recommendation, the rest are accepted alternatives.</p>
+          @for (course of step.courses; track course; let c = $index) {
+            <div class="cpe-course">
+              <label>Course
+                <select [name]="'course' + i + '-' + c" [(ngModel)]="course.courseId">
+                  <option value="">Preview course (not available yet)</option>
+                  @for (option of careerPath.adminCourses(); track option.id) {
+                    <option [value]="option.id">{{ option.title }} ({{ option.status }})</option>
+                  }
+                </select>
+              </label>
+              @if (!course.courseId) {
+                <label>Preview title <input type="text" [name]="'courseTitle' + i + '-' + c" maxlength="160" [(ngModel)]="course.title" /></label>
+              }
+              <button type="button" (click)="step.courses.splice(c, 1)">Remove course</button>
+            </div>
+          }
+          <div class="cpe-actions">
+            <button type="button" (click)="step.courses.push({ courseId: '', title: '' })">Add course</button>
+            @if (i > 0) { <button type="button" (click)="moveStepUp(path, i)">Move step up</button> }
+            <button type="button" (click)="removeStep(path, step)">Remove step</button>
+          </div>
+        </fieldset>
+      }
+
+      <div class="cpe-actions">
+        <button type="button" (click)="addStep(path)">Add step</button>
+        <button type="button" [disabled]="busy()" (click)="save(false)">Save draft</button>
+        <button type="button" class="cpe-primary" [disabled]="busy()" (click)="save(true)">Save and publish</button>
+      </div>
+    </form>
+  }
+</details>

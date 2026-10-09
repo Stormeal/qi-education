@@ -413,60 +413,6 @@
   cursor: pointer;
 }
 
-/* Processing */
-
-.cp-processing {
-  justify-items: center;
-  padding: 40px 0;
-  text-align: center;
-}
-
-.cp-scan {
-  position: relative;
-  display: grid;
-  width: 56px;
-  height: 56px;
-  place-items: center;
-  margin-bottom: 4px;
-}
-
-.cp-scan::before {
-  position: absolute;
-  inset: 20px;
-  content: '';
-  border-radius: 50%;
-  background: var(--cp-amber-strong);
-}
-
-.cp-scan-ring {
-  position: absolute;
-  inset: 0;
-  border: 1px solid var(--cp-amber-strong);
-  border-radius: 50%;
-  animation: cp-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.cp-scan-ring--delay {
-  animation-delay: 0.9s;
-}
-
-@keyframes cp-ping {
-  0% {
-    opacity: 0.6;
-    transform: scale(0.35);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
-}
-
-.cp-cursor {
-  color: var(--cp-amber-strong);
-  animation: cp-blink-dot 1s step-end infinite;
-}
-
 /* Yes/No questions */
 
 .cp-questions {
@@ -538,114 +484,6 @@
   border-color: var(--cp-success);
   color: #fff;
   background: var(--cp-success);
-}
-
-/* Digital CV dossier */
-
-.cp-dossier {
-  border: 1px solid var(--cp-border);
-  border-radius: 18px;
-  padding: 24px 26px;
-}
-
-.cp-dossier-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.cp-dossier-head h2 {
-  margin: 0;
-  color: var(--cp-text);
-  font-family: var(--cp-font-display);
-  font-size: 19px;
-  font-weight: 700;
-}
-
-.cp-dossier-headline {
-  margin-top: 4px;
-  color: var(--cp-text-dim);
-  font-size: 13px;
-}
-
-.cp-dossier-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-  margin-top: 18px;
-}
-
-.cp-dossier-label {
-  display: block;
-  margin-bottom: 8px;
-}
-
-.cp-profile-tags {
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px dashed var(--cp-border);
-}
-
-.cp-profile-label {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--cp-text-faint);
-  font-family: var(--cp-font-mono);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.cp-profile-skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.cp-profile-tag {
-  display: inline-block;
-  padding: 6px 12px;
-  color: var(--cp-text);
-  background: transparent;
-  border: 1px solid var(--cp-border);
-  border-radius: 6px;
-  font-family: var(--cp-font-body);
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 160ms ease;
-}
-
-.cp-profile-tag:hover {
-  border-color: var(--cp-amber-strong);
-  background: var(--cp-amber-dim);
-  color: var(--cp-amber-strong);
-}
-
-.cp-experience-list {
-  display: grid;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.cp-experience-list li {
-  display: grid;
-  gap: 2px;
-}
-
-.cp-experience-list strong {
-  color: var(--cp-text);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.cp-experience-list span {
-  color: var(--cp-text-faint);
-  font-size: 11px;
 }
 
 /* Career selection */
@@ -1064,4 +902,41 @@
   .cp-milestone-ghost-index {
     font-size: 16px;
   }
+}
+
+.cp-notice {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-left: 3px solid currentColor;
+  background: rgb(0 0 0 / 4%);
+  font-size: 0.9rem;
+
+  &.is-error {
+    color: #9f1239;
+  }
+}
+
+.cp-path-list {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.cp-path-facts,
+.cp-course-state {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.cp-course-state {
+  margin-left: 8px;
+}
+
+.cp-career-card.is-draft-choice {
+  outline: 2px solid currentColor;
+}
+
+article.cp-career-card {
+  cursor: default;
 }

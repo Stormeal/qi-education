@@ -1,43 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal } from '@angular/core';
-import { FeedbackOption, StudentSummary } from '../../app.models';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
+import { CareerPathService } from '../../services/career-path.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 
-type CareerPathWizardStep = 'intro' | 'upload' | 'processing' | 'questions' | 'choose-career' | 'roadmap';
-
-type DigitalCvExperience = { role: string; company: string; period: string };
-
-type DigitalCv = {
-  fileName: string;
-  headline: string;
-  skills: string[];
-  experience: DigitalCvExperience[];
-  certifications: string[];
-};
+type CareerPathWizardStep = 'intro' | 'upload' | 'questions' | 'choose-career' | 'roadmap';
 
 type CareerQuestion = { id: string; text: string };
-
-type CareerOption = { id: string; title: string; description: string };
-
-type PathMilestoneStatus = 'complete' | 'current' | 'upcoming';
-
-type PathMilestone = {
-  id: string;
-  title: string;
-  description: string;
-  status: PathMilestoneStatus;
-  suggestedCourses: string[];
-};
-
-const MOCK_DIGITAL_CV: Omit<DigitalCv, 'fileName'> = {
-  headline: 'Manual QA Tester',
-  skills: ['Manual Testing', 'Test Case Design', 'Jira', 'Agile / Scrum', 'SQL Basics'],
-  experience: [
-    { role: 'QA Tester', company: 'Nordic Fintech ApS', period: '2023 - Present' },
-    { role: 'Junior QA Intern', company: 'Webshop A/S', period: '2022 - 2023' },
-  ],
-  certifications: ['ISTQB Foundation Level'],
-};
 
 const CAREER_QUESTIONS: CareerQuestion[] = [
   { id: 'leadership', text: 'Are you interested in leading or mentoring a team?' },
@@ -46,155 +16,16 @@ const CAREER_QUESTIONS: CareerQuestion[] = [
   { id: 'stakeholders', text: 'Are you comfortable presenting results to stakeholders?' },
 ];
 
-const CAREER_OPTIONS: CareerOption[] = [
-  {
-    id: 'test-manager',
-    title: 'Test Manager',
-    description: 'Lead QA teams, own the quality process, and report to stakeholders.',
-  },
-  {
-    id: 'test-architect',
-    title: 'Test Architect',
-    description: 'Design test strategy and automation architecture across teams.',
-  },
-  {
-    id: 'automation-engineer',
-    title: 'Automation Engineer',
-    description: 'Build and maintain automated test suites and CI pipelines.',
-  },
-  {
-    id: 'advanced-test-analyst',
-    title: 'Advanced Test Analyst',
-    description: 'Specialize in deep test analysis and design techniques.',
-  },
+// First "yes" wins. Only a suggestion, and only shown when that path is published.
+const SUGGESTED_PATH_BY_ANSWER: [string, string][] = [
+  ['leadership', 'test-manager'],
+  ['automation', 'technical-tester'],
+  ['technical', 'test-analyst'],
 ];
-
-const MILESTONES_BY_CAREER: Record<string, PathMilestone[]> = {
-  'test-manager': [
-    {
-      id: 'foundation',
-      title: 'ISTQB Foundation Level',
-      description: 'The baseline certification for professional software testers.',
-      status: 'complete',
-      suggestedCourses: ['ISTQB Foundation 4.0'],
-    },
-    {
-      id: 'advanced-test-manager',
-      title: 'ISTQB Advanced Test Manager',
-      description: 'Covers test planning, estimation, risk, and team leadership.',
-      status: 'current',
-      suggestedCourses: ['ISTQB Advanced Test Manager', 'Test Estimation in Practice'],
-    },
-    {
-      id: 'leading-agile-teams',
-      title: 'Leading Agile Teams',
-      description: 'Build the people and process skills to run a QA team.',
-      status: 'upcoming',
-      suggestedCourses: ['Leading Agile Teams', 'Coaching for Test Leads'],
-    },
-    {
-      id: 'stakeholder-reporting',
-      title: 'Stakeholder Communication & Reporting',
-      description: 'Translate quality metrics into decisions stakeholders can act on.',
-      status: 'upcoming',
-      suggestedCourses: ['Stakeholder Communication & Reporting'],
-    },
-  ],
-  'test-architect': [
-    {
-      id: 'foundation',
-      title: 'ISTQB Foundation Level',
-      description: 'The baseline certification for professional software testers.',
-      status: 'complete',
-      suggestedCourses: ['ISTQB Foundation 4.0'],
-    },
-    {
-      id: 'advanced-test-analyst',
-      title: 'ISTQB Advanced Test Analyst',
-      description: 'Deepen test analysis and design technique fundamentals.',
-      status: 'current',
-      suggestedCourses: ['ISTQB Advanced Test Analyst'],
-    },
-    {
-      id: 'advanced-technical-test-analyst',
-      title: 'ISTQB Advanced Technical Test Analyst',
-      description: 'The technical track: architecture, tooling, and quality attributes.',
-      status: 'upcoming',
-      suggestedCourses: ['ISTQB Advanced Technical Test Analyst'],
-    },
-    {
-      id: 'test-automation-architecture',
-      title: 'Test Automation Architecture',
-      description: 'Design frameworks and strategy that scale across teams.',
-      status: 'upcoming',
-      suggestedCourses: ['Test Automation Architecture', 'Microsoft Playwright in Practice'],
-    },
-  ],
-  'automation-engineer': [
-    {
-      id: 'foundation',
-      title: 'ISTQB Foundation Level',
-      description: 'The baseline certification for professional software testers.',
-      status: 'complete',
-      suggestedCourses: ['ISTQB Foundation 4.0'],
-    },
-    {
-      id: 'selenium-fundamentals',
-      title: 'Selenium WebDriver Fundamentals',
-      description: 'Get hands-on with the most widely used browser automation tool.',
-      status: 'current',
-      suggestedCourses: ['Selenium WebDriver Fundamentals'],
-    },
-    {
-      id: 'playwright-in-practice',
-      title: 'Microsoft Playwright in Practice',
-      description: 'Modern, fast, cross-browser automation for real projects.',
-      status: 'upcoming',
-      suggestedCourses: ['Microsoft Playwright in Practice'],
-    },
-    {
-      id: 'cicd-for-automation',
-      title: 'CI/CD for Test Automation',
-      description: 'Wire automated suites into pipelines that run on every change.',
-      status: 'upcoming',
-      suggestedCourses: ['CI/CD for Test Automation'],
-    },
-  ],
-  'advanced-test-analyst': [
-    {
-      id: 'foundation',
-      title: 'ISTQB Foundation Level',
-      description: 'The baseline certification for professional software testers.',
-      status: 'complete',
-      suggestedCourses: ['ISTQB Foundation 4.0'],
-    },
-    {
-      id: 'test-design-deep-dive',
-      title: 'Test Design Techniques Deep Dive',
-      description: 'Go beyond the basics of boundary value and equivalence partitioning.',
-      status: 'current',
-      suggestedCourses: ['Test Design Techniques Deep Dive'],
-    },
-    {
-      id: 'advanced-test-analyst',
-      title: 'ISTQB Advanced Test Analyst',
-      description: 'The certification that formalizes advanced analysis skills.',
-      status: 'upcoming',
-      suggestedCourses: ['ISTQB Advanced Test Analyst'],
-    },
-    {
-      id: 'risk-based-testing',
-      title: 'Risk-Based Testing Mastery',
-      description: 'Prioritize test effort where it protects the most value.',
-      status: 'upcoming',
-      suggestedCourses: ['Risk-Based Testing Mastery'],
-    },
-  ],
-};
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [FeedbackDialog, PageHeader],
+  imports: [FeedbackDialog, PageHeader, RouterLink],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -206,7 +37,6 @@ export class CareerPathPage {
   readonly userEmail = input.required<string>();
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
-  readonly hasStartedCareerPath = input.required<boolean>();
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();
   readonly feedbackPage = input.required<string>();
@@ -226,72 +56,66 @@ export class CareerPathPage {
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
-  readonly startCareerPathClicked = output<void>();
-
-  protected readonly careerOptions = CAREER_OPTIONS;
+  protected readonly careerPath = inject(CareerPathService);
   protected readonly careerQuestions = CAREER_QUESTIONS;
 
   protected readonly wizardStep = signal<CareerPathWizardStep>('intro');
   protected readonly isDraggingOverDropzone = signal(false);
-  protected readonly digitalCv = signal<DigitalCv | null>(null);
+  protected readonly cvFileName = signal('');
   protected readonly questionAnswers = signal<Record<string, boolean>>({});
-  protected readonly selectedCareerId = signal<string | null>(null);
+  protected readonly draftPathId = signal('');
+  protected readonly saving = signal(false);
+  protected readonly saveError = signal('');
 
   protected readonly allQuestionsAnswered = computed(
     () => this.careerQuestions.every((question) => this.questionAnswers()[question.id] !== undefined),
   );
 
-  protected readonly recommendedCareerId = computed(() => {
+  protected readonly suggestedPathId = computed(() => {
     const answers = this.questionAnswers();
-
-    if (answers['leadership']) {
-      return 'test-manager';
-    }
-
-    if (answers['technical']) {
-      return 'test-architect';
-    }
-
-    if (answers['automation']) {
-      return 'automation-engineer';
-    }
-
-    return 'advanced-test-analyst';
+    return SUGGESTED_PATH_BY_ANSWER.find(([question]) => answers[question])?.[1] ?? '';
   });
 
-  protected readonly selectedCareer = computed(
-    () => this.careerOptions.find((career) => career.id === this.selectedCareerId()) ?? null,
-  );
-
-  protected readonly orderedCareerOptions = computed(() => {
-    const recommendedId = this.recommendedCareerId();
-    const recommended = this.careerOptions.find((career) => career.id === recommendedId);
-    const rest = this.careerOptions.filter((career) => career.id !== recommendedId);
-
-    return recommended ? [recommended, ...rest] : this.careerOptions;
+  protected readonly orderedPaths = computed(() => {
+    const suggested = this.suggestedPathId();
+    return [...this.careerPath.paths()].sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested));
   });
 
-  protected readonly activeMilestones = computed(() => {
-    const careerId = this.selectedCareerId();
+  protected readonly milestones = computed(() => {
+    const path = this.careerPath.selectedPath();
+    const progress = this.careerPath.progress();
+    if (!path || !progress) return [];
 
-    return careerId ? (MILESTONES_BY_CAREER[careerId] ?? []) : [];
+    return path.steps.map((step) => ({
+      ...step,
+      status: progress.doneStepIds.has(step.id) ? 'complete' : step.id === progress.nextStepId ? 'current' : 'upcoming',
+      courses: step.courses.map((course) => ({
+        ...course,
+        percent: course.available ? this.careerPath.coursePercent(course.courseId) : null,
+      })),
+    }));
   });
-
-  protected readonly roadmapNodeCount = computed(() => this.activeMilestones().length + 2);
 
   constructor() {
+    // A saved selection opens straight on the learner's path.
     effect(() => {
-      if (this.hasStartedCareerPath() && this.wizardStep() === 'intro') {
-        this.digitalCv.set({ fileName: 'career-test-cv.pdf', ...MOCK_DIGITAL_CV });
-        this.questionAnswers.set({ leadership: false, automation: false, technical: true, stakeholders: true });
-        this.selectedCareerId.set('test-architect');
+      if (this.careerPath.state() === 'ready' && this.careerPath.selectedPath() && this.wizardStep() === 'intro') {
         this.wizardStep.set('roadmap');
       }
     });
   }
 
+  protected pathFacts(path: CareerPath) {
+    const courses = path.steps.flatMap((step) => step.courses);
+    return {
+      required: path.steps.filter((step) => step.required).length,
+      optional: path.steps.filter((step) => !step.required).length,
+      available: courses.filter((course) => course.available).length,
+      preview: courses.filter((course) => !course.available).length,
+    };
+  }
+
   protected beginWizard(): void {
-    this.startCareerPathClicked.emit();
     this.wizardStep.set('upload');
   }
 
@@ -307,20 +131,18 @@ export class CareerPathPage {
   protected onDropzoneDrop(event: DragEvent): void {
     event.preventDefault();
     this.isDraggingOverDropzone.set(false);
-    const file = event.dataTransfer?.files?.[0];
-
-    if (file) {
-      this.submitCv(file.name);
-    }
+    this.continueToQuestions(event.dataTransfer?.files?.[0]?.name ?? '');
   }
 
   protected onCvFileSelected(event: Event): void {
     const input = event.target;
-    const file = input instanceof HTMLInputElement ? input.files?.[0] : null;
+    this.continueToQuestions(input instanceof HTMLInputElement ? (input.files?.[0]?.name ?? '') : '');
+  }
 
-    if (file) {
-      this.submitCv(file.name);
-    }
+  // The CV step is a preview: the file never leaves the browser and nothing is read from it.
+  protected continueToQuestions(fileName = ''): void {
+    this.cvFileName.set(fileName);
+    this.wizardStep.set('questions');
   }
 
   protected answerQuestion(questionId: string, answer: boolean): void {
@@ -328,31 +150,19 @@ export class CareerPathPage {
   }
 
   protected continueToCareerChoice(): void {
+    this.saveError.set('');
     this.wizardStep.set('choose-career');
   }
 
-  protected selectCareer(careerId: string): void {
-    this.selectedCareerId.set(careerId);
-    this.wizardStep.set('roadmap');
-  }
+  protected async choosePath(pathId: string): Promise<void> {
+    if (this.saving()) return;
+    this.draftPathId.set(pathId);
+    this.saveError.set('');
+    this.saving.set(true);
+    const result = await this.careerPath.select(pathId);
+    this.saving.set(false);
 
-  protected changeCareer(): void {
-    this.wizardStep.set('choose-career');
-  }
-
-  protected restartWizard(): void {
-    this.digitalCv.set(null);
-    this.questionAnswers.set({});
-    this.selectedCareerId.set(null);
-    this.wizardStep.set('upload');
-  }
-
-  private submitCv(fileName: string): void {
-    this.wizardStep.set('processing');
-
-    window.setTimeout(() => {
-      this.digitalCv.set({ fileName, ...MOCK_DIGITAL_CV });
-      this.wizardStep.set('questions');
-    }, 1200);
+    if (result.ok) this.wizardStep.set('roadmap');
+    else this.saveError.set(`Your choice was not saved. ${result.message}`);
   }
 }

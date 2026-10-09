@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { CourseSummary, FeedbackOption, StudentSummary } from '../../app.models';
 import { RouterLink } from '@angular/router';
+import { CareerPathService } from '../../services/career-path.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -13,6 +14,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardPage {
+  protected readonly careerPath = inject(CareerPathService);
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();

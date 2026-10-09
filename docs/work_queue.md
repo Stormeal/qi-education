@@ -4,8 +4,18 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-No Codex implementation item is active. US-T003/US-T005 are delivered; see Completed
-delivery below. Await the user's next selection; Proposed stories are not authorized.
+**US-L009 / US-L012 / US-T008 (with the US-L006 read foundation) — Career paths.** In progress.
+Owner: Claude Code. Selected by user 2026-10-09. Branch: `main`. Base: `5211365`.
+Spec, decisions and scenario map: [career paths](specs/US-L009-L012-T008-career-paths.md).
+Done locally: path model/validation, read/selection/admin APIs, admin editor, learner
+compare/choose/roadmap flow, Home tile; 14 API + 5 progress tests and isolated browser walk.
+First increment committed and pushed on `main` (version 0.1.59), on top of `150e701`.
+296 API/126 frontend tests and all builds pass. Next: browser-check a completed step,
+hosted MongoDB check, then an admin maps real courses and publishes paths.
+
+**US-P001 — Role journey verification.** In progress. Owner: Claude Code. Selected by user
+2026-10-09. First increment in the same delivery: `api/src/journey.test.ts`, run by
+`npm run verify:journeys` and every `npm run api:test`. Open decision: browser runner.
 
 ## Latest audit
 
