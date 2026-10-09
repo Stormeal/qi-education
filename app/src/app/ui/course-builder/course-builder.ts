@@ -39,6 +39,7 @@ import { CourseComponent, CourseComponentType, CourseContentDocument } from '../
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
+import { attachmentProblem } from '../../utils/attachment-rules';
 import { inertHtml } from '../../utils/inert-html';
 
 type ComponentPickerState = {
@@ -138,6 +139,7 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number }>();
   readonly courseComponentAttachmentSelected =
     output<{ sectionIndex: number; componentIndex: number; file: File; markerId: string }>();
+  readonly attachmentErrorDismissed = output<void>();
   readonly courseComponentAttachmentRemoved =
     output<{ sectionIndex: number; componentIndex: number; assetId: string }>();
   readonly courseComponentAttachmentDownloaded =
@@ -387,7 +389,8 @@ export class CourseBuilder {
     }
 
     const markerId = `pending-${Math.random().toString(36).slice(2, 10)}`;
-    if (component.type === 'text') {
+    // A file that will be refused gets no pending card; the service still reports why.
+    if (component.type === 'text' && !attachmentProblem(component.type, inputElement.files[0])) {
       this.insertPendingAttachmentCard(inputElement.files[0], markerId);
       this.richTextBlur(sectionIndex, componentIndex);
     }
@@ -1013,6 +1016,13 @@ export class CourseBuilder {
     if (this.courseContentSaving() || this.courseSubmitting()) { event?.preventDefault(); return; }
     event?.preventDefault();
     this.editingSectionIndex = sectionIndex;
+    // The title becomes editable on the next render; focus it so typing works without a second click.
+    const title = (event?.currentTarget as HTMLElement | null)?.previousElementSibling;
+    this.document.defaultView?.setTimeout(() => {
+      if (!(title instanceof HTMLElement)) return;
+      title.focus();
+      this.document.getSelection()?.selectAllChildren(title);
+    }, 0);
   }
 
   protected finishSectionRename(): void {
@@ -1037,6 +1047,8 @@ export class CourseBuilder {
   }
 
   protected openComponentEditor(sectionIndex: number, componentIndex: number): void {
+    // An upload error belongs to the lesson it happened in; do not carry it into another editor.
+    if (this.attachmentUploadError()) this.attachmentErrorDismissed.emit();
     this.expandedQuizQuestionIndex.set(0);
     this.activeEditor.set({ sectionIndex, componentIndex });
   }

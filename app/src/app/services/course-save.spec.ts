@@ -107,11 +107,19 @@ describe('US-T003/005 draft and save behavior', () => {
     resolve({ ok: false, message: 'Isolated failure' }); await upload;
     expect(state.courseContentSaving()).toBe(false);
   });
-  it('US-T009-AC02 refuses an attachment over 4 MB before any upload starts', async () => {
-    state.courseContent.set({ ...content, sections: [{ id: 's', title: 'Section', components: [{ id: 'text', title: 'Lesson', type: 'text', content: 'Body', resourceUrl: '', durationMinutes: 1, attachments: [] }] }] });
+  it('US-T009-AC02 refuses an attachment over 4 MB before any upload starts and leaves no pending card', async () => {
+    state.courseContent.set({ ...content, sections: [{ id: 's', title: 'Section', components: [{ id: 'text', title: 'Lesson', type: 'text', content: 'Body<div class="rich-attachment-card rich-attachment-asset-pending-marker is-pending" id="rich-attachment-pending-marker"><strong>slides.pdf</strong></div>', resourceUrl: '', durationMinutes: 1, attachments: [] }] }] });
     const upload = vi.spyOn(service, 'uploadComponentAttachment');
-    await state.uploadCourseComponentAttachment(0, 0, new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'slides.pdf', { type: 'application/pdf' }), 'marker');
+    await state.uploadCourseComponentAttachment(0, 0, new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'slides.pdf', { type: 'application/pdf' }), 'pending-marker');
     expect(state.attachmentUploadError()).toBe('Attachments must be 4 MB or smaller.');
     expect(upload).not.toHaveBeenCalled();
+    expect(JSON.stringify(state.courseContent())).not.toContain('pending-marker');
+  });
+  it('names the missing course details instead of sending an invalid save', async () => {
+    const save = vi.spyOn(service, 'saveCourse');
+    state.updateCourseTitle('Hi'); state.updateCourseDescription('short');
+    await state.submitCourse();
+    expect(state.courseCreateError()).toBe('Add a course title (at least 3 characters), a description (at least 10 characters) before saving.');
+    expect(save).not.toHaveBeenCalled();
   });
 });

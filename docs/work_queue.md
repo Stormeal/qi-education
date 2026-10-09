@@ -16,6 +16,9 @@ hosted MongoDB check, then an admin maps real courses and publishes paths.
 **US-P001 — Role journey verification.** In progress. Owner: Claude Code. Selected by user
 2026-10-09. First increment in the same delivery: `api/src/journey.test.ts`, run by
 `npm run verify:journeys` and every `npm run api:test`. Open decision: browser runner.
+Second increment 2026-10-09: the teacher journey walked in the real UI against in-memory
+stores; four defects fixed, five items open. Record:
+[teacher walkthrough](verification/2026-10-09/teacher-walkthrough.md).
 
 ## Latest audit
 

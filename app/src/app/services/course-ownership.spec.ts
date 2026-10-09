@@ -64,7 +64,7 @@ describe('course ownership UI (DEF-001)', () => {
 
   it('retains metadata edits when the API denies a save after editor entry', async () => {
     state.currentPath.set('/courses/owned-course/edit');
-    state.courseDraft.update((draft) => ({ ...draft, title: 'Keep my unsaved edits' }));
+    state.courseDraft.update((draft) => ({ ...draft, title: 'Keep my unsaved edits', description: ownedCourse.description, level: ownedCourse.level }));
     vi.spyOn(TestBed.inject(CourseService), 'saveCourse').mockResolvedValue({ ok: false, message: 'You do not have permission to edit this course.' });
     await state.submitCourse();
     expect(state.courseDraft().title).toBe('Keep my unsaved edits');

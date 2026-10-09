@@ -33,6 +33,7 @@ import { CareerPathService } from './career-path.service';
 import { LearningProgressService } from './learning-progress.service';
 import { canEditCourse } from '../utils/course-permissions';
 import { CourseDraftRecoveryService, CourseEditorBuffer, RecoverableCourseDraft } from './course-draft-recovery.service';
+import { attachmentProblem } from '../utils/attachment-rules';
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
@@ -57,7 +58,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.64';
+  readonly appVersion = '0.1.65';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1122,34 +1123,33 @@ export class AppStateService {
     const content = this.courseContent();
     const section = content?.sections[sectionIndex];
     const component = section?.components[componentIndex];
+    // The editor shows a pending card as soon as a file is picked; drop it whenever the upload does not complete.
+    let uploaded = false;
+    const dropPendingCard = () =>
+      this.courseContent.update((current) => (current ? this.removeAttachmentMarker(current, markerId) : current));
 
     if (!token) {
+      dropPendingCard();
       this.attachmentUploadError.set('Please log in again before uploading attachments.');
       return;
     }
 
     if (!courseId || !content || !section || !component) {
+      dropPendingCard();
       this.attachmentUploadError.set('Save the course before uploading attachments.');
       return;
     }
 
     if (component.type !== 'text' && component.type !== 'resources') {
+      dropPendingCard();
       this.attachmentUploadError.set('Attachments are available for text and resources components.');
       return;
     }
 
-    if (!this.isAllowedComponentAttachment(component.type, file)) {
-      this.attachmentUploadError.set(
-        component.type === 'text'
-          ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'
-          : 'Resources supports ZIP files, PowerPoint files, and images.',
-      );
-      return;
-    }
-
-    // Keep in step with the API upload limit (api/src/server.ts); the host caps bodies near 4.5 MB.
-    if (file.size > 4 * 1024 * 1024) {
-      this.attachmentUploadError.set('Attachments must be 4 MB or smaller.');
+    const problem = attachmentProblem(component.type, file);
+    if (problem) {
+      dropPendingCard();
+      this.attachmentUploadError.set(problem);
       return;
     }
 
@@ -1187,6 +1187,7 @@ export class AppStateService {
       }
 
       const finalContent = this.normalizeCourseContent(result.content);
+      uploaded = true;
       this.acceptCourseContentSave(finalContent);
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
@@ -1195,6 +1196,7 @@ export class AppStateService {
       this.attachmentUploadError.set('Unable to upload the attachment. Please try again.');
     } finally {
       if (!isCurrent()) return;
+      if (!uploaded) dropPendingCard();
       this.courseContentSaving.set(false);
       this.attachmentUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
       this.attachmentUploadStage.update(({ [component.id]: _removedStage, ...stage }) => stage);
@@ -1862,6 +1864,13 @@ export class AppStateService {
     const metadataChanged = mode === 'create' || this.serializeCourseDraft(draft) !== this.initialCourseDraftSnapshot();
     const contentChanged = mode === 'edit' && !!content && this.serializeCourseContent(content) !== this.initialCourseContentSnapshot();
     if (!metadataChanged && !contentChanged) return;
+    // Say what is missing instead of sending a request the API answers with "Invalid request body".
+    const missing = [
+      draft.title.trim().length < 3 && 'a course title (at least 3 characters)',
+      draft.level.trim().length < 2 && 'a level',
+      draft.description.trim().length < 10 && 'a description (at least 10 characters)',
+    ].filter(Boolean);
+    if (metadataChanged && missing.length) { this.courseCreateError.set(`Add ${missing.join(', ')} before saving.`); return; }
     this.courseSubmitting.set(true); this.courseContentSaving.set(contentChanged);
     this.courseCreateError.set(''); this.courseContentError.set(''); this.clearCourseSaveNotice();
     let detailsSaved = false, part: 'metadata' | 'content' = metadataChanged ? 'metadata' : 'content';
@@ -2742,37 +2751,6 @@ export class AppStateService {
 
   private primaryQuizQuestionText(quiz: QuizComponentContent): string {
     return quiz.questions[0]?.question?.trim() || '';
-  }
-
-  private isAllowedComponentAttachment(type: CourseComponentType, file: File): boolean {
-    const contentType = file.type.toLowerCase();
-    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-    const isImage =
-      contentType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(extension);
-    const isPowerPoint =
-      [
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      ].includes(contentType) || ['ppt', 'pptx'].includes(extension);
-
-    if (type === 'resources') {
-      return (
-        isImage ||
-        isPowerPoint ||
-        ['application/zip', 'application/x-zip-compressed'].includes(contentType) ||
-        extension === 'zip'
-      );
-    }
-
-    return (
-      isImage ||
-      isPowerPoint ||
-      contentType === 'application/pdf' ||
-      contentType === 'text/plain' ||
-      contentType === 'application/msword' ||
-      contentType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      ['pdf', 'txt', 'doc', 'docx'].includes(extension)
-    );
   }
 
   private courseDraftFromCourse(course: CourseListItem): CourseCreateDraft {

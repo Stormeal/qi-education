@@ -123,6 +123,7 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number }>();
   readonly courseComponentAttachmentSelected =
     output<{ sectionIndex: number; componentIndex: number; file: File; markerId: string }>();
+  readonly attachmentErrorDismissed = output<void>();
   readonly courseComponentAttachmentRemoved =
     output<{ sectionIndex: number; componentIndex: number; assetId: string }>();
   readonly courseComponentAttachmentDownloaded =

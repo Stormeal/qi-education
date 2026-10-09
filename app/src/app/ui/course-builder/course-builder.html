@@ -544,6 +544,10 @@
                   />
                 </div>
 
+                @if (attachmentUploadError()) {
+                  <p class="attachment-error" role="alert">{{ attachmentUploadError() }}</p>
+                }
+
                 <div
                   class="rich-text-editor"
                   [attr.contenteditable]="!courseContentSaving() && !courseSubmitting()"

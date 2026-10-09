@@ -87,6 +87,7 @@
     (courseComponentMuxVideoSelected)="state.uploadCourseComponentMuxVideo($event.sectionIndex, $event.componentIndex, $event.file)"
     (courseComponentMuxVideoRemoved)="state.removeCourseComponentMuxVideo($event.sectionIndex, $event.componentIndex)"
     (courseComponentAttachmentSelected)="state.uploadCourseComponentAttachment($event.sectionIndex, $event.componentIndex, $event.file, $event.markerId)"
+    (attachmentErrorDismissed)="state.attachmentUploadError.set('')"
     (courseComponentAttachmentRemoved)="state.removeCourseComponentAttachment($event.sectionIndex, $event.componentIndex, $event.assetId)"
     (courseComponentAttachmentDownloaded)="state.downloadCourseComponentAttachment($event.sectionIndex, $event.componentIndex, $event.assetId, $event.fileName)"
     (courseComponentQuizQuestionChanged)="state.updateCourseComponentQuizQuestion($event.sectionIndex, $event.componentIndex, $event.questionIndex, $event.value)"
