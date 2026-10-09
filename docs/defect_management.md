@@ -5,6 +5,8 @@ Evidence: [audit report](audits/2026-10-04/application_audit.md) and
 [isolated API probe](audits/2026-10-04/reproduce-api.mjs).
 Career path follow-up: [2026-10-05 audit](audits/2026-10-05/career_path_audit.md),
 base `9a2f30b` plus preserved, unfinished lifecycle changes.
+Code audit: [2026-10-09](audits/2026-10-09/code_audit.md), tree `96e9ff9` plus
+the US-T002 changes delivered in `86196cf`; investigations INV-005–INV-018.
 
 ## Triage rules
 
@@ -447,6 +449,24 @@ hosted release checks remain separate; no push/deployment for this delivery.
 | INV-002 | Mux removal detaches the component; service exposes no provider deletion. Signed policy config exists but playback token flow is absent | Mock lifecycle probes, then isolated real Mux upload/removal/signed playback | US-T006 |
 | INV-003 | Signup checks email then appends; Sheets enrollment reads then rewrites a user row. No atomic uniqueness/update protection is evident | Concurrent operations against a dedicated test spreadsheet | US-P003 |
 | INV-004 | Feedback triage creates an issue before persisting the link | Fail persistence after stub issue creation, retry, and inspect duplicates | US-P003 |
+| INV-005 | Sheets read volume: `listUsers` runs a two-read header check plus a data read on every authenticated request; course routes list the Courses sheet up to six more times; a new Google client is built per call. Default quota is about 60 reads/minute per service account | Count Sheets calls per route with a counting stub; then load-test a disposable spreadsheet with 5–10 concurrent learners and record 429s | US-P006 |
+| INV-006 | A provider write error inside the course lock (including a quota 429 during enrollment) or a terminated function leaves the lock record forever; read routes then return 409 too | Fake-collection test: fail a Sheets write under the lock, then issue a learner read; confirm host max duration to judge whether an expiry longer than it is safe | US-P005 |
+| INV-007 | Read routes (thumbnail, outline, content, attachment, quiz attempt) take the exclusive course lock and give up after 5 seconds | 20 concurrent learner reads of one course against isolated stores with realistic Sheets latency; count 409s | US-P006 |
+| INV-008 | Course builder assigns stored lesson HTML to `innerHTML` (`course-builder.ts` 509, 780, 822, 1274) outside Angular sanitization; the API stores `content` unfiltered. A teacher-authored payload would run when an admin opens the editor | Isolated stores: save `<img src=x onerror=...>` as a teacher via the API, open the editor as admin, observe execution | US-P007 |
+| INV-009 | Sheets appends/updates use `valueInputOption: 'USER_ENTERED'` (8 call sites), so a display name, feedback message, or course field starting with `=` is evaluated as a formula and plain values are coerced | Dedicated test spreadsheet: sign up with display name `=1+1` and `007`; read the stored cells | US-P007 |
+| INV-010 | Attachment limit is 25 MB in app and API, above the host's 4.5 MB request/response body limit and MongoDB's 16 MB document limit | Hosted disposable course: upload 5 MB and 17 MB files; record the response and message shown | US-T009 |
+| INV-011 | US-T002 code (`86196cf`): `CourseReviewService.list` loads each course's full content document on every course list | Count Mongo reads and bytes for `GET /courses` with 50 seeded courses | US-P006, US-T002 |
+| INV-012 | `PATCH /courses/:id/content` fetches every referenced attachment's binary to compare `courseId` | Save a lesson with ten 4 MB attachments; measure bytes read and duration | US-P006 |
+| INV-013 | Without Sheets settings the API falls back to in-memory demo users in any environment, including the documented demo admin password | Start with `NODE_ENV=production` and no Google settings; attempt the demo admin login | US-P008 |
+| INV-014 | Login and signup accept unlimited attempts; each also consumes Sheets reads | Scripted attempts against a local instance; confirm no throttle and count Sheets calls | US-P008 |
+| INV-015 | On localhost the API client retries a failed request against the hosted API, including mutations | Stop the local API, submit signup from the local frontend with the network inspector open; do not complete it against shared data | US-P008 |
+| INV-016 | `ci.yml` runs only on `pull_request`; work now lands by push to `main`, and the API host deploys without waiting for tests | Push a docs-only commit and confirm no CI run; inspect host deployment settings | US-P008 |
+| INV-017 | US-T002 code (`86196cf`): status branches in `PATCH /courses/:id` are unreachable because the review service rejects status changes; reviewed title/status live only in MongoDB so the Courses sheet goes stale | Route tests for each legacy status transition; publish a revision and compare the sheet row | US-T002 |
+| INV-018 | Course thumbnails are served `Cache-Control: private, no-store` even when the URL carries the asset id as a version | Reload the catalog and count thumbnail transfers | US-P006 |
+
+INV-005–INV-018 come from the [2026-10-09 code audit](audits/2026-10-09/code_audit.md).
+They are code readings; none was reproduced. That audit also re-observed INV-002,
+INV-003 and INV-004.
 
 Do not describe these as reproduced live-service incidents. If reproduced, create
 the next DEF ID, retain the investigation link, and document concrete evidence.

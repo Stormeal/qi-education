@@ -18,6 +18,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T006 | Manage media with clear operational states | Proposed | P2 | T001 | Investigation INV-002 |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
 | US-T008 | Curate valid, versioned career paths | Proposed | P2 | L006; path governance decisions | None |
+| US-T009 | Attach lesson files within limits the service can honor | Proposed | P2 | T001; storage decision | Investigation INV-010 |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
@@ -36,7 +37,10 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
 | US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
-| US-P005 | Recover uncertain course operations safely | Proposed | P2 | Lifecycle access | Coordination review |
+| US-P005 | Recover uncertain course operations safely | Proposed | P2 | Lifecycle access | Coordination review; Investigation INV-006 |
+| US-P006 | Keep courses available when a class uses them together | Proposed | P1 | Lifecycle access; P005 lock decision | Investigations INV-005, INV-007, INV-011, INV-012, INV-018 |
+| US-P007 | Treat stored text as data, never as code | Proposed | P1 | None | Investigations INV-008, INV-009 |
+| US-P008 | Fail safely on misconfiguration, abuse, and unchecked releases | Proposed | P2 | None | Investigations INV-013, INV-014, INV-015, INV-016 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -47,6 +51,10 @@ US-T004, US-L005 and US-L008 are also delivered. US-T002 is delivered; other aud
 The [career path audit](audits/2026-10-05/career_path_audit.md) recommends a
 sequence within that journey. Its new stories remain Proposed; path governance,
 completion rules, persistence, and curriculum decisions have not been approved.
+
+The [2026-10-09 code audit](audits/2026-10-09/code_audit.md) added US-T009 and
+US-P006–US-P008 as Proposed. Their findings are unreproduced investigations
+(INV-005–INV-018); none is approved for implementation.
 
 ## Teacher journey
 
@@ -370,6 +378,37 @@ Feature: Explicit catalog category review
     When I publish the course
     Then its card displays that category
     And the course is included by the matching category filter
+```
+
+### US-T009 — Attach lesson files within limits the service can honor
+
+**As a teacher, I want the stated attachment limit to match what the service
+accepts, so that an upload either succeeds or tells me clearly why it cannot.**
+
+State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+INV-010. Depends on US-T001. Scope: one size limit shared by editor and API,
+upload and download, and the message shown. Decisions: keep database storage with
+a limit under the host's 4.5 MB body cap, or add direct-to-storage upload for
+larger files. Direct upload is a separate increment, not implied by this story.
+
+```gherkin
+Feature: Honest attachment limits
+  Scenario: US-T009-AC01 Accept a file within the limit
+    Given I own a draft course with a text or resources lesson
+    When I attach an allowed file at or below the published limit
+    Then the upload succeeds on the hosted service
+    And an enrolled learner can download the same file
+
+  Scenario: US-T009-AC02 Refuse an oversized file before upload
+    Given a file is larger than the published limit
+    When I select it in the editor
+    Then the editor states the limit and does not start the upload
+
+  Scenario: US-T009-AC03 Agree on the limit everywhere
+    Given a request bypasses the editor with a body above the limit
+    When the API receives it
+    Then it answers 413 with the same limit the editor shows
+    And no partial asset or attachment reference is stored
 ```
 
 ## Learner journey
@@ -885,6 +924,9 @@ Feature: Reliable private career guidance
 learners regain access without a delayed operation overwriting the recovered course.**
 
 State: Proposed. Source: DEF-002–004 coordination review and recovery runbook.
+INV-006 (2026-10-09 code audit) questions the no-takeover decision below: any provider
+error under the lock, or a terminated function, blocks the course for readers too.
+Decision to revisit: an expiry longer than the host's maximum function duration.
 Depends on course lifecycle access. Scope: operator diagnostics, verified remote
 outcomes, owner-scoped recovery, and disposal-store rehearsal. Decisions: operator
 identity/permissions, provider evidence required for finality, and manual versus
@@ -909,6 +951,132 @@ Feature: Verified course operation recovery
     When recovery is requested
     Then ownership remains in place with a concrete investigation action
     And age alone never authorizes takeover
+```
+
+### US-P006 — Keep courses available when a class uses them together
+
+**As a learner, I want lessons to load when my whole class opens the same course,
+so that a busy moment does not show errors or an "updating" message.**
+
+State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+INV-005, INV-007, INV-011, INV-012, INV-018. Depends on lifecycle access and the
+US-P005 lock decision. Scope: Sheets calls per request, locking of read routes,
+course-list and content-save read volume, thumbnail caching. Decisions: target
+class size, acceptable staleness for cached user/course lists, whether reads may
+skip coordination, and whether versioned thumbnails of published courses may be
+cached publicly. Moving users or courses off Sheets is outside this story.
+
+```gherkin
+Feature: Course availability under class load
+  Scenario: US-P006-AC01 A class opens one course together
+    Given the agreed class size of enrolled learners
+    When they open the same published course within the same few seconds
+    Then every learner receives the outline, lesson content, and thumbnail
+    And no learner sees a busy or retry message
+
+  Scenario: US-P006-AC02 Stay within the storage provider's request budget
+    Given the agreed number of active learners and teachers for one minute
+    When they browse, learn, and save
+    Then spreadsheet reads stay below the provider quota with recorded headroom
+    And no request fails because of provider rate limiting
+
+  Scenario: US-P006-AC03 Reading never blocks on another reader
+    Given a learner request for a course is in progress
+    When a second learner requests the same course
+    Then the second request does not wait for the first to finish
+
+  Scenario: US-P006-AC04 Saving does not transfer unrelated files
+    Given a lesson references several stored attachments
+    When its author saves a text change
+    Then attachment ownership is checked without loading attachment binaries
+
+  Scenario: US-P006-AC05 Listing courses does not load lesson content
+    Given many courses with reviewed content exist
+    When the catalog is requested
+    Then the response is built without loading each course's lessons
+
+  Scenario: US-P006-AC06 Unchanged thumbnails are not downloaded again
+    Given I loaded a published course thumbnail
+    When I revisit the catalog and the thumbnail has not changed
+    Then the image is served from cache
+    And a draft or replaced thumbnail is never served from a shared cache
+```
+
+### US-P007 — Treat stored text as data, never as code
+
+**As an admin, I want text written by teachers and learners to stay inert
+wherever it is shown or stored, so that opening a course or the data sheet cannot
+run someone else's code or leak account data.**
+
+State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+INV-008, INV-009. Scope: every place the editor inserts stored lesson HTML,
+server acceptance of lesson HTML, and every spreadsheet write of user-supplied
+text. Decisions: sanitize in the editor only or also on save; how attachment cards
+keep their identifiers once unsafe attributes are stripped; whether existing
+sheet cells need a one-time review. Changing shared sheet data needs approval.
+
+```gherkin
+Feature: Inert stored content
+  Scenario: US-P007-AC01 Lesson markup cannot run script in the editor
+    Given a teacher saved lesson content containing an event handler or script
+    When an admin or the owner opens that course in the editor
+    Then no script from the content runs
+    And the remaining formatting and attachment cards still display and work
+
+  Scenario: US-P007-AC02 Lesson markup cannot run script for learners
+    Given the same content is published
+    When an enrolled learner opens the lesson
+    Then no script from the content runs
+
+  Scenario: US-P007-AC03 Text is stored literally in the spreadsheet
+    Given a display name, feedback message, or course field starts with "=", "+", "-", or "@"
+    When it is saved
+    Then the stored cell contains exactly the submitted text
+    And no formula is evaluated
+
+  Scenario: US-P007-AC04 Values are not silently changed
+    Given a display name of "007"
+    When the account is created and later read
+    Then the display name is still "007"
+```
+
+### US-P008 — Fail safely on misconfiguration, abuse, and unchecked releases
+
+**As a maintainer, I want the live service to refuse unsafe states, so that a
+missing setting, a guessing script, or an untested push cannot expose accounts or
+reach users unnoticed.**
+
+State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+INV-013, INV-014, INV-015, INV-016. Scope: production startup checks, sign-in
+attempt limits, the local frontend's API target, and checks on pushes to `main`.
+Decisions: attempt limits and where they are enforced (host firewall or API);
+whether a failing check should block the API deployment or only report.
+
+```gherkin
+Feature: Safe operation of the live service
+  Scenario: US-P008-AC01 No demo accounts in production
+    Given the production API starts without its user store settings
+    When anyone attempts to sign in with a demo account
+    Then sign-in is unavailable and no demo account exists
+    And a health endpoint reports the missing configuration
+
+  Scenario: US-P008-AC02 Limit repeated sign-in attempts
+    Given repeated failed sign-ins for one account or from one client
+    When the agreed limit is exceeded
+    Then further attempts are refused for the agreed period
+    And other users can still sign in
+
+  Scenario: US-P008-AC03 Local development never writes to production
+    Given the frontend runs on localhost and the local API is unreachable
+    When I sign up, save, or enroll
+    Then the request fails locally with a clear message
+    And nothing is sent to the hosted API
+
+  Scenario: US-P008-AC04 Pushes to main are checked
+    Given a commit is pushed to main
+    When the builds or tests fail
+    Then the failure is reported on that commit
+    And the agreed deployment rule is applied
 ```
 
 ## Adding a story

@@ -6,9 +6,16 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 No implementation item is active. US-T002 is delivered locally; see Completed
 delivery below. Await the user's next selection; Proposed stories are not authorized.
-Unrelated concurrent code-audit documentation remains preserved and uncommitted.
 
 ## Latest audit
+
+**AUD-2026-10-09 — Whole-repo code audit.** Owner: Claude Code. Branch: `main`.
+Audited tree: `96e9ff9` plus the US-T002 changes later delivered in `86196cf`. State:
+Recorded (audit only). Report: [code audit](audits/2026-10-09/code_audit.md).
+Added investigations INV-005–INV-018 and Proposed stories US-T009, US-P006–US-P008;
+re-observed INV-002–INV-004. Nothing was reproduced or fixed. API/frontend builds
+and 238 API/107 frontend tests passed on the audited tree. INV-011 and INV-017
+concern the delivered US-T002 code. Documentation only; no product change.
 
 **AUD-2026-10-05 — Career path journey audit, selected on 2026-10-05.**
 Owner: Codex. Branch: `main`. Base: `9a2f30b` plus the preserved, uncommitted
