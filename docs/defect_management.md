@@ -575,7 +575,7 @@ best-effort cleanup. Provider metadata must bind assets/uploads to the course;
 404 is already removed. Cleanup failures log course/asset/upload IDs for manual
 follow-up and allow removal and re-upload. Pending uploads are cancelled.
 Regression: `muxRoutes.test.ts` VO-01/04, `muxService.test.ts` VO-01.
-Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery commit pending recording. Live cancellation/deletion races remain
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery: `cb38175`. Live cancellation/deletion races remain
 in the rehearsal checklist in the story spec.
 
 ## DEF-T006-PUBLIC — Signed playback accepted without tokens
@@ -586,7 +586,7 @@ accepted signed configuration instead of refusing unsupported playback.
 Fix: reject signed configuration before creating the client/API startup; upload
 policy stays public. Signed-only ready callbacks produce an actionable error.
 Regression: `muxService.test.ts` VO-02 and `muxRoutes.test.ts` VO-02.
-Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery commit pending recording. Hosted public playback remains unverified.
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery: `cb38175`. Hosted public playback remains unverified.
 
 ## DEF-T006-POLLING — Pending videos stop updating and lack recovery guidance
 
@@ -600,7 +600,7 @@ messages explain removal and re-upload. Ten-minute age uses the first observed
 pending timestamp (persisted content update time on reopen); unrelated earlier
 saves can delay the warning, since media has no separate persisted start time.
 Regression: `course-media.spec.ts`, `course-builder-video.spec.ts` VO-03.
-Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery commit pending recording. Real upload/transcoding behavior unverified.
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery: `cb38175`. Real upload/transcoding behavior unverified.
 
 
 ## DEF-T006-UPLOAD-FAILURE — Provider outage returns an opaque write error
@@ -614,4 +614,4 @@ Fix: return 503 with saved-draft/retry guidance and release the course lock;
 actual course persistence retains its existing uncertain-write protections.
 Provider creation may have an unknown upload outcome; log for cleanup.
 Regression: `muxRoutes.test.ts` VO-03 verifies unchanged draft and successful
-retry. Verified by the four delivery checks and six journeys. Commit pending.
+retry. Verified by the four delivery checks and six journeys. Delivery: `cb38175`.

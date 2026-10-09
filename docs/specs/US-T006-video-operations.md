@@ -67,3 +67,6 @@ subsequent saves before reopen can delay that warning. Cleanup calls have a
 five-second timeout per request and no SDK retries; failures retain identifying
 logs for operator follow-up. Retained published assets are not cleaned up on a
 later publication by this scoped removal change.
+
+Delivery: `cb38175` on main, version 0.1.65; completion record follows locally.
+No push or deployment. Claude reviews the combined result before release.
