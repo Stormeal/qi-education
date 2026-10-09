@@ -5,6 +5,8 @@ import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
+    // Other specs may leave a stored login; these tests assume a signed-out visitor.
+    localStorage.clear(); sessionStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideRouter(routes)],
