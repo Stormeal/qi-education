@@ -80,3 +80,10 @@ batch; HTTP regressions exercise the client contracts. Hosted quota/finality pen
 No UI change or shared-store migration. Evidence and route counts are recorded here
 after reproduction. Hosted Sheets quota, Mongo durability and provider timings
 require separate disposable-provider verification. No push authorized.
+
+## Review note, 2026-10-10 (Claude Code)
+
+The 20-request burst figure is timing dependent: 4 Sheets reads on the development machine,
+6 on the CI runner, against 40 with no sharing. The test now asserts fewer than 20 rather than
+at most 4. Treat the burst number as evidence that concurrent reads share a fetch, not as a
+quota guarantee; the per-route counts above are exact and unchanged.
