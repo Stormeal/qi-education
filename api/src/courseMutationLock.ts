@@ -41,8 +41,18 @@ export class InMemoryCourseMutationLock implements CourseMutationLock {
   }
 }
 
+// Vercel's extended Node 22 maximum is 30 minutes (checked 2026-10-09).
+// Revisit before deploying to a host with a longer invocation lifetime.
+export const courseLockExpiryMs = 31 * 60 * 1000;
 export type CourseMutationLockDocument = { _id: string; owner: string; acquiredAt: string };
-type LockCollection = Pick<Collection<CourseMutationLockDocument>, 'insertOne' | 'deleteOne'>;
+type LockCollection = Pick<Collection<CourseMutationLockDocument>, 'findOne' | 'insertOne' | 'deleteOne'>;
+
+function acquisitionTime(value: unknown): number {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return NaN;
+  const parsed = Date.parse(value);
+  const normalized = value.includes('.') ? value : value.replace('Z', '.000Z');
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === normalized ? parsed : NaN;
+}
 
 export class MongoCourseMutationLock implements CourseMutationLock {
   constructor(private readonly collectionLoader: () => Promise<LockCollection>) {}
@@ -64,12 +74,24 @@ export class MongoCourseMutationLock implements CourseMutationLock {
           console.error('Course lock acquisition requires verified recovery if ownership was recorded.', { courseId, owner });
           throw error;
         }
+        const held = await beforeDeadline(collection.findOne({ _id: courseId },
+          { timeoutMS: Math.max(1, deadline - Date.now()) }), deadline);
+        const acquiredAt = acquisitionTime(held?.acquiredAt);
+        if (held && Number.isFinite(acquiredAt) && acquiredAt + courseLockExpiryMs <= Date.now()) {
+          const result = await beforeDeadline(collection.deleteOne(
+            { _id: courseId, owner: held.owner, acquiredAt: held.acquiredAt },
+            { writeConcern: { w: 'majority' }, timeoutMS: Math.max(1, deadline - Date.now()) },
+          ), deadline);
+          if (!result.acknowledged) throw new Error('Expired course ownership removal was not confirmed.');
+          if (result.deletedCount) console.info('Expired course operation ownership released.', { courseId, owner: held.owner });
+          continue;
+        }
         if (Date.now() >= deadline) throw new CourseBusyError();
         await new Promise((resolve) => setTimeout(resolve, 25));
       }
     }
-    // Never expire/take over a live owner: Sheets cannot fence a delayed write.
-    // Abandoned owners require verified termination and explicit operational cleanup.
+    // Preserve uncertain ownership until the host-duration bound. Previously
+    // accepted provider writes still need operational outcome reconciliation.
     let release = true;
     try { return await operation(); }
     catch (error) {

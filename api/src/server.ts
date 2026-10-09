@@ -1,5 +1,6 @@
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
+import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
 import { randomUUID } from 'node:crypto';
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { ZodError } from 'zod';
@@ -92,7 +93,7 @@ type AuthenticatedRequest = Request & {
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
-  const storedCourses = dependencies.courseRepository ?? createCourseRepository();
+  const storedCourses = requestCachedCourses(dependencies.courseRepository ?? createCourseRepository());
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
@@ -101,6 +102,13 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
+
+  app.use((_request, _response, next) => courseRequestReads.run(new Map(), next));
+
+  const withCourseRead = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
+    (request: Request, response: Response, next: NextFunction) => reviewScope.run({
+      author: request.query.view === 'author', user: (request as Partial<AuthenticatedRequest>).user,
+    }, async () => { try { await handler(request, response, next); } catch (error) { next(error); } });
 
   const withCourseLock = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     async (request: Request, response: Response, next: NextFunction) => {
@@ -120,6 +128,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
         await courseContent.withCourseMutationLock(courseId, async () => {
+          clearCourseRequestReads();
           if (author && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && !request.path.endsWith('/review')) {
             if (request.header('X-Course-Revision')) await review.assertRevision(courseId, request.header('X-Course-Revision'));
             await review.assertEditable(courseId);
@@ -555,7 +564,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   });
 
-  app.get('/courses/:id/thumbnail', optionalAuthentication(auth), withCourseLock(async (request, response, next) => {
+  app.get('/courses/:id/thumbnail', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
     try {
       const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
       let matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
@@ -641,7 +650,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     },
   );
 
-  app.get('/courses/:id/outline', optionalAuthentication(auth), withCourseLock(async (request, response, next) => {
+  app.get('/courses/:id/outline', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
     try {
       const courseId = String(request.params.id);
       const course = (await courses.listCourses()).find((item) => item.id === courseId);
@@ -654,7 +663,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     } catch (error) { next(error); }
   }));
 
-  app.get('/courses/:id/content', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
+  app.get('/courses/:id/content', authenticateRequest(auth), withCourseRead(async (request, response, next) => {
     const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
 
     try {
@@ -669,18 +678,17 @@ export function createServer(dependencies: ServerDependencies = {}) {
         response.status(403).json({ message: 'You do not have access to this course content.' });
         return;
       }
-      const content = await courseContent.getCourseContent(courseId);
-
-      if (!content && authorView) {
-        response.json({ _id: courseId, sections: [], createdAt: course.createdAt, updatedAt: course.createdAt,
-          view: 'author', review: await review.state(courseId) }); return;
+      if (authorView) {
+        response.json(await review.authorContent(courseId));
+        return;
       }
+      const content = await courseContent.getCourseContent(courseId);
       if (!content) {
         response.status(404).json({ message: 'Course content not found' });
         return;
       }
 
-      response.json(authorView ? { ...content, view: 'author', review: await review.state(courseId) } : learnerCourseContent(content));
+      response.json(learnerCourseContent(content));
     } catch (error) {
       console.error(`Unable to load stored content for course ${courseId}.`, error);
       response.status(503).json({ message: 'Course content storage is unavailable.' });
@@ -690,7 +698,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.get(
     '/courses/:id/content/attachments/:assetId',
     authenticateRequest(auth),
-    withCourseLock(async (request, response, next) => {
+    withCourseRead(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const assetId = Array.isArray(request.params.assetId)
@@ -759,7 +767,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const attachmentIds = new Set(input.sections.flatMap((section) =>
           section.components.flatMap((component) => component.attachments.map((attachment) => attachment.assetId)),
         ));
-        const referencedAssets = await Promise.all([...attachmentIds].map((assetId) => courseAssets.getComponentAttachment(assetId)));
+        const referencedAssets = await Promise.all([...attachmentIds].map((assetId) => courseAssets.getComponentAttachmentOwner(assetId)));
         if (referencedAssets.some((asset) => asset && asset.courseId !== courseId)) {
           response.status(403).json({ message: 'Attachments must belong to this course.' });
           return;
@@ -774,7 +782,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }),
   );
 
-  app.post('/courses/:id/content/components/:componentId/quiz-attempts', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
+  app.post('/courses/:id/content/components/:componentId/quiz-attempts', authenticateRequest(auth), withCourseRead(async (request, response, next) => {
     try {
       const courseId = String(request.params.id);
       const course = (await courses.listCourses()).find((item) => item.id === courseId);

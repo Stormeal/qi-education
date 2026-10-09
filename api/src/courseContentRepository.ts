@@ -1,4 +1,4 @@
-import type { CourseReviewWorkflow } from './courseReview.js';
+import type { CourseReviewWorkflow, CourseReviewSummary } from './courseReview.js';
 import type { Collection } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import type { CourseContentSection } from './courseContent.js';
@@ -17,10 +17,12 @@ export type CourseContentStorageType = 'memory' | 'mongodb';
 
 type CourseContentCollection = Pick<
   Collection<CourseContentDocument>,
-  'findOne' | 'insertOne' | 'updateOne' | 'deleteOne'
+  'findOne' | 'find' | 'insertOne' | 'updateOne' | 'deleteOne'
 >;
+export type CourseReviewSummaryDocument = { _id: string; review?: CourseReviewSummary };
 
 export interface CourseContentRepository {
+  listCourseReviewSummaries(courseIds: string[]): Promise<CourseReviewSummaryDocument[]>;
   readonly storageType: CourseContentStorageType;
   saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument>;
   checkHealth(): Promise<void>;
@@ -53,6 +55,14 @@ export class MongoCourseContentRepository implements CourseContentRepository {
 
   async getCourseContent(courseId: string): Promise<CourseContentDocument | null> {
     return (await (await this.collection()).findOne({ _id: courseId })) ?? null;
+  }
+
+  async listCourseReviewSummaries(courseIds: string[]): Promise<CourseReviewSummaryDocument[]> {
+    if (!courseIds.length) return [];
+    return (await this.collection()).find<CourseReviewSummaryDocument>({ _id: { $in: courseIds } }, {
+      projection: { _id: 1, 'review.liveStatus': 1, 'review.live.metadata': 1,
+        'review.working.metadata': 1, 'review.working.status': 1 },
+    }).toArray();
   }
 
   async createEmptyCourseContent(courseId: string, createdAt?: string): Promise<CourseContentDocument> {
@@ -143,6 +153,17 @@ export class InMemoryCourseContentRepository implements CourseContentRepository 
 
   async getCourseContent(courseId: string): Promise<CourseContentDocument | null> {
     return this.documents.get(courseId) ?? null;
+  }
+
+  async listCourseReviewSummaries(courseIds: string[]): Promise<CourseReviewSummaryDocument[]> {
+    return courseIds.flatMap(id => {
+      const doc = this.documents.get(id);
+      if (!doc?.review) return [];
+      const { liveStatus, live, working } = doc.review;
+      return [{ _id: id, review: structuredClone({ liveStatus,
+        live: live ? { metadata: live.metadata } : null,
+        working: working ? { metadata: working.metadata, status: working.status } : null }) }];
+    });
   }
 
   async createEmptyCourseContent(courseId: string, createdAt?: string): Promise<CourseContentDocument> {

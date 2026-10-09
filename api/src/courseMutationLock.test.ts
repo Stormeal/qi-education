@@ -4,6 +4,7 @@ import { AmbiguousCourseWriteError, CourseBusyError, InMemoryCourseMutationLock,
 function collectionFixture() {
   const records = new Map<string, CourseMutationLockDocument>();
   const collection = {
+    findOne: vi.fn(async ({ _id }: { _id: string }) => records.get(_id) ?? null),
     insertOne: vi.fn(async (document: CourseMutationLockDocument) => {
       if (records.has(document._id)) throw Object.assign(new Error('Duplicate key'), { code: 11000 });
       records.set(document._id, document);
@@ -67,11 +68,11 @@ describe('course operation coordination', () => {
     await expect(lock.run('course', async () => 'retry')).resolves.toBe('retry');
   });
 
-  it('never takes over an abandoned durable owner and bounds retry waiting', async () => {
+  it('never takes over an unexpired durable owner and bounds retry waiting', async () => {
     vi.useFakeTimers();
     try {
       const { collection, records } = collectionFixture();
-      records.set('course', { _id: 'course', owner: 'old-owner', acquiredAt: '2000-01-01T00:00:00Z' });
+      records.set('course', { _id: 'course', owner: 'old-owner', acquiredAt: new Date().toISOString() });
       const operation = vi.fn();
       const lock = new MongoCourseMutationLock(async () => collection as never);
       const attempted = lock.run('course', operation);

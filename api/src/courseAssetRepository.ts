@@ -53,6 +53,7 @@ export interface CourseAssetRepository {
     binary: Buffer;
   }): Promise<CourseComponentAttachmentAsset>;
   getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null>;
+  getComponentAttachmentOwner(assetId: string): Promise<{ courseId: string } | null>;
   deleteAsset(assetId: string, courseId: string): Promise<void>;
 }
 
@@ -127,6 +128,12 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
     return asset && 'componentId' in asset
       ? normalizeStoredAsset(asset as StoredCourseAsset<CourseComponentAttachmentAsset>)
       : null;
+  }
+
+  async getComponentAttachmentOwner(assetId: string): Promise<{ courseId: string } | null> {
+    const asset = await (await this.collection()).findOne({ _id: assetId, componentId: { $exists: true } },
+      { projection: { _id: 0, courseId: 1 } });
+    return asset ? { courseId: asset.courseId } : null;
   }
 
   async deleteAsset(assetId: string, courseId: string): Promise<void> {
@@ -210,6 +217,11 @@ export class InMemoryCourseAssetRepository implements CourseAssetRepository {
 
   async getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null> {
     return this.componentAssets.get(assetId) ?? null;
+  }
+
+  async getComponentAttachmentOwner(assetId: string): Promise<{ courseId: string } | null> {
+    const asset = this.componentAssets.get(assetId);
+    return asset ? { courseId: asset.courseId } : null;
   }
 
   async deleteAsset(assetId: string, courseId: string): Promise<void> {

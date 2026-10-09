@@ -1,4 +1,5 @@
 import { protectCourseWrite } from './courseMutationLock.js';
+import { InFlightRead } from './inFlightRead.js';
 import { randomUUID } from 'node:crypto';
 import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import {
@@ -18,6 +19,12 @@ export interface AuthRepository {
 }
 
 export class GoogleSheetsAuthRepository implements AuthRepository {
+  private readonly usersRead = new InFlightRead<AuthUser[]>();
+  private async write<T>(operation: () => Promise<T>): Promise<T> {
+    this.usersRead.invalidate();
+    try { return await protectCourseWrite(operation); }
+    finally { this.usersRead.invalidate(); }
+  }
   async findByEmail(email: string): Promise<AuthUser | null> {
     const users = await this.listUsers();
     return users.find((user) => user.email === email) ?? null;
@@ -32,10 +39,10 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     const sheets = createSheetsClient();
     await ensureWorksheetHeaders(authSheetRange(), [...authSheetHeaders]);
 
-    await protectCourseWrite(() => sheets.spreadsheets.values.append({
+    await this.write(() => sheets.spreadsheets.values.append({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: authSheetRange(),
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: {
         values: [authUserToSheetRow(user)],
@@ -71,10 +78,10 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     const sheetTitle = authSheetRange().split('!')[0];
     const rowColumn = toColumnName(authUserToSheetRow(updated).length);
 
-    await protectCourseWrite(() => sheets.spreadsheets.values.update({
+    await this.write(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [authUserToSheetRow(updated)]
       }
@@ -84,16 +91,17 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
   }
 
   private async listUsers(): Promise<AuthUser[]> {
-    const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(authSheetRange(), [...authSheetHeaders]);
+    return this.usersRead.run(async () => {
+      const sheets = createSheetsClient();
 
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: authSheetRange()
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+        range: authSheetRange()
+      });
+
+      const rows = response.data.values ?? [];
+      return rows.slice(1).map((row) => authUserFromSheetRow(row as string[]));
     });
-
-    const rows = response.data.values ?? [];
-    return rows.slice(1).map((row) => authUserFromSheetRow(row as string[]));
   }
 }
 

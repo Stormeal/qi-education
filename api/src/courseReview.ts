@@ -21,6 +21,10 @@ export type CourseReviewWorkflow = {
   version: number; liveStatus: 'published' | 'archived' | null; live: Snapshot | null;
   working: (Snapshot & { status: 'draft' | 'ready-for-review' }) | null; history: ReviewEvent[];
 };
+export type CourseReviewSummary = Pick<CourseReviewWorkflow, 'liveStatus'> & {
+  live: Pick<Snapshot, 'metadata'> | null;
+  working: (Pick<Snapshot, 'metadata'> & { status: 'draft' | 'ready-for-review' }) | null;
+};
 export const reviewActionSchema = z.object({
   action: z.enum(['start-revision', 'submit', 'return', 'publish', 'archive']),
   expectedVersion: z.number().int().nonnegative(), revisionId: z.string().max(160).nullable(),
@@ -41,12 +45,16 @@ function initial(course: Course, doc: CourseContentDocument | null): CourseRevie
   return { version: 0, liveStatus: live ? course.status as 'published' | 'archived' : null,
     live: live ? item : null, working: live ? null : { ...item, status: course.status as 'draft' | 'ready-for-review' }, history: [] };
 }
-function effective(base: Course, workflow: CourseReviewWorkflow, author = false): Course {
+function effective(base: Course, workflow: CourseReviewSummary, author = false): Course {
   const item = author ? workflow.working ?? workflow.live : workflow.live ?? workflow.working;
   return { ...base, ...item?.metadata, status: author && workflow.working ? workflow.working.status : workflow.liveStatus ?? workflow.working?.status ?? base.status };
 }
 function cleanContent(doc: CourseContentDocument, sections = doc.sections): CourseContentDocument {
   return { _id: doc._id, sections, createdAt: doc.createdAt, updatedAt: doc.updatedAt };
+}
+function reviewState(base: Course, workflow: CourseReviewWorkflow): CourseReviewState {
+  return { course: effective(base, workflow, true), version: workflow.version, revisionId: workflow.working?.id ?? null,
+    liveStatus: workflow.liveStatus, editable: workflow.working?.status === 'draft', history: workflow.history };
 }
 
 /** Keeps publication and private authoring snapshots in one content-document write. */
@@ -60,8 +68,13 @@ export class CourseReviewService {
   }
   async state(id: string): Promise<CourseReviewState> {
     const { base, workflow } = await this.load(id);
-    return { course: effective(base, workflow, true), version: workflow.version, revisionId: workflow.working?.id ?? null,
-      liveStatus: workflow.liveStatus, editable: workflow.working?.status === 'draft', history: workflow.history };
+    return reviewState(base, workflow);
+  }
+  async authorContent(id: string) {
+    const { base, doc, workflow } = await this.load(id);
+    const selected = workflow.working?.sections ?? workflow.live?.sections ?? [];
+    const document = doc ?? { _id: id, sections: [], createdAt: base.createdAt, updatedAt: base.createdAt };
+    return { ...cleanContent(document, selected), view: 'author', review: reviewState(base, workflow) };
   }
   async assertEditable(id: string) {
     const { workflow } = await this.load(id);
@@ -119,10 +132,12 @@ export class CourseReviewService {
   }
   async list(author = reviewScope.getStore()?.author ?? false) {
     const bases = await this.metadata.listCourses();
-    return Promise.all(bases.map(async base => {
-      const doc = await this.content.getCourseContent(base.id);
-      return doc?.review ? effective(base, doc.review, author) : base;
-    }));
+    const summaries = new Map((await this.content.listCourseReviewSummaries(bases.map(base => base.id)))
+      .map(doc => [doc._id, doc.review]));
+    return bases.map(base => {
+      const summary = summaries.get(base.id);
+      return summary ? effective(base, summary, author) : base;
+    });
   }
   async updateMetadata(id: string, input: UpdateCourseInput) {
     const { base, workflow } = await this.load(id);
@@ -163,6 +178,7 @@ export function reviewedRepositories(metadata: CourseRepository, content: Course
   const courseContent: CourseContentRepository = {
     storageType: content.storageType, checkHealth: () => content.checkHealth(),
     createEmptyCourseContent: (id, date) => content.createEmptyCourseContent(id, date),
+    listCourseReviewSummaries: ids => content.listCourseReviewSummaries(ids),
     deleteCourseContent: id => content.deleteCourseContent(id), saveCourseReview: (id, workflow) => content.saveCourseReview(id, workflow),
     withCourseMutationLock: (id, operation) => content.withCourseMutationLock(id, operation),
     getCourseContent: async id => {
@@ -177,6 +193,7 @@ export function reviewedRepositories(metadata: CourseRepository, content: Course
     storageType: assets.storageType, checkHealth: () => assets.checkHealth(),
     saveThumbnail: input => assets.saveThumbnail(input), getThumbnail: id => assets.getThumbnail(id),
     saveComponentAttachment: input => assets.saveComponentAttachment(input), getComponentAttachment: id => assets.getComponentAttachment(id),
+    getComponentAttachmentOwner: id => assets.getComponentAttachmentOwner(id),
     deleteAsset: async (id, courseId) => {
       const doc = await content.getCourseContent(courseId);
       const live = doc?.review?.live;

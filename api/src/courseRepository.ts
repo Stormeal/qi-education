@@ -1,4 +1,5 @@
 import { protectCourseWrite } from './courseMutationLock.js';
+import { InFlightRead } from './inFlightRead.js';
 import { randomUUID } from 'node:crypto';
 import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import {
@@ -32,16 +33,24 @@ export type CourseSeed = {
 
 export class GoogleSheetsCourseRepository implements CourseRepository {
   readonly storageType: CourseRepository['storageType'] = 'google-sheets';
+  private readonly coursesRead = new InFlightRead<Course[]>();
+  private async write<T>(operation: () => Promise<T>): Promise<T> {
+    this.coursesRead.invalidate();
+    try { return await protectCourseWrite(operation); }
+    finally { this.coursesRead.invalidate(); }
+  }
 
   async listCourses(): Promise<Course[]> {
-    const sheets = createSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: courseSheetRange(),
-    });
+    return this.coursesRead.run(async () => {
+      const sheets = createSheetsClient();
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+        range: courseSheetRange(),
+      });
 
-    const rows = response.data.values ?? [];
-    return rows.slice(1).map((row) => courseFromSheetRow(row as string[]));
+      const rows = response.data.values ?? [];
+      return rows.slice(1).map((row) => courseFromSheetRow(row as string[]));
+    });
   }
 
   async createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course> {
@@ -54,10 +63,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
 
     const sheets = createSheetsClient();
     await ensureWorksheetHeaders(courseSheetRange(), [...courseSheetHeaders]);
-    await protectCourseWrite(() => sheets.spreadsheets.values.append({
+    await this.write(() => sheets.spreadsheets.values.append({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: courseSheetRange(),
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [courseToSheetRow(course)]
       }
@@ -93,10 +102,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     const sheetTitle = courseSheetRange().split('!')[0];
     const rowColumn = toColumnName(courseToSheetRow(course).length);
 
-    await protectCourseWrite(() => sheets.spreadsheets.values.update({
+    await this.write(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [courseToSheetRow(course)]
       }
@@ -129,10 +138,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     const sheetTitle = courseSheetRange().split('!')[0];
     const rowColumn = toColumnName(courseToSheetRow(updated).length);
 
-    await protectCourseWrite(() => sheets.spreadsheets.values.update({
+    await this.write(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [courseToSheetRow(updated)],
       },
@@ -168,10 +177,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     const sheetTitle = courseSheetRange().split('!')[0];
     const rowColumn = toColumnName(courseToSheetRow(updated).length);
 
-    await protectCourseWrite(() => sheets.spreadsheets.values.update({
+    await this.write(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [courseToSheetRow(updated)],
       },
@@ -204,10 +213,10 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
     const sheetTitle = courseSheetRange().split('!')[0];
     const rowColumn = toColumnName(courseToSheetRow(updated).length);
 
-    await protectCourseWrite(() => sheets.spreadsheets.values.update({
+    await this.write(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [courseToSheetRow(updated)],
       },

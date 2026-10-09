@@ -35,7 +35,7 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
     await sheets.spreadsheets.values.append({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: feedbackDataRange(),
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [feedbackToSheetRow(feedback)],
       },
@@ -87,7 +87,7 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
     await sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${feedbackSheetTitle()}!J${rowNumber}:M${rowNumber}`,
-      valueInputOption: 'USER_ENTERED',
+      valueInputOption: 'RAW',
       requestBody: {
         values: [[
           input.workStatus,

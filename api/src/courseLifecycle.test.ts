@@ -86,6 +86,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
   it.each(['read', 'write'])('retains durable ownership only for an uncertain %s failure', async (stage) => {
     const records = new Map<string, CourseMutationLockDocument>();
     const collection = {
+      findOne: vi.fn(async ({ _id }: { _id: string }) => records.get(_id) ?? null),
       insertOne: vi.fn(async (document: CourseMutationLockDocument) => {
         if (records.has(document._id)) throw Object.assign(new Error('Duplicate'), { code: 11000 });
         records.set(document._id, document); return { acknowledged: true, insertedId: document._id };
@@ -99,9 +100,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     const lock = new MongoCourseMutationLock(async () => collection as never);
     vi.spyOn(content, 'withCourseMutationLock').mockImplementation((id, operation) => lock.run(id, operation));
     if (stage === 'read') {
-      const list = vi.mocked(courses.listCourses).getMockImplementation()!;
-      let calls = 0;
-      vi.mocked(courses.listCourses).mockImplementation(() => ++calls === 3 ? Promise.reject(new Error('Read unavailable')) : list());
+      vi.spyOn(content, 'getCourseContent').mockRejectedValueOnce(new Error('Read unavailable'));
     } else vi.spyOn(content, 'saveCourseReview').mockRejectedValue(new AmbiguousCourseWriteError(new Error('Write acknowledgement lost')));
     const logging = vi.spyOn(console, 'error').mockImplementation(() => {});
     const response = await request('/courses/course', teacher, 'PATCH', metadata, { version: 0, revisionId: 'legacy-course' });
@@ -120,7 +119,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true });
     if (stage === 'read') findOne.mockRejectedValueOnce(new Error('Read unavailable'));
     else updateOne.mockRejectedValueOnce(new Error('Write acknowledgement lost'));
-    const mongo = new MongoCourseContentRepository(async () => ({ findOne, updateOne,
+    const mongo = new MongoCourseContentRepository(async () => ({ findOne, updateOne, find: () => ({ toArray: async () => [] }),
       insertOne: vi.fn(), deleteOne: vi.fn() }) as never,
       new MongoCourseMutationLock(async () => locks as never));
     await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -165,7 +164,10 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     const teacherSave = request('/courses/course', teacher, 'PATCH', { ...ordinary, title: 'Slow teacher save' });
     await started;
     const publication = reviewAction('submit', teacher).then(async response => {
-      expect(response.status).toBe(200);
+      // Reads can now observe the pre-save revision while a writer is paused.
+      // A stale submission must conflict; a fresh retry runs after that save.
+      expect(response.status).toBe(409);
+      expect((await reviewAction('submit', teacher)).status).toBe(200);
       expect((await reviewAction('publish', admin)).status).toBe(200);
       return request('/courses/course/price', admin, 'PATCH', { priceDkk: 500 });
     });
@@ -198,7 +200,8 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     release();
     const [saved, published] = await Promise.all([save, publication]);
     expect(saved.status).toBe(200);
-    expect(published.status).toBe(400);
+    expect(published.status).toBe(409);
+    expect((await reviewAction('submit', teacher)).status).toBe(400);
     expect((await courses.listCourses())[0].status).toBe('draft');
   });
 

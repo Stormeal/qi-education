@@ -473,6 +473,40 @@ hosted release checks remain separate; no push/deployment for this delivery.
 
 ## Investigations requiring further evidence
 
+### Confirmed API class-load defects (Codex, 2026-10-09)
+
+Baseline: main / f8d4c2f. Isolated HTTP/in-memory stores and counting Google API
+stub; no shared mutations. `platformLoad.test.ts` contains five RED regressions.
+
+| Defect | Promoted investigation | Reproduction | State |
+| --- | --- | --- | --- |
+| DEF-P006-01 | INV-005 | Distinct client per call; me 3, catalog 4, outline/content/thumbnail/quiz 5 Sheets reads | Confirmed P1 |
+| DEF-P006-02 | INV-007 | Only 1 of 20 readers enters while first content read is paused | Confirmed P1 |
+| DEF-P006-03 | INV-011 | Catalog of 50 seeded courses plus demo performs 51 full content reads | Confirmed P2 |
+| DEF-P006-04 | INV-012 | Saving ten 4 MiB attachment references fetches 41,943,040 binary bytes | Confirmed P2 |
+
+Contract/final evidence: [US-P006 spec](specs/US-P006-class-load.md).
+Provider quota exhaustion is not reproduced by these isolated counts; disposable
+Sheets load and hosted Mongo verification remain release checks. Delivery pending.
+
+### DEF-P007-SHEETS — Spreadsheet text becomes formula/number
+
+Promoted INV-009, 2026-10-09, owner Codex, P1 Confirmed. Isolated Sheets emulator
+through real auth/course/feedback repositories: `=1+1` reads back as `2`; `007`
+as `7`; `+01` and `-01` lose their formatting. Reproduced all nine data write
+paths (audit said eight) with `spreadsheetText.test.ts` before the mode change.
+No shared cell mutations. Contract: [spreadsheet text](specs/US-P007-spreadsheet-text.md).
+Live provider round trips remain a disposable spreadsheet release check.
+
+### DEF-P005-LOCK — Interrupted mutation leaves permanent ownership
+
+Promoted INV-006, 2026-10-09, owner Codex, P1 Confirmed. Fake collection/clock:
+a Sheets 429 wrapped as an uncertain write retains its owner; even after 31
+minutes, the next mutation times out with 409. A simulated killed legacy owner
+behaves the same. `lockRecovery.test.ts` reproduced both before implementation.
+Alex approved bounded expiry beyond the host maximum. Contract and accepted
+remote-write finality risk: [lock recovery](specs/US-P005-lock-recovery.md).
+
 | ID | Concern and code evidence | Next verification | Related story |
 | --- | --- | --- | --- |
 | INV-001 | Reproduced as DEF-015; resolved 2026-10-09 in `d674ee3` | Stale/race/partial-failure API regressions and isolated browser pass; shared release checks remain | US-T005 |

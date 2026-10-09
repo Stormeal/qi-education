@@ -37,8 +37,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
 | US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
-| US-P005 | Recover uncertain course operations safely | Proposed | P2 | Lifecycle access | Coordination review; Investigation INV-006 |
-| US-P006 | Keep courses available when a class uses them together | Proposed | P1 | Lifecycle access; P005 lock decision | Investigations INV-005, INV-007, INV-011, INV-012, INV-018 |
+| US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
+| US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P007 | Treat stored text as data, never as code | In progress | P1 | None | Investigations INV-008, INV-009 |
 | US-P008 | Fail safely on misconfiguration, abuse, and unchecked releases | Proposed | P2 | None | Investigations INV-013, INV-014, INV-015, INV-016 |
 
@@ -941,34 +941,41 @@ Feature: Reliable private career guidance
 **As an operator, I want to reconcile an interrupted course write safely, so that
 learners regain access without a delayed operation overwriting the recovered course.**
 
-State: Proposed. Source: DEF-002–004 coordination review and recovery runbook.
+State: In progress (selected expiry increment verified; delivery commit pending).
+Owner: Codex. Spec: [bounded lock recovery](specs/US-P005-lock-recovery.md).
+Source: DEF-002–004 coordination review and recovery runbook.
 INV-006 (2026-10-09 code audit) questions the no-takeover decision below: any provider
 error under the lock, or a terminated function, blocks the course for readers too.
 Decision to revisit: an expiry longer than the host's maximum function duration.
 Depends on course lifecycle access. Scope: operator diagnostics, verified remote
 outcomes, owner-scoped recovery, and disposal-store rehearsal. Decisions: operator
 identity/permissions, provider evidence required for finality, and manual versus
-assisted recovery. No time-based takeover is permitted with unfenced Sheets writes.
+assisted recovery. Alex approved expiry beyond the host maximum on 2026-10-09.
+The selected increment permits owner-scoped reclaim after 31 minutes (beyond
+Vercel's 30-minute maximum), including legacy records. Invalid/young ownership
+fails closed. Previously accepted remote writes still require reconciliation;
+expiry cannot fence them. The historical no-age-takeover criteria below are
+superseded for this selected increment by the linked spec; operator tooling remains Proposed.
 
 ```gherkin
 Feature: Verified course operation recovery
-  Scenario: US-P005-AC01 Preserve an uncertain owner
+  Scenario: US-P005-AC01 Preserve an uncertain owner until the host bound
     Given a provider write timed out and its remote outcome is unknown
-    When another course operation arrives
+    When another course mutation arrives before the 31-minute expiry
     Then ownership is retained and the successor receives retry guidance
     And logs identify the course and owner without credentials
 
-  Scenario: US-P005-AC02 Recover only after finality
-    Given the originating invocation has stopped and provider evidence establishes its final outcome
-    When an authorized operator reconciles the course and releases the exact owner
-    Then a harmless read verifies the intended persisted state before writes resume
+  Scenario: US-P005-AC02 Recover expired invocation ownership
+    Given a valid acquisition timestamp is at least 31 minutes old
+    When a successor requests mutation ownership
+    Then only that inspected expired owner is released atomically
     And another owner's lock is never removed
 
   Scenario: US-P005-AC03 Avoid unsupported recovery
-    Given final remote outcome or owner termination cannot be established
+    Given the owner has a malformed timestamp or has not reached the host bound
     When recovery is requested
     Then ownership remains in place with a concrete investigation action
-    And age alone never authorizes takeover
+    And the operator can use the verified manual recovery procedure
 ```
 
 ### US-P006 — Keep courses available when a class uses them together
@@ -976,13 +983,21 @@ Feature: Verified course operation recovery
 **As a learner, I want lessons to load when my whole class opens the same course,
 so that a busy moment does not show errors or an "updating" message.**
 
-State: Proposed. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
-INV-005, INV-007, INV-011, INV-012, INV-018. Depends on lifecycle access and the
+State: In progress (selected API increment verified; delivery commit pending).
+Owner: Codex. Spec: [API class load](specs/US-P006-class-load.md).
+Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+INV-005, INV-007, INV-011, INV-012 reproduced as DEF-P006-01–04. INV-018 remains
+unreproduced; AC06 deferred as permitted by the user. Depends on lifecycle access and the
 US-P005 lock decision. Scope: Sheets calls per request, locking of read routes,
 course-list and content-save read volume, thumbnail caching. Decisions: target
 class size, acceptable staleness for cached user/course lists, whether reads may
 skip coordination, and whether versioned thumbnails of published courses may be
-cached publicly. Moving users or courses off Sheets is outside this story.
+cached publicly. Selected local target: 20 learners; readers bypass mutation locks,
+no timed user cache, request-local metadata reuse and in-flight-only Sheets sharing.
+Per authenticated lesson route: 5 → 2 Sheets reads. Catalog/ownership projections
+avoid lessons/binaries. AC01/03/04/05 pass locally; AC02 counts and warm-instance
+burst pass, but disposable-provider/cold-instance minute-budget verification remains.
+Moving users or courses off Sheets is outside this story.
 
 ```gherkin
 Feature: Course availability under class load
@@ -1028,7 +1043,10 @@ run someone else's code or leak account data.**
 
 State: In progress. Editor half (AC01, AC02) fixed locally 2026-10-09 by Claude Code as
 DEF-P007-EDITOR: [editor markup spec](specs/US-P007-editor-markup.md). Spreadsheet half
-(AC03, AC04) is with Codex. Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
+(AC03, AC04) is locally verified by Codex as DEF-P007-SHEETS: all nine data-write
+paths use RAW; `=1+1` and `007` round-trip unchanged in the isolated emulator.
+[Spreadsheet spec](specs/US-P007-spreadsheet-text.md); delivery commit pending.
+Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md),
 INV-008, INV-009. Scope: every place the editor inserts stored lesson HTML,
 server acceptance of lesson HTML, and every spreadsheet write of user-supplied
 text. Decisions: sanitize in the editor only or also on save; how attachment cards
