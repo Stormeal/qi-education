@@ -1,3 +1,4 @@
+import { protectCourseWrite } from './courseMutationLock.js';
 import { randomUUID } from 'node:crypto';
 import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import {
@@ -31,7 +32,7 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     const sheets = createSheetsClient();
     await ensureWorksheetHeaders(authSheetRange(), [...authSheetHeaders]);
 
-    await sheets.spreadsheets.values.append({
+    await protectCourseWrite(() => sheets.spreadsheets.values.append({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: authSheetRange(),
       valueInputOption: 'USER_ENTERED',
@@ -39,7 +40,7 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
       requestBody: {
         values: [authUserToSheetRow(user)],
       },
-    });
+    }));
 
     return user;
   }
@@ -70,14 +71,14 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     const sheetTitle = authSheetRange().split('!')[0];
     const rowColumn = toColumnName(authUserToSheetRow(updated).length);
 
-    await sheets.spreadsheets.values.update({
+    await protectCourseWrite(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [authUserToSheetRow(updated)]
       }
-    });
+    }));
 
     return updated;
   }

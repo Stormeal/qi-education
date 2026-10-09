@@ -9,6 +9,8 @@
     [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
     [courses]="state.enrolledCourses()"
+    [progress]="state.courses()"
+    (progressReloaded)="state.retryLearningProgress()"
     [coursesLoading]="state.coursesLoading()"
     [coursesError]="state.coursesError()"
     [isFeedbackOpen]="state.isFeedbackOpen()"

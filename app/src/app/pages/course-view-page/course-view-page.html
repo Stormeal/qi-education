@@ -32,7 +32,7 @@
   } @else {
     @let currentCourse = course()!;
     @if (viewMode() === 'learning') {
-      @if (!isEnrolled()) {
+      @if (!isEnrolled() && !canEditCourse()) {
         <section class="course-view-empty">
           <p class="course-empty">This course is not available in My Learning yet.</p>
           <app-button variant="primary" (buttonClicked)="libraryClicked.emit()">Back to My Learning</app-button>
@@ -59,18 +59,19 @@
                     <div class="learning-quiz-player">
                       <header class="learning-quiz-topbar">
                         <span>Question {{ activeQuizQuestionNumber() }} of {{ activeQuizQuestions().length }}</span>
-                        <span>{{ activeQuizProgressPercent() }}% complete</span>
+                        <span>{{ activeQuizPositionPercent() }}% through questions</span>
                       </header>
 
                       <div
                         class="learning-quiz-progress"
                         role="progressbar"
-                        [attr.aria-valuenow]="activeQuizProgressPercent()"
+                        [attr.aria-valuenow]="activeQuizPositionPercent()"
+                        [attr.aria-valuetext]="'Question ' + activeQuizQuestionNumber() + ' of ' + activeQuizQuestions().length"
                         aria-valuemin="0"
                         aria-valuemax="100"
-                        aria-label="Quiz progress"
+                        aria-label="Question position"
                       >
-                        <span [style.width.%]="activeQuizProgressPercent()"></span>
+                        <span [style.width.%]="activeQuizPositionPercent()"></span>
                       </div>
 
                       <section class="learning-quiz-prompt" aria-labelledby="learning-player-title">
@@ -91,7 +92,7 @@
 
                       <div class="learning-quiz-body">
                         @if (activeQuizQuestion(); as question) {
-                          <fieldset class="learning-quiz-question" [disabled]="activeQuizQuestionSubmitted() || quizSubmitted()">
+                          <fieldset class="learning-quiz-question" [disabled]="activeQuizQuestionSubmitted() || quizSubmitted() || quizScoring()">
                             <legend class="visually-hidden">{{ question.question || 'Quiz question' }}</legend>
                             <div class="learning-quiz-answers">
                               @for (answer of question.answers; track answer.id; let answerIndex = $index) {
@@ -100,14 +101,14 @@
                                     type="radio"
                                     [name]="'quiz-' + question.id"
                                     [checked]="selectedQuizAnswerId(question.id) === answer.id"
-                                    [disabled]="activeQuizQuestionSubmitted() || quizSubmitted()"
+                                    [disabled]="activeQuizQuestionSubmitted() || quizSubmitted() || quizScoring()"
                                     (change)="selectQuizAnswer(question.id, answer.id)"
                                   />
                                   <span class="learning-answer-letter" aria-hidden="true">{{ 'ABCD'[answerIndex] }}</span>
                                   <span>
                                     <strong>{{ answer.text || 'Answer option' }}</strong>
                                     @if (shouldShowAnswerDescription(question, answer.id)) {
-                                      <small>{{ answer.description }}</small>
+                                      <small>{{ answerDescription(question.id, answer.id) }}</small>
                                     }
                                   </span>
                                 </label>
@@ -117,6 +118,8 @@
                         }
                       </div>
 
+                      @if (quizError()) { <p role="alert">{{ quizError() }}</p> }
+                      @if (quizScoring()) { <p role="status">Checking your answers…</p> }
                       <footer class="learning-player-actions">
                         @if (quizSubmitted()) {
                           <p [class.is-success]="activeQuizPassed()" [class.is-error]="!activeQuizPassed()">
@@ -127,19 +130,19 @@
                           }
                         } @else {
                           @if (!activeQuizQuestionSubmitted()) {
-                            <button type="button" class="learning-secondary-button" (click)="skipActiveQuizQuestion()">
+                            <button type="button" class="learning-secondary-button" [disabled]="quizScoring()" (click)="skipActiveQuizQuestion()">
                               Skip
                             </button>
                           }
                           @if (activeQuizQuestionSubmitted()) {
-                            <button type="button" class="learning-primary-button" (click)="goToNextQuizQuestion()">
+                            <button type="button" class="learning-primary-button" [disabled]="quizScoring()" (click)="goToNextQuizQuestion()">
                               {{ isLastActiveQuizQuestion() ? 'Finish quiz' : 'Next question' }}
                             </button>
                           } @else {
                             <button
                               type="button"
                               class="learning-primary-button"
-                              [disabled]="!activeQuizQuestionAnswered()"
+                              [disabled]="!activeQuizQuestionAnswered() || quizScoring()"
                               (click)="submitActiveQuizAnswer()"
                             >
                               Submit answer
@@ -172,16 +175,20 @@
                       }
                       @if (currentComponent.attachments.length > 0) {
                         <div class="learning-attachment-list">
+                          <p class="learning-attachment-label">Downloads</p>
                           @for (attachment of currentComponent.attachments; track attachment.assetId) {
-                            <button type="button" class="learning-resource-link" (click)="downloadAttachment(currentCourse.id, attachment)">
-                              {{ attachment.fileName }} · {{ formatFileSize(attachment.sizeBytes) }}
+                            <button type="button" class="learning-attachment-item" (click)="downloadAttachment(currentCourse.id, attachment)">
+                              <span class="learning-attachment-name">{{ attachment.fileName }}</span>
+                              <span class="learning-attachment-size">{{ formatFileSize(attachment.sizeBytes) }}</span>
                             </button>
                           }
                         </div>
                       }
-                      <button type="button" class="learning-primary-button" (click)="completeActiveComponent()">
-                        Mark complete
-                      </button>
+                      <div class="learning-player-footer">
+                        <button type="button" class="learning-primary-button" (click)="completeActiveComponent()">
+                          Mark complete
+                        </button>
+                      </div>
                     </div>
                   }
                 } @else {
@@ -194,12 +201,6 @@
             </section>
 
             <section class="learning-overview" aria-labelledby="learning-overview-title">
-              <div class="learning-tabs" aria-label="Course detail tabs">
-                <button type="button" class="active">Overview</button>
-                <button type="button">Q&amp;A</button>
-                <button type="button">Notes</button>
-              </div>
-
               <div class="learning-overview-body">
                 <h2 id="learning-overview-title">{{ currentCourse.title }}</h2>
                 <p>{{ currentCourse.description }}</p>
@@ -217,6 +218,9 @@
               <div>
                 <h2>Course content</h2>
                 <p>{{ contentSummary() }}</p>
+                @if (courseProgress() && !courseContentLoading() && !courseContentError()) {
+                  <p>{{ courseProgress()!.completed }} of {{ courseProgress()!.total }} completed · {{ courseProgress()!.percent }}%</p>
+                }
               </div>
               @if (hasRealCurriculum()) {
                 <button type="button" (click)="toggleAllSections()">
@@ -502,12 +506,14 @@
               <span>{{ ratingLabel(currentCourse.rating) }}</span>
               <span>{{ ratingCountLabel(currentCourse.ratingCount) }}</span>
             </div>
-            @if (isEnrolled()) {
+            @if (isEnrolled() || canEditCourse()) {
               <app-button class="fill" variant="primary" (buttonClicked)="openLearningWorkspace(currentCourse.id)">
-                Start learning
+                {{ isEnrolled() ? 'Start learning' : 'Preview course' }}
               </app-button>
-            } @else {
+            } @else if (currentCourse.status === 'published') {
               <app-button class="fill" variant="primary" (buttonClicked)="openEnrollDialog()">Enroll</app-button>
+            } @else {
+              <p>Enrollment is closed for this course.</p>
             }
 
             <div class="course-includes">
@@ -529,7 +535,7 @@
             </div>
           </div>
 
-          @if (canCreateCourses()) {
+          @if (canEditCourse()) {
             <div class="course-admin-panel" aria-label="Course management">
               <button
                 type="button"
@@ -742,6 +748,34 @@
           (input)="updateCatalogRatingCount(controlValue($event))"
         />
       </label>
+
+      <label class="price-field">
+        <span>Category</span>
+        <select
+          [value]="catalogCategoryDraft()"
+          (change)="updateCatalogCategory(controlValue($event))"
+        >
+          @for (category of catalogCategoryOptions; track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </label>
+
+      <fieldset class="catalog-language-field">
+        <legend>Languages</legend>
+        <div class="catalog-toggle-grid">
+          @for (language of catalogLanguageOptions; track language) {
+            <label class="catalog-toggle">
+              <input
+                type="checkbox"
+                [checked]="isCatalogLanguageSelected(language)"
+                (change)="toggleCatalogLanguage(language, controlChecked($event))"
+              />
+              <span>{{ language }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
 
       <p class="price-field-note">
         Thumbnail artwork is managed from the course editor so teachers can update it during editing.

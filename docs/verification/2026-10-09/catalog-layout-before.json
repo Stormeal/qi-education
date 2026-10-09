@@ -1,0 +1,87 @@
+{
+  "cards": [
+    {
+      "badges": 4,
+      "height": 365.421875,
+      "title": "Complete Software Testing and Quality Engineering Certification for Modern Product Teams"
+    },
+    {
+      "badges": 4,
+      "height": 365.421875,
+      "title": "AutomationTestingCertificationForModernQualityEngineeringTeamsWithPracticalAPIAndPerformanceTesting"
+    },
+    {
+      "badges": 3,
+      "height": 365.421875,
+      "title": "Lifecycle verification"
+    },
+    {
+      "badges": 3,
+      "height": 365.421875,
+      "title": "Career Discovery Workshop"
+    },
+    {
+      "badges": 5,
+      "height": 385.90625,
+      "title": "Complete Software Testing and Quality Engineering Certification for Modern Product Teams"
+    },
+    {
+      "badges": 5,
+      "height": 343.4375,
+      "title": "AutomationTestingCertificationForModernQualityEngineeringTeamsWithPracticalAPIAndPerformanceTesting"
+    },
+    {
+      "badges": 4,
+      "height": 343.4375,
+      "title": "Lifecycle verification"
+    },
+    {
+      "badges": 4,
+      "height": 343.4375,
+      "title": "Career Discovery Workshop"
+    }
+  ],
+  "failures": [
+    {
+      "clipping": false,
+      "hiddenBadges": true,
+      "title": "Complete Software Testing and Quality Engineering Certification for Modern Product Teams",
+      "truncatedTitle": true
+    },
+    {
+      "clipping": false,
+      "hiddenBadges": true,
+      "title": "AutomationTestingCertificationForModernQualityEngineeringTeamsWithPracticalAPIAndPerformanceTesting",
+      "truncatedTitle": true
+    },
+    {
+      "clipping": true,
+      "hiddenBadges": true,
+      "title": "Complete Software Testing and Quality Engineering Certification for Modern Product Teams",
+      "truncatedTitle": false
+    },
+    {
+      "clipping": true,
+      "hiddenBadges": false,
+      "title": "AutomationTestingCertificationForModernQualityEngineeringTeamsWithPracticalAPIAndPerformanceTesting",
+      "truncatedTitle": false
+    },
+    {
+      "clipping": false,
+      "hiddenBadges": true,
+      "title": "Lifecycle verification",
+      "truncatedTitle": false
+    },
+    {
+      "clipping": true,
+      "hiddenBadges": true,
+      "title": "Career Discovery Workshop",
+      "truncatedTitle": false
+    }
+  ],
+  "passed": false,
+  "viewport": {
+    "height": 844,
+    "width": 390
+  }
+}

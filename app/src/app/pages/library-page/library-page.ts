@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { CourseListItem, FeedbackOption, StudentSummary } from '../../app.models';
+import { CourseListItem, CourseSummary, FeedbackOption, StudentSummary } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -21,6 +21,8 @@ export class LibraryPage {
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
   readonly courses = input.required<CourseListItem[]>();
+  readonly progress = input<CourseSummary[]>([]);
+  readonly progressReloaded = output<void>();
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();
   readonly isFeedbackOpen = input.required<boolean>();
@@ -43,6 +45,10 @@ export class LibraryPage {
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
+
+  protected courseProgress(courseId: string): CourseSummary | undefined {
+    return this.progress().find(course => course.id === courseId);
+  }
 
   protected teacherInitials(name: string): string {
     return name

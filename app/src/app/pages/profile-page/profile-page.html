@@ -1,0 +1,147 @@
+<main class="page-shell profile-shell">
+  <app-page-header
+    activeSection="profile"
+    [displayName]="displayName()"
+    [email]="email()"
+    [roleLabel]="roleLabel()"
+    [canAccessAdmin]="canAccessAdmin()"
+    (homeClicked)="homeClicked.emit()"
+    (coursesClicked)="coursesClicked.emit()"
+    (libraryClicked)="libraryClicked.emit()"
+    (feedbackOpened)="feedbackOpened.emit()"
+    (loggedOut)="loggedOut.emit()"
+    (adminClicked)="adminClicked.emit()"
+    (careerPathClicked)="careerPathClicked.emit()"
+  />
+
+  <header class="profile-identity">
+    <div class="profile-identity-avatar" [style.background]="avatarColor()" aria-hidden="true">
+      {{ initials() || 'U' }}
+    </div>
+    <div class="profile-identity-copy">
+      <p class="eyebrow">Your profile</p>
+      <h1>{{ displayName() }}</h1>
+      <div class="profile-identity-meta">
+        <span class="profile-role-badge">{{ roleLabel() }}</span>
+        @if (memberSince()) {
+          <span>Member since {{ memberSince() }}</span>
+        }
+        <span>{{ enrolledCount() }} {{ enrolledCount() === 1 ? 'course' : 'courses' }} enrolled</span>
+      </div>
+      <p class="profile-identity-email">{{ email() }}</p>
+    </div>
+  </header>
+
+  <form class="profile-card" (submit)="onSubmit($event)">
+    <fieldset class="profile-section profile-section-color">
+      <legend class="profile-label">Avatar color</legend>
+      <p class="profile-section-hint">Personalizes the initials badge shown across the platform.</p>
+      <div class="profile-swatches" role="radiogroup" aria-label="Avatar color">
+        @for (color of avatarColorOptions(); track color; let index = $index) {
+          <button
+            type="button"
+            class="profile-swatch"
+            [class.selected]="color === avatarColor()"
+            role="radio"
+            [attr.aria-checked]="color === avatarColor()"
+            [attr.aria-label]="'Avatar color ' + (index + 1)"
+            [style.background]="color"
+            (click)="avatarColorSelected.emit(color)"
+          ></button>
+        }
+      </div>
+    </fieldset>
+
+    <div class="profile-section">
+      <label class="profile-label" for="profile-bio">About you</label>
+      <textarea
+        id="profile-bio"
+        class="profile-input"
+        rows="4"
+        [attr.maxlength]="bioMaxLength"
+        placeholder="A short introduction: your background, what you do, and what brings you to QI-Education."
+        [value]="bio()"
+        (input)="bioChanged.emit(controlValue($event))"
+      ></textarea>
+      <p class="profile-field-hint">{{ bioMaxLength - bio().length }} characters left</p>
+    </div>
+
+    <div class="profile-grid">
+      <div class="profile-section">
+        <label class="profile-label" for="profile-job-title">Job title</label>
+        <input
+          id="profile-job-title"
+          class="profile-input"
+          type="text"
+          maxlength="120"
+          placeholder="e.g. QA Engineer"
+          [value]="jobTitle()"
+          (input)="jobTitleChanged.emit(controlValue($event))"
+        />
+      </div>
+      <div class="profile-section">
+        <label class="profile-label" for="profile-company">Company</label>
+        <input
+          id="profile-company"
+          class="profile-input"
+          type="text"
+          maxlength="120"
+          placeholder="e.g. Testhuset A/S"
+          [value]="company()"
+          (input)="companyChanged.emit(controlValue($event))"
+        />
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <label class="profile-label" for="profile-goals">Learning goals</label>
+      <textarea
+        id="profile-goals"
+        class="profile-input"
+        rows="3"
+        [attr.maxlength]="goalsMaxLength"
+        placeholder="What do you want to achieve? e.g. Pass ISTQB Foundation, then move into test management."
+        [value]="learningGoals()"
+        (input)="learningGoalsChanged.emit(controlValue($event))"
+      ></textarea>
+      <p class="profile-field-hint">{{ goalsMaxLength - learningGoals().length }} characters left</p>
+    </div>
+
+    <div class="profile-actions">
+      <p class="profile-save-state" role="status" aria-live="polite">
+        @if (profileSaved()) {
+          <span class="profile-saved">Saved on this device.</span>
+        } @else {
+          <span class="profile-save-hint">Changes are stored on this device.</span>
+        }
+      </p>
+      <app-button variant="primary" type="submit" [disabled]="!profileDirty() || profileSaving()">
+        {{ profileSaving() ? 'Saving…' : 'Save changes' }}
+      </app-button>
+    </div>
+  </form>
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
+}

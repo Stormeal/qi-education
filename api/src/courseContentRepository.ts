@@ -1,13 +1,16 @@
+import type { CourseReviewWorkflow } from './courseReview.js';
 import type { Collection } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import type { CourseContentSection } from './courseContent.js';
 import { getMongoDatabase } from './mongo.js';
+import { protectCourseWrite, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
 
 export type CourseContentDocument = {
   _id: string;
   sections: CourseContentSection[];
   createdAt: string;
   updatedAt: string;
+  review?: CourseReviewWorkflow;
 };
 
 export type CourseContentStorageType = 'memory' | 'mongodb';
@@ -19,17 +22,26 @@ type CourseContentCollection = Pick<
 
 export interface CourseContentRepository {
   readonly storageType: CourseContentStorageType;
+  saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument>;
   checkHealth(): Promise<void>;
   getCourseContent(courseId: string): Promise<CourseContentDocument | null>;
   createEmptyCourseContent(courseId: string, createdAt?: string): Promise<CourseContentDocument>;
   updateCourseContent(courseId: string, sections: CourseContentSection[]): Promise<CourseContentDocument>;
   deleteCourseContent(courseId: string): Promise<void>;
+  withCourseMutationLock<T>(courseId: string, operation: () => Promise<T>): Promise<T>;
 }
 
 export class MongoCourseContentRepository implements CourseContentRepository {
   readonly storageType = 'mongodb';
 
-  constructor(private readonly collectionLoader: () => Promise<CourseContentCollection>) {}
+  constructor(private readonly collectionLoader: () => Promise<CourseContentCollection>,
+    private readonly mutationLock: CourseMutationLock = new MongoCourseMutationLock(async () =>
+      (await getMongoDatabase()).collection(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_locks`)),
+  ) {}
+
+  withCourseMutationLock<T>(courseId: string, operation: () => Promise<T>): Promise<T> {
+    return this.mutationLock.run(courseId, operation);
+  }
 
   private async collection() {
     return this.collectionLoader();
@@ -52,7 +64,8 @@ export class MongoCourseContentRepository implements CourseContentRepository {
       updatedAt: now,
     };
 
-    await (await this.collection()).insertOne(document);
+    const collection = await this.collection();
+    await protectCourseWrite(() => collection.insertOne(document));
     return document;
   }
 
@@ -72,11 +85,11 @@ export class MongoCourseContentRepository implements CourseContentRepository {
         updatedAt: now,
       };
 
-      await collection.insertOne(created);
+      await protectCourseWrite(() => collection.insertOne(created));
       return created;
     }
 
-    await collection.updateOne(
+    await protectCourseWrite(() => collection.updateOne(
       { _id: courseId },
       {
         $set: {
@@ -84,7 +97,7 @@ export class MongoCourseContentRepository implements CourseContentRepository {
           updatedAt: now,
         },
       },
-    );
+    ));
 
     return {
       ...existing,
@@ -93,14 +106,36 @@ export class MongoCourseContentRepository implements CourseContentRepository {
     };
   }
 
+  async saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument> {
+    const collection = await this.collection();
+    const existing = await collection.findOne({ _id: courseId });
+    const updated = { _id: courseId, createdAt: new Date().toISOString(), ...existing, review, sections: review.live?.sections ?? review.working?.sections ?? [], updatedAt: new Date().toISOString() };
+    await protectCourseWrite(async () => {
+      if (!existing) {
+        const result = await collection.insertOne(updated);
+        if (!result.acknowledged) throw new Error('Course review creation was not confirmed.');
+      } else {
+        const result = await collection.updateOne({ _id: courseId }, { $set: { review, sections: updated.sections, updatedAt: updated.updatedAt } });
+        if (!result.acknowledged || result.matchedCount !== 1) throw new Error('Course review write was not confirmed.');
+      }
+    });
+    return updated;
+  }
+
   async deleteCourseContent(courseId: string): Promise<void> {
-    await (await this.collection()).deleteOne({ _id: courseId });
+    const collection = await this.collection();
+    await protectCourseWrite(() => collection.deleteOne({ _id: courseId }));
   }
 }
 
 export class InMemoryCourseContentRepository implements CourseContentRepository {
   readonly storageType = 'memory';
   private readonly documents = new Map<string, CourseContentDocument>();
+  private readonly mutationLock = new InMemoryCourseMutationLock();
+
+  withCourseMutationLock<T>(courseId: string, operation: () => Promise<T>): Promise<T> {
+    return this.mutationLock.run(courseId, operation);
+  }
 
   async checkHealth(): Promise<void> {
     return;
@@ -144,6 +179,13 @@ export class InMemoryCourseContentRepository implements CourseContentRepository 
 
     this.documents.set(courseId, document);
     return document;
+  }
+
+  async saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument> {
+    const existing = this.documents.get(courseId);
+    const updated = { _id: courseId, createdAt: new Date().toISOString(), ...existing, review: structuredClone(review), sections: structuredClone(review.live?.sections ?? review.working?.sections ?? []), updatedAt: new Date().toISOString() };
+    this.documents.set(courseId, updated);
+    return updated;
   }
 
   async deleteCourseContent(courseId: string): Promise<void> {

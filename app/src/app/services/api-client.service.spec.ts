@@ -57,6 +57,15 @@ describe('ApiClientService cache', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('does not cache private course responses when the server says no-store', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(['private']), {
+      status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' },
+    }));
+    await service.fetchJson('/courses', { headers: { authorization: 'Bearer session' } });
+    await service.fetchJson('/courses', { headers: { authorization: 'Bearer session' } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('reloads cached JSON when bypassing the session cache', async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse(['first']))
@@ -87,6 +96,7 @@ function jsonResponse(body: unknown): Response {
   return {
     ok: true,
     status: 200,
+    headers: new Headers(),
     json: () => Promise.resolve(body),
   } as Response;
 }

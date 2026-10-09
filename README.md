@@ -1,9 +1,23 @@
 # QI-Education
 
-QI-Education is a portal for students and teachers to create, discover, and participate in courses. The first foundation keeps the stack small:
+QI-Education is a portal for students and teachers to create, discover, and participate in courses.
 
 - `app`: Angular frontend.
-- `api`: Node/Express API that uses Google Sheets as the backing store.
+- `api`: Node/Express API with Google Sheets for account/course metadata/feedback and MongoDB for course content/assets; isolated in-memory implementations support tests.
+
+## Project documentation and next work
+
+Start with [docs/README.md](docs/README.md) and [the work queue](docs/work_queue.md).
+The adjacent [user stories](docs/user_stories.md) and [defect log](docs/defect_management.md)
+record product behavior, BDD acceptance criteria, priorities, and audit findings.
+Read the [development workflow](docs/development_workflow.md) before implementing
+an item and [architecture](docs/architecture.md) for the current code map.
+
+The current delivery order is teacher journey, learner journey, then platform
+reliability, with confirmed defects before enhancements. Teachers edit their own
+courses and admins all courses; legacy courses without an owner are admin-only
+for editing. See DEF-001 for implementation and release verification. Work and
+commits use `main`, unless another branch is requested.
 
 ## Local Development
 
@@ -42,7 +56,7 @@ The doctor checks `api/.env`, local API health, auth storage, CORS, and content 
 The API expects one Google Sheet with a `Courses` worksheet. Add this header row:
 
 ```text
-id,title,description,level,teacher,careerGoals,status,createdAt
+id,title,description,level,teacher,careerGoals,status,createdAt,requirements,audience,priceDkk,partOfCareer,whatYoullLearn,thumbnailAssetId,isPremium,isBestseller,rating,ratingCount,category,languages,ownerUserId
 ```
 
 Authentication uses a separate `Users` worksheet. Add this header row:
@@ -54,7 +68,7 @@ id,email,displayName,passwordHash,role,status,createdAt,enrolledCourseIds
 Feedback submissions use a `Feedback` worksheet. The API will create it automatically when Google Sheets is configured. It stores:
 
 ```text
-ID,Created At,User ID,User Email,User Role,Page,Rating,Message,User Agent
+ID,Created At,User ID,User Email,User Role,Page,Rating,Message,User Agent,Work Status,Priority,GitHub Issue Number,GitHub Issue URL
 ```
 
 Supported roles:
@@ -85,6 +99,11 @@ npm run env:pull
 Share the sheet with the configured Google service account email.
 
 Set an `AUTH_TOKEN_SECRET` value in the API environment before using login in shared or production environments.
+
+For setup details and an isolated demo walkthrough that skips shared credentials,
+see [local development](docs/local_development.md). Do not copy empty optional
+credentials from `.env.example` unchanged; omit unused optional values or provide
+valid ones. Current worksheet widths are Courses `A:U`, Users `A:H`, Feedback `A:M`.
 
 Preferred environment variable names:
 

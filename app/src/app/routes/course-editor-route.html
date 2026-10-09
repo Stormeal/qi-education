@@ -1,5 +1,13 @@
 @if (state.isSessionRestoring()) {
   <app-session-restore-state />
+} @else if (state.loginState() && !state.canUseCourseEditor()) {
+  <main class="mx-auto max-w-3xl p-6">
+    <h1 class="mb-4 text-xl font-semibold">Course editing unavailable</h1>
+    <p role="status" class="mb-6">{{ state.courseEditorAccessMessage() }}</p>
+    <button type="button" class="rounded-lg border px-4 py-2 focus-visible:outline-2" (click)="state.navigateCourses()">
+      Back to courses
+    </button>
+  </main>
 } @else if (state.loginState()) {
   <app-course-editor-page
     [appVersion]="state.appVersion"
@@ -11,6 +19,9 @@
     [courseFormMode]="state.courseFormMode()"
     [editingCourse]="state.editingCourse()"
     [courseDraft]="state.courseDraft()"
+    [courseReview]="state.courseReview()" [courseEditable]="state.courseEditable()"
+    [reviewPending]="state.courseReviewPending()" [reviewError]="state.courseReviewError()" [reviewReason]="state.courseReviewReason()"
+    (reviewAction)="state.reviewCourse($event)" (reviewReasonChanged)="state.courseReviewReason.set($event)"
     [courseSubmitting]="state.courseSubmitting()"
     [courseCreateError]="state.courseCreateError()"
     [courseSaveNotice]="state.courseSaveNotice()"
@@ -56,6 +67,7 @@
     (courseSubmitted)="state.submitCourse()"
     (courseThumbnailSelected)="state.uploadCourseThumbnail($event)"
     (courseSectionAdded)="state.addCourseSection()"
+    (courseEditorBufferChanged)="state.courseEditorBufferDirty.set($event)"
     (courseSectionRemoved)="state.removeCourseSection($event)"
     (courseSectionTitleChanged)="state.updateCourseSectionTitle($event.sectionIndex, $event.value)"
     (courseComponentAdded)="state.addCourseComponent($event.sectionIndex, $event.type)"

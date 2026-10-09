@@ -5,6 +5,7 @@ import {
   InMemoryCourseContentRepository,
   type CourseContentRepository,
 } from './courseContentRepository.js';
+import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryCourseRepository, type CourseRepository } from './courseRepository.js';
 import type { FeedbackEntry } from './feedback.js';
 import {
@@ -14,6 +15,7 @@ import {
 } from './githubFeedback.js';
 import type { MuxVideoService, MuxWebhookEvent, MuxWebhookService } from './muxService.js';
 import { createServer } from './server.js';
+import { InMemoryAuthRepository } from './authRepository.js';
 
 describe('QI-Education API', () => {
   let server: Server;
@@ -329,7 +331,7 @@ describe('QI-Education API', () => {
       priceDkk: null,
     });
 
-    const contentResponse = await fetch(`${baseUrl}/courses/${body.id}/content`);
+    const contentResponse = await fetch(`${baseUrl}/courses/${body.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
     const content = await contentResponse.json();
 
     expect(contentResponse.status).toBe(200);
@@ -339,6 +341,37 @@ describe('QI-Education API', () => {
       createdAt: body.createdAt,
       updatedAt: body.createdAt,
     });
+  });
+
+  it('rejects course creation when shared course rows would point at local-only content', async () => {
+    const courseRepository = new SharedCourseRepository();
+    const isolatedServer = createServer({
+      courseRepository,
+      courseContentRepository: new InMemoryCourseContentRepository(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const response = await fetch(`${isolatedBaseUrl}/courses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(validCourse()),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(body.message).toBe(
+        'Course creation requires shared content storage when courses are stored in Google Sheets. Configure MongoDB course content storage before creating courses.',
+      );
+      expect(await courseRepository.listCourses()).toHaveLength(1);
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('enrolls the current user in an existing course', async () => {
@@ -382,11 +415,11 @@ describe('QI-Education API', () => {
   });
 
   it('returns 404 when course content does not exist', async () => {
-    const response = await fetch(`${baseUrl}/courses/missing-course/content`);
+    const response = await fetch(`${baseUrl}/courses/missing-course/content`, { headers: { authorization: `Bearer ${await loginAs('admin@qi-education.local')}` } });
     const body = await response.json();
 
     expect(response.status).toBe(404);
-    expect(body.message).toBe('Course content not found');
+    expect(body.message).toBe('Course not found');
   });
 
   it('reports content storage health failures', async () => {
@@ -425,7 +458,7 @@ describe('QI-Education API', () => {
 
     try {
       const [course] = await courseRepository.listCourses();
-      const response = await fetch(`${isolatedBaseUrl}/courses/${course.id}/content`);
+      const response = await fetch(`${isolatedBaseUrl}/courses/${course.id}/content`, { headers: { authorization: `Bearer ${await loginAs('admin@qi-education.local', isolatedBaseUrl)}` } });
       const body = await response.json();
 
       expect(response.status).toBe(503);
@@ -456,7 +489,7 @@ describe('QI-Education API', () => {
       body: JSON.stringify({
         ...validCourse(),
         title: 'API Automation Foundations, Revised',
-        status: 'published',
+        status: 'draft',
       }),
     });
     const updated = await updateResponse.json();
@@ -466,7 +499,7 @@ describe('QI-Education API', () => {
       id: created.id,
       title: 'API Automation Foundations, Revised',
       partOfCareer: 'Automation Engineering',
-      status: 'published',
+      status: 'draft',
       priceDkk: null,
     });
   });
@@ -505,6 +538,8 @@ describe('QI-Education API', () => {
         isBestseller: true,
         rating: 4.8,
         ratingCount: 312,
+        category: 'API Testing',
+        languages: ['English', 'Danish'],
       }),
     });
 
@@ -530,6 +565,8 @@ describe('QI-Education API', () => {
       isBestseller: true,
       rating: 4.8,
       ratingCount: 312,
+      category: 'API Testing',
+      languages: ['English', 'Danish'],
     });
   });
 
@@ -589,6 +626,8 @@ describe('QI-Education API', () => {
         isBestseller: true,
         rating: 4.8,
         ratingCount: 312,
+        category: 'Performance Testing',
+        languages: ['English'],
       }),
     });
     const updated = await updateResponse.json();
@@ -600,6 +639,8 @@ describe('QI-Education API', () => {
       isBestseller: true,
       rating: 4.8,
       ratingCount: 312,
+      category: 'Performance Testing',
+      languages: ['English'],
     });
   });
 
@@ -626,6 +667,8 @@ describe('QI-Education API', () => {
         isBestseller: false,
         rating: 4.4,
         ratingCount: 12,
+        category: 'Mobile Testing',
+        languages: [],
       }),
     });
     const body = await response.json();
@@ -688,12 +731,53 @@ describe('QI-Education API', () => {
     expect(uploadResponse.status).toBe(200);
     expect(updated.thumbnailAssetId).toEqual(expect.any(String));
 
-    const thumbnailResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`);
+    const thumbnailResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`, { headers: { authorization: `Bearer ${token}` } });
     const thumbnailBuffer = Buffer.from(await thumbnailResponse.arrayBuffer());
 
     expect(thumbnailResponse.status).toBe(200);
     expect(thumbnailResponse.headers.get('content-type')).toBe('image/png');
     expect(thumbnailBuffer.equals(Buffer.from('fake-image-binary'))).toBe(true);
+  });
+
+  it('rejects thumbnail uploads when shared course rows would point at local-only assets', async () => {
+    const courseRepository = new SharedCourseRepository();
+    const authRepository = new InMemoryAuthRepository();
+    const teacher = (await authRepository.findByEmail('teacher@qi-education.local'))!;
+    const created = await courseRepository.createCourse(validCourse(), {
+      id: 'shared-thumbnail-course', createdAt: new Date().toISOString(), ownerUserId: teacher.id,
+    });
+    const isolatedServer = createServer({
+      authRepository,
+      courseRepository,
+      courseAssetRepository: new InMemoryCourseAssetRepository(),
+    }).listen(0);
+    const address = isolatedServer.address() as AddressInfo;
+    const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
+
+    try {
+      const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
+      const response = await fetch(`${isolatedBaseUrl}/courses/${created.id}/thumbnail`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'image/png',
+          'X-File-Name': 'catalog-thumbnail.png',
+          authorization: `Bearer ${token}`,
+        },
+        body: Buffer.from('fake-image-binary'),
+      });
+      const body = await response.json();
+      const [storedCourse] = (await courseRepository.listCourses()).filter(
+        (course) => course.id === created.id,
+      );
+
+      expect(response.status).toBe(503);
+      expect(body.message).toBe(
+        'Shared course operations require MongoDB content and coordination storage.',
+      );
+      expect(storedCourse.thumbnailAssetId ?? '').toBe('');
+    } finally {
+      isolatedServer.close();
+    }
   });
 
   it('allows a teacher to update course content', async () => {
@@ -779,7 +863,7 @@ describe('QI-Education API', () => {
     });
     expect(updated.updatedAt).toEqual(expect.any(String));
 
-    const getResponse = await fetch(`${baseUrl}/courses/${created.id}/content`);
+    const getResponse = await fetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
     const loaded = await getResponse.json();
 
     expect(getResponse.status).toBe(200);
@@ -867,6 +951,17 @@ describe('QI-Education API', () => {
     );
 
     expect(blockedResponse.status).toBe(403);
+
+    const adminToken = await loginAs('admin@qi-education.local');
+    const reviewHeaders = { 'Content-Type': 'application/json', authorization: `Bearer ${adminToken}` };
+    const currentReview = (await (await fetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: reviewHeaders })).json()).review;
+    const submission = await fetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
+      body: JSON.stringify({ action: 'submit', revisionId: currentReview.revisionId, expectedVersion: currentReview.version }) });
+    expect(submission.status).toBe(200);
+    const submitted = (await submission.json()).review;
+    const publishResponse = await fetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
+      body: JSON.stringify({ action: 'publish', revisionId: submitted.revisionId, expectedVersion: submitted.version }) });
+    expect(publishResponse.status).toBe(200);
 
     await fetch(`${baseUrl}/users/me/courses/${created.id}`, {
       method: 'POST',
@@ -1203,7 +1298,7 @@ describe('QI-Education API', () => {
         },
         body: JSON.stringify({ type: 'video.asset.ready' }),
       });
-      const contentResponse = await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`);
+      const contentResponse = await fetch(`${isolatedBaseUrl}/courses/${created.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
       const content = await contentResponse.json();
 
       expect(readyResponse.status).toBe(200);
@@ -1804,7 +1899,12 @@ class FailingCreateCourseRepository extends InMemoryCourseRepository implements 
   }
 }
 
+class SharedCourseRepository extends InMemoryCourseRepository implements CourseRepository {
+  override readonly storageType = 'google-sheets';
+}
+
 class FailingCourseContentRepository implements CourseContentRepository {
+  async withCourseMutationLock<T>(_id: string, operation: () => Promise<T>): Promise<T> { return operation(); }
   readonly storageType = 'mongodb';
 
   async checkHealth(): Promise<void> {

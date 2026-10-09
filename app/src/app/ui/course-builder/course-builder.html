@@ -1,3 +1,43 @@
+@if (readOnly() && !courseContentLoading() && courseContent()) {
+  <div class="review-content-preview" aria-label="Read-only lesson preview">
+    <p>Read-only preview of this revision.</p>
+    @for (section of courseContent()!.sections; track section.id; let sectionIndex = $index) {
+      <section>
+        <h4>{{ section.title }}</h4>
+        @for (component of section.components; track component.id; let componentIndex = $index) {
+          <details>
+            <summary>{{ component.title || 'Untitled component' }} · {{ componentTypeLabel(component) }}</summary>
+            @if (component.content) {
+              <div [innerHTML]="renderRichContent(component.content)"></div>
+            }
+            @if (component.type === 'video' && muxPlaybackId(component)) {
+              <mux-player [attr.playback-id]="muxPlaybackId(component)" stream-type="on-demand" accent-color="#4f773e"></mux-player>
+            }
+            @if (component.resourceUrl) {
+              <a [href]="component.resourceUrl" target="_blank" rel="noreferrer">Open supporting resource</a>
+            }
+            @if (component.type === 'quiz') {
+              <p>Pass mark: {{ component.quiz.passPoints }} points</p>
+              @for (question of component.quiz.questions; track question.id) {
+                <p><strong>{{ question.question }}</strong> · {{ question.points }} points</p>
+                <ul>
+                  @for (answer of question.answers; track answer.id) {
+                    <li>{{ answer.text }} @if (answer.isCorrect) { <strong>(Correct)</strong> }
+                      @if (answer.description) { <p>{{ answer.description }}</p> }
+                    </li>
+                  }
+                </ul>
+              }
+            }
+            @for (attachment of component.attachments; track attachment.assetId) {
+              <button type="button" [disabled]="courseSubmitting()" (click)="downloadAttachment(sectionIndex, componentIndex, attachment.assetId, attachment.fileName)">Download {{ attachment.fileName }}</button>
+            }
+          </details>
+        }
+      </section>
+    }
+  </div>
+} @else {
 @if (courseContentLoading()) {
   <app-loading-skeleton variant="course-content" [count]="2" />
 } @else if (!courseContent()) {
@@ -37,7 +77,8 @@
               [class.is-editing]="isSectionRenaming(sectionIndex)"
               [attr.role]="isSectionRenaming(sectionIndex) ? 'textbox' : null"
               [attr.aria-label]="'Section title'"
-              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); finishSectionRename()"
+              (input)="courseEditorBufferChanged.emit(editableText($event) !== section.title)"
+              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); courseEditorBufferChanged.emit(false); finishSectionRename()"
               (keydown)="renameKeydown($event)"
             >
               {{ section.title }}
@@ -680,4 +721,6 @@
       </footer>
     </section>
   </div>
+}
+
 }

@@ -19,48 +19,62 @@
   <header class="db-welcome">
     <div class="db-welcome-copy">
       <h1 class="db-welcome-name">Welcome back, {{ student().name }}</h1>
-      <p class="db-welcome-path">{{ student().currentRole }} to {{ student().targetRole }}</p>
+      <p class="db-welcome-path">{{ student().currentRole }}</p>
     </div>
-    <app-button variant="primary">Adjust track</app-button>
   </header>
 
   <section class="db-stats" aria-label="Learning summary">
     <article class="db-stat db-stat-hero">
       <span class="db-stat-label">Career path</span>
-      <strong class="db-stat-value">{{ student().pathProgress }}%</strong>
-      <div class="db-progress-track" aria-label="Career path progress">
-        <span [style.width.%]="student().pathProgress"></span>
-      </div>
-      <p class="db-stat-meta">Next milestone: choose a specialization after ISTQB Foundation.</p>
+      <strong class="db-stat-value">Unavailable</strong>
+      <p class="db-stat-meta">Career path progress is not available yet.</p>
     </article>
 
     <article class="db-stat">
       <span class="db-stat-label">Active course</span>
-      <strong class="db-stat-value">{{ activeCourse().progress }}%</strong>
-      <p class="db-stat-meta">{{ activeCourse().title }}</p>
+      @if (coursesLoading()) {
+        <strong class="db-stat-value">Loading…</strong>
+      } @else if (coursesError()) {
+        <strong class="db-stat-value">Unavailable</strong>
+      } @else if (activeCourse(); as course) {
+        <strong class="db-stat-value">{{ course.progressState === 'ready' ? course.progress + '%' : course.progressState === 'error' ? 'Unavailable' : 'Loading…' }}</strong>
+        <p class="db-stat-meta">{{ course.title }}</p>
+      } @else {
+        <p class="db-stat-meta">No courses enrolled</p>
+      }
     </article>
 
     <article class="db-stat">
-      <span class="db-stat-label">Recommended</span>
-      <strong class="db-stat-value">{{ recommendedCourses().length }}</strong>
-      <p class="db-stat-meta">Testing courses matched to your goal.</p>
+      <span class="db-stat-label">Enrolled courses</span>
+      @if (!coursesLoading() && !coursesError()) {
+        <strong class="db-stat-value">{{ courses().length }}</strong>
+      }
+      <p class="db-stat-meta">Your learning library.</p>
     </article>
   </section>
 
   <section class="db-actions-section" id="actions">
     <div class="db-section-heading">
-      <h2>Keep the certification path moving</h2>
+      <h2>Your learning</h2>
     </div>
     <div class="db-action-list">
-      @for (action of nextActions(); track action.title) {
+      @if (coursesLoading()) {
+        <p role="status">Loading your courses…</p>
+      } @else if (coursesError()) {
+        <p role="alert">{{ coursesError() }}</p>
+        <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+      } @else if (courses().length === 0) {
+        <p>No courses in your learning library yet.</p>
+        <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Browse courses</app-button>
+      } @else {
+      @for (course of courses(); track course.id) {
         <article
           class="db-action-row"
-          [class.is-complete]="action.state === 'complete'"
-          [class.is-current]="action.state === 'current'"
-          [class.is-next]="action.state === 'next'"
+          [class.is-complete]="course.status === 'Completed'"
+          [class.is-current]="course.status === 'In progress'"
         >
           <span class="db-action-icon" aria-hidden="true">
-            @if (action.state === 'complete') {
+            @if (course.status === 'Completed') {
               <svg viewBox="0 0 16 16" focusable="false">
                 <path d="M3.2 8.2 6.6 11.4 12.8 4.6" />
               </svg>
@@ -69,17 +83,23 @@
           <div class="db-action-body">
             <div class="db-action-head">
               <div class="db-action-title">
-                <span class="db-action-chapter">{{ action.chapter }}</span>
-                <h3>{{ action.title }}</h3>
+                <h3><a [routerLink]="['/library', course.id]">{{ course.title }}</a></h3>
               </div>
-              <span class="db-action-badge">{{ action.state }}</span>
+              <span class="db-action-badge">{{ course.progressState === 'loading' ? 'Loading…' : course.status }}</span>
             </div>
-            <p>{{ action.meta }}</p>
-            <div class="db-action-progress" [attr.aria-label]="action.title + ' progress'">
-              <span [style.width.%]="action.progress"></span>
-            </div>
+            @if (course.progressState === 'ready') {
+              <p>{{ course.completed }} of {{ course.total }} completed · {{ course.progress }}%</p>
+              @if (course.nextLesson) { <p>Next lesson: {{ course.nextLesson }}</p> }
+              <div class="db-action-progress" [attr.aria-label]="course.title + ' progress'">
+                <span [style.width.%]="course.progress"></span>
+              </div>
+            } @else if (course.progressState === 'error') {
+              <p>Progress unavailable</p>
+              <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+            }
           </div>
         </article>
+      }
       }
     </div>
   </section>

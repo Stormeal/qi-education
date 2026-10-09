@@ -98,6 +98,7 @@ export class CourseBuilder {
   private richTextComponentId = '';
   private richTextDraftHtml = '';
 
+  readonly readOnly = input(false);
   readonly courseContent = input.required<CourseContentDocument | null>();
   readonly courseContentLoading = input.required<boolean>();
   readonly courseContentSaving = input.required<boolean>();
@@ -112,6 +113,7 @@ export class CourseBuilder {
   readonly attachmentUploadError = input.required<string>();
 
   readonly courseSectionAdded = output<void>();
+  readonly courseEditorBufferChanged = output<boolean>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
   readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();
@@ -556,6 +558,11 @@ export class CourseBuilder {
 
     if (editor instanceof HTMLElement) {
       this.richTextDraftHtml = editor.innerHTML;
+      const component = this.editingComponent();
+      this.courseEditorBufferChanged.emit(
+        component?.type === 'text' && this.normalizeRichTextHtml(this.richTextDraftHtml) !==
+          this.normalizeRichTextHtml(this.renderEditorContent(component)),
+      );
     }
 
     this.expandOutlineHeadingsByDefault();
@@ -571,11 +578,12 @@ export class CourseBuilder {
     this.expandOutlineHeadingsByDefault();
     this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
 
-    this.courseComponentContentChanged.emit({
-      sectionIndex,
-      componentIndex,
-      value: this.normalizeRichTextHtml(this.richTextDraftHtml || this.richTextHtml()),
-    });
+    const value = this.normalizeRichTextHtml(this.richTextDraftHtml);
+    const component = this.editingComponent();
+    if (component?.type === 'text' && value !== this.normalizeRichTextHtml(this.renderEditorContent(component))) {
+      this.courseComponentContentChanged.emit({ sectionIndex, componentIndex, value });
+    }
+    this.courseEditorBufferChanged.emit(false);
   }
 
   protected richTextKeydown(event: KeyboardEvent, sectionIndex: number, componentIndex: number): void {
@@ -763,7 +771,7 @@ export class CourseBuilder {
     return !!anchorElement?.closest('h1, h2, h3');
   }
 
-  private renderRichContent(content: string): string {
+  protected renderRichContent(content: string): string {
     return this.looksLikeHtml(content) ? content : this.renderMarkdown(content);
   }
 

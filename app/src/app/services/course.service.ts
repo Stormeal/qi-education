@@ -1,12 +1,15 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import {
   CourseCatalogMetadataDraft,
+  CourseReviewAction,
+  CourseReviewState,
   CourseComponentAttachment,
   CourseContentDocument,
   CourseCreateDraft,
   CourseListItem,
   CourseSection,
   LoginResponse,
+  QuizAssessmentResult,
 } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
@@ -98,32 +101,61 @@ export type CourseEnrollmentResult =
 @Injectable({ providedIn: 'root' })
 export class CourseService {
   private readonly apiClient = inject(ApiClientService);
-  private readonly warmedThumbnailUrls = new Set<string>();
+  private readonly thumbnailUrls = signal<Record<string, string>>({});
   private readonly thumbnailWarmRequests = new Map<string, Promise<void>>();
+  private thumbnailToken = '';
+  private thumbnailGeneration = 0;
   private activeAttachmentUploadRequest: XMLHttpRequest | null = null;
 
-  async listCourses(): Promise<CourseListItem[]> {
-    const { ok, body } = await this.apiClient.fetchJson<CourseListItem[]>('/courses');
-
+  async listCourses(token: string): Promise<CourseListItem[]> {
+    const { ok, body } = await this.apiClient.fetchJson<CourseListItem[]>('/courses', {
+      headers: { authorization: `Bearer ${token}` },
+    });
     if (!ok || !Array.isArray(body)) {
       throw new Error(!Array.isArray(body) && body.message ? body.message : 'Unable to load courses.');
     }
-
     return body;
   }
 
-  warmCourseThumbnailCache(courses: CourseListItem[]): void {
-    for (const course of courses) {
-      if (!course.thumbnailAssetId) {
-        continue;
-      }
+  thumbnailUrl(course: CourseListItem | null): string {
+    return course?.thumbnailAssetId ? this.thumbnailUrls()[`${course.id}:${course.thumbnailAssetId}`] ?? '' : '';
+  }
 
-      this.warmThumbnailUrl(
-        this.apiClient.resourceUrl(
-          `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
-        ),
-      );
+  clearPrivateThumbnails(): void {
+    this.thumbnailGeneration++;
+    for (const url of Object.values(this.thumbnailUrls())) URL.revokeObjectURL(url);
+    this.thumbnailUrls.set({});
+    this.thumbnailWarmRequests.clear();
+    this.thumbnailToken = '';
+  }
+
+  async preloadCourseThumbnails(courses: CourseListItem[], token = this.thumbnailToken): Promise<void> {
+    if (token !== this.thumbnailToken) {
+      this.clearPrivateThumbnails();
+      this.thumbnailToken = token;
     }
+    const generation = this.thumbnailGeneration;
+    await Promise.all(courses.filter((course) => !!course.thumbnailAssetId).map((course) => {
+      const key = `${course.id}:${course.thumbnailAssetId}`;
+      if (this.thumbnailUrls()[key]) return Promise.resolve();
+      const pending = this.thumbnailWarmRequests.get(key);
+      if (pending) return pending;
+      const request = (async () => {
+        try {
+          const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`, {
+            method: 'GET', headers: token ? { authorization: `Bearer ${token}` } : {},
+          });
+          if (!response.ok) return;
+          const blob = await response.blob();
+          if (generation !== this.thumbnailGeneration) return;
+          const url = URL.createObjectURL(blob);
+          this.thumbnailUrls.update((urls) => ({ ...urls, [key]: url }));
+        } catch { /* A failed thumbnail must not prevent course access. */ }
+        finally { if (generation === this.thumbnailGeneration) this.thumbnailWarmRequests.delete(key); }
+      })();
+      this.thumbnailWarmRequests.set(key, request);
+      return request;
+    }));
   }
 
   async saveCourse(
@@ -188,10 +220,22 @@ export class CourseService {
     };
   }
 
-  async loadCourseContent(courseId: string): Promise<CourseContentDocument> {
+  async performReviewAction(courseId: string, action: CourseReviewAction, state: CourseReviewState,
+    reason: string, token: string): Promise<CourseContentDocument> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/review`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, reason, revisionId: state.revisionId, expectedVersion: state.version }),
+    });
+    const body = await response.json() as CourseContentDocument | { message?: string };
+    if (!response.ok || !('_id' in body) || !body.review) throw new Error('message' in body && body.message ? body.message : 'Unable to save the review action.');
+    this.apiClient.invalidateCache('/courses');
+    return body;
+  }
+
+  async loadCourseContent(courseId: string, token: string, view: 'learner' | 'author' = 'learner'): Promise<CourseContentDocument> {
     const { ok, body } = await this.apiClient.fetchJson<CourseContentDocument>(
-      `/courses/${encodeURIComponent(courseId)}/content`,
-      {},
+      `/courses/${encodeURIComponent(courseId)}/content?view=${view}`,
+      { headers: { authorization: `Bearer ${token}` } },
       true,
     );
 
@@ -199,6 +243,34 @@ export class CourseService {
       throw new Error(!('_id' in body) && body.message ? body.message : 'Unable to load course content.');
     }
 
+    return body;
+  }
+
+  async loadCourseOutline(courseId: string, token: string): Promise<CourseContentDocument> {
+    type Outline = { _id: string; sections: { id: string; title: string; components: {
+      id: string; title: string; type: 'text' | 'video' | 'quiz' | 'resources'; durationMinutes: number;
+    }[] }[] };
+    const { ok, body } = await this.apiClient.fetchJson<Outline>(`/courses/${encodeURIComponent(courseId)}/outline`, {
+      headers: { authorization: `Bearer ${token}` },
+    }, true);
+    if (!ok || !('_id' in body)) throw new Error('message' in body && body.message ? body.message : 'Unable to load course outline.');
+    return { ...body, createdAt: '', updatedAt: '', view: 'outline', sections: body.sections.map((section) => ({
+      ...section, components: section.components.map((component) => {
+        const base = { ...component, content: '', resourceUrl: '', attachments: [] };
+        return component.type === 'quiz' ? { ...base, type: 'quiz' as const, quiz: { passPoints: 1, questions: [] } } :
+          { ...base, type: component.type as 'text' | 'video' | 'resources' };
+      }),
+    })) };
+  }
+
+  async gradeQuiz(courseId: string, sectionId: string, componentId: string,
+    answers: { questionId: string; answerId: string }[], token: string): Promise<QuizAssessmentResult> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/quiz-attempts`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ sectionId, answers }),
+    });
+    const body = await response.json() as QuizAssessmentResult | { message?: string };
+    if (!response.ok || !('feedback' in body)) throw new Error('message' in body && body.message ? body.message : 'Unable to score this quiz. Please try again.');
     return body;
   }
 
@@ -681,27 +753,4 @@ export class CourseService {
     }
   }
 
-  private warmThumbnailUrl(url: string): void {
-    if (this.warmedThumbnailUrls.has(url) || this.thumbnailWarmRequests.has(url)) {
-      return;
-    }
-
-    const image = new Image();
-    const warmRequest = new Promise<void>((resolve) => {
-      const finish = (): void => {
-        image.onload = null;
-        image.onerror = null;
-        this.thumbnailWarmRequests.delete(url);
-        this.warmedThumbnailUrls.add(url);
-        resolve();
-      };
-
-      image.onload = finish;
-      image.onerror = finish;
-    });
-
-    this.thumbnailWarmRequests.set(url, warmRequest);
-    image.decoding = 'async';
-    image.src = url;
-  }
 }

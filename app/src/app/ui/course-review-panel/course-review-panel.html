@@ -1,0 +1,44 @@
+@if (loading()) {
+  <p role="status">Loading review state...</p>
+} @else if (review(); as state) {
+  @if (state.liveStatus === 'published') {
+    <p>Learners keep the published version while this revision is edited or reviewed.</p>
+  } @else if (state.liveStatus === 'archived') {
+    <p>Existing learners retain access to the archived version.</p>
+  }
+  <div class="review-actions">
+    @if (state.editable) {
+      <app-button variant="primary" [disabled]="pending()" (buttonClicked)="action.emit('submit')">Submit for review</app-button>
+    } @else if (state.course.status === 'ready-for-review') {
+      <p role="status">Awaiting admin review</p>
+      @if (canAdmin()) {
+        <app-button variant="primary" [disabled]="pending()" (buttonClicked)="action.emit('publish')">Publish revision</app-button>
+        <label class="review-reason">Return reason
+          <textarea aria-label="Return reason" rows="3" maxlength="2000" [value]="reason()" [disabled]="pending()" (input)="changeReason($event)"></textarea>
+        </label>
+        <app-button [disabled]="pending()" (buttonClicked)="action.emit('return')">Return for changes</app-button>
+      }
+    } @else if (state.liveStatus && !state.revisionId) {
+      <app-button [disabled]="pending()" (buttonClicked)="action.emit('start-revision')">Start revision</app-button>
+    }
+    @if (canAdmin() && state.liveStatus === 'published') {
+      <app-button [disabled]="pending()" (buttonClicked)="action.emit('archive')">Archive course</app-button>
+    }
+  </div>
+  @if (pending()) { <p role="status">Saving review action...</p> }
+  @if (history().length) {
+    <h4>Review history</h4>
+    <ol class="review-history">
+      @for (event of history(); track event.id) {
+        <li>
+          <strong>{{ label(event.action) }}</strong> · Revision {{ event.revisionNumber }}
+          <p>{{ event.actorName }} · <time [attr.datetime]="event.createdAt">{{ event.createdAt | date:'medium' }}</time></p>
+          @if (event.reason) { <p class="review-feedback">{{ event.reason }}</p> }
+        </li>
+      }
+    </ol>
+  } @else { <p>No review decisions yet.</p> }
+} @else {
+  <p>Save the course draft before submitting for review.</p>
+}
+@if (error()) { <p class="review-error" role="alert">{{ error() }}</p> }

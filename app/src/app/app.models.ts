@@ -33,23 +33,52 @@ export type StudentSummary = {
   name: string;
   currentRole: string;
   targetRole: string;
-  pathProgress: number;
+  pathProgress: number | null;
+};
+
+export type UserProfileDetails = {
+  bio: string;
+  jobTitle: string;
+  company: string;
+  learningGoals: string;
+  avatarColor: string;
 };
 
 export type CourseSummary = {
+  id: string;
   title: string;
   teacher: string;
   level: string;
   status: string;
-  progress: number;
+  progress: number | null;
+  progressState: 'loading' | 'ready' | 'error';
+  completed: number;
+  total: number;
   nextLesson: string;
   goals: string[];
 };
 
 export type CourseStatus = 'draft' | 'ready-for-review' | 'published' | 'archived';
 
+export const COURSE_CATEGORIES = [
+  'Software Testing',
+  'Automation Testing',
+  'Performance Testing',
+  'API Testing',
+  'Mobile Testing',
+  'Security Testing',
+  'Test Management',
+  'Uncategorized',
+] as const;
+
+export const COURSE_LANGUAGES = ['English', 'Danish'] as const;
+
+export type CourseCategory = (typeof COURSE_CATEGORIES)[number];
+export type CourseLanguage = (typeof COURSE_LANGUAGES)[number];
+
 export type CourseListItem = {
   id: string;
+  ownerUserId: string;
   title: string;
   description: string;
   requirements: string[];
@@ -67,6 +96,8 @@ export type CourseListItem = {
   isBestseller: boolean;
   rating: number;
   ratingCount: number;
+  category: CourseCategory;
+  languages: CourseLanguage[];
 };
 
 export type CourseCatalogMetadataDraft = {
@@ -74,6 +105,8 @@ export type CourseCatalogMetadataDraft = {
   isBestseller: boolean;
   rating: number;
   ratingCount: number;
+  category: CourseCategory;
+  languages: CourseLanguage[];
 };
 
 export type CourseCreateDraft = {
@@ -117,8 +150,8 @@ export type MuxVideo = {
 export type QuizAnswerOption = {
   id: string;
   text: string;
-  description: string;
-  isCorrect: boolean;
+  description?: string;
+  isCorrect?: boolean;
 };
 
 export type QuizQuestion = {
@@ -181,11 +214,28 @@ export type CourseSection = {
   components: CourseComponent[];
 };
 
+export type CourseReviewAction = 'start-revision' | 'submit' | 'return' | 'publish' | 'archive';
+export type CourseReviewState = {
+  course: CourseListItem; version: number; revisionId: string | null;
+  liveStatus: 'published' | 'archived' | null; editable: boolean;
+  history: { id: string; revisionId: string | null; action: string; actorId: string; actorName: string; createdAt: string; reason: string }[];
+};
+
 export type CourseContentDocument = {
   _id: string;
+  view?: 'outline' | 'learner' | 'author';
   sections: CourseSection[];
   createdAt: string;
   updatedAt: string;
+  review?: CourseReviewState;
+};
+
+export type QuizAssessmentResult = {
+  score: number;
+  totalPoints: number;
+  passPoints: number;
+  passed: boolean;
+  feedback: { questionId: string; answerId: string; correct: boolean; description: string }[];
 };
 
 export type NextAction = {

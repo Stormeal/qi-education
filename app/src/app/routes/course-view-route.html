@@ -9,7 +9,7 @@
     [userEmail]="state.loginState()?.user?.email ?? ''"
     [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
-    [canCreateCourses]="state.loginState()?.permissions?.canCreateCourses ?? false"
+    [canEditCourse]="state.selectedCourseCanEdit()"
     [course]="state.selectedCourse()"
     [coursesLoading]="state.coursesLoading()"
     [coursesError]="state.coursesError()"

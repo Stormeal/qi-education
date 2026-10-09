@@ -10,6 +10,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   lucideBanknote,
@@ -27,16 +28,23 @@ import {
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
 import {
+  COURSE_CATEGORIES,
+  COURSE_LANGUAGES,
+  CourseCategory,
   CourseComponent,
   CourseComponentAttachment,
   CourseCatalogMetadataDraft,
   CourseContentDocument,
+  CourseLanguage,
   CourseListItem,
   FeedbackOption,
   QuizQuestion,
+  QuizAssessmentResult,
   StudentSummary,
 } from '../../app.models';
+import { CourseService } from '../../services/course.service';
 import { ApiClientService } from '../../services/api-client.service';
+import { LearningProgressService } from '../../services/learning-progress.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -54,6 +62,8 @@ type CourseViewMode = 'details' | 'learning';
 })
 export class CourseViewPage {
   private readonly apiClient = inject(ApiClientService);
+  private readonly courseService = inject(CourseService);
+  private readonly learningProgress = inject(LearningProgressService);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly editCourseIcon = this.asSafeIcon(lucidePencil);
@@ -78,15 +88,28 @@ export class CourseViewPage {
   protected readonly catalogBestsellerDraft = signal(false);
   protected readonly catalogRatingDraft = signal('0');
   protected readonly catalogRatingCountDraft = signal('0');
+  protected readonly catalogCategoryDraft = signal<CourseCategory>('Uncategorized');
+  protected readonly catalogLanguagesDraft = signal<CourseLanguage[]>([]);
+  protected readonly catalogCategoryOptions = COURSE_CATEGORIES;
+  protected readonly catalogLanguageOptions = COURSE_LANGUAGES;
   protected readonly isEnrollDialogOpen = signal(false);
   protected readonly pendingEnrollment = signal(false);
   protected readonly expandedSectionIds = signal<string[]>([]);
   protected readonly expandedComponentIds = signal<string[]>([]);
   protected readonly activeComponentId = signal('');
-  protected readonly completedComponentIds = signal<string[]>([]);
+  protected readonly completedComponentIds = computed(() =>
+    this.learningProgress.completedIds(this.userEmail(), this.courseContent()?._id ?? ''));
+  protected readonly courseProgress = computed(() => {
+    const content = this.courseContent();
+    return content ? this.learningProgress.forContent(this.userEmail(), content) : null;
+  });
   protected readonly quizSelectedAnswerIds = signal<Record<string, string>>({});
   protected readonly submittedQuizQuestionIds = signal<string[]>([]);
   protected readonly quizSubmitted = signal(false);
+  protected readonly quizScoring = signal(false);
+  protected readonly quizError = signal('');
+  private readonly quizResult = signal<QuizAssessmentResult | null>(null);
+  private quizAttemptGeneration = 0;
   protected readonly activeQuizQuestionIndex = signal(0);
   protected readonly allSectionsExpanded = computed(() => {
     const content = this.courseContent();
@@ -117,7 +140,7 @@ export class CourseViewPage {
   protected readonly activeQuizQuestionNumber = computed(() =>
     this.activeQuizQuestions().length > 0 ? this.activeQuizQuestionIndex() + 1 : 0,
   );
-  protected readonly activeQuizProgressPercent = computed(() => {
+  protected readonly activeQuizPositionPercent = computed(() => {
     const totalQuestions = this.activeQuizQuestions().length;
 
     return totalQuestions > 0
@@ -127,22 +150,12 @@ export class CourseViewPage {
   protected readonly isLastActiveQuizQuestion = computed(
     () => this.activeQuizQuestionIndex() >= this.activeQuizQuestions().length - 1,
   );
-  protected readonly activeQuizScore = computed(() =>
-    this.activeQuizQuestions().reduce((score, question) => {
-      const selectedAnswer = question.answers.find(
-        (answer) => answer.id === this.quizSelectedAnswerIds()[question.id],
-      );
-
-      return selectedAnswer?.isCorrect ? score + question.points : score;
-    }, 0),
-  );
+  protected readonly activeQuizScore = computed(() => this.quizResult()?.score ?? 0);
   protected readonly activeQuizTotalPoints = computed(() =>
     this.activeQuizQuestions().reduce((total, question) => total + question.points, 0),
   );
   protected readonly activeQuizPassed = computed(() => {
-    const component = this.activeComponent();
-
-    return component?.type === 'quiz' && this.activeQuizScore() >= component.quiz.passPoints;
+    return this.quizResult()?.passed ?? false;
   });
   protected readonly canSubmitActiveQuiz = computed(
     () => this.activeQuizQuestions().length > 0,
@@ -155,7 +168,7 @@ export class CourseViewPage {
   readonly userEmail = input.required<string>();
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();
-  readonly canCreateCourses = input.required<boolean>();
+  readonly canEditCourse = input.required<boolean>();
   readonly course = input.required<CourseListItem | null>();
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();
@@ -206,15 +219,13 @@ export class CourseViewPage {
         this.expandedSectionIds.set([]);
         this.expandedComponentIds.set([]);
         this.activeComponentId.set('');
-        this.completedComponentIds.set([]);
         this.resetQuizAttempt();
         return;
       }
 
       this.expandedSectionIds.set([content.sections[0].id]);
       this.expandedComponentIds.set([]);
-      this.completedComponentIds.set(this.loadCompletedComponentIds(content._id));
-      this.activeComponentId.set(this.initialActiveComponentId(content));
+      this.activeComponentId.set(untracked(() => this.initialActiveComponentId(content)));
       this.resetQuizAttempt();
     });
 
@@ -276,6 +287,8 @@ export class CourseViewPage {
     this.catalogBestsellerDraft.set(course.isBestseller);
     this.catalogRatingDraft.set(String(course.rating));
     this.catalogRatingCountDraft.set(String(course.ratingCount));
+    this.catalogCategoryDraft.set(course.category ?? 'Uncategorized');
+    this.catalogLanguagesDraft.set([...(course.languages ?? [])]);
     this.pendingCatalogSave.set(false);
     this.isCatalogModalOpen.set(true);
   }
@@ -319,6 +332,25 @@ export class CourseViewPage {
     this.catalogRatingCountDraft.set(value);
   }
 
+  protected updateCatalogCategory(value: string): void {
+    const parsed = COURSE_CATEGORIES.find((category) => category === value);
+    this.catalogCategoryDraft.set(parsed ?? 'Uncategorized');
+  }
+
+  protected isCatalogLanguageSelected(language: CourseLanguage): boolean {
+    return this.catalogLanguagesDraft().includes(language);
+  }
+
+  protected toggleCatalogLanguage(language: CourseLanguage, selected: boolean): void {
+    this.catalogLanguagesDraft.update((languages) => {
+      if (selected) {
+        return languages.includes(language) ? languages : [...languages, language];
+      }
+
+      return languages.filter((entry) => entry !== language);
+    });
+  }
+
   protected applyCatalogDraft(courseId: string): void {
     const parsedRating = Number.parseFloat(this.catalogRatingDraft().trim());
     const parsedRatingCount = Number.parseInt(this.catalogRatingCountDraft().trim(), 10);
@@ -334,11 +366,14 @@ export class CourseViewPage {
             ? Math.min(5, Math.round(parsedRating * 10) / 10)
             : 0,
         ratingCount: Number.isFinite(parsedRatingCount) && parsedRatingCount >= 0 ? parsedRatingCount : 0,
+        category: this.catalogCategoryDraft(),
+        languages: [...this.catalogLanguagesDraft()],
       },
     });
   }
 
   protected openEnrollDialog(): void {
+    if (this.course()?.status !== 'published') return;
     this.pendingEnrollment.set(false);
     this.isEnrollDialogOpen.set(true);
   }
@@ -356,7 +391,7 @@ export class CourseViewPage {
   }
 
   protected confirmEnrollment(courseId: string): void {
-    if (this.enrollmentSubmitting()) {
+    if (this.enrollmentSubmitting() || this.course()?.status !== 'published') {
       return;
     }
 
@@ -367,7 +402,9 @@ export class CourseViewPage {
   protected controlValue(event: Event): string {
     const control = event.target;
 
-    return control instanceof HTMLInputElement ? control.value : '';
+    return control instanceof HTMLInputElement || control instanceof HTMLSelectElement
+      ? control.value
+      : '';
   }
 
   protected controlChecked(event: Event): boolean {
@@ -467,7 +504,7 @@ export class CourseViewPage {
   }
 
   protected selectQuizAnswer(questionId: string, answerId: string): void {
-    if (this.quizSubmitted() || this.isQuizQuestionSubmitted(questionId)) {
+    if (this.quizSubmitted() || this.quizScoring() || this.isQuizQuestionSubmitted(questionId)) {
       return;
     }
 
@@ -493,18 +530,19 @@ export class CourseViewPage {
     return question ? this.isQuizQuestionSubmitted(question.id) : false;
   }
 
-  protected submitActiveQuizAnswer(): void {
+  protected async submitActiveQuizAnswer(): Promise<void> {
     const question = this.activeQuizQuestion();
 
-    if (!question || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) {
+    if (!question || this.quizScoring() || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) {
       return;
     }
 
-    this.submittedQuizQuestionIds.update((submitted) => [...submitted, question.id]);
+    const submitted = [...this.submittedQuizQuestionIds(), question.id];
+    if (await this.scoreActiveQuiz(submitted)) this.submittedQuizQuestionIds.set(submitted);
   }
 
   protected goToNextQuizQuestion(): void {
-    if (this.quizSubmitted()) {
+    if (this.quizSubmitted() || this.quizScoring()) {
       return;
     }
 
@@ -517,18 +555,19 @@ export class CourseViewPage {
   }
 
   protected skipActiveQuizQuestion(): void {
-    if (this.quizSubmitted()) {
+    if (this.quizSubmitted() || this.quizScoring()) {
       return;
     }
 
     this.goToNextQuizQuestion();
   }
 
-  protected finishActiveQuiz(): void {
-    if (!this.canSubmitActiveQuiz()) {
+  protected async finishActiveQuiz(): Promise<void> {
+    if (!this.canSubmitActiveQuiz() || this.quizScoring()) {
       return;
     }
 
+    if (!await this.scoreActiveQuiz(this.submittedQuizQuestionIds())) return;
     this.quizSubmitted.set(true);
 
     if (this.activeQuizPassed()) {
@@ -545,17 +584,42 @@ export class CourseViewPage {
       return '';
     }
 
-    const answer = question.answers.find((item) => item.id === answerId);
-
-    return answer?.isCorrect ? 'correct' : 'incorrect';
+    const feedback = this.quizResult()?.feedback.find((item) => item.questionId === question.id && item.answerId === answerId);
+    return feedback ? (feedback.correct ? 'correct' : 'incorrect') : '';
   }
 
   protected shouldShowAnswerDescription(question: QuizQuestion, answerId: string): boolean {
     return (
       this.isQuizQuestionSubmitted(question.id) &&
       this.selectedQuizAnswerId(question.id) === answerId &&
-      !!question.answers.find((answer) => answer.id === answerId)?.description
+      !!this.answerDescription(question.id, answerId)
     );
+  }
+
+  protected answerDescription(questionId: string, answerId: string): string {
+    return this.quizResult()?.feedback.find((item) => item.questionId === questionId && item.answerId === answerId)?.description ?? '';
+  }
+
+  private async scoreActiveQuiz(questionIds: string[]): Promise<boolean> {
+    const content = this.courseContent();
+    const component = this.activeComponent();
+    const section = content?.sections.find((item) => item.components.some((item) => item.id === component?.id));
+    if (!content || component?.type !== 'quiz' || !section) return false;
+    const generation = this.quizAttemptGeneration;
+    this.quizScoring.set(true);
+    this.quizError.set('');
+    try {
+      const answers = questionIds.map((questionId) => ({ questionId, answerId: this.selectedQuizAnswerId(questionId) }));
+      const result = await this.courseService.gradeQuiz(content._id, section.id, component.id, answers, this.authToken());
+      if (generation !== this.quizAttemptGeneration) return false;
+      this.quizResult.set(result);
+      return true;
+    } catch (error) {
+      if (generation === this.quizAttemptGeneration) this.quizError.set(error instanceof Error ? error.message : 'Unable to score this quiz. Please try again.');
+      return false;
+    } finally {
+      if (generation === this.quizAttemptGeneration) this.quizScoring.set(false);
+    }
   }
 
   protected contentSummary(): string {
@@ -657,7 +721,7 @@ export class CourseViewPage {
         component.quiz.questions.some(
           (question) =>
             !!question.question.trim() ||
-            question.answers.some((answer) => answer.text.trim() || answer.description.trim()),
+          question.answers.some((answer) => answer.text.trim() || answer.description?.trim()),
         )
       );
     }
@@ -781,13 +845,7 @@ export class CourseViewPage {
   }
 
   protected thumbnailUrl(course: CourseListItem): string {
-    if (!course.thumbnailAssetId) {
-      return '';
-    }
-
-    return this.apiClient.resourceUrl(
-      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
-    );
+    return this.courseService.thumbnailUrl(course);
   }
 
   private formatDurationShort(durationMinutes: number): string {
@@ -839,9 +897,8 @@ export class CourseViewPage {
       return;
     }
 
-    const completed = [...this.completedComponentIds(), componentId];
-    this.completedComponentIds.set(completed);
-    this.storeCompletedComponentIds(completed);
+    const content = this.courseContent();
+    if (content) this.learningProgress.complete(this.userEmail(), content, componentId);
   }
 
   private goToNextComponent(): void {
@@ -858,6 +915,10 @@ export class CourseViewPage {
   }
 
   private resetQuizAttempt(): void {
+    this.quizAttemptGeneration++;
+    this.quizResult.set(null);
+    this.quizScoring.set(false);
+    this.quizError.set('');
     this.quizSelectedAnswerIds.set({});
     this.submittedQuizQuestionIds.set([]);
     this.quizSubmitted.set(false);
@@ -870,37 +931,9 @@ export class CourseViewPage {
 
   private initialActiveComponentId(content: CourseContentDocument): string {
     const components = content.sections.flatMap((section) => section.components);
-    const completed = this.loadCompletedComponentIds(content._id);
+    const completed = this.learningProgress.completedIds(this.userEmail(), content._id);
 
     return components.find((component) => !completed.includes(component.id))?.id ?? components[0]?.id ?? '';
   }
 
-  private completedStorageKey(): string {
-    const userId = this.userEmail() || 'anonymous';
-    const courseId = this.courseContent()?._id ?? this.course()?.id ?? 'course';
-
-    return `qi-education:course-progress:${userId}:${courseId}`;
-  }
-
-  private loadCompletedComponentIds(courseId: string): string[] {
-    try {
-      const userId = this.userEmail() || 'anonymous';
-      const rawValue = window.localStorage.getItem(`qi-education:course-progress:${userId}:${courseId}`);
-      const parsedValue: unknown = rawValue ? JSON.parse(rawValue) : [];
-
-      return Array.isArray(parsedValue)
-        ? parsedValue.filter((value): value is string => typeof value === 'string')
-        : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private storeCompletedComponentIds(completed: string[]): void {
-    try {
-      window.localStorage.setItem(this.completedStorageKey(), JSON.stringify(completed));
-    } catch {
-      return;
-    }
-  }
 }

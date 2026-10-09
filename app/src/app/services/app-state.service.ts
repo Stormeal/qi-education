@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
@@ -7,6 +7,8 @@ import {
   CourseComponent,
   CourseComponentType,
   CourseCatalogMetadataDraft,
+  CourseReviewAction,
+  CourseReviewState,
   CourseSection,
   CourseContentDocument,
   CourseCreateDraft,
@@ -17,15 +19,18 @@ import {
   FeedbackTriageUpdate,
   LoginState,
   MuxVideoStatus,
-  NextAction,
   QuizComponentContent,
   SignupRequest,
+  UserProfileDetails,
   UserRole,
 } from '../app.models';
 import { AuthService } from './auth.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
+import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { SessionService } from './session.service';
+import { LearningProgressService } from './learning-progress.service';
+import { canEditCourse } from '../utils/course-permissions';
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
@@ -33,9 +38,12 @@ export class AppStateService {
   private readonly authService = inject(AuthService);
   private readonly courseService = inject(CourseService);
   private readonly feedbackService = inject(FeedbackService);
+  private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
+  private readonly learningProgress = inject(LearningProgressService);
 
-  readonly appVersion = '0.1.35';
+
+  readonly appVersion = '0.1.56';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -52,6 +60,24 @@ export class AppStateService {
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
   readonly currentPath = signal(this.normalizePath(this.router.url));
   readonly hasStartedCareerPath = signal(false);
+
+  readonly profileBio = signal('');
+  readonly profileJobTitle = signal('');
+  readonly profileCompany = signal('');
+  readonly profileLearningGoals = signal('');
+  readonly profileAvatarColor = signal(DEFAULT_AVATAR_COLOR);
+  readonly profileSaving = signal(false);
+  readonly profileSaved = signal(false);
+  private readonly profileSnapshot = signal('');
+  private profileSavedTimeout: ReturnType<typeof setTimeout> | null = null;
+  readonly avatarColorOptions: readonly string[] = [
+    '#2f4f43',
+    '#171b4a',
+    '#80592f',
+    '#b45309',
+    '#0f766e',
+    '#9f1239',
+  ];
 
   readonly isFeedbackOpen = signal(false);
   readonly feedbackPage = signal('');
@@ -72,6 +98,12 @@ export class AppStateService {
   readonly courseSaveNotice = signal('');
   readonly courseContentLoading = signal(false);
   readonly courseContentSaving = signal(false);
+  readonly courseReview = signal<CourseReviewState | null>(null);
+  readonly courseReviewPending = signal(false);
+  readonly courseReviewError = signal('');
+  readonly courseReviewReason = signal('');
+  readonly courseEditable = computed(() => this.courseFormMode() === 'create' ||
+    (!this.courseContentLoading() && (this.courseReview()?.editable ?? (this.editingCourse()?.status ?? this.courseDraft().status) === 'draft')));
   readonly courseContentError = signal('');
   readonly muxUploadComponentId = signal('');
   readonly muxUploadError = signal('');
@@ -93,6 +125,7 @@ export class AppStateService {
   readonly courseContent = signal<CourseContentDocument | null>(null);
   readonly initialCourseDraftSnapshot = signal('');
   readonly initialCourseContentSnapshot = signal('');
+  readonly courseEditorBufferDirty = signal(false);
   readonly courseDraft = signal<CourseCreateDraft>({
     title: '',
     description: '',
@@ -133,94 +166,38 @@ export class AppStateService {
   ];
 
   readonly student = computed(() => ({
-    name: this.loginState()?.user.displayName || 'Alex',
+    name: this.loginState()?.user.displayName || 'Learner',
     currentRole: this.currentRoleLabel(this.loginState()?.user.role),
-    targetRole: this.targetRoleLabel(this.loginState()?.user.role),
-    pathProgress: this.pathProgressValue(this.loginState()?.user.role),
+    targetRole: this.profileLearningGoals(),
+    pathProgress: null,
   }));
 
-  readonly courses = signal<CourseSummary[]>([
-    {
-      title: 'ISTQB Foundation 4.0',
-      teacher: 'Testhuset',
-      level: 'Foundation',
-      status: 'In progress',
-      progress: 62,
-      nextLesson: 'Test techniques overview',
-      goals: ['Core testing', 'Certification'],
-    },
-    {
-      title: 'Agile Tester Extension',
-      teacher: 'Testhuset',
-      level: 'Specialist',
-      status: 'Recommended',
-      progress: 0,
-      nextLesson: 'Agile testing mindset',
-      goals: ['Agile projects', 'Team quality'],
-    },
-    {
-      title: 'Test Management Basics',
-      teacher: 'Testhuset',
-      level: 'Management',
-      status: 'Recommended',
-      progress: 0,
-      nextLesson: 'Planning risk-based test work',
-      goals: ['Risk', 'Leadership'],
-    },
-  ]);
-
-  readonly nextActions = computed<NextAction[]>(() => {
-    const role = this.loginState()?.user.role;
-    const roleSpecificAction: NextAction =
-      role === 'admin'
-        ? {
-            title: 'Review platform administration',
-            chapter: 'Admin',
-            meta: 'Check user roles, access levels, and learning operations.',
-            state: 'next',
-            progress: 0,
-          }
-        : role === 'teacher'
-          ? {
-              title: 'Create a new course draft',
-              chapter: 'Teacher tools',
-              meta: 'Build the next Testhuset learning module.',
-              state: 'next',
-              progress: 0,
-            }
-          : {
-              title: 'Pick a specialization track',
-              chapter: 'Next step',
-              meta: 'Agile, technical, or management.',
-              state: 'next',
-              progress: 0,
-            };
-
-    return [
-      {
-        title: 'Test analysis and design',
-        chapter: 'Chapter 3',
-        meta: 'Finished before the current chapter.',
-        state: 'complete',
-        progress: 100,
-      },
-      {
-        title: 'Test design techniques',
-        chapter: 'Chapter 4',
-        meta: 'Current chapter in ISTQB Foundation 4.0.',
-        state: 'current',
-        progress: 62,
-      },
-      roleSpecificAction,
-    ];
-  });
-
-  readonly activeCourse = computed(
-    () => this.courses().find((course) => course.status === 'In progress') ?? this.courses()[0],
-  );
+  readonly courses = computed<CourseSummary[]>(() => this.enrolledCourses().map(course => {
+    const progress = this.learningProgress.summary(this.loginState()?.user.email ?? '', course.id);
+    return { id: course.id, title: course.title, teacher: course.teacher, level: course.level,
+      status: progress.state !== 'ready' ? 'Unavailable' : progress.total > 0 && progress.completed === progress.total ? 'Completed' : 'In progress',
+      progress: progress.percent, progressState: progress.state, completed: progress.completed, total: progress.total,
+      nextLesson: progress.nextLesson, goals: course.careerGoals };
+  }));
+  readonly activeCourse = computed(() => this.courses().find(course => course.status !== 'Completed') ?? this.courses()[0] ?? null);
 
   readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
   readonly isLibraryPage = computed(() => this.currentPath() === '/library');
+  readonly isProfilePage = computed(() => this.currentPath() === '/profile');
+  readonly profileDirty = computed(() => this.serializeProfile() !== this.profileSnapshot());
+  readonly profileMemberSince = computed(() => {
+    const createdAt = this.loginState()?.user.createdAt;
+
+    if (!createdAt) {
+      return '';
+    }
+
+    const date = new Date(createdAt);
+
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  });
   readonly isLearningWorkspacePage = computed(
     () => this.libraryCourseViewIdFromPath(this.currentPath()) !== null,
   );
@@ -270,7 +247,29 @@ export class AppStateService {
   readonly courseEditingId = computed(() => this.courseEditIdFromPath(this.currentPath()));
   readonly editingCourse = computed(() => {
     const editId = this.courseEditingId();
+    const reviewed = this.courseReview()?.course;
+    if (reviewed?.id === editId) return reviewed;
     return editId ? this.availableCourses().find((course) => course.id === editId) ?? null : null;
+  });
+  readonly selectedCourseCanEdit = computed(() => this.canEditCourse(this.selectedCourse()));
+  readonly canUseCourseEditor = computed(() =>
+    this.courseFormMode() === 'edit'
+      ? this.canEditCourse(this.editingCourse())
+      : this.loginState()?.user.status === 'active' && !!this.loginState()?.permissions.canCreateCourses,
+  );
+  readonly hasUnsavedCourseChanges = computed(() => {
+    if (!this.isCourseEditorPage() || !this.canUseCourseEditor()) return false;
+    const content = this.courseContent();
+    return !!this.courseReviewReason().trim() || this.courseEditorBufferDirty() ||
+      this.serializeCourseDraft(this.courseDraft()) !== this.initialCourseDraftSnapshot() ||
+      (!!content && this.serializeCourseContent(content) !== this.initialCourseContentSnapshot());
+  });
+  readonly courseEditorAccessMessage = computed(() => {
+    if (this.coursesError()) return this.coursesError();
+    if (this.courseFormMode() === 'edit' && !this.editingCourse()) {
+      return this.coursesLoading() ? 'Loading course…' : 'Course not found.';
+    }
+    return 'You do not have permission to edit this course.';
   });
   readonly courseContentId = computed(() => {
     const editId = this.courseEditingId();
@@ -282,23 +281,66 @@ export class AppStateService {
     return this.selectedCourseId();
   });
   readonly loadedCourseContentId = signal<string | null>(null);
+  private loadedCourseContentView = '';
+  private pendingCourseContentKey = '';
+  private courseContentGeneration = 0;
+  private courseOperationGeneration = 0;
+  private initializedCourseEditorPath = '';
+
+  private courseResponseIsCurrent(): () => boolean {
+    const session = this.loginState();
+    const path = this.currentPath();
+    const generation = this.courseOperationGeneration;
+    return () => session === this.loginState() && path === this.currentPath() &&
+      generation === this.courseOperationGeneration;
+  }
+
+  private resetCourseOperations(): void {
+    this.learningProgress.cancelLoads();
+    this.courseOperationGeneration++;
+    this.courseReview.set(null);
+    this.courseReviewPending.set(false);
+    this.courseReviewError.set('');
+    this.courseReviewReason.set('');
+    this.courseContentGeneration++;
+    this.courseCatalogLoadPromise = null;
+    this.pendingCourseContentKey = '';
+    this.loadedCourseContentView = '';
+    this.courseSubmitting.set(false);
+    this.courseContentSaving.set(false);
+    this.courseContentLoading.set(false);
+    this.coursesLoading.set(false);
+    this.coursePriceSaving.set(false);
+    this.courseCatalogSaving.set(false);
+    this.courseThumbnailUploading.set(false);
+    this.courseEnrollmentSubmitting.set(false);
+    this.attachmentUploadComponentId.set('');
+    this.attachmentUploadProgress.set({});
+    this.attachmentUploadStage.set({});
+    this.muxUploadComponentId.set('');
+    this.muxUploadProgress.set({});
+  }
   private courseSaveNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private coursePriceNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private courseCatalogNoticeTimeout: ReturnType<typeof setTimeout> | null = null;
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
-  readonly recommendedCourses = computed(() =>
-    this.courses().filter((course) => course.status === 'Recommended'),
-  );
-
   constructor() {
+    this.sessionService.setSessionContextProvider(() => this.loginState());
     this.sessionService.onUnauthorized(() => {
-      this.loginState.set(null);
-      this.password.set('');
+      this.logout(true);
       this.loginError.set('Please log in again.');
       this.isFeedbackOpen.set(false);
       void this.navigateHome();
     });
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!this.hasUnsavedCourseChanges()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    inject(DestroyRef).onDestroy(() => window.removeEventListener('beforeunload', warnBeforeUnload));
 
     this.router.events
       .pipe(
@@ -306,7 +348,12 @@ export class AppStateService {
         takeUntilDestroyed(),
       )
       .subscribe((event) => {
-        this.currentPath.set(this.normalizePath(event.urlAfterRedirects));
+        const path = this.normalizePath(event.urlAfterRedirects);
+        if (path !== this.currentPath()) {
+          this.resetCourseOperations();
+          this.courseEditorBufferDirty.set(false);
+        }
+        this.currentPath.set(path);
         this.syncCourseEditorDraftFromPath();
         void this.loadCoursesWhenNeeded();
         void this.loadCourseContentWhenNeeded();
@@ -378,6 +425,7 @@ export class AppStateService {
       }
 
       const login = result.login;
+      this.learningProgress.reset();
       this.loginState.set({
         token: login.token,
         user: login.user,
@@ -386,6 +434,7 @@ export class AppStateService {
       this.sessionService.storeSession(login, this.rememberMe());
       this.password.set('');
       this.feedbackSubmitted.set(false);
+      this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       this.loadAdminFeedbackWhenNeeded();
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -438,6 +487,7 @@ export class AppStateService {
       }
 
       const login = result.login;
+      this.learningProgress.reset();
       this.loginState.set({
         token: login.token,
         user: login.user,
@@ -449,6 +499,7 @@ export class AppStateService {
       this.signupDisplayName.set('');
       this.authMode.set('login');
       this.feedbackSubmitted.set(false);
+      this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       window.scrollTo({ top: 0, behavior: 'auto' });
     } catch {
@@ -460,8 +511,21 @@ export class AppStateService {
     }
   }
 
-  logout(): void {
+  confirmDiscardCourseChanges(): boolean {
+    return !this.hasUnsavedCourseChanges() || window.confirm('Discard unsaved course changes?');
+  }
+
+  logout(forced = false): void {
+    if (!forced && !this.confirmDiscardCourseChanges()) return;
+    this.learningProgress.reset();
+    this.initializedCourseEditorPath = '';
+    this.courseEditorBufferDirty.set(false);
+    this.resetCourseOperations();
     this.loginState.set(null);
+    this.courseService.clearPrivateThumbnails();
+    this.availableCourses.set([]);
+    this.courseCatalogLoadPromise = null;
+    this.coursesLoading.set(false);
     this.password.set('');
     this.loginError.set('');
     this.isFeedbackOpen.set(false);
@@ -485,6 +549,13 @@ export class AppStateService {
     this.courseDraft.set(this.createCourseDraft());
     this.adminFeedback.set([]);
     this.adminFeedbackError.set('');
+    this.profileBio.set('');
+    this.profileJobTitle.set('');
+    this.profileCompany.set('');
+    this.profileLearningGoals.set('');
+    this.profileAvatarColor.set(DEFAULT_AVATAR_COLOR);
+    this.profileSnapshot.set('');
+    this.profileSaved.set(false);
     this.sessionService.clearStoredSession();
     this.clearCourseCatalogNotice();
     this.clearCoursePriceNotice();
@@ -502,26 +573,37 @@ export class AppStateService {
 
     try {
       const restored = await this.authService.restoreSession(restoredSession.token);
+      if (this.loginState() !== restoredSession) return;
 
       if (!restored) {
-        this.loginState.set(null);
-        this.sessionService.clearStoredSession();
+        this.logout(true);
         return;
       }
 
+      this.resetCourseOperations();
+      this.initializedCourseEditorPath = '';
+      this.learningProgress.reset();
+      this.availableCourses.set([]);
+      this.courseContent.set(null);
+      this.loadedCourseContentId.set(null);
+      this.courseService.clearPrivateThumbnails();
       this.loginState.set({
         token: restoredSession.token,
         user: restored.user,
         permissions: restored.permissions,
       });
+      this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       this.loadAdminFeedbackWhenNeeded();
     } catch {
-      this.loginState.set(null);
-      this.sessionService.clearStoredSession();
+      if (this.loginState() === restoredSession) this.logout(true);
     } finally {
       this.isSessionRestoring.set(false);
     }
+  }
+
+  retryLearningProgress(): void {
+    void this.loadCoursesWhenNeeded();
   }
 
   navigateHome(): void {
@@ -558,6 +640,98 @@ export class AppStateService {
 
   startCareerPath(): void {
     this.hasStartedCareerPath.set(true);
+  }
+
+  navigateProfile(): void {
+    this.updatePath('/profile');
+  }
+
+  updateProfileBio(value: string): void {
+    this.profileBio.set(value);
+    this.profileSaved.set(false);
+  }
+
+  updateProfileJobTitle(value: string): void {
+    this.profileJobTitle.set(value);
+    this.profileSaved.set(false);
+  }
+
+  updateProfileCompany(value: string): void {
+    this.profileCompany.set(value);
+    this.profileSaved.set(false);
+  }
+
+  updateProfileLearningGoals(value: string): void {
+    this.profileLearningGoals.set(value);
+    this.profileSaved.set(false);
+  }
+
+  selectProfileAvatarColor(value: string): void {
+    this.profileAvatarColor.set(value);
+    this.profileSaved.set(false);
+  }
+
+  saveProfile(): void {
+    const userId = this.loginState()?.user.id;
+
+    if (!userId || this.profileSaving() || !this.profileDirty()) {
+      return;
+    }
+
+    this.profileSaving.set(true);
+
+    const details: UserProfileDetails = {
+      bio: this.profileBio().trim(),
+      jobTitle: this.profileJobTitle().trim(),
+      company: this.profileCompany().trim(),
+      learningGoals: this.profileLearningGoals().trim(),
+      avatarColor: this.profileAvatarColor(),
+    };
+
+    try {
+      this.profileService.saveProfile(userId, details);
+      this.profileBio.set(details.bio);
+      this.profileJobTitle.set(details.jobTitle);
+      this.profileCompany.set(details.company);
+      this.profileLearningGoals.set(details.learningGoals);
+      this.profileSnapshot.set(this.serializeProfile());
+      this.showProfileSaved();
+    } finally {
+      this.profileSaving.set(false);
+    }
+  }
+
+  private loadProfileForCurrentUser(): void {
+    const profile = this.profileService.loadProfile(this.loginState()?.user.id ?? '');
+    this.profileBio.set(profile.bio);
+    this.profileJobTitle.set(profile.jobTitle);
+    this.profileCompany.set(profile.company);
+    this.profileLearningGoals.set(profile.learningGoals);
+    this.profileAvatarColor.set(profile.avatarColor);
+    this.profileSnapshot.set(this.serializeProfile());
+    this.profileSaved.set(false);
+  }
+
+  private serializeProfile(): string {
+    return JSON.stringify({
+      bio: this.profileBio().trim(),
+      jobTitle: this.profileJobTitle().trim(),
+      company: this.profileCompany().trim(),
+      learningGoals: this.profileLearningGoals().trim(),
+      avatarColor: this.profileAvatarColor(),
+    });
+  }
+
+  private showProfileSaved(): void {
+    if (this.profileSavedTimeout) {
+      clearTimeout(this.profileSavedTimeout);
+    }
+
+    this.profileSaved.set(true);
+    this.profileSavedTimeout = setTimeout(() => {
+      this.profileSaved.set(false);
+      this.profileSavedTimeout = null;
+    }, 4000);
   }
 
   openFeedback(): void {
@@ -619,23 +793,6 @@ export class AppStateService {
   }
 
   openCreateCourse(): void {
-    this.clearCourseSaveNotice();
-    this.courseDraft.set(this.createCourseDraft());
-    this.courseCreateError.set('');
-    this.courseContentError.set('');
-    this.muxUploadComponentId.set('');
-    this.muxUploadError.set('');
-    this.muxUploadProgress.set({});
-    this.attachmentUploadComponentId.set('');
-    this.attachmentUploadProgress.set({});
-    this.attachmentUploadStage.set({});
-    this.attachmentUploadError.set('');
-    this.courseThumbnailUploading.set(false);
-    this.courseThumbnailError.set('');
-    this.courseContent.set(null);
-    this.loadedCourseContentId.set(null);
-    this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
-    this.initialCourseContentSnapshot.set('');
     void this.updatePath('/courses/new');
   }
 
@@ -659,40 +816,15 @@ export class AppStateService {
   openEditCourse(courseId: string): void {
     const course = this.availableCourses().find((item) => item.id === courseId);
 
-    if (!course) {
+    if (!this.canEditCourse(course) || !course) {
       return;
     }
 
-    this.clearCourseSaveNotice();
-    this.courseDraft.set({
-      title: course.title,
-      description: course.description,
-      requirements: this.formatBulletList(course.requirements),
-      whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
-      audience: course.audience,
-      level: course.level,
-      partOfCareer: course.partOfCareer,
-      teacher: course.teacher,
-      careerGoals: course.careerGoals.join(', '),
-      status: course.status,
-      priceDkk: course.priceDkk,
-    });
-    this.courseCreateError.set('');
-    this.courseContentError.set('');
-    this.muxUploadComponentId.set('');
-    this.muxUploadError.set('');
-    this.muxUploadProgress.set({});
-    this.attachmentUploadComponentId.set('');
-    this.attachmentUploadProgress.set({});
-    this.attachmentUploadStage.set({});
-    this.attachmentUploadError.set('');
-    this.courseThumbnailUploading.set(false);
-    this.courseThumbnailError.set('');
-    this.courseContent.set(null);
-    this.loadedCourseContentId.set(null);
-    this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraft()));
-    this.initialCourseContentSnapshot.set('');
     void this.updatePath(`/courses/${encodeURIComponent(course.id)}/edit`);
+  }
+
+  canEditCourse(course: CourseListItem | null | undefined): boolean {
+    return canEditCourse(course, this.loginState()?.user);
   }
 
   updateCourseTitle(value: string): void {
@@ -935,6 +1067,7 @@ export class AppStateService {
     file: File,
     markerId: string,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.attachmentUploadComponentId()) {
       return;
     }
@@ -984,6 +1117,8 @@ export class AppStateService {
         this.courseContentSaving.set(true);
         const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
 
+        if (!isCurrent()) return;
+
         if (!saveResult.ok) {
           this.courseContentError.set(saveResult.message);
           this.attachmentUploadError.set(saveResult.message);
@@ -1004,12 +1139,15 @@ export class AppStateService {
         token,
         markerId,
         (progress) => {
+          if (!isCurrent()) return;
           this.attachmentUploadProgress.update((currentProgress) => ({
             ...currentProgress,
             [component.id]: Math.min(progress, 95),
           }));
         },
       );
+
+      if (!isCurrent()) return;
 
       if (!result.ok) {
         this.attachmentUploadError.set(result.message);
@@ -1021,8 +1159,10 @@ export class AppStateService {
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
     } catch {
+      if (!isCurrent()) return;
       this.attachmentUploadError.set('Unable to upload the attachment. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.courseContentSaving.set(false);
       this.attachmentUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
       this.attachmentUploadStage.update(({ [component.id]: _removedStage, ...stage }) => stage);
@@ -1035,6 +1175,7 @@ export class AppStateService {
     componentIndex: number,
     assetId: string,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const content = this.courseContent();
     const section = content?.sections[sectionIndex];
     const component = section?.components[componentIndex];
@@ -1077,6 +1218,8 @@ export class AppStateService {
         token,
       );
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         if (result.message !== 'Upload cancelled.') {
           this.attachmentUploadError.set(result.message);
@@ -1086,6 +1229,8 @@ export class AppStateService {
 
       const updatedContent = this.removeAttachmentMarker(this.normalizeCourseContent(result.content), assetId);
       const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token);
+
+      if (!isCurrent()) return;
 
       if (!saveResult.ok) {
         this.attachmentUploadError.set(saveResult.message);
@@ -1097,8 +1242,10 @@ export class AppStateService {
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
     } catch {
+      if (!isCurrent()) return;
       this.attachmentUploadError.set('Unable to remove the attachment. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.attachmentUploadComponentId.set('');
     }
   }
@@ -1109,6 +1256,7 @@ export class AppStateService {
     assetId: string,
     fileName: string,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
     const courseId = this.courseEditingId();
     const content = this.courseContent();
@@ -1125,6 +1273,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.downloadComponentAttachment(courseId, assetId, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.attachmentUploadError.set(result.message);
         return;
@@ -1137,6 +1287,7 @@ export class AppStateService {
       link.click();
       URL.revokeObjectURL(url);
     } catch {
+      if (!isCurrent()) return;
       this.attachmentUploadError.set('Unable to download the attachment. Please try again.');
     }
   }
@@ -1146,6 +1297,7 @@ export class AppStateService {
     componentIndex: number,
     file: File,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.muxUploadComponentId()) {
       return;
     }
@@ -1185,6 +1337,8 @@ export class AppStateService {
         this.courseContentSaving.set(true);
         const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
 
+        if (!isCurrent()) return;
+
         if (!saveResult.ok) {
           this.courseContentError.set(saveResult.message);
           this.muxUploadError.set(saveResult.message);
@@ -1204,6 +1358,8 @@ export class AppStateService {
         token,
       );
 
+      if (!isCurrent()) return;
+
       if (!uploadResult.ok) {
         this.muxUploadError.set(uploadResult.message);
         return;
@@ -1216,12 +1372,14 @@ export class AppStateService {
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'uploading');
 
       await this.uploadFileToMux(uploadResult.uploadUrl, file, (progress) => {
+          if (!isCurrent()) return;
         this.muxUploadProgress.update((currentProgress) => ({
           ...currentProgress,
           [component.id]: progress,
         }));
       });
 
+      if (!isCurrent()) return;
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'processing');
       this.muxUploadProgress.update((currentProgress) => ({
         ...currentProgress,
@@ -1229,17 +1387,20 @@ export class AppStateService {
       }));
       void this.refreshMuxVideoUntilReady(courseId, component.id);
     } catch {
+      if (!isCurrent()) return;
       const message = 'Unable to upload the video to Mux. Please try again.';
 
       this.muxUploadError.set(message);
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'errored', message);
     } finally {
+      if (!isCurrent()) return;
       this.courseContentSaving.set(false);
       this.muxUploadComponentId.set('');
     }
   }
 
   async removeCourseComponentMuxVideo(sectionIndex: number, componentIndex: number): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.muxUploadComponentId()) {
       return;
     }
@@ -1270,6 +1431,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.removeMuxVideo(courseId, section.id, component.id, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.muxUploadError.set(result.message);
         return;
@@ -1281,8 +1444,10 @@ export class AppStateService {
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
       this.muxUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
     } catch {
+      if (!isCurrent()) return;
       this.muxUploadError.set('Unable to remove the video. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.muxUploadComponentId.set('');
     }
   }
@@ -1528,6 +1693,7 @@ export class AppStateService {
   }
 
   async submitCourse(): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     if (this.courseSubmitting()) {
       return;
     }
@@ -1544,6 +1710,13 @@ export class AppStateService {
       this.courseCreateError.set('Teacher or admin access is required.');
       return;
     }
+
+    if (this.courseFormMode() === 'edit' && !this.canEditCourse(this.editingCourse())) {
+      this.courseCreateError.set('You do not have permission to edit this course.');
+      return;
+    }
+
+    if (!this.courseEditable()) { this.courseCreateError.set('Start a draft revision or wait for the admin review outcome before editing.'); return; }
 
     const draft = this.courseDraft();
     const mode = this.courseFormMode();
@@ -1574,6 +1747,19 @@ export class AppStateService {
 
     try {
       let savedCourse: CourseListItem | null = null;
+      // Persist the edited outline before asking readiness validation to inspect it.
+      // Failed review keeps the course unpublished and the edited draft available.
+      let contentSavedBeforeMetadata = false;
+      if (mode === 'edit' && metadataChanged && contentChanged && courseId && content &&
+        ['ready-for-review', 'published'].includes(draft.status)) {
+        const result = await this.courseService.saveCourseContent(courseId, content.sections, token);
+        if (!isCurrent()) return;
+        if (!result.ok) { this.courseContentError.set(result.message); return; }
+        this.courseContent.set(result.content);
+        this.initialCourseContentSnapshot.set(this.serializeCourseContent(result.content));
+        contentSavedBeforeMetadata = true;
+      }
+
 
       if (metadataChanged) {
         const result = await this.courseService.saveCourse(
@@ -1584,30 +1770,38 @@ export class AppStateService {
           courseId,
         );
 
+        if (!isCurrent()) return;
+
         if (!result.ok) {
           this.courseCreateError.set(result.message);
           return;
         }
 
         savedCourse = result.course;
+        if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: result.course } : null);
+        const savedDraft = this.courseDraftFromCourse(savedCourse);
+        this.courseDraft.set(savedDraft);
+        this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(savedDraft));
 
-        if (mode === 'edit') {
+        if (mode === 'edit' && !this.courseReview()?.liveStatus) {
           this.availableCourses.update((courses) =>
             courses.map((course) => (course.id === result.course.id ? result.course : course)),
           );
-        } else {
+        } else if (mode === 'create') {
           this.availableCourses.update((courses) => [result.course, ...courses]);
         }
       }
 
       const contentCourseId = savedCourse?.id ?? courseId;
 
-      if (contentChanged && contentCourseId && content) {
+      if (contentChanged && !contentSavedBeforeMetadata && contentCourseId && content) {
         const contentResult = await this.courseService.saveCourseContent(
           contentCourseId,
           content.sections,
           token,
         );
+
+        if (!isCurrent()) return;
 
         if (!contentResult.ok) {
           this.courseContentError.set(contentResult.message);
@@ -1619,21 +1813,7 @@ export class AppStateService {
         this.initialCourseContentSnapshot.set(this.serializeCourseContent(contentResult.content));
       }
 
-      const finalDraft = savedCourse
-        ? {
-            title: savedCourse.title,
-            description: savedCourse.description,
-            requirements: this.formatBulletList(savedCourse.requirements),
-            whatYoullLearn: this.formatBulletList(savedCourse.whatYoullLearn),
-            audience: savedCourse.audience,
-            level: savedCourse.level,
-            partOfCareer: savedCourse.partOfCareer,
-            teacher: savedCourse.teacher,
-            careerGoals: savedCourse.careerGoals.join(', '),
-            status: savedCourse.status,
-            priceDkk: savedCourse.priceDkk,
-          }
-        : draft;
+      const finalDraft = savedCourse ? this.courseDraftFromCourse(savedCourse) : draft;
       this.courseDraft.set(finalDraft);
       this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(finalDraft));
       this.showCourseSaveNotice(this.courseSaveMessage(mode, metadataChanged, contentChanged));
@@ -1642,6 +1822,7 @@ export class AppStateService {
         void this.updatePath(`/courses/${encodeURIComponent(savedCourse.id)}/edit`);
       }
     } catch {
+      if (!isCurrent()) return;
       if (contentChanged && !metadataChanged) {
         this.courseContentError.set(
           'Unable to reach the API while saving content. Please try again.',
@@ -1654,9 +1835,51 @@ export class AppStateService {
         );
       }
     } finally {
+      if (!isCurrent()) return;
       this.courseSubmitting.set(false);
       this.courseContentSaving.set(false);
     }
+  }
+
+  async reviewCourse(action: CourseReviewAction): Promise<void> {
+    if (this.courseReviewPending() || this.courseSubmitting() || this.courseContentLoading() || this.courseThumbnailUploading() || this.attachmentUploadComponentId() || this.muxUploadComponentId()) return;
+    const courseId = this.courseEditingId(), token = this.loginState()?.token;
+    if (!courseId || !token || !this.canUseCourseEditor()) return;
+    if (this.courseEditorBufferDirty()) { this.courseReviewError.set('Finish the open lesson editor before submitting for review.'); return; }
+    if (action === 'return' && !this.courseReviewReason().trim()) { this.courseReviewError.set('Enter a reason before returning this revision.'); return; }
+    const isCurrent = this.courseResponseIsCurrent();
+    this.courseReviewPending.set(true); this.courseReviewError.set('');
+    try {
+      if (action === 'submit') {
+        await this.submitCourse();
+        if (!isCurrent() || this.courseCreateError() || this.courseContentError()) return;
+      }
+      let review = this.courseReview();
+      // Draft saves change the review version. Decisions use the reviewed snapshot;
+      // only submission refreshes its version after saving the owner's latest work.
+      if (action === 'submit') review = (await this.courseService.loadCourseContent(courseId, token, 'author')).review ?? null;
+      if (!isCurrent()) return;
+      if (!review) throw new Error('Reload the course before using review actions.');
+      const response = await this.courseService.performReviewAction(courseId, action, review, this.courseReviewReason(), token);
+      if (!isCurrent()) return;
+      const loaded = this.normalizeCourseContent(response);
+      this.courseReview.set(response.review!);
+      // Archive changes live availability only. Keep the private working buffers
+      // and their dirty snapshots, including edits not yet saved by this admin.
+      if (action !== 'archive') {
+        this.courseContent.set(loaded);
+        const draft = this.courseDraftFromCourse(response.review!.course);
+        this.courseDraft.set(draft); this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft));
+        this.initialCourseContentSnapshot.set(this.serializeCourseContent(loaded));
+        this.courseReviewReason.set('');
+      }
+      this.showCourseSaveNotice(action === 'publish' ? 'Revision published.' : action === 'return' ? 'Revision returned for changes.' : action === 'submit' ? 'Submitted for admin review.' : action === 'archive' ? 'Course archived; existing learners retain access.' : 'Private revision started; learners keep the published version.');
+      try {
+        const courses = await this.courseService.listCourses(token);
+        if (isCurrent()) this.availableCourses.set(courses);
+      } catch { if (isCurrent()) this.coursesError.set('Review action saved. Reload the catalog to see its current state.'); }
+    } catch (error) { if (isCurrent()) this.courseReviewError.set(error instanceof Error ? error.message : 'Unable to save the review action. Please retry.'); }
+    finally { if (isCurrent()) this.courseReviewPending.set(false); }
   }
 
   reloadAdminFeedback(): void {
@@ -1664,6 +1887,7 @@ export class AppStateService {
   }
 
   async saveCoursePrice(courseId: string, priceDkk: number | null): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
 
     if (!token || !this.loginState()?.permissions.hasAdminAccess) {
@@ -1675,6 +1899,8 @@ export class AppStateService {
 
     try {
       const result = await this.courseService.saveCoursePrice(courseId, priceDkk, token);
+
+      if (!isCurrent()) return;
 
       if (!result.ok) {
         this.showCoursePriceNotice(result.message, true);
@@ -1691,8 +1917,10 @@ export class AppStateService {
       );
       this.showCoursePriceNotice('Course price saved.', false);
     } catch {
+      if (!isCurrent()) return;
       this.showCoursePriceNotice('Unable to save course price. Please try again.', true);
     } finally {
+      if (!isCurrent()) return;
       this.coursePriceSaving.set(false);
     }
   }
@@ -1701,6 +1929,7 @@ export class AppStateService {
     courseId: string,
     metadata: CourseCatalogMetadataDraft,
   ): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
 
     if (!token || !this.loginState()?.permissions.hasAdminAccess) {
@@ -1713,6 +1942,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.saveCourseCatalogMetadata(courseId, metadata, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.showCourseCatalogNotice(result.message, true);
         return;
@@ -1723,13 +1954,16 @@ export class AppStateService {
       );
       this.showCourseCatalogNotice('Catalog settings saved.', false);
     } catch {
+      if (!isCurrent()) return;
       this.showCourseCatalogNotice('Unable to save catalog settings. Please try again.', true);
     } finally {
+      if (!isCurrent()) return;
       this.courseCatalogSaving.set(false);
     }
   }
 
   async uploadCourseThumbnail(file: File): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
     const courseId = this.courseEditingId();
 
@@ -1737,8 +1971,8 @@ export class AppStateService {
       return;
     }
 
-    if (!this.loginState()?.permissions.canCreateCourses) {
-      this.courseThumbnailError.set('Teacher or admin access is required.');
+    if (!this.canEditCourse(this.editingCourse())) {
+      this.courseThumbnailError.set('You do not have permission to edit this course.');
       return;
     }
 
@@ -1758,23 +1992,32 @@ export class AppStateService {
     try {
       const result = await this.courseService.uploadCourseThumbnail(courseId, file, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.courseThumbnailError.set(result.message);
         return;
       }
 
+      await this.courseService.preloadCourseThumbnails([result.course], token);
+      if (!isCurrent()) return;
+      if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: { ...review.course, thumbnailAssetId: result.course.thumbnailAssetId } } : null);
+      if (!this.courseReview()?.liveStatus)
       this.availableCourses.update((courses) =>
         courses.map((course) => (course.id === result.course.id ? result.course : course)),
       );
       this.showCourseSaveNotice('Course thumbnail updated.');
     } catch {
+      if (!isCurrent()) return;
       this.courseThumbnailError.set('Unable to upload the course thumbnail. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.courseThumbnailUploading.set(false);
     }
   }
 
   async enrollInCourse(courseId: string): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const token = this.loginState()?.token;
 
     if (!token || this.courseEnrollmentSubmitting()) {
@@ -1793,6 +2036,8 @@ export class AppStateService {
     try {
       const result = await this.courseService.enrollCourse(courseId, token);
 
+      if (!isCurrent()) return;
+
       if (!result.ok) {
         this.courseEnrollmentError.set(result.message);
         return;
@@ -1803,11 +2048,15 @@ export class AppStateService {
         user: result.login.user,
         permissions: result.login.permissions,
       };
+      this.resetCourseOperations();
       this.loginState.set(loginState);
       this.sessionService.updateStoredLoginState(loginState);
+      void this.loadCourseContentWhenNeeded();
     } catch {
+      if (!isCurrent()) return;
       this.courseEnrollmentError.set('Unable to reach the API. Please try again.');
     } finally {
+      if (!isCurrent()) return;
       this.courseEnrollmentSubmitting.set(false);
     }
   }
@@ -1851,41 +2100,49 @@ export class AppStateService {
   }
 
   private async loadCoursesWhenNeeded(): Promise<void> {
+    const isCurrent = this.courseResponseIsCurrent();
     const currentPath = this.currentPath();
 
     if (
       !this.loginState() ||
-      (!currentPath.startsWith('/courses') && currentPath !== '/library') ||
+      (currentPath !== '/' && currentPath !== '/admin' && !currentPath.startsWith('/courses') && !currentPath.startsWith('/library')) ||
       this.coursesLoading()
     ) {
       return;
     }
 
+    const token = this.loginState()!.token;
     this.coursesLoading.set(true);
     this.coursesError.set('');
 
     try {
       const courses = await this.loadCourseCatalog();
+      if (!isCurrent()) return;
       this.availableCourses.set(courses);
-      this.courseService.warmCourseThumbnailCache(courses);
+      void this.learningProgress.loadCourses(this.enrolledCourses(), token);
       this.syncCourseEditorDraftFromPath(true);
+      await this.courseService.preloadCourseThumbnails(courses, token);
+      if (!isCurrent()) return;
       await this.loadCourseContentWhenNeeded();
     } catch (error) {
+      if (!isCurrent()) return;
       this.coursesError.set(
         error instanceof Error ? error.message : 'Unable to reach the API. Please try again.',
       );
     } finally {
+      if (!isCurrent()) return;
       this.coursesLoading.set(false);
     }
   }
 
   private async loadCourseCatalog(): Promise<CourseListItem[]> {
     if (!this.courseCatalogLoadPromise) {
-      this.courseCatalogLoadPromise = this.courseService
-        .listCourses()
+      const pending = this.courseService
+        .listCourses(this.loginState()!.token)
         .finally(() => {
-          this.courseCatalogLoadPromise = null;
+          if (this.courseCatalogLoadPromise === pending) this.courseCatalogLoadPromise = null;
         });
+      this.courseCatalogLoadPromise = pending;
     }
 
     return this.courseCatalogLoadPromise;
@@ -1893,45 +2150,62 @@ export class AppStateService {
 
   private async loadCourseContentWhenNeeded(): Promise<void> {
     const courseId = this.courseContentId();
-
-    if (!this.loginState() || !courseId) {
+    const token = this.loginState()?.token;
+    if (!token || !courseId || (this.isCourseEditorPage() && !this.canUseCourseEditor())) {
+      this.courseContentGeneration++;
+      this.pendingCourseContentKey = '';
+      this.loadedCourseContentView = '';
       this.courseContent.set(null);
       this.courseContentError.set('');
       this.loadedCourseContentId.set(null);
       this.courseContentLoading.set(false);
       return;
     }
-
-    if (this.courseContentLoading() || this.loadedCourseContentId() === courseId) {
-      return;
-    }
-
+    const view = this.isCourseEditorPage() ? 'author' : this.currentPath().startsWith('/library/') ? 'learner' : 'outline';
+    const key = `${courseId}:${view}:${token}`;
+    if (this.pendingCourseContentKey === key || (this.loadedCourseContentId() === courseId && this.loadedCourseContentView === key)) return;
+    const isCurrent = this.courseResponseIsCurrent();
+    const generation = ++this.courseContentGeneration;
+    this.pendingCourseContentKey = key;
+    this.courseContent.set(null);
     this.courseContentLoading.set(true);
     this.courseContentError.set('');
-
     try {
-      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId));
+      const response = view === 'outline' ? await this.courseService.loadCourseOutline(courseId, token) :
+        await this.courseService.loadCourseContent(courseId, token, view);
+      if (generation !== this.courseContentGeneration || !isCurrent()) return;
+      if (view === 'author' && response.review) {
+        this.courseReview.set(response.review);
+        if (this.serializeCourseDraft(this.courseDraft()) === this.initialCourseDraftSnapshot()) {
+          const draft = this.courseDraftFromCourse(response.review.course);
+          this.courseDraft.set(draft); this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft));
+        }
+        void this.courseService.preloadCourseThumbnails([response.review.course], token);
+      }
+      const loadedContent = this.normalizeCourseContent(response);
       this.courseContent.set(loadedContent);
       this.loadedCourseContentId.set(courseId);
+      this.loadedCourseContentView = key;
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
     } catch (error) {
-      if (error instanceof Error && error.message === 'Course content not found') {
+      if (generation !== this.courseContentGeneration || !isCurrent()) return;
+      if (view === 'author' && error instanceof Error && error.message === 'Course content not found') {
         const emptyContent = this.createEmptyCourseContent(courseId);
-
         this.courseContent.set(emptyContent);
         this.loadedCourseContentId.set(courseId);
+        this.loadedCourseContentView = key;
         this.initialCourseContentSnapshot.set(this.serializeCourseContent(emptyContent));
-        this.courseContentError.set('');
       } else {
         this.courseContent.set(null);
-        this.courseContentError.set(
-          error instanceof Error
-            ? error.message
-            : 'Unable to load course content. Please try again.',
-        );
+        this.loadedCourseContentId.set(null);
+        this.loadedCourseContentView = '';
+        this.courseContentError.set(error instanceof Error ? error.message : 'Unable to load course content. Please try again.');
       }
     } finally {
-      this.courseContentLoading.set(false);
+      if (generation === this.courseContentGeneration && isCurrent()) {
+        this.pendingCourseContentKey = '';
+        this.courseContentLoading.set(false);
+      }
     }
   }
 
@@ -2013,8 +2287,15 @@ export class AppStateService {
 
   private syncCourseEditorDraftFromPath(allowMissingCourseError = false): void {
     const path = this.currentPath();
+    if (!this.isCourseEditorPage()) {
+      this.initializedCourseEditorPath = '';
+      return;
+    }
+    if (this.initializedCourseEditorPath === path) return;
 
     if (path === '/courses/new') {
+      this.initializedCourseEditorPath = path;
+      this.clearCourseSaveNotice();
       this.courseCreateError.set('');
       this.courseContentError.set('');
       this.courseContent.set(null);
@@ -2047,36 +2328,15 @@ export class AppStateService {
       return;
     }
 
+    if (!this.canEditCourse(course)) return;
+    this.initializedCourseEditorPath = path;
+    this.clearCourseSaveNotice();
+
     this.courseCreateError.set('');
     this.courseThumbnailError.set('');
-    this.courseDraft.set({
-      title: course.title,
-      description: course.description,
-      requirements: this.formatBulletList(course.requirements),
-      whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
-      audience: course.audience,
-      level: course.level,
-      partOfCareer: course.partOfCareer,
-      teacher: course.teacher,
-      careerGoals: course.careerGoals.join(', '),
-      status: course.status,
-      priceDkk: course.priceDkk,
-    });
-    this.initialCourseDraftSnapshot.set(
-      this.serializeCourseDraft({
-        title: course.title,
-        description: course.description,
-        requirements: this.formatBulletList(course.requirements),
-        whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
-        audience: course.audience,
-        level: course.level,
-        partOfCareer: course.partOfCareer,
-        teacher: course.teacher,
-        careerGoals: course.careerGoals.join(', '),
-        status: course.status,
-        priceDkk: course.priceDkk,
-      }),
-    );
+    const draft = this.courseDraftFromCourse(course);
+    this.courseDraft.set(draft);
+    this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft));
     if (this.loadedCourseContentId() !== course.id) {
       this.courseContent.set(null);
     }
@@ -2309,14 +2569,21 @@ export class AppStateService {
     componentId: string,
     remainingAttempts = 12,
   ): Promise<void> {
-    if (remainingAttempts <= 0 || this.loadedCourseContentId() !== courseId) {
+    const token = this.loginState()?.token;
+    const generation = this.courseContentGeneration;
+    const isCurrent = this.courseResponseIsCurrent();
+    const stillEditing = () => isCurrent() && this.loginState()?.token === token && generation === this.courseContentGeneration &&
+      this.isCourseEditorPage() && this.courseContentId() === courseId && this.canUseCourseEditor() && this.loadedCourseContentId() === courseId;
+    if (!token || remainingAttempts <= 0 || !stillEditing()) {
       return;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 5000));
+    if (!stillEditing()) return;
 
     try {
-      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId));
+      const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId, token, 'author'));
+      if (!stillEditing()) return;
       this.courseContent.set(loadedContent);
       this.loadedCourseContentId.set(courseId);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
@@ -2450,6 +2717,22 @@ export class AppStateService {
     );
   }
 
+  private courseDraftFromCourse(course: CourseListItem): CourseCreateDraft {
+    return {
+      title: course.title,
+      description: course.description,
+      requirements: this.formatBulletList(course.requirements),
+      whatYoullLearn: this.formatBulletList(course.whatYoullLearn),
+      audience: course.audience,
+      level: course.level,
+      partOfCareer: course.partOfCareer,
+      teacher: course.teacher,
+      careerGoals: course.careerGoals.join(', '),
+      status: course.status,
+      priceDkk: course.priceDkk,
+    };
+  }
+
   private serializeCourseDraft(draft: CourseCreateDraft): string {
     return JSON.stringify(draft);
   }
@@ -2487,6 +2770,7 @@ export class AppStateService {
   }
 
   private normalizeCourseContent(content: CourseContentDocument): CourseContentDocument {
+    if (content.view === 'outline' || content.view === 'learner') return content;
     return {
       ...content,
       sections: content.sections.map((section) => ({
@@ -2652,6 +2936,10 @@ export class AppStateService {
       return 'Admin';
     }
 
+    if (this.isProfilePage()) {
+      return 'Profile';
+    }
+
     if (this.isLibraryPage() || this.isLearningWorkspacePage()) {
       return 'My Learning';
     }
@@ -2664,7 +2952,12 @@ export class AppStateService {
   private normalizePath(path: string): string {
     const withoutQuery = path.split('?')[0]?.split('#')[0] || '/';
 
-    if (withoutQuery === '/courses' || withoutQuery === '/courses/new' || withoutQuery === '/library') {
+    if (
+      withoutQuery === '/courses' ||
+      withoutQuery === '/courses/new' ||
+      withoutQuery === '/library' ||
+      withoutQuery === '/profile'
+    ) {
       return withoutQuery;
     }
 
@@ -2694,25 +2987,4 @@ export class AppStateService {
     }
   }
 
-  private targetRoleLabel(role: UserRole | undefined): string {
-    switch (role) {
-      case 'admin':
-        return 'Full platform oversight';
-      case 'teacher':
-        return 'Course creator';
-      default:
-        return 'ISTQB Advanced Test Analyst';
-    }
-  }
-
-  private pathProgressValue(role: UserRole | undefined): number {
-    switch (role) {
-      case 'admin':
-        return 92;
-      case 'teacher':
-        return 74;
-      default:
-        return 38;
-    }
-  }
 }

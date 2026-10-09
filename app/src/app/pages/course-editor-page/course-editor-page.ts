@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { CourseReviewPanel } from '../../ui/course-review-panel/course-review-panel';
+import { CourseReviewAction, CourseReviewState } from '../../app.models';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
   CourseComponentType,
   CourseContentDocument,
@@ -7,6 +9,7 @@ import {
   FeedbackOption,
   StudentSummary,
 } from '../../app.models';
+import { CourseService } from '../../services/course.service';
 import { ApiClientService } from '../../services/api-client.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
@@ -15,13 +18,14 @@ import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-editor-page',
-  imports: [AppButton, CourseBuilder, FeedbackDialog, PageHeader],
+  imports: [CourseReviewPanel, AppButton, CourseBuilder, FeedbackDialog, PageHeader],
   templateUrl: './course-editor-page.html',
   styleUrls: ['../../app.scss', './course-editor-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CourseEditorPage {
   private readonly apiClient = inject(ApiClientService);
+  private readonly courseService = inject(CourseService);
 
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
@@ -32,6 +36,10 @@ export class CourseEditorPage {
   readonly courseFormMode = input.required<'create' | 'edit'>();
   readonly editingCourse = input.required<CourseListItem | null>();
   readonly courseDraft = input.required<CourseCreateDraft>();
+  readonly courseReview = input<CourseReviewState | null>(null);
+  readonly courseEditable = input(true);
+  readonly reviewPending = input(false); readonly reviewError = input(''); readonly reviewReason = input('');
+  readonly reviewAction = output<CourseReviewAction>(); readonly reviewReasonChanged = output<string>();
   readonly courseSubmitting = input.required<boolean>();
   readonly courseCreateError = input.required<string>();
   readonly courseSaveNotice = input.required<string>();
@@ -78,6 +86,7 @@ export class CourseEditorPage {
   readonly courseSubmitted = output<void>();
   readonly courseThumbnailSelected = output<File>();
   readonly courseSectionAdded = output<void>();
+  readonly courseEditorBufferChanged = output<boolean>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
   readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();
@@ -231,13 +240,7 @@ export class CourseEditorPage {
   }
 
   protected thumbnailUrl(course: CourseListItem | null): string {
-    if (!course?.thumbnailAssetId) {
-      return '';
-    }
-
-    return this.apiClient.resourceUrl(
-      `/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`,
-    );
+    return this.courseService.thumbnailUrl(course);
   }
 
   private formatDuration(durationMinutes: number): string {

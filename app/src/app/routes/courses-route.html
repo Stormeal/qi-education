@@ -6,6 +6,7 @@
     [currentYear]="state.currentYear"
     [student]="state.student()"
     [userEmail]="state.loginState()?.user?.email ?? ''"
+    [userId]="state.loginState()?.user?.id ?? ''"
     [userRoleLabel]="state.student().currentRole"
     [canAccessAdmin]="state.loginState()?.permissions?.hasAdminAccess ?? false"
     [courses]="state.availableCourses()"
