@@ -39,6 +39,10 @@ jobs:
       - name: Test Angular app
         run: npm run app:test -- --run
 
+      # categoryCorrection.test.ts loads scripts that import api/dist.
+      - name: Build API
+        run: npm run api:build
+
       - name: Test API
         run: npm run api:test
 
