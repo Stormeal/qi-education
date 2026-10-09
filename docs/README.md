@@ -13,7 +13,7 @@ complete them. This documentation establishes a spec-driven delivery process.
 | [Development workflow](development_workflow.md) | Fresh checkout through spec, implementation, and delivery |
 | [Architecture](architecture.md) | Current boundaries, storage, routes, and limitations |
 | [Local development](local_development.md) | Setup, isolated audit mode, checks, and deployment context |
-| [Course review specification](specs/US-T002-course-review.md) | Selected US-T002 contract and pending product decisions |
+| [Course review specification](specs/US-T002-course-review.md) | US-T002 revisions, review history, behavior contract and delivery evidence |
 | [Ownership specification](specs/US-T001-course-ownership.md) | First teacher story's detailed contract |
 | [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | Access and quiz readiness contracts |
 | [Unsaved navigation specification](specs/DEF-006-unsaved-navigation.md) | Warning and discard behavior; recovery excluded |

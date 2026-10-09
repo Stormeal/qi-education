@@ -4,21 +4,19 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**US-T002 - Submit, review, and publish courses safely.** Selected 2026-10-09.
-Owner: Codex. Branch: `main`. Discovery base:
-`528e5571567da9559e7a728b1373b21a1ddeb710`. State: Blocked on product decisions.
-Spec: [course review](specs/US-T002-course-review.md), AC01-06.
-Completed: clean main checked and refreshed; full story, linked lifecycle/quiz
-contracts and frontend/API/storage flows inspected. Existing admin restrictions,
-private drafts and quiz checks are delivered; review feedback and an enforced
-transition workflow remain unfinished.
-Pending answers: full decision history versus latest outcome; admin return to draft
-before published teacher edits versus a separate live revision. Both were asked
-on 2026-10-09. No implementation choice is assumed.
-Next: record the user's answers, finalize the publishing checklist and transition/
-persistence contracts in the spec, then start test-first implementation at the
-actual current base. Preserve existing fixed defects. Preparation is documentation
-only; no shared mutation, application push, deployment, or completed-story claim.
+**US-T002 - Submit, review, and publish courses safely.** In progress, 2026-10-09.
+Owner: Codex. Branch: `main`. Implementation base:
+`96e9ff90bd8ad04363ac2d5bedf5ac105d0ec7e7`.
+Spec: [course review](specs/US-T002-course-review.md), AC01-08.
+Confirmed: full decision history; separate reviewed revisions preserve uninterrupted
+learner access. Current live content remains until admin approval. Submitted revisions
+are frozen; returns require reasons. Work uses isolated repositories only.
+Completed: atomic workflow storage, API authoring/review enforcement, typed editor
+actions/history/read-only preview, isolated browser and final review corrections.
+Verification: [US-T002](verification/2026-10-09/US-T002.md), AC01-08 pass.
+Next: record local delivery commit; mark story/spec/queue Done together.
+Preserve unrelated concurrent code-audit documentation unstaged.
+No new push/deployment or shared mutation is authorized for this implementation.
 
 ## Latest audit
 

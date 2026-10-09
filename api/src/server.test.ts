@@ -489,7 +489,7 @@ describe('QI-Education API', () => {
       body: JSON.stringify({
         ...validCourse(),
         title: 'API Automation Foundations, Revised',
-        status: 'ready-for-review',
+        status: 'draft',
       }),
     });
     const updated = await updateResponse.json();
@@ -499,7 +499,7 @@ describe('QI-Education API', () => {
       id: created.id,
       title: 'API Automation Foundations, Revised',
       partOfCareer: 'Automation Engineering',
-      status: 'ready-for-review',
+      status: 'draft',
       priceDkk: null,
     });
   });
@@ -952,11 +952,15 @@ describe('QI-Education API', () => {
 
     expect(blockedResponse.status).toBe(403);
 
-    const publishResponse = await fetch(`${baseUrl}/courses/${created.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json',
-        authorization: `Bearer ${await loginAs('admin@qi-education.local')}` },
-      body: JSON.stringify({ ...validCourse(), status: 'published' }),
-    });
+    const adminToken = await loginAs('admin@qi-education.local');
+    const reviewHeaders = { 'Content-Type': 'application/json', authorization: `Bearer ${adminToken}` };
+    const currentReview = (await (await fetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: reviewHeaders })).json()).review;
+    const submission = await fetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
+      body: JSON.stringify({ action: 'submit', revisionId: currentReview.revisionId, expectedVersion: currentReview.version }) });
+    expect(submission.status).toBe(200);
+    const submitted = (await submission.json()).review;
+    const publishResponse = await fetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
+      body: JSON.stringify({ action: 'publish', revisionId: submitted.revisionId, expectedVersion: submitted.version }) });
     expect(publishResponse.status).toBe(200);
 
     await fetch(`${baseUrl}/users/me/courses/${created.id}`, {

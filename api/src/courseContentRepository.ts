@@ -1,3 +1,4 @@
+import type { CourseReviewWorkflow } from './courseReview.js';
 import type { Collection } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import type { CourseContentSection } from './courseContent.js';
@@ -9,6 +10,7 @@ export type CourseContentDocument = {
   sections: CourseContentSection[];
   createdAt: string;
   updatedAt: string;
+  review?: CourseReviewWorkflow;
 };
 
 export type CourseContentStorageType = 'memory' | 'mongodb';
@@ -20,6 +22,7 @@ type CourseContentCollection = Pick<
 
 export interface CourseContentRepository {
   readonly storageType: CourseContentStorageType;
+  saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument>;
   checkHealth(): Promise<void>;
   getCourseContent(courseId: string): Promise<CourseContentDocument | null>;
   createEmptyCourseContent(courseId: string, createdAt?: string): Promise<CourseContentDocument>;
@@ -103,6 +106,22 @@ export class MongoCourseContentRepository implements CourseContentRepository {
     };
   }
 
+  async saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument> {
+    const collection = await this.collection();
+    const existing = await collection.findOne({ _id: courseId });
+    const updated = { _id: courseId, createdAt: new Date().toISOString(), ...existing, review, sections: review.live?.sections ?? review.working?.sections ?? [], updatedAt: new Date().toISOString() };
+    await protectCourseWrite(async () => {
+      if (!existing) {
+        const result = await collection.insertOne(updated);
+        if (!result.acknowledged) throw new Error('Course review creation was not confirmed.');
+      } else {
+        const result = await collection.updateOne({ _id: courseId }, { $set: { review, sections: updated.sections, updatedAt: updated.updatedAt } });
+        if (!result.acknowledged || result.matchedCount !== 1) throw new Error('Course review write was not confirmed.');
+      }
+    });
+    return updated;
+  }
+
   async deleteCourseContent(courseId: string): Promise<void> {
     const collection = await this.collection();
     await protectCourseWrite(() => collection.deleteOne({ _id: courseId }));
@@ -160,6 +179,13 @@ export class InMemoryCourseContentRepository implements CourseContentRepository 
 
     this.documents.set(courseId, document);
     return document;
+  }
+
+  async saveCourseReview(courseId: string, review: CourseReviewWorkflow): Promise<CourseContentDocument> {
+    const existing = this.documents.get(courseId);
+    const updated = { _id: courseId, createdAt: new Date().toISOString(), ...existing, review: structuredClone(review), sections: structuredClone(review.live?.sections ?? review.working?.sections ?? []), updatedAt: new Date().toISOString() };
+    this.documents.set(courseId, updated);
+    return updated;
   }
 
   async deleteCourseContent(courseId: string): Promise<void> {

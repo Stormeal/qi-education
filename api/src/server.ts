@@ -1,3 +1,4 @@
+import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { randomUUID } from 'node:crypto';
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
@@ -80,16 +81,21 @@ type AuthenticatedRequest = Request & {
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
-  const courses = dependencies.courseRepository ?? createCourseRepository();
-  const courseAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
+  const storedCourses = dependencies.courseRepository ?? createCourseRepository();
+  const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
-  const courseContent = dependencies.courseContentRepository ?? createCourseContentRepository();
+  const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
+  const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
   const withCourseLock = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     async (request: Request, response: Response, next: NextFunction) => {
+      const author = request.query.view === 'author' || request.path.endsWith('/review') ||
+        (['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && /^\/(?:api\/)?courses\//.test(request.path) &&
+          !/\/(price|catalog-metadata|quiz-attempts)$/.test(request.path));
+      return reviewScope.run({ author, user: (request as Partial<AuthenticatedRequest>).user }, async () => {
       try {
         if (courses.storageType === 'google-sheets' && courseContent.storageType !== 'mongodb') {
           response.status(503).json({ message: 'Shared course operations require MongoDB content and coordination storage.' });
@@ -97,11 +103,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
         }
         const courseId = String(request.params.id);
         // Missing IDs must not create durable lock records; the handler supplies its 404.
-        if (!(await courses.listCourses()).some((course) => course.id === courseId)) {
+        if (!(await storedCourses.listCourses()).some((course) => course.id === courseId)) {
           await handler(request, response, next);
           return;
         }
         await courseContent.withCourseMutationLock(courseId, async () => {
+          if (author && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && !request.path.endsWith('/review')) {
+            await review.assertEditable(courseId);
+          }
           let failure: unknown;
           await handler(request, response, (error?: unknown) => {
             if (error) failure = error;
@@ -112,6 +121,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (response.headersSent) { console.error('Unable to finish course operation coordination.', error); return; }
         next(error);
       }
+      });
     };
 
   app.use(cors({ origin: getCorsOrigins() }));
@@ -131,7 +141,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
             ? request.body
             : '';
         const event = await muxWebhook.unwrapWebhook(body, request.headers);
-        await handleMuxWebhookEvent(event, courseContent);
+        await handleMuxWebhookEvent(event, storedContent, review);
 
         response.json({ received: true });
       } catch (error) {
@@ -147,7 +157,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.put(
     ['/courses/:id/thumbnail', '/api/courses/:id/thumbnail'],
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withRequestBodyErrors(express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb' })),
     withCourseLock(async (request, response, next) => {
       try {
@@ -218,7 +228,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       '/api/courses/:id/content/components/:componentId/attachments',
     ],
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withRequestBodyErrors(express.raw({ type: () => true, limit: '25mb' })),
     withCourseLock(async (request, response, next) => {
       try {
@@ -535,8 +545,16 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.get('/courses/:id/thumbnail', optionalAuthentication(auth), withCourseLock(async (request, response, next) => {
     try {
       const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
-      const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
+      let matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
 
+      const selectedId = typeof request.query.v === 'string' ? request.query.v : '';
+      if (matchingCourse && selectedId && selectedId !== matchingCourse.thumbnailAssetId) {
+        if (canAuthorCourse(matchingCourse, (request as Partial<AuthenticatedRequest>).user)) {
+          const state = await review.state(courseId);
+          if (state.course.thumbnailAssetId === selectedId) matchingCourse = state.course;
+          else matchingCourse = undefined;
+        } else matchingCourse = undefined;
+      }
       if (!matchingCourse || !matchingCourse.thumbnailAssetId || !canSeeCourse(matchingCourse, (request as Partial<AuthenticatedRequest>).user)) {
         response.status(404).json({ message: 'Course thumbnail not found' });
         return;
@@ -565,6 +583,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       try {
         const input = createCourseSchema.parse(request.body);
 
+        if (input.status !== 'draft') { response.status(403).json({ message: 'Create a draft, then submit it for admin review.' }); return; }
         if ((request as AuthenticatedRequest).user.role !== 'admin' && (
           input.status !== 'draft' || input.priceDkk !== null || input.isPremium || input.isBestseller ||
           input.rating !== 0 || input.ratingCount !== 0 || input.category !== 'Uncategorized' || input.languages.length > 0
@@ -638,12 +657,16 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
       const content = await courseContent.getCourseContent(courseId);
 
+      if (!content && authorView) {
+        response.json({ _id: courseId, sections: [], createdAt: course.createdAt, updatedAt: course.createdAt,
+          view: 'author', review: await review.state(courseId) }); return;
+      }
       if (!content) {
         response.status(404).json({ message: 'Course content not found' });
         return;
       }
 
-      response.json(authorView ? { ...content, view: 'author' } : learnerCourseContent(content));
+      response.json(authorView ? { ...content, view: 'author', review: await review.state(courseId) } : learnerCourseContent(content));
     } catch (error) {
       console.error(`Unable to load stored content for course ${courseId}.`, error);
       response.status(503).json({ message: 'Course content storage is unavailable.' });
@@ -672,9 +695,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        const content = await courseContent.getCourseContent(courseId);
+        const content = await reviewScope.run({ author: canAuthorCourse(matchingCourse, user), user }, () => courseContent.getCourseContent(courseId));
 
-        if (!content || !courseContentHasAttachment(content.sections, assetId)) {
+        const liveContent = canAuthorCourse(matchingCourse, user) && (!content || !courseContentHasAttachment(content.sections, assetId))
+          ? await reviewScope.run({ author: false }, () => courseContent.getCourseContent(courseId)) : null;
+        if ((!content || !courseContentHasAttachment(content.sections, assetId)) && (!liveContent || !courseContentHasAttachment(liveContent.sections, assetId))) {
           response.status(404).json({ message: 'Attachment not found' });
           return;
         }
@@ -699,7 +724,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.patch(
     '/courses/:id/content',
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withCourseLock(async (request, response, next) => {
       try {
         const input = updateCourseContentSchema.parse(request.body);
@@ -760,7 +785,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.post(
     '/courses/:id/content/components/:componentId/mux-upload',
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withCourseLock(async (request, response, next) => {
       try {
         if (!muxVideo) {
@@ -848,7 +873,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.delete(
     '/courses/:id/content/components/:componentId/mux-video',
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withCourseLock(async (request, response, next) => {
       try {
         const input = createMuxUploadSchema.parse(request.body);
@@ -907,10 +932,21 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }),
   );
 
+  app.post('/courses/:id/review', authenticateRequest(auth), requireCourseAuthor(storedCourses),
+    withCourseLock(async (request, response, next) => {
+      try {
+        const courseId = String(request.params.id);
+        await review.act(courseId, reviewActionSchema.parse(request.body), (request as AuthenticatedRequest).user);
+        const content = await courseContent.getCourseContent(courseId);
+        response.json({ ...content, view: 'author', review: await review.state(courseId) });
+      } catch (error) { next(error); }
+    }),
+  );
+
   app.patch(
     '/courses/:id',
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withCourseLock(async (request, response, next) => {
       try {
         const input = updateCourseSchema.parse(request.body);
@@ -981,7 +1017,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.delete(
     '/courses/:id/content/components/:componentId/attachments/:assetId',
     authenticateRequest(auth),
-    requireCourseAuthor(courses),
+    requireCourseAuthor(storedCourses),
     withCourseLock(async (request, response, next) => {
       try {
         const input = createMuxUploadSchema.parse(request.body);
@@ -1143,6 +1179,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
+    if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {
       response.status(409).json({ message: error.message });
       return;
@@ -1225,6 +1262,7 @@ function hasUnsafeAttachmentStorage(
 async function handleMuxWebhookEvent(
   event: MuxWebhookEvent,
   courseContent: CourseContentRepository,
+  review: CourseReviewService,
 ) {
   switch (event.type) {
     case 'video.upload.asset_created': {
@@ -1235,7 +1273,7 @@ async function handleMuxWebhookEvent(
         return;
       }
 
-      await updateMuxVideoComponent(courseContent, passthrough, {
+      await updateMuxVideoComponent(courseContent, review, passthrough, {
         uploadId: data.id,
         assetId: data.asset_id,
         status: 'processing',
@@ -1252,7 +1290,7 @@ async function handleMuxWebhookEvent(
         return;
       }
 
-      await updateMuxVideoComponent(courseContent, passthrough, {
+      await updateMuxVideoComponent(courseContent, review, passthrough, {
         uploadId: data.upload_id,
         assetId: data.id,
         playbackId: playback.id,
@@ -1272,7 +1310,7 @@ async function handleMuxWebhookEvent(
         return;
       }
 
-      await updateMuxVideoComponent(courseContent, passthrough, {
+      await updateMuxVideoComponent(courseContent, review, passthrough, {
         uploadId: data.upload_id,
         assetId: data.id,
         status: 'errored',
@@ -1304,6 +1342,7 @@ type MuxVideoUpdate = {
 
 async function updateMuxVideoComponent(
   courseContent: CourseContentRepository,
+  review: CourseReviewService,
   passthrough: MuxPassthrough,
   update: MuxVideoUpdate,
 ) {
@@ -1314,7 +1353,8 @@ async function updateMuxVideoComponent(
     return;
   }
 
-  const updatedSections = content.sections.map((section) =>
+  let changed = false;
+  const updateSections = (sections: CourseContentSection[]) => sections.map((section) =>
     section.id === passthrough.sectionId
       ? {
           ...section,
@@ -1326,8 +1366,10 @@ async function updateMuxVideoComponent(
             if (update.uploadId && component.mux.uploadId !== update.uploadId) {
               return component;
             }
-
-            return {
+            if (!update.uploadId && update.assetId && component.mux.assetId !== update.assetId) return component;
+            // At-least-once provider events may arrive out of order.
+            if (update.status === 'processing' && ['ready', 'errored'].includes(component.mux.status)) return component;
+            const updated = {
               ...component,
               mux: {
                 provider: 'mux' as const,
@@ -1342,12 +1384,29 @@ async function updateMuxVideoComponent(
                 captions: component.mux.captions,
               },
             };
+            if (JSON.stringify(updated.mux) === JSON.stringify(component.mux)) return component;
+            changed = true;
+            return updated;
           }),
         }
       : section,
   );
 
-  await courseContent.updateCourseContent(passthrough.courseId, updatedSections);
+  if (content.review) {
+    const workflow = structuredClone(content.review);
+    if (workflow.live) workflow.live.sections = updateSections(workflow.live.sections);
+    if (workflow.working) workflow.working.sections = updateSections(workflow.working.sections);
+    if (changed) { workflow.version++; await courseContent.saveCourseReview(passthrough.courseId, workflow); }
+  } else {
+    const sections = updateSections(content.sections);
+    if (changed) {
+      const { workflow } = await review.load(passthrough.courseId);
+      if (workflow.live) workflow.live.sections = sections;
+      if (workflow.working) workflow.working.sections = sections;
+      workflow.version++;
+      await courseContent.saveCourseReview(passthrough.courseId, workflow);
+    }
+  }
   });
 }
 

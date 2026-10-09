@@ -214,12 +214,20 @@ export type CourseSection = {
   components: CourseComponent[];
 };
 
+export type CourseReviewAction = 'start-revision' | 'submit' | 'return' | 'publish' | 'archive';
+export type CourseReviewState = {
+  course: CourseListItem; version: number; revisionId: string | null;
+  liveStatus: 'published' | 'archived' | null; editable: boolean;
+  history: { id: string; revisionId: string | null; action: string; actorId: string; actorName: string; createdAt: string; reason: string }[];
+};
+
 export type CourseContentDocument = {
   _id: string;
   view?: 'outline' | 'learner' | 'author';
   sections: CourseSection[];
   createdAt: string;
   updatedAt: string;
+  review?: CourseReviewState;
 };
 
 export type QuizAssessmentResult = {

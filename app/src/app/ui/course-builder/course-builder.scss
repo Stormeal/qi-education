@@ -1058,3 +1058,11 @@ select:focus {
     flex-direction: column;
   }
 }
+
+.review-content-preview {
+  details { margin-block: 0.75rem; border-top: 1px solid #d9dfd5; padding-block: 0.75rem; overflow-wrap: anywhere; }
+  summary { cursor: pointer; font-weight: 600; }
+  summary:focus-visible { outline: 2px solid #4f773e; outline-offset: 3px; }
+  mux-player { width: 100%; margin-block: 1rem; }
+  button { margin-block: 0.5rem; }
+}

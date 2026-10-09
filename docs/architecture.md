@@ -1,6 +1,6 @@
 # Application architecture
 
-Updated 2026-10-09 through the remaining DEF-008/011/012/013 batch after base `797d55c`.
+Updated 2026-10-09 through US-T002, implementation base `96e9ff9`.
 The core map describes the current implementation; desired changes live in
 [user_stories.md](user_stories.md) and `specs/`. Release verification is separate.
 The career path section was checked again on 2026-10-05 at `9a2f30b` plus
@@ -53,13 +53,16 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
 | Account | Student signup, login, remembered session, role permissions | No reset flow; demo auth fallback without Sheets configuration |
-| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness gates | Legacy unowned courses require admin editing; review comments/revisions are unfinished |
+| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
 | Progress/profile | Shared device-local completion in workspace/library/Home and local profile details | Not server-synced; no selected career path or career completion model |
 
-Statuses are `draft`, `ready-for-review`, `published`, and `archived`. They are
-enum values today, not a fully enforced transition state machine. US-T001 adds
+Statuses are `draft`, `ready-for-review`, `published`, and `archived`. Explicit
+review actions enforce transitions. One private working revision may coexist with
+a published or archived live snapshot. Submission freezes authoring; admin return
+requires a reason; publication replaces live metadata, lessons and thumbnail
+pointers atomically while preserving enrollment. Archive retains existing access. US-T001 adds
 stable owner IDs and owner/admin authorization before authoring side effects.
 The UI uses those IDs for draft filtering, Edit actions, and direct editor entry.
 
@@ -137,8 +140,9 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /courses/:id/content` | Authenticated owner/admin or enrolled published/archived learner; learner DTO by default; owner/admin-only `?view=author` |
 | `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
 | `POST /users/me/courses/:id` | Active session; published-only new enrollment; published retry is idempotent |
-| `POST /courses` | Teacher draft/default admin fields only; admin may set status/price/catalog; authenticated owner ID |
-| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; price/catalog/publication/archival changes are admin-only |
+| `POST /courses` | All roles create drafts; teachers use default admin fields; authenticated owner ID |
+| `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; editable working draft only; no direct status/price changes |
+| `POST /courses/:id/review` | Owner/admin start and submit revisions; admin return/publish/archive; loaded revision ID and version required |
 | `PUT /courses/:id/thumbnail` | Owner teacher/admin; JPEG/PNG/WebP, 2 MB |
 | `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 25 MB |
 | `GET /courses/:id/content/attachments/:assetId` | Owner/admin or entitled learner; asset must belong to the requested course |
@@ -166,7 +170,8 @@ using their current stored role. Tokens are stored in browser storage by
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
 | Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts |
-| Course metadata | GoogleSheetsCourseRepository | InMemoryCourseRepository with one published demo course |
+| Identity, owner, admin catalog/price | GoogleSheetsCourseRepository | InMemoryCourseRepository with one published demo course |
+| Reviewed author metadata, live/working snapshots, review history | Mongo course-content document | InMemoryCourseContentRepository |
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
@@ -177,7 +182,7 @@ are blocked for Sheets metadata with memory assets; attachments are blocked for
 Mongo content with memory assets. These guards reduce references that would be
 lost on process restart, but are not a transaction across all stores.
 
-Course metadata writes use full row updates. Courses have 21 columns
+Base course metadata writes use full row updates. Courses have 21 columns
 (`A:U`), Users eight (`A:H`), Feedback 13 (`A:M`). Column U holds `ownerUserId`;
 missing legacy values default to empty, allowing only admins to edit those courses.
 Creation sets the authenticated ID; general edits cannot transfer ownership.
@@ -195,8 +200,8 @@ the authenticated quiz-attempt route scores stored answers and returns submitted
 feedback only. Scoring refuses invalid legacy quizzes. Incomplete draft quizzes are
 editable, including empty question lists, but review/publication requires nonblank
 questions/options, exactly one correct answer, and an attainable pass mark. Replacement
-of reviewed/published/archived content enforces the same readiness gate; all content
-saves reject duplicate section/component/question/answer identities. Combined draft
+of a live course requires a private revision; submitted revisions cannot be edited.
+All content saves reject duplicate section/component/question/answer identities. Combined draft
 content/review saves persist the outline first, so validation sees the latest quiz.
 Assets have binary payload, type, filename, size, and course/component association.
 
@@ -204,8 +209,32 @@ Course operations pair lifecycle reads/content under per-course coordination.
 Memory uses its repository lock; Mongo uses a separate nonexpiring owner record.
 Sheets operations require Mongo coordination. Acquisition/deletion have bounded
 waits, while actual uncertain provider writes retain ownership for verified
-recovery. Pre-write reads release normally. This is not a cross-store transaction
-or stale-editor revision check. See [recovery runbook](course_operation_recovery.md).
+recovery. Pre-write reads release normally. Publication is one Mongo document write, not a cross-store transaction. Review
+actions use revision/version checks; general stale-editor protection remains Proposed. See [recovery runbook](course_operation_recovery.md).
+
+## Course review storage and views
+
+`CourseReviewService` composes public course metadata from live snapshots and
+selects working metadata/content inside authoring operations. Raw Sheet records
+remain authoritative for identity/owner and admin price/catalog controls. Legacy
+courses are initialized lazily. A first legacy draft edit retains its original
+provider write and materializes a versioned workflow before reporting success;
+subsequent authoring writes use working snapshots. No headers or shared rows are
+migrated. Stored `sections` and live snapshots change in the publication write.
+
+Review events store action, revision ID, authenticated actor ID/name, date and
+return reason. Owner/admin author content includes full review state/history;
+public and learner DTOs omit it. History is never silently trimmed. Document-limit
+or uncertain writes fail safely and retain coordination for the recovery runbook.
+Review-action concurrency does not solve general stale editor saves (US-T005).
+
+Submitted content has a read-only lesson/quiz/media/resource preview. Archive only
+changes live availability, preserving unsaved private authoring buffers. Existing
+live assets remain stored when removed privately. Owners/admins can download
+references in either authorized snapshot; learners can download only live ones.
+Private thumbnail previews require the exact working pointer and authorization.
+Mux callbacks match stored media IDs, ignore duplicates and late processing events
+after terminal states, and version changed snapshots without losing live playback.
 
 ## Integration lifecycles
 
@@ -226,7 +255,8 @@ API tests use Vitest; Angular tests use the Angular/Vitest builder with jsdom.
 The audited baseline had 72 API and 24 frontend tests; DEF-001 adds regression
 coverage for totals of 111 API and 31 frontend tests. The 2026-10-07 batch has 185 API and 55 frontend tests; see its verification record. There is no committed
 browser E2E suite or root lint script. Local browser verification supplements,
-but does not replace, the unit suites.
+but does not replace, the unit suites. US-T002 adds 264 API/108 frontend checks;
+see [review verification](verification/2026-10-09/US-T002.md) for current evidence.
 
 PR CI runs frontend builds, Pages build, frontend tests, API build, and API tests.
 Pushes to `main` run the Pages workflow, including tests and hosted API health/config

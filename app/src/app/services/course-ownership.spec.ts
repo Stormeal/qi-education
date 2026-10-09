@@ -72,26 +72,21 @@ describe('course ownership UI (DEF-001)', () => {
     expect(state.courseSubmitting()).toBe(false);
   });
 
-  it.each(['teacher', 'admin'] as const)('DEF-002 offers only allowed status transitions for %s', (role) => {
-    state.loginState.set(login(role));
-    state.currentPath.set('/courses/owned-course/edit');
-    const fixture = TestBed.createComponent(CourseEditorRoute);
-    fixture.detectChanges();
-    const options = [...fixture.nativeElement.querySelectorAll('select option')].map((option) => (option as HTMLOptionElement).value);
-    expect(options).toContain('draft');
-    expect(options).toContain('ready-for-review');
-    expect(options.includes('published')).toBe(role === 'admin');
-    expect(options.includes('archived')).toBe(role === 'admin');
+  it.each(['teacher', 'admin'] as const)('US-T002 exposes draft submission without arbitrary publication for %s', role => {
+    state.loginState.set(login(role)); state.currentPath.set('/courses/owned-course/edit');
+    state.courseReview.set({ course: ownedCourse, version: 0, revisionId: 'initial', liveStatus: null, editable: true, history: [] });
+    const fixture = TestBed.createComponent(CourseEditorRoute); fixture.detectChanges();
+    const buttons = [...fixture.nativeElement.querySelectorAll('button')].map(button => (button as HTMLButtonElement).textContent);
+    expect(buttons.some(text => text?.includes('Submit for review'))).toBe(true);
+    expect(buttons.some(text => text?.includes('Publish revision'))).toBe(false);
+    expect(buttons.some(text => text?.includes('Archive course'))).toBe(false);
   });
 
-  it('DEF-002 shows a published teacher course status as read-only', () => {
+  it('US-T002 keeps published teacher fields read-only before revision creation', () => {
     state.availableCourses.set([{ ...ownedCourse, status: 'published' }]);
     state.currentPath.set('/courses/owned-course/edit');
-    const fixture = TestBed.createComponent(CourseEditorRoute);
-    fixture.detectChanges();
-    const status = fixture.nativeElement.querySelector('select') as HTMLSelectElement;
-    expect(status.disabled).toBe(true);
-    expect([...status.options].map((option) => option.value)).toEqual(['published']);
+    const fixture = TestBed.createComponent(CourseEditorRoute); fixture.detectChanges();
+    expect((fixture.nativeElement.querySelector('input[placeholder="ISTQB Foundation 4.0"]') as HTMLInputElement).disabled).toBe(true);
   });
 
   it('DEF-003 discards a pending author video poll after moving to a preview', async () => {
@@ -116,19 +111,22 @@ describe('course ownership UI (DEF-001)', () => {
     state.currentPath.set('/courses/owned-course/edit');
     state.loadedCourseContentId.set('owned-course');
     state.courseDraft.update((draft) => ({ ...draft, title: ownedCourse.title, description: ownedCourse.description,
-      teacher: ownedCourse.teacher, level: ownedCourse.level, status: 'ready-for-review' }));
+      teacher: ownedCourse.teacher, level: ownedCourse.level, status: 'draft' }));
     const content = { _id: 'owned-course', view: 'author' as const, sections: [], createdAt: '', updatedAt: '' };
     state.courseContent.set(content);
     const calls: string[] = [];
     const service = TestBed.inject(CourseService);
     vi.spyOn(service, 'saveCourseContent').mockImplementation(async () => { calls.push('content'); return { ok: true, content }; });
-    vi.spyOn(service, 'saveCourse').mockImplementation(async () => { calls.push('review'); return {
-      ok: false, message: 'Assessment needs correction.' }; });
-    await state.submitCourse();
-    expect(calls).toEqual(['content', 'review']);
-    expect(state.courseCreateError()).toContain('Assessment needs correction');
+    const review = { course: ownedCourse, version: 2, revisionId: 'initial', liveStatus: null, editable: true, history: [] } as const;
+    state.courseReview.set({ ...review, history: [] });
+    vi.spyOn(service, 'saveCourse').mockImplementation(async () => { calls.push('metadata'); return { ok: true, course: ownedCourse }; });
+    vi.spyOn(service, 'loadCourseContent').mockResolvedValue({ ...content, review: { ...review, history: [] } });
+    vi.spyOn(service, 'performReviewAction').mockImplementation(async () => { calls.push('review'); throw new Error('Assessment needs correction.'); });
+    await state.reviewCourse('submit');
+    expect(calls).toEqual(['metadata', 'content', 'review']);
+    expect(state.courseReviewError()).toContain('Assessment needs correction');
     expect(state.courseContent()).toEqual(content);
-    expect(state.courseDraft().status).toBe('ready-for-review');
+    expect(state.courseDraft().status).toBe('draft');
     expect(state.availableCourses()[0].status).toBe('draft');
   });
 });

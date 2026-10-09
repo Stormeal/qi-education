@@ -1,0 +1,10 @@
+:host { display: block; }
+.review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.review-reason { display: grid; gap: 8px; width: 100%; font-weight: 600; }
+textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid #b8b9ae; border-radius: 6px; font: inherit; color: inherit; background: #fffef9; }
+textarea:focus-visible { outline: 2px solid #29463c; outline-offset: 2px; }
+.review-history { padding-left: 24px; }
+.review-history li { padding: 12px 0; border-bottom: 1px solid #deded3; overflow-wrap: anywhere; }
+.review-history p { margin: 6px 0; }
+.review-feedback { white-space: pre-wrap; }
+.review-error { color: #9b2626; }

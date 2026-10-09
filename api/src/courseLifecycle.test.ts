@@ -77,6 +77,11 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     await courses.updateCourse('course', updateCourseSchema.parse({ ...metadata, status, priceDkk }));
   }
 
+  async function reviewAction(action: string, user: AuthUser, prefix = '', reason = '') {
+    const state = (await (await request(`${prefix}/courses/course/content?view=author`, user)).json()).review;
+    return request(`${prefix}/courses/course/review`, user, 'POST', { action, reason, revisionId: state.revisionId, expectedVersion: state.version });
+  }
+
   it.each(['read', 'write'])('retains durable ownership only for an uncertain %s failure', async (stage) => {
     const records = new Map<string, CourseMutationLockDocument>();
     const collection = {
@@ -145,6 +150,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
   });
 
   it('LC-02 serializes ordinary teacher saves with admin publication and pricing', async () => {
+    await content.updateCourseContent('course', validSections);
     let entered!: () => void;
     let release!: () => void;
     const started = new Promise<void>((resolve) => { entered = resolve; });
@@ -157,12 +163,17 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     const { status: _status, priceDkk: _price, ...ordinary } = metadata;
     const teacherSave = request('/courses/course', teacher, 'PATCH', { ...ordinary, title: 'Slow teacher save' });
     await started;
-    const publication = request('/courses/course', admin, 'PATCH', { ...metadata, status: 'published', priceDkk: 500 });
+    const publication = reviewAction('submit', teacher).then(async response => {
+      expect(response.status).toBe(200);
+      expect((await reviewAction('publish', admin)).status).toBe(200);
+      return request('/courses/course/price', admin, 'PATCH', { priceDkk: 500 });
+    });
     await new Promise((resolve) => setTimeout(resolve, 100));
     release();
     const responses = await Promise.all([teacherSave, publication]);
     expect(responses.map((response) => response.status)).toEqual([200, 200]);
-    expect((await courses.listCourses())[0]).toMatchObject({ status: 'published', priceDkk: 500 });
+    const visible = await (await request('/courses', admin)).json();
+    expect(visible.find((course: { id: string }) => course.id === 'course')).toMatchObject({ title: 'Slow teacher save', status: 'published', priceDkk: 500 });
   });
 
   it('LC-05 validates publication after any preceding in-flight draft content write', async () => {
@@ -190,7 +201,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     expect((await courses.listCourses())[0].status).toBe('draft');
   });
 
-  it('LC-03 pairs entitlement and content reads consistently during withdrawal to draft', async () => {
+  it('LC-03 pairs entitlement and content reads consistently during private revision creation', async () => {
     await content.updateCourseContent('course', validSections);
     await setStatus('published');
     await auth.enrollUserInCourse(student.id, 'course');
@@ -208,7 +219,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     await started;
     const draft = structuredClone(validSections);
     draft[0].components[0].content = 'Unreleased author draft';
-    const mutation = request('/courses/course', admin, 'PATCH', metadata).then(async (response) => {
+    const mutation = reviewAction('start-revision', admin).then(async (response) => {
       expect(response.status).toBe(200);
       return request('/courses/course/content', teacher, 'PATCH', { sections: draft });
     });
@@ -218,7 +229,9 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     expect(response.status).toBe(200);
     expect((await response.json()).sections[0].components[0].content).toBe('Secret lesson body');
     expect(saved.status).toBe(200);
-    expect((await request('/courses/course/content', student)).status).toBe(403);
+    const retained = await request('/courses/course/content', student);
+    expect(retained.status).toBe(200);
+    expect((await retained.json()).sections[0].components[0].content).toBe('Secret lesson body');
   });
 
   for (const prefix of ['', '/api']) {
@@ -322,13 +335,14 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
         expect(body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ componentId: 'quiz', questionId: 'q' })]));
         expect((await courses.listCourses())[0].status).toBe('draft');
       }
-      await content.updateCourseContent('course', validSections);
-      expect((await request(`${prefix}/courses/course`, admin, 'PATCH', { ...metadata, status: 'published' })).status).toBe(200);
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections: validSections })).status).toBe(200);
+      expect((await reviewAction('submit', teacher, prefix)).status).toBe(200);
+      expect((await reviewAction('publish', admin, prefix)).status).toBe(200);
       const rejected = await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections });
-      expect(rejected.status).toBe(400);
+      expect(rejected.status).toBe(409);
       expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
-      await setStatus('archived');
-      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
+      expect((await reviewAction('archive', admin, prefix)).status).toBe(200);
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(409);
       expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
     });
 
@@ -412,28 +426,27 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
 
     it(`LC-02 ${prefix} preserves omitted restricted fields and accepts an unchanged price/status`, async () => {
       await setStatus('published', 500);
+      expect((await reviewAction('start-revision', teacher, prefix)).status).toBe(200);
       const { status: _status, priceDkk: _price, ...ordinary } = metadata;
       for (const fields of [{ ...ordinary, title: 'Omitted restricted values' },
-        { ...metadata, title: 'Echoed restricted values', status: 'published', priceDkk: 500 }]) {
+        { ...metadata, title: 'Echoed restricted values', status: 'draft', priceDkk: 500 }]) {
         const response = await request(`${prefix}/courses/course`, teacher, 'PATCH', fields);
         expect(response.status).toBe(200);
-        expect(await response.json()).toMatchObject({ title: fields.title, status: 'published', priceDkk: 500 });
+        expect(await response.json()).toMatchObject({ title: fields.title, status: 'draft', priceDkk: 500 });
       }
-      const response = await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, priceDkk: 500 });
+      const response = await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, priceDkk: 100 });
       expect(response.status).toBe(403);
     });
 
-    it(`LC-01/02 ${prefix} permits ordinary teacher drafts/review and admin controls`, async () => {
+    it(`LC-01/02 ${prefix} permits ordinary drafts and explicit review/admin pricing controls`, async () => {
       const created = await request(`${prefix}/courses`, teacher, 'POST', metadata);
       expect(created.status).toBe(201);
-      expect((await request(`${prefix}/courses/course`, teacher, 'PATCH', {
-        ...metadata, status: 'ready-for-review',
-      })).status).toBe(200);
-      const published = await request(`${prefix}/courses/course`, admin, 'PATCH', {
-        ...metadata, status: 'published', priceDkk: 400,
-      });
-      expect(published.status).toBe(200);
-      expect(await published.json()).toMatchObject({ status: 'published', priceDkk: 400 });
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections: validSections })).status).toBe(200);
+      expect((await reviewAction('submit', teacher, prefix)).status).toBe(200);
+      expect((await reviewAction('publish', admin, prefix)).status).toBe(200);
+      const priced = await request(`${prefix}/courses/course/price`, admin, 'PATCH', { priceDkk: 400 });
+      expect(priced.status).toBe(200);
+      expect(await priced.json()).toMatchObject({ status: 'published', priceDkk: 400 });
     });
 
     it.each(['draft', 'ready-for-review', 'archived'] as const)(

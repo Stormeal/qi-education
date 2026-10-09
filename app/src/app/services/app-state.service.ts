@@ -7,6 +7,8 @@ import {
   CourseComponent,
   CourseComponentType,
   CourseCatalogMetadataDraft,
+  CourseReviewAction,
+  CourseReviewState,
   CourseSection,
   CourseContentDocument,
   CourseCreateDraft,
@@ -40,7 +42,7 @@ export class AppStateService {
   private readonly sessionService = inject(SessionService);
   private readonly learningProgress = inject(LearningProgressService);
 
-  readonly appVersion = '0.1.51';
+  readonly appVersion = '0.1.52';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -94,6 +96,12 @@ export class AppStateService {
   readonly courseSaveNotice = signal('');
   readonly courseContentLoading = signal(false);
   readonly courseContentSaving = signal(false);
+  readonly courseReview = signal<CourseReviewState | null>(null);
+  readonly courseReviewPending = signal(false);
+  readonly courseReviewError = signal('');
+  readonly courseReviewReason = signal('');
+  readonly courseEditable = computed(() => this.courseFormMode() === 'create' ||
+    (!this.courseContentLoading() && (this.courseReview()?.editable ?? (this.editingCourse()?.status ?? this.courseDraft().status) === 'draft')));
   readonly courseContentError = signal('');
   readonly muxUploadComponentId = signal('');
   readonly muxUploadError = signal('');
@@ -237,6 +245,8 @@ export class AppStateService {
   readonly courseEditingId = computed(() => this.courseEditIdFromPath(this.currentPath()));
   readonly editingCourse = computed(() => {
     const editId = this.courseEditingId();
+    const reviewed = this.courseReview()?.course;
+    if (reviewed?.id === editId) return reviewed;
     return editId ? this.availableCourses().find((course) => course.id === editId) ?? null : null;
   });
   readonly selectedCourseCanEdit = computed(() => this.canEditCourse(this.selectedCourse()));
@@ -248,7 +258,7 @@ export class AppStateService {
   readonly hasUnsavedCourseChanges = computed(() => {
     if (!this.isCourseEditorPage() || !this.canUseCourseEditor()) return false;
     const content = this.courseContent();
-    return this.courseEditorBufferDirty() ||
+    return !!this.courseReviewReason().trim() || this.courseEditorBufferDirty() ||
       this.serializeCourseDraft(this.courseDraft()) !== this.initialCourseDraftSnapshot() ||
       (!!content && this.serializeCourseContent(content) !== this.initialCourseContentSnapshot());
   });
@@ -286,6 +296,10 @@ export class AppStateService {
   private resetCourseOperations(): void {
     this.learningProgress.cancelLoads();
     this.courseOperationGeneration++;
+    this.courseReview.set(null);
+    this.courseReviewPending.set(false);
+    this.courseReviewError.set('');
+    this.courseReviewReason.set('');
     this.courseContentGeneration++;
     this.courseCatalogLoadPromise = null;
     this.pendingCourseContentKey = '';
@@ -1692,6 +1706,8 @@ export class AppStateService {
       return;
     }
 
+    if (!this.courseEditable()) { this.courseCreateError.set('Start a draft revision or wait for the admin review outcome before editing.'); return; }
+
     const draft = this.courseDraft();
     const mode = this.courseFormMode();
     const courseId = this.courseEditingId();
@@ -1752,15 +1768,16 @@ export class AppStateService {
         }
 
         savedCourse = result.course;
+        if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: result.course } : null);
         const savedDraft = this.courseDraftFromCourse(savedCourse);
         this.courseDraft.set(savedDraft);
         this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(savedDraft));
 
-        if (mode === 'edit') {
+        if (mode === 'edit' && !this.courseReview()?.liveStatus) {
           this.availableCourses.update((courses) =>
             courses.map((course) => (course.id === result.course.id ? result.course : course)),
           );
-        } else {
+        } else if (mode === 'create') {
           this.availableCourses.update((courses) => [result.course, ...courses]);
         }
       }
@@ -1812,6 +1829,47 @@ export class AppStateService {
       this.courseSubmitting.set(false);
       this.courseContentSaving.set(false);
     }
+  }
+
+  async reviewCourse(action: CourseReviewAction): Promise<void> {
+    if (this.courseReviewPending() || this.courseSubmitting() || this.courseContentLoading() || this.courseThumbnailUploading() || this.attachmentUploadComponentId() || this.muxUploadComponentId()) return;
+    const courseId = this.courseEditingId(), token = this.loginState()?.token;
+    if (!courseId || !token || !this.canUseCourseEditor()) return;
+    if (this.courseEditorBufferDirty()) { this.courseReviewError.set('Finish the open lesson editor before submitting for review.'); return; }
+    if (action === 'return' && !this.courseReviewReason().trim()) { this.courseReviewError.set('Enter a reason before returning this revision.'); return; }
+    const isCurrent = this.courseResponseIsCurrent();
+    this.courseReviewPending.set(true); this.courseReviewError.set('');
+    try {
+      if (action === 'submit') {
+        await this.submitCourse();
+        if (!isCurrent() || this.courseCreateError() || this.courseContentError()) return;
+      }
+      let review = this.courseReview();
+      // Draft saves change the review version. Decisions use the reviewed snapshot;
+      // only submission refreshes its version after saving the owner's latest work.
+      if (action === 'submit') review = (await this.courseService.loadCourseContent(courseId, token, 'author')).review ?? null;
+      if (!isCurrent()) return;
+      if (!review) throw new Error('Reload the course before using review actions.');
+      const response = await this.courseService.performReviewAction(courseId, action, review, this.courseReviewReason(), token);
+      if (!isCurrent()) return;
+      const loaded = this.normalizeCourseContent(response);
+      this.courseReview.set(response.review!);
+      // Archive changes live availability only. Keep the private working buffers
+      // and their dirty snapshots, including edits not yet saved by this admin.
+      if (action !== 'archive') {
+        this.courseContent.set(loaded);
+        const draft = this.courseDraftFromCourse(response.review!.course);
+        this.courseDraft.set(draft); this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft));
+        this.initialCourseContentSnapshot.set(this.serializeCourseContent(loaded));
+        this.courseReviewReason.set('');
+      }
+      this.showCourseSaveNotice(action === 'publish' ? 'Revision published.' : action === 'return' ? 'Revision returned for changes.' : action === 'submit' ? 'Submitted for admin review.' : action === 'archive' ? 'Course archived; existing learners retain access.' : 'Private revision started; learners keep the published version.');
+      try {
+        const courses = await this.courseService.listCourses(token);
+        if (isCurrent()) this.availableCourses.set(courses);
+      } catch { if (isCurrent()) this.coursesError.set('Review action saved. Reload the catalog to see its current state.'); }
+    } catch (error) { if (isCurrent()) this.courseReviewError.set(error instanceof Error ? error.message : 'Unable to save the review action. Please retry.'); }
+    finally { if (isCurrent()) this.courseReviewPending.set(false); }
   }
 
   reloadAdminFeedback(): void {
@@ -1933,6 +1991,8 @@ export class AppStateService {
 
       await this.courseService.preloadCourseThumbnails([result.course], token);
       if (!isCurrent()) return;
+      if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: { ...review.course, thumbnailAssetId: result.course.thumbnailAssetId } } : null);
+      if (!this.courseReview()?.liveStatus)
       this.availableCourses.update((courses) =>
         courses.map((course) => (course.id === result.course.id ? result.course : course)),
       );
@@ -2104,6 +2164,14 @@ export class AppStateService {
       const response = view === 'outline' ? await this.courseService.loadCourseOutline(courseId, token) :
         await this.courseService.loadCourseContent(courseId, token, view);
       if (generation !== this.courseContentGeneration || !isCurrent()) return;
+      if (view === 'author' && response.review) {
+        this.courseReview.set(response.review);
+        if (this.serializeCourseDraft(this.courseDraft()) === this.initialCourseDraftSnapshot()) {
+          const draft = this.courseDraftFromCourse(response.review.course);
+          this.courseDraft.set(draft); this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft));
+        }
+        void this.courseService.preloadCourseThumbnails([response.review.course], token);
+      }
       const loadedContent = this.normalizeCourseContent(response);
       this.courseContent.set(loadedContent);
       this.loadedCourseContentId.set(courseId);

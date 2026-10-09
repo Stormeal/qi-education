@@ -26,7 +26,7 @@ export function courseOutline(content: CourseContentDocument) {
 }
 
 export function learnerCourseContent(content: CourseContentDocument) {
-  return { ...content, view: 'learner' as const, sections: content.sections.map((section) => ({
+  return { _id: content._id, createdAt: content.createdAt, updatedAt: content.updatedAt, view: 'learner' as const, sections: content.sections.map((section) => ({
     ...section, components: section.components.map((component) => {
       if (component.type !== 'quiz') return component;
       return { ...component, quiz: { ...component.quiz, questions: component.quiz.questions.map((question) => ({

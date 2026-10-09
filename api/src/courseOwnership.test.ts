@@ -209,6 +209,11 @@ describe('course authoring ownership (DEF-001)', () => {
       method: 'PATCH', headers: headers(user), body: JSON.stringify(metadata),
     });
     expect((await request(owner)).status).toBe(403);
+    const preview = await fetch(`${baseUrl}/courses/demo-course-1/content?view=author`, { headers: headers(admin) });
+    const state = (await preview.json()).review;
+    const revision = await fetch(`${baseUrl}/courses/demo-course-1/review`, { method: 'POST', headers: headers(admin),
+      body: JSON.stringify({ action: 'start-revision', expectedVersion: state.version, revisionId: state.revisionId }) });
+    expect(revision.status).toBe(200);
     const response = await request(admin);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ ownerUserId: '' });

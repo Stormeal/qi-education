@@ -98,6 +98,7 @@ export class CourseBuilder {
   private richTextComponentId = '';
   private richTextDraftHtml = '';
 
+  readonly readOnly = input(false);
   readonly courseContent = input.required<CourseContentDocument | null>();
   readonly courseContentLoading = input.required<boolean>();
   readonly courseContentSaving = input.required<boolean>();
@@ -770,7 +771,7 @@ export class CourseBuilder {
     return !!anchorElement?.closest('h1, h2, h3');
   }
 
-  private renderRichContent(content: string): string {
+  protected renderRichContent(content: string): string {
     return this.looksLikeHtml(content) ? content : this.renderMarkdown(content);
   }
 

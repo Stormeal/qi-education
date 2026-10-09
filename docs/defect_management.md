@@ -425,6 +425,20 @@ state, preserving the report links and the actual verified cause.
   Fix commit: `79c2ea5fd2721594f4b1f2c603982d80ef909bce`.
   Hosted responsive/browser checks remain release work.
 
+## US-T002 lifecycle follow-up
+
+Verified 2026-10-09, delivery commit pending. DEF-002, DEF-003 and DEF-005 remain
+**Fixed — resolved in code** with their original fix dates/commits and evidence.
+US-T002 replaces the earlier Status selector/direct admin status changes with
+explicit revision/submission/admin decision actions. Submitted snapshots are
+frozen; returned feedback and all decisions persist; working edits cannot withdraw
+or modify live learner content. General creation/update cannot bypass review.
+Existing pricing/catalog permissions, learner privacy and quiz-readiness gates
+retain regression coverage under both API prefixes. Live resources remain usable
+for enrolled learners and authorized authors during revision. See
+[US-T002 verification](verification/2026-10-09/US-T002.md). Shared provider and
+hosted release checks remain separate; no push/deployment for this delivery.
+
 ## Investigations requiring further evidence
 
 | ID | Concern and code evidence | Next verification | Related story |

@@ -1,6 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import {
   CourseCatalogMetadataDraft,
+  CourseReviewAction,
+  CourseReviewState,
   CourseComponentAttachment,
   CourseContentDocument,
   CourseCreateDraft,
@@ -216,6 +218,18 @@ export class CourseService {
       ok: true,
       course: body,
     };
+  }
+
+  async performReviewAction(courseId: string, action: CourseReviewAction, state: CourseReviewState,
+    reason: string, token: string): Promise<CourseContentDocument> {
+    const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/review`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, reason, revisionId: state.revisionId, expectedVersion: state.version }),
+    });
+    const body = await response.json() as CourseContentDocument | { message?: string };
+    if (!response.ok || !('_id' in body) || !body.review) throw new Error('message' in body && body.message ? body.message : 'Unable to save the review action.');
+    this.apiClient.invalidateCache('/courses');
+    return body;
   }
 
   async loadCourseContent(courseId: string, token: string, view: 'learner' | 'author' = 'learner'): Promise<CourseContentDocument> {

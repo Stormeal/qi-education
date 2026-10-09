@@ -1,3 +1,5 @@
+import { CourseReviewPanel } from '../../ui/course-review-panel/course-review-panel';
+import { CourseReviewAction, CourseReviewState } from '../../app.models';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
   CourseComponentType,
@@ -16,7 +18,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-editor-page',
-  imports: [AppButton, CourseBuilder, FeedbackDialog, PageHeader],
+  imports: [CourseReviewPanel, AppButton, CourseBuilder, FeedbackDialog, PageHeader],
   templateUrl: './course-editor-page.html',
   styleUrls: ['../../app.scss', './course-editor-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,14 +36,10 @@ export class CourseEditorPage {
   readonly courseFormMode = input.required<'create' | 'edit'>();
   readonly editingCourse = input.required<CourseListItem | null>();
   readonly courseDraft = input.required<CourseCreateDraft>();
-  protected readonly statusLocked = computed(() => !this.canAccessAdmin() &&
-    ['published', 'archived'].includes(this.editingCourse()?.status ?? 'draft'));
-  protected readonly statusOptions = computed(() => {
-    const all = [{ value: 'draft', label: 'Draft' }, { value: 'ready-for-review', label: 'Ready for review' },
-      { value: 'published', label: 'Published' }, { value: 'archived', label: 'Archived' }];
-    if (this.canAccessAdmin()) return all;
-    return this.statusLocked() ? all.filter((option) => option.value === this.editingCourse()?.status) : all.slice(0, 2);
-  });
+  readonly courseReview = input<CourseReviewState | null>(null);
+  readonly courseEditable = input(true);
+  readonly reviewPending = input(false); readonly reviewError = input(''); readonly reviewReason = input('');
+  readonly reviewAction = output<CourseReviewAction>(); readonly reviewReasonChanged = output<string>();
   readonly courseSubmitting = input.required<boolean>();
   readonly courseCreateError = input.required<string>();
   readonly courseSaveNotice = input.required<string>();
