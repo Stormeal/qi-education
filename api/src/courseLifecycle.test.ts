@@ -1,3 +1,4 @@
+import { freshAuthoringFetch } from './authoringTestRequest.js';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -68,8 +69,8 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       authorization: `Bearer ${createSessionToken(toAuthenticatedUser(user), apiConfig.AUTH_TOKEN_SECRET!)}`,
     } : {}) };
   }
-  function request(path: string, user?: AuthUser, method = 'GET', body?: unknown) {
-    return fetch(`${baseUrl}${path}`, { method, headers: headers(user),
+  function request(path: string, user?: AuthUser, method = 'GET', body?: unknown, revision?: { version: number; revisionId: string | null }) {
+    return freshAuthoringFetch(`${baseUrl}${path}`, { method, headers: { ...headers(user), ...(revision ? { 'X-Course-Revision': JSON.stringify(revision) } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   }
@@ -101,9 +102,9 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       const list = vi.mocked(courses.listCourses).getMockImplementation()!;
       let calls = 0;
       vi.mocked(courses.listCourses).mockImplementation(() => ++calls === 3 ? Promise.reject(new Error('Read unavailable')) : list());
-    } else vi.spyOn(courses, 'updateCourse').mockRejectedValue(new AmbiguousCourseWriteError(new Error('Write acknowledgement lost')));
+    } else vi.spyOn(content, 'saveCourseReview').mockRejectedValue(new AmbiguousCourseWriteError(new Error('Write acknowledgement lost')));
     const logging = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const response = await request('/courses/course', teacher, 'PATCH', metadata);
+    const response = await request('/courses/course', teacher, 'PATCH', metadata, { version: 0, revisionId: 'legacy-course' });
     expect(response.status).toBe(500);
     expect(records.has('course')).toBe(stage === 'write');
     expect(collection.deleteOne).toHaveBeenCalledTimes(stage === 'write' ? 0 : 1);
@@ -127,7 +128,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       courseContentRepository: mongo, courseAssetRepository: assets, muxVideoService: null }).listen(0);
     baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect((await request('/courses/course/content', teacher, 'PATCH', { sections: validSections })).status).toBe(500);
+    expect((await request('/courses/course/content', teacher, 'PATCH', { sections: validSections }, { version: 0, revisionId: 'legacy-course' })).status).toBe(500);
     expect(locks.deleteOne).toHaveBeenCalledTimes(stage === 'read' ? 1 : 0);
     expect(updateOne).toHaveBeenCalledTimes(stage === 'read' ? 0 : 1);
     if (stage === 'read') expect((await request('/courses/course/outline', teacher)).status).toBe(200);
@@ -140,10 +141,10 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     vi.spyOn(assets, 'deleteAsset').mockImplementation((id, courseId) => id === old._id
       ? Promise.reject(new Error('Collection unavailable before deletion')) : remove(id, courseId));
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const response = await fetch(`${baseUrl}/courses/course/thumbnail`, { method: 'PUT',
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/course/thumbnail`, { method: 'PUT',
       headers: { ...headers(teacher), 'Content-Type': 'image/png' }, body: Buffer.from('new') });
     expect(response.status).toBe(500);
-    const linked = (await courses.listCourses())[0].thumbnailAssetId;
+    const linked = (await (await request('/courses/course/content?view=author', teacher)).json()).review.course.thumbnailAssetId;
     expect(linked).not.toBe(old._id);
     expect(await assets.getThumbnail(linked)).not.toBeNull();
     expect(assets.deleteAsset).toHaveBeenCalledTimes(1);
@@ -155,10 +156,10 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     let release!: () => void;
     const started = new Promise<void>((resolve) => { entered = resolve; });
     const resume = new Promise<void>((resolve) => { release = resolve; });
-    const update = courses.updateCourse.bind(courses);
-    vi.spyOn(courses, 'updateCourse').mockImplementation(async (id, input) => {
-      if (input.title === 'Slow teacher save') { entered(); await resume; }
-      return update(id, input);
+    const update = content.saveCourseReview.bind(content);
+    vi.spyOn(content, 'saveCourseReview').mockImplementation(async (id, workflow) => {
+      if (workflow.working?.metadata.title === 'Slow teacher save') { entered(); await resume; }
+      return update(id, workflow);
     });
     const { status: _status, priceDkk: _price, ...ordinary } = metadata;
     const teacherSave = request('/courses/course', teacher, 'PATCH', { ...ordinary, title: 'Slow teacher save' });
@@ -186,9 +187,9 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     let release!: () => void;
     const started = new Promise<void>((resolve) => { entered = resolve; });
     const resume = new Promise<void>((resolve) => { release = resolve; });
-    const update = content.updateCourseContent.bind(content);
-    vi.spyOn(content, 'updateCourseContent').mockImplementation(async (id, sections) => {
-      entered(); await resume; return update(id, sections);
+    const update = content.saveCourseReview.bind(content);
+    vi.spyOn(content, 'saveCourseReview').mockImplementation(async (id, workflow) => {
+      entered(); await resume; return update(id, workflow);
     });
     const save = request('/courses/course/content', teacher, 'PATCH', { sections: invalid });
     await started;
@@ -247,7 +248,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       }
       await setStatus('published');
       expect((await (await request(`${prefix}/courses`)).json()).map((c: { id: string }) => c.id)).toEqual(['course']);
-      const invalid = await fetch(`${baseUrl}${prefix}/courses`, { headers: { authorization: 'Bearer invalid' } });
+      const invalid = await freshAuthoringFetch(`${baseUrl}${prefix}/courses`, { headers: { authorization: 'Bearer invalid' } });
       expect(invalid.status).toBe(401);
     });
 

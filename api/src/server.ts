@@ -109,6 +109,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         }
         await courseContent.withCourseMutationLock(courseId, async () => {
           if (author && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && !request.path.endsWith('/review')) {
+            if (request.header('X-Course-Revision')) await review.assertRevision(courseId, request.header('X-Course-Revision'));
             await review.assertEditable(courseId);
           }
           let failure: unknown;
@@ -216,7 +217,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (matchingCourse.thumbnailAssetId && matchingCourse.thumbnailAssetId !== uploadedAsset._id) {
           await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId, courseId);
         }
-        response.json(updatedCourse);
+        response.json({ ...updatedCourse, review: await review.state(courseId) });
       } catch (error) {
         next(error);
       }
@@ -330,7 +331,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           );
           const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
-          response.status(201).json({ attachment, content: updatedContent });
+          response.status(201).json({ attachment, content: { ...updatedContent, review: await review.state(courseId) } });
         } catch (error) {
           if (error instanceof AmbiguousCourseWriteError) throw error;
           await courseAssets.deleteAsset(uploadedAsset._id, courseId);
@@ -616,7 +617,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
         await courseContent.createEmptyCourseContent(seed.id, seed.createdAt);
 
         try {
-          response.status(201).json(await courses.createCourse(input, seed));
+          const created = await courses.createCourse(input, seed);
+          response.status(201).json({ ...created, review: await review.state(seed.id) });
         } catch (error) {
           await courseContent.deleteCourseContent(seed.id);
           throw error;
@@ -751,7 +753,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        response.json(await courseContent.updateCourseContent(courseId, input.sections));
+        await review.assertRevision(courseId, request.header('X-Course-Revision'));
+        const saved = await courseContent.updateCourseContent(courseId, input.sections);
+        response.json({ ...saved, review: await review.state(courseId) });
       } catch (error) {
         next(error);
       }
@@ -862,7 +866,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           uploadId: upload.uploadId,
           uploadUrl: upload.uploadUrl,
           playbackPolicy: upload.playbackPolicy,
-          content: updatedContent,
+          content: { ...updatedContent, review: await review.state(courseId) },
         });
       } catch (error) {
         next(error);
@@ -925,7 +929,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         );
         const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
-        response.json({ content: updatedContent });
+        response.json({ content: { ...updatedContent, review: await review.state(courseId) } });
       } catch (error) {
         next(error);
       }
@@ -978,6 +982,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
             return;
           }
         }
+        if (input.status !== current.status) throw new CourseReviewError(409, 'Use the explicit submission and review actions to change status.');
+        await review.assertRevision(courseId, request.header('X-Course-Revision'));
         const updatedCourse = await courses.updateCourse(courseId, input);
 
         if (!updatedCourse) {
@@ -985,7 +991,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        response.json(updatedCourse);
+        response.json({ ...updatedCourse, review: await review.state(courseId) });
       } catch (error) {
         next(error);
       }
@@ -1080,7 +1086,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
         await courseAssets.deleteAsset(assetId, courseId);
-        response.json({ content: updatedContent });
+        response.json({ content: { ...updatedContent, review: await review.state(courseId) } });
       } catch (error) {
         next(error);
       }
@@ -1179,7 +1185,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
-    if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.issues ? { issues: error.issues } : {}) }); return; }
+    if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.code ? { code: error.code } : {}), ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {
       response.status(409).json({ message: error.message });
       return;

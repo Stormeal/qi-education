@@ -38,6 +38,7 @@ import '@mux/mux-player';
 import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
+import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
 
 type ComponentPickerState = {
   sectionIndex: number;
@@ -99,6 +100,7 @@ export class CourseBuilder {
   private richTextDraftHtml = '';
 
   readonly readOnly = input(false);
+  readonly allowDownloads = input(true);
   readonly courseContent = input.required<CourseContentDocument | null>();
   readonly courseContentLoading = input.required<boolean>();
   readonly courseContentSaving = input.required<boolean>();
@@ -114,6 +116,7 @@ export class CourseBuilder {
 
   readonly courseSectionAdded = output<void>();
   readonly courseEditorBufferChanged = output<boolean>();
+  readonly courseFocusedBufferChanged = output<CourseEditorBuffer | null>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
   readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();
@@ -558,6 +561,7 @@ export class CourseBuilder {
 
     if (editor instanceof HTMLElement) {
       this.richTextDraftHtml = editor.innerHTML;
+      this.emitRichTextRecovery();
       const component = this.editingComponent();
       this.courseEditorBufferChanged.emit(
         component?.type === 'text' && this.normalizeRichTextHtml(this.richTextDraftHtml) !==
@@ -573,6 +577,7 @@ export class CourseBuilder {
     const editor = this.document.querySelector('.rich-text-editor');
     if (editor instanceof HTMLElement) {
       this.richTextDraftHtml = editor.innerHTML;
+      this.emitRichTextRecovery();
     }
 
     this.expandOutlineHeadingsByDefault();
@@ -584,6 +589,19 @@ export class CourseBuilder {
       this.courseComponentContentChanged.emit({ sectionIndex, componentIndex, value });
     }
     this.courseEditorBufferChanged.emit(false);
+    this.courseFocusedBufferChanged.emit(null);
+  }
+  protected sectionTitleEdited(sectionIndex: number, event: Event): void {
+    const section = this.courseContent()?.sections[sectionIndex];
+    if (!section) return;
+    const value = this.editableText(event);
+    this.courseEditorBufferChanged.emit(value !== section.title);
+    this.courseFocusedBufferChanged.emit({ sectionId: section.id, value });
+  }
+  private emitRichTextRecovery(): void {
+    const editor = this.activeEditor(), component = this.editingComponent();
+    const section = editor && this.courseContent()?.sections[editor.sectionIndex];
+    if (section && component?.type === 'text') this.courseFocusedBufferChanged.emit({ sectionId: section.id, componentId: component.id, value: this.normalizeRichTextHtml(this.richTextDraftHtml) });
   }
 
   protected richTextKeydown(event: KeyboardEvent, sectionIndex: number, componentIndex: number): void {
@@ -610,6 +628,7 @@ export class CourseBuilder {
       editor.focus();
       this.document.execCommand('formatBlock', false, 'p');
       this.richTextDraftHtml = editor.innerHTML;
+      this.emitRichTextRecovery();
       this.richTextBlur(sectionIndex, componentIndex);
     }, 0);
   }
@@ -657,6 +676,7 @@ export class CourseBuilder {
         const editor = this.document.querySelector('.rich-text-editor');
         if (editor instanceof HTMLElement) {
           this.richTextDraftHtml = editor.innerHTML;
+      this.emitRichTextRecovery();
           this.richTextBlur(sectionIndex, componentIndex);
         }
         this.removeAttachment(sectionIndex, componentIndex, assetId);
@@ -723,6 +743,7 @@ export class CourseBuilder {
     }
 
     this.richTextDraftHtml = editor.innerHTML;
+      this.emitRichTextRecovery();
     this.expandOutlineHeadingsByDefault();
     this.richTextBlockTag.set(this.detectCurrentTextBlockTag());
     this.richTextBlur(sectionIndex, componentIndex);
@@ -759,6 +780,7 @@ export class CourseBuilder {
       }),
     );
     this.richTextDraftHtml = editor.innerHTML;
+      this.emitRichTextRecovery();
     this.scheduleAttachmentActionHydration();
   }
 
@@ -990,6 +1012,7 @@ export class CourseBuilder {
   }
 
   protected startSectionRename(sectionIndex: number, event?: MouseEvent): void {
+    if (this.courseContentSaving() || this.courseSubmitting()) { event?.preventDefault(); return; }
     event?.preventDefault();
     this.editingSectionIndex = sectionIndex;
   }

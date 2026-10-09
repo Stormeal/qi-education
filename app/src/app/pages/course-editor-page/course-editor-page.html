@@ -18,6 +18,12 @@
     />
   </div>
 
+  <app-course-draft-status [recoveryAvailable]="recoveryAvailable()" [editable]="courseEditable()"
+    [drafts]="recoveryDrafts()" [selectedKey]="recoveryKey()" (selected)="recoverySelected.emit($event)"
+    [recoveryError]="recoveryError()" [conflict]="saveConflict()" [latest]="latestVersion()" [loading]="latestLoading()"
+    [revisionId]="courseReview()?.revisionId ?? null" [pending]="courseSubmitting() || reviewPending()"
+    (restored)="draftRestored.emit()" (discarded)="recoveryDiscarded.emit()" (compared)="latestRequested.emit()"
+    (reconciled)="draftReconciled.emit()" (latestAccepted)="latestAccepted.emit()" />
   <header class="course-editor-hero">
     <div class="course-editor-hero-content">
       <nav class="course-breadcrumb" aria-label="Course editor breadcrumbs">
@@ -73,7 +79,7 @@
               type="text"
               [value]="courseDraft().title"
               placeholder="ISTQB Foundation 4.0"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseTitleChanged.emit(controlValue($event))"
             />
           </label>
@@ -84,7 +90,7 @@
               type="text"
               [value]="courseDraft().teacher"
               placeholder="QI Education"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseTeacherChanged.emit(controlValue($event))"
             />
           </label>
@@ -95,7 +101,7 @@
               type="text"
               [value]="courseDraft().level"
               placeholder="Foundation"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseLevelChanged.emit(controlValue($event))"
             />
           </label>
@@ -106,7 +112,7 @@
               type="text"
               [value]="courseDraft().partOfCareer"
               placeholder="Automation Engineering"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="coursePartOfCareerChanged.emit(controlValue($event))"
             />
           </label>
@@ -129,7 +135,7 @@
               rows="4"
               [value]="courseDraft().description"
               placeholder="What should learners expect from this course?"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseDescriptionChanged.emit(controlValue($event))"
             ></textarea>
           </label>
@@ -140,7 +146,7 @@
               rows="4"
               [value]="courseDraft().audience"
               placeholder="Testers preparing for certification, career changers, or team members moving into QA."
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseAudienceChanged.emit(controlValue($event))"
             ></textarea>
           </label>
@@ -151,7 +157,7 @@
               rows="5"
               [value]="courseDraft().requirements"
               placeholder="• Basic testing experience&#10;• Comfort reading requirements&#10;• Access to the course materials"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseRequirementsChanged.emit(controlValue($event))"
             ></textarea>
           </label>
@@ -162,7 +168,7 @@
               rows="5"
               [value]="courseDraft().whatYoullLearn"
               placeholder="• Write maintainable test cases&#10;• Understand course concepts quickly&#10;• Apply the lessons in real work"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseWhatYoullLearnChanged.emit(controlValue($event))"
             ></textarea>
           </label>
@@ -181,7 +187,7 @@
         <div class="editor-grid">
           @if (courseFormMode() === 'edit') {
             <app-course-review-panel [review]="courseReview()" [canAdmin]="canAccessAdmin()"
-              [pending]="reviewPending() || courseSubmitting() || thumbnailUploading() || !!attachmentUploadComponentId() || !!muxUploadComponentId()"
+              [blocked]="recoveryAvailable()" [pending]="reviewPending() || courseSubmitting() || thumbnailUploading() || !!attachmentUploadComponentId() || !!muxUploadComponentId()"
               [loading]="courseContentLoading()" [error]="reviewError()" [reason]="reviewReason()"
               (action)="reviewAction.emit($event)" (reasonChanged)="reviewReasonChanged.emit($event)" />
           } @else { <p>New courses start as private drafts.</p> }
@@ -192,7 +198,7 @@
               type="text"
               [value]="courseDraft().careerGoals"
               placeholder="Certification, Core testing"
-              [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+              [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               (input)="courseCareerGoalsChanged.emit(controlValue($event))"
             />
           </label>
@@ -226,7 +232,7 @@
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  [disabled]="thumbnailUploading() || reviewPending() || !courseEditable()"
+                  [disabled]="thumbnailUploading() || reviewPending() || !courseEditable() || recoveryAvailable()"
                   (change)="selectThumbnail($event)"
                 />
                 @if (thumbnailUploading()) {
@@ -260,7 +266,7 @@
 
           <div class="editor-outline-fields">
           <app-course-builder
-            [readOnly]="!courseEditable() || reviewPending()"
+            [readOnly]="!courseEditable() || reviewPending() || recoveryAvailable()"
             [courseContent]="courseContent()"
             [courseContentLoading]="courseContentLoading()"
             [courseContentSaving]="courseContentSaving()"
@@ -275,6 +281,7 @@
             [attachmentUploadError]="attachmentUploadError()"
             (courseSectionAdded)="courseSectionAdded.emit()"
             (courseEditorBufferChanged)="courseEditorBufferChanged.emit($event)"
+            (courseFocusedBufferChanged)="courseFocusedBufferChanged.emit($event)"
             (courseSectionRemoved)="courseSectionRemoved.emit($event)"
             (courseSectionTitleChanged)="courseSectionTitleChanged.emit($event)"
             (courseComponentAdded)="courseComponentAdded.emit($event)"
@@ -314,7 +321,7 @@
         </app-button>
         <app-button
           variant="primary"
-          [disabled]="courseSubmitting() || reviewPending() || !courseEditable()"
+          [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
           (buttonClicked)="courseSubmitted.emit()"
         >
           @if (courseSubmitting()) {

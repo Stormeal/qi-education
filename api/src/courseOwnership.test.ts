@@ -1,3 +1,4 @@
+import { freshAuthoringFetch } from './authoringTestRequest.js';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -91,7 +92,7 @@ describe('course authoring ownership (DEF-001)', () => {
 
   it.each([['teacher', ''], ['admin', '/api']] as const)('assigns the authenticated %s as owner and ignores forged ownership', async (role, prefix) => {
     const user = role === 'teacher' ? owner : admin;
-    const response = await fetch(`${baseUrl}${prefix}/courses`, {
+    const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses`, {
       method: 'POST', headers: headers(user), body: JSON.stringify({ ...metadata, ownerUserId: otherTeacher.id }),
     });
     expect(response.status).toBe(201);
@@ -117,7 +118,7 @@ describe('course authoring ownership (DEF-001)', () => {
     it(`rejects foreign attachment bindings through ${prefix || 'standard'} content saves`, async () => {
       const { foreign, forged } = await foreignAttachmentFixture();
       const before = await content.getCourseContent('owned-course');
-      const response = await fetch(`${baseUrl}${prefix}/courses/owned-course/content`, {
+      const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses/owned-course/content`, {
         method: 'PATCH', headers: headers(owner), body: JSON.stringify(forged),
       });
       expect(response.status).toBe(403);
@@ -130,7 +131,7 @@ describe('course authoring ownership (DEF-001)', () => {
       const { foreign, forged } = await foreignAttachmentFixture();
       await content.updateCourseContent('owned-course', forged.sections);
       for (const write of writes) write.mockClear();
-      const response = await fetch(`${baseUrl}${prefix}/courses/owned-course/content/components/text-1/attachments/${foreign._id}`, {
+      const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses/owned-course/content/components/text-1/attachments/${foreign._id}`, {
         method: 'DELETE', headers: headers(owner), body: '{"sectionId":"section-1"}',
       });
       expect(response.status).toBe(403);
@@ -141,7 +142,7 @@ describe('course authoring ownership (DEF-001)', () => {
     it(`rejects assigning an existing thumbnail on ${prefix || 'standard'} course creation`, async () => {
       const foreign = await assets.saveThumbnail({ courseId: 'other-course', contentType: 'image/png', fileName: 'foreign.png', binary: Buffer.from('Other teacher image') });
       for (const write of writes) write.mockClear();
-      const response = await fetch(`${baseUrl}${prefix}/courses`, { method: 'POST', headers: headers(owner),
+      const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses`, { method: 'POST', headers: headers(owner),
         body: JSON.stringify({ ...metadata, thumbnailAssetId: foreign._id }),
       });
       expect(response.status).toBe(403);
@@ -152,7 +153,7 @@ describe('course authoring ownership (DEF-001)', () => {
     it(`preserves foreign assets while replacing an old invalid thumbnail reference on ${prefix || 'standard'} routes`, async () => {
       const foreign = await assets.saveThumbnail({ courseId: 'other-course', contentType: 'image/png', fileName: 'foreign.png', binary: Buffer.from('Other teacher image') });
       await courses.updateCourseThumbnail('owned-course', { thumbnailAssetId: foreign._id });
-      const response = await fetch(`${baseUrl}${prefix}/courses/owned-course/thumbnail`, {
+      const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses/owned-course/thumbnail`, {
         method: 'PUT', headers: headers(owner, 'image/png'), body: 'New owner image',
       });
       expect(response.status).toBe(200);
@@ -164,7 +165,7 @@ describe('course authoring ownership (DEF-001)', () => {
 
     it.each(operations)(`denies another teacher's $method ${prefix}/courses/:id$path before any write or Mux call`, async (operation) => {
       const before = JSON.stringify({ courses: await courses.listCourses(), content: await content.getCourseContent('owned-course') });
-      const response = await fetch(`${baseUrl}${prefix}/courses/owned-course${operation.path}`, {
+      const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses/owned-course${operation.path}`, {
         method: operation.method, headers: headers(otherTeacher, operation.type), body: operation.body,
       });
       expect(response.status).toBe(403);
@@ -176,28 +177,28 @@ describe('course authoring ownership (DEF-001)', () => {
     it.each(['owner', 'admin'] as const)(`allows %s to perform all authoring operations through ${prefix || 'standard'} routes`, async (role) => {
       const user = role === 'owner' ? owner : admin;
       const url = `${baseUrl}${prefix}/courses/owned-course`;
-      const updated = await fetch(url, { method: 'PATCH', headers: headers(user),
+      const updated = await freshAuthoringFetch(url, { method: 'PATCH', headers: headers(user),
         body: JSON.stringify({ ...metadata, teacher: 'Renamed instructor', ownerUserId: otherTeacher.id }),
       });
       expect(updated.status).toBe(200);
       expect(await updated.json()).toMatchObject({ ownerUserId: owner.id, teacher: 'Renamed instructor' });
-      expect((await fetch(`${url}/content`, { method: 'PATCH', headers: headers(user), body: JSON.stringify(outline) })).status).toBe(200);
-      expect((await fetch(`${url}/thumbnail`, { method: 'PUT', headers: headers(user, 'image/png'), body: 'image' })).status).toBe(200);
-      const attachmentResponse = await fetch(`${url}/content/components/text-1/attachments`, {
+      expect((await freshAuthoringFetch(`${url}/content`, { method: 'PATCH', headers: headers(user), body: JSON.stringify(outline) })).status).toBe(200);
+      expect((await freshAuthoringFetch(`${url}/thumbnail`, { method: 'PUT', headers: headers(user, 'image/png'), body: 'image' })).status).toBe(200);
+      const attachmentResponse = await freshAuthoringFetch(`${url}/content/components/text-1/attachments`, {
         method: 'PUT', headers: headers(user, 'text/plain'), body: 'notes',
       });
       expect(attachmentResponse.status).toBe(201);
       const attachment = (await attachmentResponse.json()).attachment;
       expect(await assets.getComponentAttachment(attachment.assetId)).not.toBeNull();
-      expect((await fetch(`${url}/content/components/text-1/attachments/${attachment.assetId}`, {
+      expect((await freshAuthoringFetch(`${url}/content/components/text-1/attachments/${attachment.assetId}`, {
         method: 'DELETE', headers: headers(user), body: '{"sectionId":"section-1"}',
       })).status).toBe(200);
       expect(await assets.getComponentAttachment(attachment.assetId)).toBeNull();
-      expect((await fetch(`${url}/content/components/video-1/mux-upload`, { method: 'POST',
+      expect((await freshAuthoringFetch(`${url}/content/components/video-1/mux-upload`, { method: 'POST',
         headers: headers(user), body: '{"sectionId":"section-1"}',
       })).status).toBe(201);
       expect((await content.getCourseContent('owned-course'))?.sections[0].components[1]).toMatchObject({ mux: { uploadId: 'upload-1' } });
-      expect((await fetch(`${url}/content/components/video-1/mux-video`, { method: 'DELETE',
+      expect((await freshAuthoringFetch(`${url}/content/components/video-1/mux-video`, { method: 'DELETE',
         headers: headers(user), body: '{"sectionId":"section-1"}',
       })).status).toBe(200);
       expect((await content.getCourseContent('owned-course'))?.sections[0].components[1]).not.toHaveProperty('mux');
@@ -205,13 +206,13 @@ describe('course authoring ownership (DEF-001)', () => {
   }
 
   it('keeps legacy courses admin-editable only', async () => {
-    const request = (user: AuthUser) => fetch(`${baseUrl}/courses/demo-course-1`, {
+    const request = (user: AuthUser) => freshAuthoringFetch(`${baseUrl}/courses/demo-course-1`, {
       method: 'PATCH', headers: headers(user), body: JSON.stringify(metadata),
     });
     expect((await request(owner)).status).toBe(403);
-    const preview = await fetch(`${baseUrl}/courses/demo-course-1/content?view=author`, { headers: headers(admin) });
+    const preview = await freshAuthoringFetch(`${baseUrl}/courses/demo-course-1/content?view=author`, { headers: headers(admin) });
     const state = (await preview.json()).review;
-    const revision = await fetch(`${baseUrl}/courses/demo-course-1/review`, { method: 'POST', headers: headers(admin),
+    const revision = await freshAuthoringFetch(`${baseUrl}/courses/demo-course-1/review`, { method: 'POST', headers: headers(admin),
       body: JSON.stringify({ action: 'start-revision', expectedVersion: state.version, revisionId: state.revisionId }) });
     expect(revision.status).toBe(200);
     const response = await request(admin);
@@ -220,7 +221,7 @@ describe('course authoring ownership (DEF-001)', () => {
   });
 
   it.each(operations)('preserves authentication and missing-course boundaries for $method $path', async (operation) => {
-    const request = (id: string, user?: AuthUser) => fetch(`${baseUrl}/courses/${id}${operation.path}`, {
+    const request = (id: string, user?: AuthUser) => freshAuthoringFetch(`${baseUrl}/courses/${id}${operation.path}`, {
       method: operation.method, headers: headers(user, operation.type), body: operation.body,
     });
     expect((await request('owned-course')).status).toBe(401);

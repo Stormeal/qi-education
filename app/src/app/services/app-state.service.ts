@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
@@ -31,6 +31,7 @@ import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { SessionService } from './session.service';
 import { LearningProgressService } from './learning-progress.service';
 import { canEditCourse } from '../utils/course-permissions';
+import { CourseDraftRecoveryService, CourseEditorBuffer, RecoverableCourseDraft } from './course-draft-recovery.service';
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
@@ -41,9 +42,20 @@ export class AppStateService {
   private readonly profileService = inject(ProfileService);
   private readonly sessionService = inject(SessionService);
   private readonly learningProgress = inject(LearningProgressService);
+  private readonly courseDraftRecovery = inject(CourseDraftRecoveryService);
+  private draftRecoveryContext = '';
+  private restoredDraftKey = '';
+  private recoverySuppressed = false;
+  readonly recoverableCourseDraft = signal<RecoverableCourseDraft | null>(null);
+  readonly recoverableCourseDrafts = signal<RecoverableCourseDraft[]>([]);
+  readonly courseRecoveryError = signal('');
+  readonly focusedCourseBuffer = signal<CourseEditorBuffer | null>(null);
+  readonly courseSaveConflict = signal(false);
+  readonly latestCourseVersion = signal<CourseContentDocument | null>(null);
+  readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.56';
+  readonly appVersion = '0.1.57';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -298,6 +310,9 @@ export class AppStateService {
   private resetCourseOperations(): void {
     this.learningProgress.cancelLoads();
     this.courseOperationGeneration++;
+    this.draftRecoveryContext = ''; this.restoredDraftKey = ''; this.recoverySuppressed = false;
+    this.recoverableCourseDraft.set(null); this.recoverableCourseDrafts.set([]); this.focusedCourseBuffer.set(null);
+    this.courseSaveConflict.set(false); this.latestCourseVersion.set(null); this.latestCourseLoading.set(false); this.courseRecoveryError.set('');
     this.courseReview.set(null);
     this.courseReviewPending.set(false);
     this.courseReviewError.set('');
@@ -336,11 +351,33 @@ export class AppStateService {
 
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!this.hasUnsavedCourseChanges()) return;
+      this.persistCourseRecovery();
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', warnBeforeUnload);
     inject(DestroyRef).onDestroy(() => window.removeEventListener('beforeunload', warnBeforeUnload));
+    effect(() => {
+      this.loginState(); this.currentPath(); this.courseContentLoading(); this.courseReview();
+      this.courseDraft(); this.courseContent(); this.focusedCourseBuffer(); this.courseEditorBufferDirty();
+      untracked(() => {
+        const account = this.loginState()?.user.id, courseId = this.courseEditingId() ?? 'new';
+        const context = account && this.isCourseEditorPage() && this.canUseCourseEditor() ? `${account}:${courseId}` : '';
+        if (context !== this.draftRecoveryContext) {
+          this.draftRecoveryContext = ''; this.restoredDraftKey = ''; this.recoverySuppressed = false;
+          this.recoverableCourseDraft.set(null); this.recoverableCourseDrafts.set([]); this.focusedCourseBuffer.set(null);
+          this.courseSaveConflict.set(false); this.latestCourseVersion.set(null); this.latestCourseLoading.set(false);
+          this.courseRecoveryError.set('');
+        }
+        if (!context || this.courseContentLoading() || (courseId !== 'new' && (!this.courseReview() || this.loadedCourseContentId() !== courseId))) return;
+        if (!this.draftRecoveryContext) {
+          this.draftRecoveryContext = context;
+          const drafts = this.courseDraftRecovery.loadAll(account!, courseId);
+          this.recoverableCourseDrafts.set(drafts); this.recoverableCourseDraft.set(drafts[0] ?? null);
+        }
+        this.persistCourseRecovery();
+      });
+    });
 
     this.router.events
       .pipe(
@@ -512,10 +549,13 @@ export class AppStateService {
   }
 
   confirmDiscardCourseChanges(): boolean {
-    return !this.hasUnsavedCourseChanges() || window.confirm('Discard unsaved course changes?');
+    const accepted = !this.hasUnsavedCourseChanges() || window.confirm('Discard unsaved course changes?');
+    if (accepted && this.hasUnsavedCourseChanges()) { this.clearCourseRecovery(); this.recoverySuppressed = true; }
+    return accepted;
   }
 
   logout(forced = false): void {
+    if (forced) this.persistCourseRecovery();
     if (!forced && !this.confirmDiscardCourseChanges()) return;
     this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
@@ -1113,23 +1153,7 @@ export class AppStateService {
     this.attachmentUploadError.set('');
 
     try {
-      if (this.serializeCourseContent(content) !== this.initialCourseContentSnapshot()) {
-        this.courseContentSaving.set(true);
-        const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
-
-        if (!isCurrent()) return;
-
-        if (!saveResult.ok) {
-          this.courseContentError.set(saveResult.message);
-          this.attachmentUploadError.set(saveResult.message);
-          return;
-        }
-
-        const savedContent = this.normalizeCourseContent(saveResult.content);
-        this.courseContent.set(savedContent);
-        this.loadedCourseContentId.set(savedContent._id);
-        this.initialCourseContentSnapshot.set(this.serializeCourseContent(savedContent));
-      }
+      if (!await this.saveOutlineBeforeMedia(courseId, token, isCurrent)) return;
 
       const result = await this.courseService.uploadComponentAttachment(
         courseId,
@@ -1145,17 +1169,19 @@ export class AppStateService {
             [component.id]: Math.min(progress, 95),
           }));
         },
+        this.courseReview(),
       );
 
       if (!isCurrent()) return;
 
       if (!result.ok) {
+        this.courseSaveFailed(result, 'content');
         this.attachmentUploadError.set(result.message);
         return;
       }
 
       const finalContent = this.normalizeCourseContent(result.content);
-      this.courseContent.set(finalContent);
+      this.acceptCourseContentSave(finalContent);
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
     } catch {
@@ -1210,12 +1236,14 @@ export class AppStateService {
     this.attachmentUploadError.set('');
 
     try {
+      if (!await this.saveOutlineBeforeMedia(courseId, token, isCurrent)) return;
       const result = await this.courseService.removeComponentAttachment(
         courseId,
         section.id,
         component.id,
         assetId,
         token,
+        this.courseReview(),
       );
 
       if (!isCurrent()) return;
@@ -1227,8 +1255,10 @@ export class AppStateService {
         return;
       }
 
+      if (result.content.review) this.courseReview.set(result.content.review);
       const updatedContent = this.removeAttachmentMarker(this.normalizeCourseContent(result.content), assetId);
-      const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token);
+      this.courseContent.set(updatedContent);
+      const saveResult = await this.courseService.saveCourseContent(courseId, updatedContent.sections, token, this.courseReview());
 
       if (!isCurrent()) return;
 
@@ -1238,7 +1268,7 @@ export class AppStateService {
       }
 
       const finalContent = this.normalizeCourseContent(saveResult.content);
-      this.courseContent.set(finalContent);
+      this.acceptCourseContentSave(finalContent);
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
     } catch {
@@ -1246,6 +1276,7 @@ export class AppStateService {
       this.attachmentUploadError.set('Unable to remove the attachment. Please try again.');
     } finally {
       if (!isCurrent()) return;
+      this.courseContentSaving.set(false);
       this.attachmentUploadComponentId.set('');
     }
   }
@@ -1333,40 +1364,26 @@ export class AppStateService {
     this.muxUploadProgress.update((progress) => ({ ...progress, [component.id]: 0 }));
 
     try {
-      if (this.serializeCourseContent(content) !== this.initialCourseContentSnapshot()) {
-        this.courseContentSaving.set(true);
-        const saveResult = await this.courseService.saveCourseContent(courseId, content.sections, token);
-
-        if (!isCurrent()) return;
-
-        if (!saveResult.ok) {
-          this.courseContentError.set(saveResult.message);
-          this.muxUploadError.set(saveResult.message);
-          return;
-        }
-
-        const savedContent = this.normalizeCourseContent(saveResult.content);
-        this.courseContent.set(savedContent);
-        this.loadedCourseContentId.set(savedContent._id);
-        this.initialCourseContentSnapshot.set(this.serializeCourseContent(savedContent));
-      }
+      if (!await this.saveOutlineBeforeMedia(courseId, token, isCurrent)) return;
 
       const uploadResult = await this.courseService.createMuxUpload(
         courseId,
         section.id,
         component.id,
         token,
+        this.courseReview(),
       );
 
       if (!isCurrent()) return;
 
       if (!uploadResult.ok) {
+        this.courseSaveFailed(uploadResult, 'content');
         this.muxUploadError.set(uploadResult.message);
         return;
       }
 
       const updatedContent = this.normalizeCourseContent(uploadResult.content);
-      this.courseContent.set(updatedContent);
+      this.acceptCourseContentSave(updatedContent);
       this.loadedCourseContentId.set(updatedContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
       this.updateCourseComponentMuxStatus(sectionIndex, componentIndex, 'uploading');
@@ -1429,17 +1446,19 @@ export class AppStateService {
     this.muxUploadError.set('');
 
     try {
-      const result = await this.courseService.removeMuxVideo(courseId, section.id, component.id, token);
+      if (!await this.saveOutlineBeforeMedia(courseId, token, isCurrent)) return;
+      const result = await this.courseService.removeMuxVideo(courseId, section.id, component.id, token, this.courseReview());
 
       if (!isCurrent()) return;
 
       if (!result.ok) {
+        this.courseSaveFailed(result, 'content');
         this.muxUploadError.set(result.message);
         return;
       }
 
       const updatedContent = this.normalizeCourseContent(result.content);
-      this.courseContent.set(updatedContent);
+      this.acceptCourseContentSave(updatedContent);
       this.loadedCourseContentId.set(updatedContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(updatedContent));
       this.muxUploadProgress.update(({ [component.id]: _removedProgress, ...progress }) => progress);
@@ -1448,6 +1467,7 @@ export class AppStateService {
       this.muxUploadError.set('Unable to remove the video. Please try again.');
     } finally {
       if (!isCurrent()) return;
+      this.courseContentSaving.set(false);
       this.muxUploadComponentId.set('');
     }
   }
@@ -1692,156 +1712,185 @@ export class AppStateService {
     this.courseContentError.set('');
   }
 
-  async submitCourse(): Promise<void> {
-    const isCurrent = this.courseResponseIsCurrent();
-    if (this.courseSubmitting()) {
+  updateFocusedCourseBuffer(buffer: CourseEditorBuffer | null): void {
+    this.focusedCourseBuffer.set(buffer);
+    const section = this.courseContent()?.sections.find(item => item.id === buffer?.sectionId);
+    const component = section?.components.find(item => item.id === buffer?.componentId);
+    this.courseEditorBufferDirty.set(!!buffer && buffer.value !== (buffer.componentId ? component?.content : section?.title));
+    this.persistCourseRecovery();
+  }
+  private recoverySections(): CourseSection[] {
+    const sections = structuredClone(this.courseContent()?.sections ?? []), buffer = this.focusedCourseBuffer();
+    const section = sections.find(item => item.id === buffer?.sectionId);
+    if (section && buffer) {
+      if (!buffer.componentId) section.title = buffer.value.trim() || 'Untitled section';
+      else {
+        const component = section.components.find(item => item.id === buffer.componentId);
+        if (component?.type === 'text') component.content = buffer.value;
+      }
+    }
+    return sections;
+  }
+  private persistCourseRecovery(): void {
+    const accountId = this.loginState()?.user.id, courseId = this.courseEditingId() ?? 'new';
+    if (this.recoverySuppressed || !accountId || !this.draftRecoveryContext || !this.isCourseEditorPage() || !this.canUseCourseEditor() || this.courseContentLoading() || this.recoverableCourseDraft()) return;
+    if (!this.hasUnsavedCourseChanges()) { this.clearCourseRecovery(); return; }
+    if (!this.courseEditable()) return;
+    const state = this.courseReview();
+    const saved = this.courseDraftRecovery.save({ accountId, courseId, draft: this.courseDraft(), sections: this.recoverySections(),
+      revision: courseId === 'new' || !state ? null : { version: state.version, revisionId: state.revisionId } });
+    this.courseRecoveryError.set(saved ? '' : 'Draft recovery could not be saved on this device. Keep this page open until your course is saved.');
+  }
+  private clearCourseRecovery(): void {
+    const account = this.loginState()?.user.id;
+    if (!account) return;
+    const keys = new Set([this.courseDraftRecovery.key(account, this.courseEditingId() ?? 'new'), this.restoredDraftKey]);
+    if ([...keys].filter(Boolean).some(key => !this.courseDraftRecovery.remove(key))) {
+      this.courseRecoveryError.set('The local draft could not be removed. Discard it if offered again.');
+    }
+    this.restoredDraftKey = '';
+  }
+  restoreCourseDraft(): void {
+    const saved = this.recoverableCourseDraft(), review = this.courseReview();
+    if (!saved || !this.courseEditable() || !this.canUseCourseEditor() || saved.accountId !== this.loginState()?.user.id || saved.courseId !== (this.courseEditingId() ?? 'new')) return;
+    this.restoredDraftKey = saved.key;
+    this.courseDraft.set(saved.draft);
+    if (this.courseContent()) this.courseContent.update(content => content ? { ...content, sections: saved.sections } : null);
+    if (review && saved.revision && (review.version !== saved.revision.version || review.revisionId !== saved.revision.revisionId)) {
+      this.latestCourseVersion.set({ ...this.courseContent()!, sections: JSON.parse(this.initialCourseContentSnapshot()).sections, review });
+      this.courseReview.set({ ...review, ...saved.revision }); this.courseSaveConflict.set(true);
+    }
+    this.recoverableCourseDraft.set(null); this.recoverableCourseDrafts.set([]); this.persistCourseRecovery();
+  }
+  selectRecoverableCourseDraft(key: string): void {
+    const draft = this.recoverableCourseDrafts().find(item => item.key === key);
+    if (draft && draft.accountId === this.loginState()?.user.id && draft.courseId === (this.courseEditingId() ?? 'new')) this.recoverableCourseDraft.set(draft);
+  }
+  discardRecoverableCourseDraft(): void {
+    const saved = this.recoverableCourseDraft();
+    if (!saved || saved.accountId !== this.loginState()?.user.id) return;
+    if (!this.courseDraftRecovery.remove(saved.key)) { this.courseRecoveryError.set('The local draft could not be removed.'); return; }
+    const drafts = this.courseDraftRecovery.loadAll(saved.accountId, saved.courseId);
+    this.recoverableCourseDrafts.set(drafts); this.recoverableCourseDraft.set(drafts[0] ?? null);
+  }
+  async compareLatestCourse(): Promise<void> {
+    const id = this.courseEditingId(), token = this.loginState()?.token, isCurrent = this.courseResponseIsCurrent();
+    if (!id || !token || this.latestCourseLoading()) return;
+    this.latestCourseLoading.set(true);
+    try {
+      const latest = await this.courseService.loadCourseContent(id, token, 'author');
+      if (isCurrent()) this.latestCourseVersion.set(latest);
+    } catch (error) { if (isCurrent()) this.courseContentError.set(error instanceof Error ? error.message : 'Unable to load the latest version.'); }
+    finally { if (isCurrent()) this.latestCourseLoading.set(false); }
+  }
+  reconcileCourseDraft(): void {
+    const latest = this.latestCourseVersion(), current = this.courseReview();
+    if (!latest?.review?.editable || !current || latest.review.revisionId !== current.revisionId || this.courseSubmitting()) return;
+    this.courseReview.set(latest.review);
+    this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(this.courseDraftFromCourse(latest.review.course)));
+    this.initialCourseContentSnapshot.set(this.serializeCourseContent(latest));
+    this.courseSaveConflict.set(false); this.latestCourseVersion.set(null);
+    this.courseCreateError.set(''); this.courseContentError.set(''); this.persistCourseRecovery();
+  }
+  useLatestCourseVersion(): void {
+    const latest = this.latestCourseVersion();
+    if (!latest?.review || this.courseSubmitting() || !window.confirm('Discard your local edits and use the latest saved version?')) return;
+    this.clearCourseRecovery(); this.focusedCourseBuffer.set(null); this.courseEditorBufferDirty.set(false);
+    this.courseReview.set(latest.review); this.courseContent.set(latest);
+    const draft = this.courseDraftFromCourse(latest.review.course); this.courseDraft.set(draft);
+    this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft)); this.initialCourseContentSnapshot.set(this.serializeCourseContent(latest));
+    this.courseSaveConflict.set(false); this.latestCourseVersion.set(null); this.courseCreateError.set(''); this.courseContentError.set('');
+  }
+  applyCourseBackgroundRefresh(latest: CourseContentDocument): void {
+    if (this.hasUnsavedCourseChanges()) {
+      if (latest.review && latest.review.version !== this.courseReview()?.version) {
+        this.courseSaveConflict.set(true); this.latestCourseVersion.set(latest);
+      }
       return;
     }
-
-    const token = this.loginState()?.token;
-    const user = this.loginState()?.user;
-
-    if (!token || !user) {
-      this.courseCreateError.set('Please log in again before creating a course.');
-      return;
+    this.courseContent.set(latest); if (latest.review) {
+      this.courseReview.set(latest.review);
+      const draft = this.courseDraftFromCourse(latest.review.course); this.courseDraft.set(draft); this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(draft));
     }
-
-    if (!this.loginState()?.permissions.canCreateCourses) {
-      this.courseCreateError.set('Teacher or admin access is required.');
-      return;
+    this.initialCourseContentSnapshot.set(this.serializeCourseContent(latest));
+  }
+  private courseSaveFailed(result: { message: string; code?: string }, part: 'metadata' | 'content', detailsSaved = false): void {
+    if (result.code === 'AUTHORING_CONFLICT' || result.code === 'AUTHORING_REVISION_REQUIRED') this.courseSaveConflict.set(true);
+    const message = detailsSaved ? `Details saved. Lessons remain unsaved. ${result.message}` : result.message;
+    (part === 'metadata' ? this.courseCreateError : this.courseContentError).set(message);
+    this.persistCourseRecovery();
+  }
+  private acceptCourseContentSave(content: CourseContentDocument): void {
+    if (content.review) this.courseReview.set(content.review);
+    this.courseContent.set(content); this.initialCourseContentSnapshot.set(this.serializeCourseContent(content));
+  }
+  private async saveOutlineBeforeMedia(courseId: string, token: string, isCurrent: () => boolean): Promise<boolean> {
+    if (this.courseSaveConflict() || this.recoverableCourseDraft()) return false;
+    if (this.focusedCourseBuffer() && this.courseContent()) {
+      this.courseContent.update(content => content ? { ...content, sections: this.recoverySections() } : null);
+      this.focusedCourseBuffer.set(null); this.courseEditorBufferDirty.set(false);
     }
-
-    if (this.courseFormMode() === 'edit' && !this.canEditCourse(this.editingCourse())) {
-      this.courseCreateError.set('You do not have permission to edit this course.');
-      return;
-    }
-
-    if (!this.courseEditable()) { this.courseCreateError.set('Start a draft revision or wait for the admin review outcome before editing.'); return; }
-
-    const draft = this.courseDraft();
-    const mode = this.courseFormMode();
-    const courseId = this.courseEditingId();
     const content = this.courseContent();
-    const metadataChanged =
-      mode === 'create' || this.serializeCourseDraft(draft) !== this.initialCourseDraftSnapshot();
-    const contentChanged =
-      mode === 'edit' &&
-      !!courseId &&
-      !!content &&
-      this.serializeCourseContent(content) !== this.initialCourseContentSnapshot();
+    // The caller owns this busy flag through the complete upload/removal response.
+    this.courseContentSaving.set(true);
+    if (!content || this.serializeCourseContent(content) === this.initialCourseContentSnapshot()) return true;
+    const result = await this.courseService.saveCourseContent(courseId, content.sections, token, this.courseReview());
+    if (!isCurrent()) return false;
+    if (!result.ok) { this.courseSaveFailed(result, 'content'); return false; }
+    this.acceptCourseContentSave(this.normalizeCourseContent(result.content)); return true;
+  }
 
-    if (!metadataChanged && !contentChanged) {
-      return;
+  async submitCourse(): Promise<void> {
+    if (this.courseSubmitting() || this.courseContentSaving() || this.attachmentUploadComponentId() || this.muxUploadComponentId() || this.recoverableCourseDraft()) return;
+    const token = this.loginState()?.token, user = this.loginState()?.user;
+    if (!token || !user) { this.courseCreateError.set('Please log in again before saving.'); return; }
+    if (!this.canUseCourseEditor()) { this.courseCreateError.set('You do not have permission to edit this course.'); return; }
+    if (this.courseSaveConflict()) { this.courseCreateError.set('Compare the latest saved version and reconcile your draft before saving.'); return; }
+    if (!this.courseEditable()) { this.courseCreateError.set('Start a draft revision or wait for the admin review outcome before editing.'); return; }
+    if (this.focusedCourseBuffer() && this.courseContent()) {
+      this.courseContent.update(content => content ? { ...content, sections: this.recoverySections() } : null);
+      this.focusedCourseBuffer.set(null); this.courseEditorBufferDirty.set(false);
     }
-
-    if (mode === 'edit' && !courseId) {
-      this.courseCreateError.set('Select a course to edit before saving.');
-      return;
-    }
-
-    this.courseSubmitting.set(true);
-    this.courseContentSaving.set(contentChanged);
-    this.courseCreateError.set('');
-    this.courseContentError.set('');
-    this.clearCourseSaveNotice();
-
+    const isCurrent = this.courseResponseIsCurrent(), mode = this.courseFormMode(), courseId = this.courseEditingId();
+    const draft = this.courseDraft(), content = this.courseContent();
+    const metadataChanged = mode === 'create' || this.serializeCourseDraft(draft) !== this.initialCourseDraftSnapshot();
+    const contentChanged = mode === 'edit' && !!content && this.serializeCourseContent(content) !== this.initialCourseContentSnapshot();
+    if (!metadataChanged && !contentChanged) return;
+    this.courseSubmitting.set(true); this.courseContentSaving.set(contentChanged);
+    this.courseCreateError.set(''); this.courseContentError.set(''); this.clearCourseSaveNotice();
+    let detailsSaved = false, part: 'metadata' | 'content' = metadataChanged ? 'metadata' : 'content';
     try {
       let savedCourse: CourseListItem | null = null;
-      // Persist the edited outline before asking readiness validation to inspect it.
-      // Failed review keeps the course unpublished and the edited draft available.
-      let contentSavedBeforeMetadata = false;
-      if (mode === 'edit' && metadataChanged && contentChanged && courseId && content &&
-        ['ready-for-review', 'published'].includes(draft.status)) {
-        const result = await this.courseService.saveCourseContent(courseId, content.sections, token);
-        if (!isCurrent()) return;
-        if (!result.ok) { this.courseContentError.set(result.message); return; }
-        this.courseContent.set(result.content);
-        this.initialCourseContentSnapshot.set(this.serializeCourseContent(result.content));
-        contentSavedBeforeMetadata = true;
-      }
-
-
       if (metadataChanged) {
-        const result = await this.courseService.saveCourse(
-          mode,
-          draft,
-          token,
-          user.displayName,
-          courseId,
-        );
-
+        const result = await this.courseService.saveCourse(mode, draft, token, user.displayName, courseId, this.courseReview());
         if (!isCurrent()) return;
-
-        if (!result.ok) {
-          this.courseCreateError.set(result.message);
-          return;
-        }
-
-        savedCourse = result.course;
-        if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: result.course } : null);
+        if (!result.ok) { this.courseSaveFailed(result, 'metadata'); return; }
+        savedCourse = result.course; detailsSaved = true;
+        if (result.review) this.courseReview.set(result.review);
         const savedDraft = this.courseDraftFromCourse(savedCourse);
-        this.courseDraft.set(savedDraft);
-        this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(savedDraft));
-
-        if (mode === 'edit' && !this.courseReview()?.liveStatus) {
-          this.availableCourses.update((courses) =>
-            courses.map((course) => (course.id === result.course.id ? result.course : course)),
-          );
-        } else if (mode === 'create') {
-          this.availableCourses.update((courses) => [result.course, ...courses]);
-        }
+        this.courseDraft.set(savedDraft); this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(savedDraft));
+        if (mode === 'create') this.availableCourses.update(courses => [result.course, ...courses]);
+        else if (!this.courseReview()?.liveStatus) this.availableCourses.update(courses => courses.map(course => course.id === result.course.id ? result.course : course));
       }
-
-      const contentCourseId = savedCourse?.id ?? courseId;
-
-      if (contentChanged && !contentSavedBeforeMetadata && contentCourseId && content) {
-        const contentResult = await this.courseService.saveCourseContent(
-          contentCourseId,
-          content.sections,
-          token,
-        );
-
+      if (contentChanged && courseId && content) {
+        part = 'content';
+        const result = await this.courseService.saveCourseContent(courseId, content.sections, token, this.courseReview());
         if (!isCurrent()) return;
-
-        if (!contentResult.ok) {
-          this.courseContentError.set(contentResult.message);
-          return;
-        }
-
-        this.courseContent.set(contentResult.content);
-        this.loadedCourseContentId.set(contentResult.content._id);
-        this.initialCourseContentSnapshot.set(this.serializeCourseContent(contentResult.content));
+        if (!result.ok) { this.courseSaveFailed(result, 'content', detailsSaved); return; }
+        this.acceptCourseContentSave(result.content);
       }
-
-      const finalDraft = savedCourse ? this.courseDraftFromCourse(savedCourse) : draft;
-      this.courseDraft.set(finalDraft);
-      this.initialCourseDraftSnapshot.set(this.serializeCourseDraft(finalDraft));
+      this.clearCourseRecovery();
       this.showCourseSaveNotice(this.courseSaveMessage(mode, metadataChanged, contentChanged));
-
-      if (mode === 'create' && savedCourse) {
-        void this.updatePath(`/courses/${encodeURIComponent(savedCourse.id)}/edit`);
-      }
+      if (mode === 'create' && savedCourse) void this.updatePath(`/courses/${encodeURIComponent(savedCourse.id)}/edit`);
     } catch {
-      if (!isCurrent()) return;
-      if (contentChanged && !metadataChanged) {
-        this.courseContentError.set(
-          'Unable to reach the API while saving content. Please try again.',
-        );
-      } else {
-        this.courseCreateError.set(
-          mode === 'edit'
-            ? 'Unable to reach the API while saving. Please try again.'
-            : 'Unable to reach the API. Please try again.',
-        );
-      }
+      if (isCurrent()) this.courseSaveFailed({ message: 'Unable to reach the API. Please try again.' }, part, detailsSaved && part === 'content');
     } finally {
-      if (!isCurrent()) return;
-      this.courseSubmitting.set(false);
-      this.courseContentSaving.set(false);
+      if (isCurrent()) { this.courseSubmitting.set(false); this.courseContentSaving.set(false); this.persistCourseRecovery(); }
     }
   }
 
   async reviewCourse(action: CourseReviewAction): Promise<void> {
+    if (this.recoverableCourseDraft()) { this.courseReviewError.set('Restore or discard the local draft before making a review decision.'); return; }
     if (this.courseReviewPending() || this.courseSubmitting() || this.courseContentLoading() || this.courseThumbnailUploading() || this.attachmentUploadComponentId() || this.muxUploadComponentId()) return;
     const courseId = this.courseEditingId(), token = this.loginState()?.token;
     if (!courseId || !token || !this.canUseCourseEditor()) return;
@@ -1990,18 +2039,20 @@ export class AppStateService {
     this.courseThumbnailError.set('');
 
     try {
-      const result = await this.courseService.uploadCourseThumbnail(courseId, file, token);
+      const result = await this.courseService.uploadCourseThumbnail(courseId, file, token, this.courseReview());
 
       if (!isCurrent()) return;
 
       if (!result.ok) {
+        this.courseSaveFailed(result, 'content');
         this.courseThumbnailError.set(result.message);
         return;
       }
 
       await this.courseService.preloadCourseThumbnails([result.course], token);
       if (!isCurrent()) return;
-      if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: { ...review.course, thumbnailAssetId: result.course.thumbnailAssetId } } : null);
+      if (result.review) this.courseReview.set(result.review);
+      else if (this.courseReview()) this.courseReview.update(review => review ? { ...review, course: { ...review.course, thumbnailAssetId: result.course.thumbnailAssetId } } : null);
       if (!this.courseReview()?.liveStatus)
       this.availableCourses.update((courses) =>
         courses.map((course) => (course.id === result.course.id ? result.course : course)),
@@ -2462,6 +2513,7 @@ export class AppStateService {
     status: MuxVideoStatus,
     errorMessage = '',
   ): void {
+    const wasClean = this.courseContent() && this.serializeCourseContent(this.courseContent()!) === this.initialCourseContentSnapshot();
     this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
       if (component.type !== 'video' || !component.mux) {
         return component;
@@ -2476,6 +2528,7 @@ export class AppStateService {
         },
       };
     });
+    if (wasClean && this.courseContent()) this.initialCourseContentSnapshot.set(this.serializeCourseContent(this.courseContent()!));
   }
 
   private replacePendingAttachmentMarker(
@@ -2584,9 +2637,8 @@ export class AppStateService {
     try {
       const loadedContent = this.normalizeCourseContent(await this.courseService.loadCourseContent(courseId, token, 'author'));
       if (!stillEditing()) return;
-      this.courseContent.set(loadedContent);
+      this.applyCourseBackgroundRefresh(loadedContent);
       this.loadedCourseContentId.set(courseId);
-      this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
 
       const component = this.findCourseComponent(loadedContent, componentId);
       if (component?.type === 'video' && (component.mux?.status === 'ready' || component.mux?.status === 'errored')) {

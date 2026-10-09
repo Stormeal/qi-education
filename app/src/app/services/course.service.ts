@@ -14,15 +14,21 @@ import {
 import { ApiClientService } from './api-client.service';
 
 export type CourseSaveMode = 'create' | 'edit';
+export type CourseRevision = Pick<CourseReviewState, 'version' | 'revisionId'>;
+export function courseRevisionHeaders(revision?: CourseRevision | null): Record<string, string> {
+  return revision ? { 'X-Course-Revision': JSON.stringify({ version: revision.version, revisionId: revision.revisionId }) } : {};
+}
 
 export type CourseSaveResult =
   | {
       ok: true;
       course: CourseListItem;
+      review?: CourseReviewState;
     }
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseContentSaveResult =
@@ -33,6 +39,7 @@ export type CourseContentSaveResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseMuxUploadResult =
@@ -45,6 +52,7 @@ export type CourseMuxUploadResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseMuxVideoRemoveResult =
@@ -55,6 +63,7 @@ export type CourseMuxVideoRemoveResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseAttachmentUploadResult =
@@ -66,6 +75,7 @@ export type CourseAttachmentUploadResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseAttachmentRemoveResult =
@@ -76,6 +86,7 @@ export type CourseAttachmentRemoveResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseAttachmentDownloadResult =
@@ -86,6 +97,7 @@ export type CourseAttachmentDownloadResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 export type CourseEnrollmentResult =
@@ -96,6 +108,7 @@ export type CourseEnrollmentResult =
   | {
       ok: false;
       message: string;
+      code?: string;
     };
 
 @Injectable({ providedIn: 'root' })
@@ -164,6 +177,7 @@ export class CourseService {
     token: string,
     fallbackTeacher: string,
     courseId: string | null,
+      revision?: CourseRevision | null,
   ): Promise<CourseSaveResult> {
     if (mode === 'edit' && !courseId) {
       return {
@@ -195,14 +209,16 @@ export class CourseService {
       headers: {
         'Content-Type': 'application/json',
         authorization: `Bearer ${token}`,
+        ...courseRevisionHeaders(revision),
       },
       body: JSON.stringify(payload),
     });
-    const body = (await response.json().catch(() => ({}))) as CourseListItem | { message?: string };
+    const body = (await response.json().catch(() => ({}))) as (CourseListItem & { review?: CourseReviewState }) | { message?: string; code?: string };
 
     if (!response.ok || !('id' in body)) {
       return {
         ok: false,
+        code: "code" in body ? body.code : undefined,
         message:
           'message' in body && body.message
             ? body.message
@@ -216,7 +232,8 @@ export class CourseService {
 
     return {
       ok: true,
-      course: body,
+      course: (({ review, ...course }) => course)(body as CourseListItem & { review?: CourseReviewState }),
+      review: (body as CourseListItem & { review?: CourseReviewState }).review,
     };
   }
 
@@ -278,20 +295,23 @@ export class CourseService {
     courseId: string,
     sections: CourseSection[],
     token: string,
+      revision?: CourseRevision | null,
   ): Promise<CourseContentSaveResult> {
     const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         authorization: `Bearer ${token}`,
+        ...courseRevisionHeaders(revision),
       },
       body: JSON.stringify({ sections }),
     });
-    const body = (await response.json().catch(() => ({}))) as CourseContentDocument | { message?: string };
+    const body = (await response.json().catch(() => ({}))) as CourseContentDocument | { message?: string; code?: string };
 
     if (!response.ok || !('_id' in body)) {
       return {
         ok: false,
+        code: "code" in body ? body.code : undefined,
         message: !('_id' in body) && body.message ? body.message : 'Unable to save course content.',
       };
     }
@@ -309,6 +329,7 @@ export class CourseService {
     sectionId: string,
     componentId: string,
     token: string,
+      revision?: CourseRevision | null,
   ): Promise<CourseMuxUploadResult> {
     const response = await this.apiClient.fetch(
       `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/mux-upload`,
@@ -317,6 +338,7 @@ export class CourseService {
         headers: {
           'Content-Type': 'application/json',
           authorization: `Bearer ${token}`,
+        ...courseRevisionHeaders(revision),
         },
         body: JSON.stringify({ sectionId }),
       },
@@ -327,11 +349,13 @@ export class CourseService {
           uploadUrl?: string;
           content?: CourseContentDocument;
           message?: string;
+          code?: string;
         };
 
     if (!response.ok || !body.uploadId || !body.uploadUrl || !body.content) {
       return {
         ok: false,
+        code: "code" in body ? body.code : undefined,
         message: body.message ?? 'Unable to create Mux upload.',
       };
     }
@@ -351,6 +375,7 @@ export class CourseService {
     sectionId: string,
     componentId: string,
     token: string,
+      revision?: CourseRevision | null,
   ): Promise<CourseMuxVideoRemoveResult> {
     const response = await this.apiClient.fetch(
       `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/mux-video`,
@@ -359,6 +384,7 @@ export class CourseService {
         headers: {
           'Content-Type': 'application/json',
           authorization: `Bearer ${token}`,
+        ...courseRevisionHeaders(revision),
         },
         body: JSON.stringify({ sectionId }),
       },
@@ -367,11 +393,13 @@ export class CourseService {
       | {
           content?: CourseContentDocument;
           message?: string;
+          code?: string;
         };
 
     if (!response.ok || !body.content) {
       return {
         ok: false,
+        code: "code" in body ? body.code : undefined,
         message: body.message ?? 'Unable to remove Mux video.',
       };
     }
@@ -422,6 +450,7 @@ export class CourseService {
     token: string,
     markerId: string,
     onProgress?: (progress: number) => void,
+    revision?: CourseRevision | null,
   ): Promise<CourseAttachmentUploadResult> {
     const response = await this.uploadComponentAttachmentRequest(
       courseId,
@@ -431,12 +460,14 @@ export class CourseService {
       token,
       markerId,
       onProgress,
+      revision,
     );
 
     if (!response.ok) {
       return {
         ok: false,
         message: response.message,
+        code: response.code,
       };
     }
 
@@ -460,6 +491,7 @@ export class CourseService {
     componentId: string,
     assetId: string,
     token: string,
+      revision?: CourseRevision | null,
   ): Promise<CourseAttachmentRemoveResult> {
     const response = await this.apiClient.fetch(
       `/courses/${encodeURIComponent(courseId)}/content/components/${encodeURIComponent(componentId)}/attachments/${encodeURIComponent(assetId)}`,
@@ -468,6 +500,7 @@ export class CourseService {
         headers: {
           'Content-Type': 'application/json',
           authorization: `Bearer ${token}`,
+        ...courseRevisionHeaders(revision),
         },
         body: JSON.stringify({ sectionId }),
       },
@@ -476,11 +509,13 @@ export class CourseService {
       | {
           content?: CourseContentDocument;
           message?: string;
+          code?: string;
         };
 
     if (!response.ok || !body.content) {
       return {
         ok: false,
+        code: "code" in body ? body.code : undefined,
         message: body.message ?? 'Unable to remove attachment.',
       };
     }
@@ -554,21 +589,23 @@ export class CourseService {
     };
   }
 
-  async uploadCourseThumbnail(courseId: string, file: File, token: string): Promise<CourseSaveResult> {
+  async uploadCourseThumbnail(courseId: string, file: File, token: string, revision?: CourseRevision | null): Promise<CourseSaveResult> {
     const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/thumbnail`, {
       method: 'PUT',
       headers: {
         'Content-Type': file.type,
         'X-File-Name': file.name,
         authorization: `Bearer ${token}`,
+        ...courseRevisionHeaders(revision),
       },
       body: file,
     });
-    const body = (await response.json().catch(() => ({}))) as CourseListItem | { message?: string };
+    const body = (await response.json().catch(() => ({}))) as CourseListItem | { message?: string; code?: string };
 
     if (!response.ok || !('id' in body)) {
       return {
         ok: false,
+        code: "code" in body ? body.code : undefined,
         message: 'message' in body && body.message ? body.message : 'Unable to upload course thumbnail.',
       };
     }
@@ -577,7 +614,8 @@ export class CourseService {
 
     return {
       ok: true,
-      course: body,
+      course: (({ review, ...course }) => course)(body as CourseListItem & { review?: CourseReviewState }),
+      review: (body as CourseListItem & { review?: CourseReviewState }).review,
     };
   }
 
@@ -658,6 +696,7 @@ export class CourseService {
     token: string,
     markerId: string,
     onProgress?: (progress: number) => void,
+    revision?: CourseRevision | null,
   ): Promise<
     | {
         ok: true;
@@ -667,6 +706,7 @@ export class CourseService {
     | {
         ok: false;
         message: string;
+      code?: string;
       }
   > {
     return new Promise((resolve) => {
@@ -683,6 +723,7 @@ export class CourseService {
       request.setRequestHeader('X-Section-Id', sectionId);
       request.setRequestHeader('X-Attachment-Marker', markerId);
       request.setRequestHeader('authorization', `Bearer ${token}`);
+      for (const [name, value] of Object.entries(courseRevisionHeaders(revision))) request.setRequestHeader(name, value);
 
       if (onProgress) {
         request.upload.addEventListener('progress', (event) => {
@@ -701,6 +742,7 @@ export class CourseService {
               attachment?: CourseComponentAttachment;
               content?: CourseContentDocument;
               message?: string;
+              code?: string;
             }
           | undefined;
 
@@ -708,6 +750,7 @@ export class CourseService {
           resolve({
             ok: false,
             message: body?.message ?? 'Unable to upload attachment.',
+            code: body?.code,
           });
           return;
         }

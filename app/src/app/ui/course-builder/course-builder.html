@@ -30,7 +30,9 @@
               }
             }
             @for (attachment of component.attachments; track attachment.assetId) {
-              <button type="button" [disabled]="courseSubmitting()" (click)="downloadAttachment(sectionIndex, componentIndex, attachment.assetId, attachment.fileName)">Download {{ attachment.fileName }}</button>
+              @if (allowDownloads()) {
+                <button type="button" [disabled]="courseSubmitting()" (click)="downloadAttachment(sectionIndex, componentIndex, attachment.assetId, attachment.fileName)">Download {{ attachment.fileName }}</button>
+              } @else { <p>Attachment: {{ attachment.fileName }}</p> }
             }
           </details>
         }
@@ -38,6 +40,7 @@
     }
   </div>
 } @else {
+<fieldset class="builder-editing" [disabled]="courseContentSaving() || courseSubmitting()">
 @if (courseContentLoading()) {
   <app-loading-skeleton variant="course-content" [count]="2" />
 } @else if (!courseContent()) {
@@ -73,12 +76,12 @@
             <span class="builder-section-index">{{ sectionIndex + 1 }}</span>
             <span
               class="builder-section-title"
-              [attr.contenteditable]="isSectionRenaming(sectionIndex)"
+              [attr.contenteditable]="isSectionRenaming(sectionIndex) && !courseContentSaving() && !courseSubmitting()"
               [class.is-editing]="isSectionRenaming(sectionIndex)"
               [attr.role]="isSectionRenaming(sectionIndex) ? 'textbox' : null"
               [attr.aria-label]="'Section title'"
-              (input)="courseEditorBufferChanged.emit(editableText($event) !== section.title)"
-              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); courseEditorBufferChanged.emit(false); finishSectionRename()"
+              (input)="sectionTitleEdited(sectionIndex, $event)"
+              (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); courseEditorBufferChanged.emit(false); courseFocusedBufferChanged.emit(null); finishSectionRename()"
               (keydown)="renameKeydown($event)"
             >
               {{ section.title }}
@@ -543,7 +546,8 @@
 
                 <div
                   class="rich-text-editor"
-                  contenteditable="true"
+                  [attr.contenteditable]="!courseContentSaving() && !courseSubmitting()"
+                  [attr.aria-disabled]="courseContentSaving() || courseSubmitting()"
                   role="textbox"
                   aria-label="Text content editor"
                   [innerHTML]="richTextHtml()"
@@ -723,4 +727,5 @@
   </div>
 }
 
+</fieldset>
 }

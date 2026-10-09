@@ -74,7 +74,7 @@ describe('course responses stay within their initiating session/view (DEF-003)',
       case 'uploadCourseThumbnail': pending = state.uploadCourseThumbnail(new File(['x'], 'image.png', { type: 'image/png' })); break;
       case 'enrollCourse': pending = state.enrollInCourse('course'); break;
     }
-    expect(transport).toHaveBeenCalled();
+    await vi.waitFor(() => expect(transport).toHaveBeenCalled());
     const newSession = session('learner', 'student');
     const safeContent: CourseContentDocument = { _id: 'other-course', view: 'learner', createdAt: '', updatedAt: '', sections: [] };
     state.loginState.set(newSession);

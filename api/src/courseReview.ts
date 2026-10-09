@@ -11,7 +11,7 @@ import { assessmentIssues, type AssessmentIssue } from './quizAssessment.js';
 
 export const reviewScope = new AsyncLocalStorage<{ author: boolean; user?: AuthenticatedUser; mediaCallback?: boolean }>();
 export class CourseReviewError extends Error {
-  constructor(readonly status: number, message: string, readonly issues?: AssessmentIssue[]) { super(message); }
+  constructor(readonly status: number, message: string, readonly issues?: AssessmentIssue[], readonly code?: string) { super(message); }
 }
 const authorFields = ['title', 'description', 'requirements', 'whatYoullLearn', 'audience', 'level', 'partOfCareer', 'teacher', 'careerGoals', 'thumbnailAssetId'] as const;
 type Metadata = Pick<Course, typeof authorFields[number]>;
@@ -68,6 +68,16 @@ export class CourseReviewService {
     if (!workflow.working) throw new CourseReviewError(409, 'Start a revision before editing this live course. Learners keep the published version.');
     if (workflow.working.status !== 'draft') throw new CourseReviewError(409, 'This revision awaits review. An admin must return it before editing.');
   }
+  async assertRevision(id: string, header: string | undefined) {
+    let value: unknown;
+    try { value = JSON.parse(header ?? 'null'); } catch { value = null; }
+    const parsed = z.object({ version: z.number().int().nonnegative(), revisionId: z.string().max(160).nullable() }).safeParse(value);
+    if (!parsed.success) throw new CourseReviewError(428, 'Reload this course before saving. A saved revision is required.', undefined, 'AUTHORING_REVISION_REQUIRED');
+    const { workflow } = await this.load(id);
+    if (parsed.data.version !== workflow.version || parsed.data.revisionId !== (workflow.working?.id ?? null)) {
+      throw new CourseReviewError(409, 'Newer course work has been saved. Your draft is intact; compare the latest version before saving again.', undefined, 'AUTHORING_CONFLICT');
+    }
+  }
   async save(id: string, workflow: CourseReviewWorkflow) {
     workflow.version++;
     return this.content.saveCourseReview(id, workflow);
@@ -115,27 +125,24 @@ export class CourseReviewService {
     }));
   }
   async updateMetadata(id: string, input: UpdateCourseInput) {
-    const { base, doc, workflow } = await this.load(id);
+    const { base, workflow } = await this.load(id);
     await this.assertEditable(id);
     const current = effective(base, workflow, true);
     if (input.status !== current.status) throw new CourseReviewError(409, 'Use the explicit submission and review actions to change status.');
     if (input.priceDkk !== current.priceDkk) throw new CourseReviewError(409, 'Use the admin pricing control to change pricing.');
-    if (!doc?.review) await this.metadata.updateCourse(id, input);
     Object.assign(workflow.working!.metadata, Object.fromEntries(authorFields.filter(key => key !== 'thumbnailAssetId').map(key => [key, input[key]])));
     await this.save(id, workflow);
     return effective(base, workflow, true);
   }
   async updateThumbnail(id: string, thumbnailAssetId: string) {
-    const { base, doc, workflow } = await this.load(id);
+    const { base, workflow } = await this.load(id);
     await this.assertEditable(id);
-    if (!doc?.review) await this.metadata.updateCourseThumbnail(id, { thumbnailAssetId });
     workflow.working!.metadata.thumbnailAssetId = thumbnailAssetId;
     await this.save(id, workflow);
     return effective(base, workflow, true);
   }
   async updateSections(id: string, sections: CourseContentSection[]) {
-    const { doc, workflow } = await this.load(id);
-    if (!doc?.review) { await this.assertEditable(id); await this.content.updateCourseContent(id, sections); }
+    const { workflow } = await this.load(id);
     await this.assertEditable(id);
     workflow.working!.sections = sections;
     const saved = await this.save(id, workflow);

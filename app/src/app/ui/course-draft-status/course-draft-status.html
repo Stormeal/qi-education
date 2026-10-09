@@ -1,0 +1,38 @@
+@if (recoveryAvailable()) {
+  <section class="draft-status" aria-label="Local draft recovery">
+    <h2>Unsaved draft found</h2>
+    <p>A draft for this account and course is saved on this device. Restore it to continue, or discard it to use the saved course.</p>
+    <label>Local draft
+      <select [value]="selectedKey()" [disabled]="pending()" (change)="selectDraft($event)">
+        @for (draft of drafts(); track draft.key) { <option [value]="draft.key">{{ draft.draft.title || 'Untitled course' }} · {{ draftDate(draft.updatedAt) }}</option> }
+      </select>
+    </label>
+    @if (!editable()) { <p>This revision cannot currently be edited. Your local draft is retained.</p> }
+    <div class="actions">
+      <button type="button" [disabled]="pending() || !editable()" (click)="restored.emit()">Restore draft</button>
+      <button type="button" [disabled]="pending()" (click)="discarded.emit()">Discard local draft</button>
+    </div>
+  </section>
+}
+@if (recoveryError()) { <p class="draft-status" role="alert">{{ recoveryError() }}</p> }
+@if (conflict()) {
+  <section class="draft-status" aria-label="Course save conflict">
+    <h2>Newer course work has been saved</h2>
+    <p role="alert">Your local draft is intact. Compare the latest saved version, update your draft below, then confirm you have reconciled the changes before saving again.</p>
+    <button type="button" [disabled]="loading() || pending()" (click)="compared.emit()">{{ loading() ? 'Loading latest…' : 'Compare latest saved version' }}</button>
+    @if (latest(); as snapshot) {
+      <details open>
+        <summary>Latest saved course · version {{ snapshot.review?.version }}</summary>
+        <dl>@for (field of metadata(); track field[0]) { <dt>{{ field[0] }}</dt><dd>{{ field[1] || 'Not set' }}</dd> }</dl>
+        <app-course-builder [readOnly]="true" [allowDownloads]="false" [courseContent]="snapshot" [courseContentLoading]="false"
+          [courseContentSaving]="false" [courseSubmitting]="false" [courseContentError]="''" [muxUploadComponentId]="''" [muxUploadError]="''"
+          [muxUploadProgress]="{}" [attachmentUploadComponentId]="''" [attachmentUploadProgress]="{}" [attachmentUploadStage]="{}" [attachmentUploadError]="''" />
+      </details>
+      @if (!canReconcile()) { <p>The working revision changed or is awaiting review. You can use the latest saved version; this draft cannot be saved to that revision.</p> }
+      <div class="actions">
+        <button type="button" [disabled]="pending() || !canReconcile()" (click)="reconciled.emit()">I have reconciled my draft</button>
+        <button type="button" [disabled]="pending()" (click)="latestAccepted.emit()">Discard my edits and use latest</button>
+      </div>
+    }
+  </section>
+}

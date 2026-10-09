@@ -1,4 +1,6 @@
 import { CourseReviewPanel } from '../../ui/course-review-panel/course-review-panel';
+import { CourseDraftStatus } from '../../ui/course-draft-status/course-draft-status';
+import type { CourseEditorBuffer, RecoverableCourseDraft } from '../../services/course-draft-recovery.service';
 import { CourseReviewAction, CourseReviewState } from '../../app.models';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
@@ -18,7 +20,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-editor-page',
-  imports: [CourseReviewPanel, AppButton, CourseBuilder, FeedbackDialog, PageHeader],
+  imports: [CourseDraftStatus, CourseReviewPanel, AppButton, CourseBuilder, FeedbackDialog, PageHeader],
   templateUrl: './course-editor-page.html',
   styleUrls: ['../../app.scss', './course-editor-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +40,19 @@ export class CourseEditorPage {
   readonly courseDraft = input.required<CourseCreateDraft>();
   readonly courseReview = input<CourseReviewState | null>(null);
   readonly courseEditable = input(true);
+  readonly recoveryAvailable = input(false);
+  readonly recoveryDrafts = input<RecoverableCourseDraft[]>([]);
+  readonly recoveryKey = input('');
+  readonly recoverySelected = output<string>();
+  readonly recoveryError = input('');
+  readonly saveConflict = input(false);
+  readonly latestVersion = input<CourseContentDocument | null>(null);
+  readonly latestLoading = input(false);
+  readonly draftRestored = output<void>();
+  readonly recoveryDiscarded = output<void>();
+  readonly latestRequested = output<void>();
+  readonly draftReconciled = output<void>();
+  readonly latestAccepted = output<void>();
   readonly reviewPending = input(false); readonly reviewError = input(''); readonly reviewReason = input('');
   readonly reviewAction = output<CourseReviewAction>(); readonly reviewReasonChanged = output<string>();
   readonly courseSubmitting = input.required<boolean>();
@@ -87,6 +102,7 @@ export class CourseEditorPage {
   readonly courseThumbnailSelected = output<File>();
   readonly courseSectionAdded = output<void>();
   readonly courseEditorBufferChanged = output<boolean>();
+  readonly courseFocusedBufferChanged = output<CourseEditorBuffer | null>();
   readonly courseSectionRemoved = output<number>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
   readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();

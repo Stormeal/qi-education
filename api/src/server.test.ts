@@ -1,3 +1,4 @@
+import { freshAuthoringFetch } from './authoringTestRequest.js';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -32,7 +33,7 @@ describe('QI-Education API', () => {
   });
 
   it('reports health with the active storage mode', async () => {
-    const response = await fetch(`${baseUrl}/health`);
+    const response = await freshAuthoringFetch(`${baseUrl}/health`);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -40,7 +41,7 @@ describe('QI-Education API', () => {
   });
 
   it('authenticates a teacher and returns role permissions', async () => {
-    const response = await fetch(`${baseUrl}/auth/login`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -63,7 +64,7 @@ describe('QI-Education API', () => {
   });
 
   it('authenticates through the Vercel-safe login route', async () => {
-    const response = await fetch(`${baseUrl}/login`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -82,7 +83,7 @@ describe('QI-Education API', () => {
   });
 
   it('creates a student account through sign up and returns a working session', async () => {
-    const response = await fetch(`${baseUrl}/auth/signup`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -107,7 +108,7 @@ describe('QI-Education API', () => {
     });
     expect(body.token).toEqual(expect.any(String));
 
-    const meResponse = await fetch(`${baseUrl}/auth/me`, {
+    const meResponse = await freshAuthoringFetch(`${baseUrl}/auth/me`, {
       headers: {
         authorization: `Bearer ${body.token}`,
       },
@@ -119,7 +120,7 @@ describe('QI-Education API', () => {
   });
 
   it('creates a student account through the Vercel-safe sign up route', async () => {
-    const response = await fetch(`${baseUrl}/signup`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -145,12 +146,12 @@ describe('QI-Education API', () => {
       password: 'Learning7',
     };
 
-    await fetch(`${baseUrl}/auth/signup`, {
+    await freshAuthoringFetch(`${baseUrl}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const response = await fetch(`${baseUrl}/auth/signup`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -162,7 +163,7 @@ describe('QI-Education API', () => {
   });
 
   it('rejects sign up passwords that do not meet the password rules', async () => {
-    const response = await fetch(`${baseUrl}/auth/signup`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -178,7 +179,7 @@ describe('QI-Education API', () => {
   });
 
   it('serves API routes under the Vercel /api prefix', async () => {
-    const response = await fetch(`${baseUrl}/api/health`);
+    const response = await freshAuthoringFetch(`${baseUrl}/api/health`);
     const body = (await response.json()) as { status: string };
 
     expect(response.status).toBe(200);
@@ -186,7 +187,7 @@ describe('QI-Education API', () => {
   });
 
   it('reports auth readiness under the Vercel /api prefix', async () => {
-    const response = await fetch(`${baseUrl}/api/health/auth`);
+    const response = await freshAuthoringFetch(`${baseUrl}/api/health/auth`);
     const body = (await response.json()) as { status: string };
 
     expect(response.status).toBe(200);
@@ -194,7 +195,7 @@ describe('QI-Education API', () => {
   });
 
   it('reports non-secret runtime configuration for diagnostics', async () => {
-    const response = await fetch(`${baseUrl}/api/health/config`);
+    const response = await freshAuthoringFetch(`${baseUrl}/api/health/config`);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -233,7 +234,7 @@ describe('QI-Education API', () => {
   });
 
   it('reports content storage health under the Vercel /api prefix', async () => {
-    const response = await fetch(`${baseUrl}/api/health/content`);
+    const response = await freshAuthoringFetch(`${baseUrl}/api/health/content`);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -247,7 +248,7 @@ describe('QI-Education API', () => {
   });
 
   it('rejects invalid login credentials', async () => {
-    const response = await fetch(`${baseUrl}/auth/login`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -263,7 +264,7 @@ describe('QI-Education API', () => {
 
   it('returns the current user for a valid bearer token', async () => {
     const token = await loginAs('admin@qi-education.local');
-    const response = await fetch(`${baseUrl}/auth/me`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/auth/me`, {
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -282,7 +283,7 @@ describe('QI-Education API', () => {
   });
 
   it('lists courses from the configured repository', async () => {
-    const response = await fetch(`${baseUrl}/courses`);
+    const response = await freshAuthoringFetch(`${baseUrl}/courses`);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -294,7 +295,7 @@ describe('QI-Education API', () => {
 
   it('blocks a student from creating a course', async () => {
     const token = await loginAs('student@qi-education.local');
-    const response = await fetch(`${baseUrl}/courses`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,7 +311,7 @@ describe('QI-Education API', () => {
 
   it('allows a teacher to create a course', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const response = await fetch(`${baseUrl}/courses`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -331,7 +332,7 @@ describe('QI-Education API', () => {
       priceDkk: null,
     });
 
-    const contentResponse = await fetch(`${baseUrl}/courses/${body.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
+    const contentResponse = await freshAuthoringFetch(`${baseUrl}/courses/${body.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
     const content = await contentResponse.json();
 
     expect(contentResponse.status).toBe(200);
@@ -354,7 +355,7 @@ describe('QI-Education API', () => {
 
     try {
       const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
-      const response = await fetch(`${isolatedBaseUrl}/courses`, {
+      const response = await freshAuthoringFetch(`${isolatedBaseUrl}/courses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -376,10 +377,10 @@ describe('QI-Education API', () => {
 
   it('enrolls the current user in an existing course', async () => {
     const token = await loginAs('student@qi-education.local');
-    const courseResponse = await fetch(`${baseUrl}/courses`);
+    const courseResponse = await freshAuthoringFetch(`${baseUrl}/courses`);
     const [course] = await courseResponse.json();
 
-    const response = await fetch(`${baseUrl}/users/me/courses/${course.id}`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/users/me/courses/${course.id}`, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${token}`,
@@ -390,7 +391,7 @@ describe('QI-Education API', () => {
     expect(response.status).toBe(200);
     expect(body.user.enrolledCourseIds).toContain(course.id);
 
-    const meResponse = await fetch(`${baseUrl}/auth/me`, {
+    const meResponse = await freshAuthoringFetch(`${baseUrl}/auth/me`, {
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -402,7 +403,7 @@ describe('QI-Education API', () => {
 
   it('returns 404 when enrolling in a missing course', async () => {
     const token = await loginAs('student@qi-education.local');
-    const response = await fetch(`${baseUrl}/users/me/courses/missing-course`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/users/me/courses/missing-course`, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${token}`,
@@ -415,7 +416,7 @@ describe('QI-Education API', () => {
   });
 
   it('returns 404 when course content does not exist', async () => {
-    const response = await fetch(`${baseUrl}/courses/missing-course/content`, { headers: { authorization: `Bearer ${await loginAs('admin@qi-education.local')}` } });
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/missing-course/content`, { headers: { authorization: `Bearer ${await loginAs('admin@qi-education.local')}` } });
     const body = await response.json();
 
     expect(response.status).toBe(404);
@@ -432,7 +433,7 @@ describe('QI-Education API', () => {
     const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
 
     try {
-      const response = await fetch(`${isolatedBaseUrl}/health/content`);
+      const response = await freshAuthoringFetch(`${isolatedBaseUrl}/health/content`);
       const body = await response.json();
 
       expect(response.status).toBe(503);
@@ -458,7 +459,7 @@ describe('QI-Education API', () => {
 
     try {
       const [course] = await courseRepository.listCourses();
-      const response = await fetch(`${isolatedBaseUrl}/courses/${course.id}/content`, { headers: { authorization: `Bearer ${await loginAs('admin@qi-education.local', isolatedBaseUrl)}` } });
+      const response = await freshAuthoringFetch(`${isolatedBaseUrl}/courses/${course.id}/content`, { headers: { authorization: `Bearer ${await loginAs('admin@qi-education.local', isolatedBaseUrl)}` } });
       const body = await response.json();
 
       expect(response.status).toBe(503);
@@ -470,7 +471,7 @@ describe('QI-Education API', () => {
 
   it('allows a teacher to update a course', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -480,7 +481,7 @@ describe('QI-Education API', () => {
     });
     const created = await createResponse.json();
 
-    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}`, {
+    const updateResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -506,7 +507,7 @@ describe('QI-Education API', () => {
 
   it('preserves thumbnail and catalog metadata when updating course details', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -515,7 +516,7 @@ describe('QI-Education API', () => {
       body: JSON.stringify(validCourse()),
     });
     const created = await createResponse.json();
-    const uploadResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`, {
+    const uploadResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/thumbnail`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'image/png',
@@ -527,7 +528,7 @@ describe('QI-Education API', () => {
     const withThumbnail = await uploadResponse.json();
     const adminToken = await loginAs('admin@qi-education.local');
 
-    await fetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
+    await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -543,7 +544,7 @@ describe('QI-Education API', () => {
       }),
     });
 
-    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}`, {
+    const updateResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -572,7 +573,7 @@ describe('QI-Education API', () => {
 
   it('allows an admin to update course price in DKK', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -583,7 +584,7 @@ describe('QI-Education API', () => {
     const created = await createResponse.json();
     const adminToken = await loginAs('admin@qi-education.local');
 
-    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}/price`, {
+    const updateResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/price`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -604,7 +605,7 @@ describe('QI-Education API', () => {
 
   it('allows an admin to update catalog metadata', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -615,7 +616,7 @@ describe('QI-Education API', () => {
     const created = await createResponse.json();
     const adminToken = await loginAs('admin@qi-education.local');
 
-    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
+    const updateResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -646,7 +647,7 @@ describe('QI-Education API', () => {
 
   it('blocks non-admin users from updating catalog metadata', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -656,7 +657,7 @@ describe('QI-Education API', () => {
     });
     const created = await createResponse.json();
 
-    const response = await fetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/catalog-metadata`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -679,7 +680,7 @@ describe('QI-Education API', () => {
 
   it('blocks non-admin users from updating course price', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -689,7 +690,7 @@ describe('QI-Education API', () => {
     });
     const created = await createResponse.json();
 
-    const response = await fetch(`${baseUrl}/courses/${created.id}/price`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/price`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -707,7 +708,7 @@ describe('QI-Education API', () => {
 
   it('allows a teacher to upload a course thumbnail', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -717,7 +718,7 @@ describe('QI-Education API', () => {
     });
     const created = await createResponse.json();
 
-    const uploadResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`, {
+    const uploadResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/thumbnail`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'image/png',
@@ -731,7 +732,7 @@ describe('QI-Education API', () => {
     expect(uploadResponse.status).toBe(200);
     expect(updated.thumbnailAssetId).toEqual(expect.any(String));
 
-    const thumbnailResponse = await fetch(`${baseUrl}/courses/${created.id}/thumbnail`, { headers: { authorization: `Bearer ${token}` } });
+    const thumbnailResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/thumbnail`, { headers: { authorization: `Bearer ${token}` } });
     const thumbnailBuffer = Buffer.from(await thumbnailResponse.arrayBuffer());
 
     expect(thumbnailResponse.status).toBe(200);
@@ -756,7 +757,7 @@ describe('QI-Education API', () => {
 
     try {
       const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
-      const response = await fetch(`${isolatedBaseUrl}/courses/${created.id}/thumbnail`, {
+      const response = await freshAuthoringFetch(`${isolatedBaseUrl}/courses/${created.id}/thumbnail`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'image/png',
@@ -782,7 +783,7 @@ describe('QI-Education API', () => {
 
   it('allows a teacher to update course content', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -845,7 +846,7 @@ describe('QI-Education API', () => {
       },
     ];
 
-    const updateResponse = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+    const updateResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -863,7 +864,7 @@ describe('QI-Education API', () => {
     });
     expect(updated.updatedAt).toEqual(expect.any(String));
 
-    const getResponse = await fetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
+    const getResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
     const loaded = await getResponse.json();
 
     expect(getResponse.status).toBe(200);
@@ -872,7 +873,7 @@ describe('QI-Education API', () => {
 
   it('stores component attachments and only lets enrolled learners download them', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -899,7 +900,7 @@ describe('QI-Education API', () => {
       },
     ];
 
-    await fetch(`${baseUrl}/courses/${created.id}/content`, {
+    await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -908,7 +909,7 @@ describe('QI-Education API', () => {
       body: JSON.stringify({ sections }),
     });
 
-    const uploadResponse = await fetch(
+    const uploadResponse = await freshAuthoringFetch(
       `${baseUrl}/courses/${created.id}/content/components/component-1/attachments`,
       {
         method: 'PUT',
@@ -931,7 +932,7 @@ describe('QI-Education API', () => {
     });
     expect(uploaded.content.sections[0].components[0].attachments).toHaveLength(1);
 
-    const signupResponse = await fetch(`${baseUrl}/auth/signup`, {
+    const signupResponse = await freshAuthoringFetch(`${baseUrl}/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -941,7 +942,7 @@ describe('QI-Education API', () => {
       }),
     });
     const signup = await signupResponse.json();
-    const blockedResponse = await fetch(
+    const blockedResponse = await freshAuthoringFetch(
       `${baseUrl}/courses/${created.id}/content/attachments/${uploaded.attachment.assetId}`,
       {
         headers: {
@@ -954,23 +955,23 @@ describe('QI-Education API', () => {
 
     const adminToken = await loginAs('admin@qi-education.local');
     const reviewHeaders = { 'Content-Type': 'application/json', authorization: `Bearer ${adminToken}` };
-    const currentReview = (await (await fetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: reviewHeaders })).json()).review;
-    const submission = await fetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
+    const currentReview = (await (await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content?view=author`, { headers: reviewHeaders })).json()).review;
+    const submission = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
       body: JSON.stringify({ action: 'submit', revisionId: currentReview.revisionId, expectedVersion: currentReview.version }) });
     expect(submission.status).toBe(200);
     const submitted = (await submission.json()).review;
-    const publishResponse = await fetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
+    const publishResponse = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/review`, { method: 'POST', headers: reviewHeaders,
       body: JSON.stringify({ action: 'publish', revisionId: submitted.revisionId, expectedVersion: submitted.version }) });
     expect(publishResponse.status).toBe(200);
 
-    await fetch(`${baseUrl}/users/me/courses/${created.id}`, {
+    await freshAuthoringFetch(`${baseUrl}/users/me/courses/${created.id}`, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${signup.token}`,
       },
     });
 
-    const downloadResponse = await fetch(
+    const downloadResponse = await freshAuthoringFetch(
       `${baseUrl}/courses/${created.id}/content/attachments/${uploaded.attachment.assetId}`,
       {
         headers: {
@@ -993,7 +994,7 @@ describe('QI-Education API', () => {
 
     try {
       const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/courses`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/courses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1019,7 +1020,7 @@ describe('QI-Education API', () => {
         },
       ];
 
-      await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
+      await freshAuthoringFetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1028,7 +1029,7 @@ describe('QI-Education API', () => {
         body: JSON.stringify({ sections }),
       });
 
-      const uploadResponse = await fetch(
+      const uploadResponse = await freshAuthoringFetch(
         `${isolatedBaseUrl}/courses/${created.id}/content/components/component-1/mux-upload`,
         {
           method: 'POST',
@@ -1088,7 +1089,7 @@ describe('QI-Education API', () => {
 
     try {
       const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/courses`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/courses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1126,7 +1127,7 @@ describe('QI-Education API', () => {
         },
       ];
 
-      await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
+      await freshAuthoringFetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1135,7 +1136,7 @@ describe('QI-Education API', () => {
         body: JSON.stringify({ sections }),
       });
 
-      const removeResponse = await fetch(
+      const removeResponse = await freshAuthoringFetch(
         `${isolatedBaseUrl}/courses/${created.id}/content/components/component-1/mux-video`,
         {
           method: 'DELETE',
@@ -1171,7 +1172,7 @@ describe('QI-Education API', () => {
 
     try {
       const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
-      const response = await fetch(
+      const response = await freshAuthoringFetch(
         `${isolatedBaseUrl}/courses/missing-course/content/components/component-1/mux-upload`,
         {
           method: 'POST',
@@ -1200,7 +1201,7 @@ describe('QI-Education API', () => {
 
     try {
       const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/courses`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/courses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1243,7 +1244,7 @@ describe('QI-Education API', () => {
         },
       ];
 
-      await fetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
+      await freshAuthoringFetch(`${isolatedBaseUrl}/courses/${created.id}/content`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1263,7 +1264,7 @@ describe('QI-Education API', () => {
         },
       };
 
-      const assetCreatedResponse = await fetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
+      const assetCreatedResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1290,7 +1291,7 @@ describe('QI-Education API', () => {
         },
       };
 
-      const readyResponse = await fetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
+      const readyResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1298,7 +1299,7 @@ describe('QI-Education API', () => {
         },
         body: JSON.stringify({ type: 'video.asset.ready' }),
       });
-      const contentResponse = await fetch(`${isolatedBaseUrl}/courses/${created.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
+      const contentResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/courses/${created.id}/content?view=author`, { headers: { authorization: `Bearer ${token}` } });
       const content = await contentResponse.json();
 
       expect(readyResponse.status).toBe(200);
@@ -1327,7 +1328,7 @@ describe('QI-Education API', () => {
     const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
 
     try {
-      const response = await fetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
+      const response = await freshAuthoringFetch(`${isolatedBaseUrl}/api/webhooks/mux`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1346,7 +1347,7 @@ describe('QI-Education API', () => {
 
   it('blocks a student from updating course content', async () => {
     const teacherToken = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1357,7 +1358,7 @@ describe('QI-Education API', () => {
     const created = await createResponse.json();
     const studentToken = await loginAs('student@qi-education.local');
 
-    const response = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1373,7 +1374,7 @@ describe('QI-Education API', () => {
 
   it('returns 404 when updating content for a missing course', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const response = await fetch(`${baseUrl}/courses/missing-course/content`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/missing-course/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1389,7 +1390,7 @@ describe('QI-Education API', () => {
 
   it('rejects invalid course content input', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1399,7 +1400,7 @@ describe('QI-Education API', () => {
     });
     const created = await createResponse.json();
 
-    const response = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1431,7 +1432,7 @@ describe('QI-Education API', () => {
 
   it('rejects quiz content without four answers', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const createResponse = await fetch(`${baseUrl}/courses`, {
+    const createResponse = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1441,7 +1442,7 @@ describe('QI-Education API', () => {
     });
     const created = await createResponse.json();
 
-    const response = await fetch(`${baseUrl}/courses/${created.id}/content`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses/${created.id}/content`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1492,7 +1493,7 @@ describe('QI-Education API', () => {
 
   it('captures authenticated feedback', async () => {
     const token = await loginAs('student@qi-education.local');
-    const response = await fetch(`${baseUrl}/feedback`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/feedback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1514,7 +1515,7 @@ describe('QI-Education API', () => {
 
   it('allows an admin to list received feedback', async () => {
     const studentToken = await loginAs('student@qi-education.local');
-    await fetch(`${baseUrl}/feedback`, {
+    await freshAuthoringFetch(`${baseUrl}/feedback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1529,7 +1530,7 @@ describe('QI-Education API', () => {
     });
 
     const adminToken = await loginAs('admin@qi-education.local');
-    const response = await fetch(`${baseUrl}/feedback`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/feedback`, {
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -1553,7 +1554,7 @@ describe('QI-Education API', () => {
 
     try {
       const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1568,7 +1569,7 @@ describe('QI-Education API', () => {
       const created = await createResponse.json();
       const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
 
-      const updateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+      const updateResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1595,7 +1596,7 @@ describe('QI-Education API', () => {
         priority: 'high',
       });
 
-      const listResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+      const listResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback`, {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
@@ -1622,7 +1623,7 @@ describe('QI-Education API', () => {
 
     try {
       const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1637,7 +1638,7 @@ describe('QI-Education API', () => {
       const created = await createResponse.json();
       const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
 
-      await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+      await freshAuthoringFetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1649,7 +1650,7 @@ describe('QI-Education API', () => {
         }),
       });
 
-      const secondUpdateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+      const secondUpdateResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1683,7 +1684,7 @@ describe('QI-Education API', () => {
 
     try {
       const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1698,7 +1699,7 @@ describe('QI-Education API', () => {
       const created = await createResponse.json();
       const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
 
-      const updateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+      const updateResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1714,7 +1715,7 @@ describe('QI-Education API', () => {
       expect(updateResponse.status).toBe(503);
       expect(body.message).toBe('GitHub feedback integration is unavailable.');
 
-      const listResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+      const listResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback`, {
         headers: {
           authorization: `Bearer ${adminToken}`,
         },
@@ -1740,7 +1741,7 @@ describe('QI-Education API', () => {
 
     try {
       const studentToken = await loginAs('student@qi-education.local', isolatedBaseUrl);
-      const createResponse = await fetch(`${isolatedBaseUrl}/feedback`, {
+      const createResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1755,7 +1756,7 @@ describe('QI-Education API', () => {
       const created = await createResponse.json();
       const adminToken = await loginAs('admin@qi-education.local', isolatedBaseUrl);
 
-      const updateResponse = await fetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
+      const updateResponse = await freshAuthoringFetch(`${isolatedBaseUrl}/feedback/${created.id}/triage`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1783,7 +1784,7 @@ describe('QI-Education API', () => {
 
   it('blocks non-admin users from listing feedback', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const response = await fetch(`${baseUrl}/feedback`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/feedback`, {
       headers: {
         authorization: `Bearer ${token}`,
       },
@@ -1795,7 +1796,7 @@ describe('QI-Education API', () => {
   });
 
   it('rejects unauthenticated feedback', async () => {
-    const response = await fetch(`${baseUrl}/feedback`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/feedback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1812,7 +1813,7 @@ describe('QI-Education API', () => {
 
   it('rejects invalid course input', async () => {
     const token = await loginAs('teacher@qi-education.local');
-    const response = await fetch(`${baseUrl}/courses`, {
+    const response = await freshAuthoringFetch(`${baseUrl}/courses`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1838,7 +1839,7 @@ describe('QI-Education API', () => {
 
     try {
       const token = await loginAs('teacher@qi-education.local', isolatedBaseUrl);
-      const response = await fetch(`${isolatedBaseUrl}/courses`, {
+      const response = await freshAuthoringFetch(`${isolatedBaseUrl}/courses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1860,7 +1861,7 @@ describe('QI-Education API', () => {
   });
 
   async function loginAs(email: string, origin = baseUrl) {
-    const response = await fetch(`${origin}/auth/login`, {
+    const response = await freshAuthoringFetch(`${origin}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

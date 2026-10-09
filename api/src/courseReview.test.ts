@@ -1,3 +1,4 @@
+import { freshAuthoringFetch } from './authoringTestRequest.js';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,7 +28,7 @@ describe.each(['', '/api'])('US-T002 review and uninterrupted revisions (%s)', (
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   }
   function request(path: string, user?: AuthUser, method = 'GET', body?: unknown) {
-    return fetch(base + prefix + path, { method, headers: { 'Content-Type': 'application/json', ...(user ? {
+    return freshAuthoringFetch(base + prefix + path, { method, headers: { 'Content-Type': 'application/json', ...(user ? {
       authorization: `Bearer ${createSessionToken(toAuthenticatedUser(user), apiConfig.AUTH_TOKEN_SECRET!)}` } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   }
@@ -176,7 +177,7 @@ describe.each(['', '/api'])('US-T002 review and uninterrupted revisions (%s)', (
   it('AC07 serves pending thumbnails only to authors and retains the old live asset', async () => {
     const original = await assets.saveThumbnail({ courseId: 'course', contentType: 'image/png', fileName: 'old.png', binary: Buffer.from('original image') });
     await courses.updateCourseThumbnail('course', { thumbnailAssetId: original._id }); await published(); await act('start-revision');
-    const response = await fetch(base + prefix + '/courses/course/thumbnail', { method: 'PUT', headers: { 'Content-Type': 'image/png', authorization: `Bearer ${createSessionToken(toAuthenticatedUser(teacher), apiConfig.AUTH_TOKEN_SECRET!)}` }, body: Buffer.from('pending image') });
+    const response = await freshAuthoringFetch(base + prefix + '/courses/course/thumbnail', { method: 'PUT', headers: { 'Content-Type': 'image/png', authorization: `Bearer ${createSessionToken(toAuthenticatedUser(teacher), apiConfig.AUTH_TOKEN_SECRET!)}` }, body: Buffer.from('pending image') });
     expect(response.status).toBe(200); const pending = await response.json();
     expect(await (await request('/courses/course/thumbnail')).text()).toBe('original image');
     const preview = await request(`/courses/course/thumbnail?v=${pending.thumbnailAssetId}`, teacher);
@@ -235,7 +236,7 @@ describe.each(['', '/api'])('US-T002 review and uninterrupted revisions (%s)', (
     const stale = (await author()).review;
     if (kind === 'metadata') expect((await request('/courses/course', teacher, 'PATCH', { ...metadata, title: 'New initial draft title' })).status).toBe(200);
     else if (kind === 'content') expect((await request('/courses/course/content', teacher, 'PATCH', { sections })).status).toBe(200);
-    else if (kind === 'thumbnail') expect((await fetch(base + prefix + '/courses/course/thumbnail', { method: 'PUT', headers: { 'Content-Type': 'image/png', authorization: `Bearer ${createSessionToken(toAuthenticatedUser(teacher), apiConfig.AUTH_TOKEN_SECRET!)}` }, body: Buffer.from('new thumbnail') })).status).toBe(200);
+    else if (kind === 'thumbnail') expect((await freshAuthoringFetch(base + prefix + '/courses/course/thumbnail', { method: 'PUT', headers: { 'Content-Type': 'image/png', authorization: `Bearer ${createSessionToken(toAuthenticatedUser(teacher), apiConfig.AUTH_TOKEN_SECRET!)}` }, body: Buffer.from('new thumbnail') })).status).toBe(200);
     else expect((await request('/webhooks/mux', undefined, 'POST', { type: 'video.asset.ready', data: { id: 'asset', upload_id: 'upload', passthrough: JSON.stringify({ c: 'course', s: 's', m: 'video' }), playback_ids: [{ id: 'playback', policy: 'public' }] } })).status).toBe(200);
     const response = await request('/courses/course/review', teacher, 'POST', { action: 'submit', expectedVersion: stale.version, revisionId: stale.revisionId });
     expect(response.status).toBe(409);
@@ -248,7 +249,7 @@ describe.each(['', '/api'])('US-T002 review and uninterrupted revisions (%s)', (
     const revised = structuredClone(sections); revised[0].components[0].content = 'Pending lesson body';
     revised[0].components.push({ ...structuredClone(revised[0].components[0]), id: 'new-private-lesson', title: 'New private lesson' });
     expect((await request('/courses/course/content', teacher, 'PATCH', { sections: revised })).status).toBe(200);
-    const upload = (componentId = 'lesson') => fetch(base + prefix + `/courses/course/content/components/${componentId}/attachments`, {
+    const upload = (componentId = 'lesson') => freshAuthoringFetch(base + prefix + `/courses/course/content/components/${componentId}/attachments`, {
       method: 'PUT', headers: { 'Content-Type': 'text/plain', 'x-section-id': 's', 'x-file-name': 'notes.txt', authorization: `Bearer ${createSessionToken(toAuthenticatedUser(teacher), apiConfig.AUTH_TOKEN_SECRET!)}` }, body: Buffer.from('Private resource') });
     expect((await upload('new-private-lesson')).status).toBe(201);
     expect((await upload()).status).toBe(201);

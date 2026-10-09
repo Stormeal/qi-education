@@ -8,21 +8,21 @@
   }
   <div class="review-actions">
     @if (state.editable) {
-      <app-button variant="primary" [disabled]="pending()" (buttonClicked)="action.emit('submit')">Submit for review</app-button>
+      <app-button variant="primary" [disabled]="pending() || blocked()" (buttonClicked)="action.emit('submit')">Submit for review</app-button>
     } @else if (state.course.status === 'ready-for-review') {
       <p role="status">Awaiting admin review</p>
       @if (canAdmin()) {
-        <app-button variant="primary" [disabled]="pending()" (buttonClicked)="action.emit('publish')">Publish revision</app-button>
+        <app-button variant="primary" [disabled]="pending() || blocked()" (buttonClicked)="action.emit('publish')">Publish revision</app-button>
         <label class="review-reason">Return reason
-          <textarea aria-label="Return reason" rows="3" maxlength="2000" [value]="reason()" [disabled]="pending()" (input)="changeReason($event)"></textarea>
+          <textarea aria-label="Return reason" rows="3" maxlength="2000" [value]="reason()" [disabled]="pending() || blocked()" (input)="changeReason($event)"></textarea>
         </label>
-        <app-button [disabled]="pending()" (buttonClicked)="action.emit('return')">Return for changes</app-button>
+        <app-button [disabled]="pending() || blocked()" (buttonClicked)="action.emit('return')">Return for changes</app-button>
       }
     } @else if (state.liveStatus && !state.revisionId) {
-      <app-button [disabled]="pending()" (buttonClicked)="action.emit('start-revision')">Start revision</app-button>
+      <app-button [disabled]="pending() || blocked()" (buttonClicked)="action.emit('start-revision')">Start revision</app-button>
     }
     @if (canAdmin() && state.liveStatus === 'published') {
-      <app-button [disabled]="pending()" (buttonClicked)="action.emit('archive')">Archive course</app-button>
+      <app-button [disabled]="pending() || blocked()" (buttonClicked)="action.emit('archive')">Archive course</app-button>
     }
   </div>
   @if (pending()) { <p role="status">Saving review action...</p> }

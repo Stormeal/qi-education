@@ -8,6 +8,7 @@ import { AppButton } from '../app-button/app-button';
 export class CourseReviewPanel {
   readonly review = input<CourseReviewState | null>(null);
   readonly canAdmin = input(false); readonly pending = input(false); readonly loading = input(false);
+  readonly blocked = input(false);
   readonly error = input(''); readonly reason = input('');
   readonly action = output<CourseReviewAction>(); readonly reasonChanged = output<string>();
   readonly history = computed(() => {
