@@ -3,7 +3,8 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { vi } from 'vitest';
 vi.mock('@mux/mux-player', () => ({}));
 const uploader = vi.hoisted(() => ({ abort: vi.fn(), on: vi.fn() }));
-vi.mock('@mux/upchunk', () => ({ createUpload: vi.fn(() => uploader) }));
+vi.mock('@mux/upchunk', () => ({ createUpload: vi.fn() }));
+import { createUpload } from '@mux/upchunk';
 import { appConfig } from '../app.config';
 import { CourseContentDocument, CourseListItem, LoginState } from '../app.models';
 import { AppStateService } from './app-state.service';
@@ -13,7 +14,11 @@ const content: CourseContentDocument = { _id: 'course', createdAt: '', updatedAt
 const login: LoginState = { token: 'isolated-token', user: { id: 'teacher', email: 'teacher@example.test', displayName: 'Owner', role: 'teacher', status: 'active', createdAt: '', enrolledCourseIds: [] }, permissions: { canCreateCourses: true, hasAdminAccess: false } };
 
 describe('US-T006 pending video polling', () => {
-  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); vi.clearAllMocks(); });
+  beforeEach(() => {
+    localStorage.clear(); sessionStorage.clear(); vi.clearAllMocks();
+    // Set per test: some runner versions reset vi.fn implementations in restoreAllMocks.
+    vi.mocked(createUpload).mockImplementation(() => uploader as never);
+  });
   afterEach(() => { TestBed.resetTestingModule(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
   async function openPending() {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify([course]), { status: 200 })));
