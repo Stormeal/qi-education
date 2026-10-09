@@ -79,6 +79,9 @@ describe('US-T006 pending video polling', () => {
     const create = vi.spyOn(service, 'createMuxUpload').mockResolvedValue({ ok: true, uploadId: 'upload', uploadUrl: 'https://isolated.test/upload', content: pending });
     const uploading = state.uploadCourseComponentMuxVideo(0, 0, new File(['isolated'], 'video.mp4', { type: 'video/mp4' }));
     await vi.advanceTimersByTimeAsync(0);
+    // Report why an upload stopped early before asserting that it is still running.
+    expect({ error: state.muxUploadError(), saveError: state.courseContentError(), conflict: state.courseSaveConflict(), draft: !!state.recoverableCourseDraft() })
+      .toEqual({ error: '', saveError: '', conflict: false, draft: false });
     expect(state.muxUploadComponentId()).toBe('video');
     await vi.advanceTimersByTimeAsync(10 * 60_000);
     await uploading;
