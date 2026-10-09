@@ -4,11 +4,21 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-No active implementation. DEF-008/011/012/013 were delivered on 2026-10-09;
-all documented confirmed defects are Fixed. Follow the user's next selection;
-INV-001-004 remain investigations and Proposed features remain unselected.
-The user approved only the seven DEF-012 shared category corrections; they are
-applied and verified. No other shared mutation or application push/deployment.
+**US-T002 - Submit, review, and publish courses safely.** Selected 2026-10-09.
+Owner: Codex. Branch: `main`. Discovery base:
+`528e5571567da9559e7a728b1373b21a1ddeb710`. State: Blocked on product decisions.
+Spec: [course review](specs/US-T002-course-review.md), AC01-06.
+Completed: clean main checked and refreshed; full story, linked lifecycle/quiz
+contracts and frontend/API/storage flows inspected. Existing admin restrictions,
+private drafts and quiz checks are delivered; review feedback and an enforced
+transition workflow remain unfinished.
+Pending answers: full decision history versus latest outcome; admin return to draft
+before published teacher edits versus a separate live revision. Both were asked
+on 2026-10-09. No implementation choice is assumed.
+Next: record the user's answers, finalize the publishing checklist and transition/
+persistence contracts in the spec, then start test-first implementation at the
+actual current base. Preserve existing fixed defects. Preparation is documentation
+only; no shared mutation, application push, deployment, or completed-story claim.
 
 ## Latest audit
 
@@ -108,10 +118,10 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-The user selected all remaining defects on 2026-10-09. DEF-008/011/012/013 are
-Fixed with delivery record `79c2ea5`. No active defect batch remains.
-No further confirmed defect is waiting for implementation. INV-001-004 require
-separate evidence and selection; Proposed enhancements remain unselected.
+US-T002 is the user's current selection. Resume its Active work record when the
+two product decisions are answered; do not select another Proposed story while
+this handoff is active. All documented confirmed defects remain Fixed. INV-001-004
+still require separate evidence and selection.
 
 ## Defect order
 
