@@ -18,6 +18,7 @@ const answers = ['a', 'b', 'c', 'd'].map((id) => ({ id, text: `Answer ${id}`, de
 const sections = [{ id: 'intro', title: 'Introduction', components: [
   { id: 'lesson', title: 'Welcome', type: 'text', content: 'Private lesson body' },
   { id: 'quiz', title: 'Check', type: 'quiz', quiz: { passPoints: 1, questions: [{ id: 'q1', question: 'Pick b', points: 1, answers }] } },
+  { id: 'files', title: 'Files', type: 'resources' },
 ] }];
 
 describe('US-P001 release journey: author, review, enroll, learn', () => {
@@ -67,6 +68,13 @@ describe('US-P001 release journey: author, review, enroll, learn', () => {
     courseId = (await created.json()).id;
 
     expect((await save(teacher, `/courses/${courseId}/content`, { sections })).status).toBe(200);
+    // Resources lessons take handouts: PDF and Word are accepted, executables are not.
+    const attach = (type: string) => fetch(`${base}/courses/${courseId}/content/components/files/attachments`, { method: 'PUT',
+      headers: { 'Content-Type': type, 'X-Section-Id': 'intro', 'X-File-Name': 'handout',
+        authorization: `Bearer ${createSessionToken(toAuthenticatedUser(teacher), apiConfig.AUTH_TOKEN_SECRET!)}` }, body: Buffer.from('file') });
+    expect((await attach('application/pdf')).status).toBe(201);
+    expect((await attach('application/vnd.openxmlformats-officedocument.wordprocessingml.document')).status).toBe(201);
+    expect((await attach('application/x-msdownload')).status).toBe(415);
     expect(await catalogIds()).not.toContain(courseId);
     expect(await catalogIds(student)).not.toContain(courseId);
     expect(await catalogIds(teacher)).toContain(courseId);
@@ -95,7 +103,7 @@ describe('US-P001 release journey: author, review, enroll, learn', () => {
   it('4. the public sees an outline only; a learner must enroll to read lessons', async () => {
     const outline = await (await request(`/courses/${courseId}/outline`)).json();
     expect(JSON.stringify(outline)).not.toContain('Private lesson body');
-    expect(outline.sections[0].components.map((component: { title: string }) => component.title)).toEqual(['Welcome', 'Check']);
+    expect(outline.sections[0].components.map((component: { title: string }) => component.title)).toEqual(['Welcome', 'Check', 'Files']);
     expect((await request(`/courses/${courseId}/content`, student)).status).toBe(403);
 
     expect((await request(`/users/me/courses/${courseId}`, student, 'POST')).status).toBe(200);

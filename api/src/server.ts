@@ -309,7 +309,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
             message:
               component.type === 'text'
                 ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'
-                : 'Resources supports ZIP files, PowerPoint files, and images.',
+                : 'Resources supports ZIP, PDF, Word and PowerPoint files, and images.',
           });
           return;
         }
@@ -1653,6 +1653,9 @@ function isAllowedResourcesAttachmentContentType(value: string): boolean {
   return (
     isAllowedImageContentType(value) ||
     isAllowedPowerPointContentType(value) ||
+    value === 'application/pdf' ||
+    value === 'application/msword' ||
+    value === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     value === 'application/zip' ||
     value === 'application/x-zip-compressed'
   );

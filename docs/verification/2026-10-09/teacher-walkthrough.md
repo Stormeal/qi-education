@@ -51,7 +51,8 @@ not replace it. Video and anything depending on the real stores were not exercis
 
 ## Open items (not fixed)
 
-- **O1 — decision needed.** Resources lessons accept ZIP, PowerPoint and images only; a
+- **O1 — resolved 2026-10-10.** Alex approved; resources lessons now accept PDF and Word in
+  the editor and the API (version 0.1.68). Original note: Resources lessons accept ZIP, PowerPoint and images only; a
   PDF or Word file is refused (text lessons accept them). A teacher is likely to try a PDF
   handout as a resource. Recommendation: allow PDF and Word in resources (editor and API).
 - **O2** A "fix these quiz questions" message from a refused submission stays visible

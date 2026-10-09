@@ -347,7 +347,7 @@ export class CourseBuilder {
 
   protected attachmentAccept(component: CourseComponent): string {
     return component.type === 'resources'
-      ? '.zip,.ppt,.pptx,image/*'
+      ? '.zip,.pdf,.doc,.docx,.ppt,.pptx,image/*'
       : '.pdf,.txt,.doc,.docx,.ppt,.pptx,image/*';
   }
 
@@ -361,7 +361,7 @@ export class CourseBuilder {
 
   protected attachmentPanelDescription(component: CourseComponent): string {
     return component.type === 'resources'
-      ? 'Upload ZIP files, PowerPoint decks, and images. Learners can download them directly from the lesson.'
+      ? 'Upload ZIP, PDF, Word and PowerPoint files, and images. Learners can download them directly from the lesson.'
       : 'Upload documents, PDFs, images, and PowerPoint decks.';
   }
 

@@ -90,7 +90,8 @@ Record for every failed step: what you clicked, what you saw, the time, and a sc
 
 ## Known limits to tell the teacher
 
-- Attachments: 4 MB each. Thumbnails: 2 MB, JPEG/PNG/WebP.
+- Attachments: 4 MB each. Text lessons take documents, PDFs, images and PowerPoint;
+  resources lessons take ZIP, PDF, Word, PowerPoint and images. Thumbnails: 2 MB, JPEG/PNG/WebP.
 - A course needs at least one lesson, and every quiz must be answerable, before it can
   be submitted.
 - Lesson completion is remembered per browser, not per account.
