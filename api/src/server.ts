@@ -54,7 +54,7 @@ import {
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { canAuthorCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
 import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment.js';
-import { AmbiguousCourseWriteError, CourseBusyError, protectCourseWrite } from './courseMutationLock.js';
+import { AmbiguousCourseWriteError, CourseBusyError } from './courseMutationLock.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
 import {
@@ -849,12 +849,21 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        const upload = await protectCourseWrite(() => muxVideo!.createDirectUpload({
-          courseId,
-          sectionId: input.sectionId,
-          componentId,
-          corsOrigin: request.header('origin') ?? getCorsOrigins()[0] ?? 'http://localhost:4200',
-        }));
+        // No course write has happened yet. A provider failure must leave this
+        // unchanged draft unlocked so the teacher can retry.
+        let upload;
+        try {
+          upload = await muxVideo.createDirectUpload({
+            courseId,
+            sectionId: input.sectionId,
+            componentId,
+            corsOrigin: request.header('origin') ?? getCorsOrigins()[0] ?? 'http://localhost:4200',
+          });
+        } catch (error) {
+          console.error('Mux upload creation failed; provider upload may require cleanup', { courseId, componentId, error });
+          response.status(503).json({ message: 'Video uploads are temporarily unavailable. Your draft is saved; try uploading again.' });
+          return;
+        }
         const updatedSections = content.sections.map((section) =>
           section.id === input.sectionId
             ? {
@@ -928,7 +937,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         }
 
         if (!videoComponent.mux) {
-          response.status(409).json({ message: 'This component does not have a Mux video.' });
+          response.json({ content: { ...content, review: await review.state(courseId) } });
           return;
         }
 
@@ -949,6 +958,26 @@ export function createServer(dependencies: ServerDependencies = {}) {
             : section,
         );
         const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
+
+        // Read the persisted review after detaching, while still holding the writer lock.
+        // Its legacy sections mirror the published snapshot and must not be counted twice.
+        const stored = await storedContent.getCourseContent(courseId);
+        const snapshots = stored?.review
+          ? [stored.review.live?.sections ?? [], stored.review.working?.sections ?? []]
+          : [stored?.sections ?? []];
+        const removed = videoComponent.mux;
+        const retained = snapshots.some((sections) => sections.some((section) => section.components.some((component) =>
+          component.type === 'video' && component.mux &&
+          ((removed.assetId && component.mux.assetId === removed.assetId) ||
+           (removed.uploadId && component.mux.uploadId === removed.uploadId)))));
+        if (!retained) {
+          try {
+            if (!muxVideo) throw new Error('Mux cleanup is not configured.');
+            await muxVideo.removeVideo({ courseId, assetId: removed.assetId, uploadId: removed.uploadId });
+          } catch (error) {
+            console.error('Mux video cleanup required', { courseId, assetId: removed.assetId, uploadId: removed.uploadId, error });
+          }
+        }
 
         response.json({ content: { ...updatedContent, review: await review.state(courseId) } });
       } catch (error) {
@@ -1392,10 +1421,16 @@ async function handleMuxWebhookEvent(
     case 'video.asset.ready': {
       const data = event.data as Extract<MuxWebhookEvent, { type: 'video.asset.ready' }>['data'];
       const passthrough = parseMuxPassthrough(data.passthrough);
-      const playback = data.playback_ids?.find((item) => item.policy === 'public' || item.policy === 'signed')
-        ?? data.playback_ids?.[0];
+      const playback = data.playback_ids?.find((item) => item.policy === 'public');
 
-      if (!passthrough || !playback?.id) {
+      if (!passthrough) {
+        return;
+      }
+      if (!playback?.id) {
+        await updateMuxVideoComponent(courseContent, review, passthrough, {
+          uploadId: data.upload_id, assetId: data.id, status: 'errored',
+          errorMessage: 'No public playback is available. Remove this video and upload it again.',
+        });
         return;
       }
 
@@ -1403,7 +1438,7 @@ async function handleMuxWebhookEvent(
         uploadId: data.upload_id,
         assetId: data.id,
         playbackId: playback.id,
-        playbackPolicy: playback.policy === 'signed' ? 'signed' : 'public',
+        playbackPolicy: 'public',
         status: 'ready',
         durationSeconds: data.duration ?? null,
         thumbnailUrl: `https://image.mux.com/${playback.id}/thumbnail.jpg`,

@@ -19,6 +19,7 @@ export type CreateMuxUploadResult = {
 
 export interface MuxVideoService {
   createDirectUpload(input: CreateMuxUploadInput): Promise<CreateMuxUploadResult>;
+  removeVideo(video: { courseId: string; assetId: string; uploadId: string }): Promise<void>;
 }
 
 export type MuxWebhookEvent =
@@ -74,11 +75,40 @@ export class ConfiguredMuxVideoService implements MuxVideoService {
     tokenSecret = apiConfig.MUX_TOKEN_SECRET,
     private readonly playbackPolicy: MuxPlaybackPolicy = apiConfig.MUX_DEFAULT_PLAYBACK_POLICY,
   ) {
+    if (playbackPolicy !== 'public') {
+      throw new Error('Mux playback must be public; signed playback has no token flow.');
+    }
     if (!tokenId || !tokenSecret) {
       throw new Error('MUX_TOKEN_ID and MUX_TOKEN_SECRET are required to create Mux uploads.');
     }
 
     this.client = new Mux({ tokenId, tokenSecret });
+  }
+
+  async removeVideo(video: { courseId: string; assetId: string; uploadId: string }): Promise<void> {
+    const owns = (passthrough?: string) => {
+      try { return JSON.parse(passthrough ?? '{}').c === video.courseId; } catch { return false; }
+    };
+    try {
+      const options = { timeout: 5000, maxRetries: 0 };
+      let assetId = video.assetId;
+      if (!assetId && video.uploadId) {
+        const upload = await this.client.video.uploads.retrieve(video.uploadId, options);
+        if (!owns(upload.new_asset_settings?.passthrough)) throw new Error('Mux upload ownership mismatch.');
+        assetId = upload.asset_id ?? '';
+        if (!assetId) {
+          const cancelled = await this.client.video.uploads.cancel(video.uploadId, options);
+          assetId = cancelled.asset_id ?? '';
+        }
+      }
+      if (assetId) {
+        const asset = await this.client.video.assets.retrieve(assetId, options);
+        if (!owns(asset.passthrough)) throw new Error('Mux asset ownership mismatch.');
+        await this.client.video.assets.delete(assetId, options);
+      }
+    } catch (error) {
+      if ((error as { status?: number })?.status !== 404) throw error;
+    }
   }
 
   async createDirectUpload(input: CreateMuxUploadInput): Promise<CreateMuxUploadResult> {
@@ -121,6 +151,9 @@ export class ConfiguredMuxWebhookService implements MuxWebhookService {
 }
 
 export function createMuxVideoService(): MuxVideoService | null {
+  if (apiConfig.MUX_DEFAULT_PLAYBACK_POLICY !== 'public') {
+    throw new Error('Mux playback must be public; signed playback has no token flow.');
+  }
   if (!hasMuxConfig()) {
     return null;
   }

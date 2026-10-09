@@ -529,7 +529,7 @@ Hosted clocks, durability and uncertain provider outcomes require release checks
 | ID | Concern and code evidence | Next verification | Related story |
 | --- | --- | --- | --- |
 | INV-001 | Reproduced as DEF-015; resolved 2026-10-09 in `d674ee3` | Stale/race/partial-failure API regressions and isolated browser pass; shared release checks remain | US-T005 |
-| INV-002 | Mux removal detaches the component; service exposes no provider deletion. Signed policy config exists but playback token flow is absent | Mock lifecycle probes, then isolated real Mux upload/removal/signed playback | US-T006 |
+| INV-002 | Confirmed with isolated route/SDK stubs: removal never calls provider cleanup; signed configuration is accepted without token flow | Promoted to DEF-T006-CLEANUP and DEF-T006-PUBLIC; live rehearsal remains separate | US-T006 |
 | INV-003 | Signup checks email then appends; Sheets enrollment reads then rewrites a user row. No atomic uniqueness/update protection is evident | Concurrent operations against a dedicated test spreadsheet | US-P003 |
 | INV-004 | Feedback triage creates an issue before persisting the link | Fail persistence after stub issue creation, retry, and inspect duplicates | US-P003 |
 | INV-005 | Sheets read volume: `listUsers` runs a two-read header check plus a data read on every authenticated request; course routes list the Courses sheet up to six more times; a new Google client is built per call. Default quota is about 60 reads/minute per service account | Count Sheets calls per route with a counting stub; then load-test a disposable spreadsheet with 5â€“10 concurrent learners and record 429s | US-P006 |
@@ -543,7 +543,7 @@ Hosted clocks, durability and uncertain provider outcomes require release checks
 | INV-013 | Without Sheets settings the API falls back to in-memory demo users in any environment, including the documented demo admin password | Start with `NODE_ENV=production` and no Google settings; attempt the demo admin login | US-P008 |
 | INV-014 | Login and signup accept unlimited attempts; each also consumes Sheets reads | Scripted attempts against a local instance; confirm no throttle and count Sheets calls | US-P008 |
 | INV-015 | On localhost the API client retries a failed request against the hosted API, including mutations | Stop the local API, submit signup from the local frontend with the network inspector open; do not complete it against shared data | US-P008 |
-| INV-016 | `ci.yml` runs only on `pull_request`; work now lands by push to `main`, and the API host deploys without waiting for tests | Push a docs-only commit and confirm no CI run; inspect host deployment settings | US-P008 |
+| INV-016 | CI event configuration reproduced locally: pull requests only, no push trigger | Main push trigger added under US-P008-AC04; actual GitHub run/host gating unverified (no push authorized) | US-P008 |
 | INV-017 | US-T002 code (`86196cf`): status branches in `PATCH /courses/:id` are unreachable because the review service rejects status changes; reviewed title/status live only in MongoDB so the Courses sheet goes stale | Route tests for each legacy status transition; publish a revision and compare the sheet row | US-T002 |
 | INV-018 | Course thumbnails are served `Cache-Control: private, no-store` even when the URL carries the asset id as a version | Reload the catalog and count thumbnail transfers | US-P006 |
 
@@ -562,3 +562,56 @@ minimal reproduction, impact, source location/root cause if verified, related
 story/spec, regression check, fixing commit, and verification outcome. Use
 Investigating when the observation is not yet confirmed. Keep resolved records
 for traceability rather than deleting or reusing IDs.
+
+
+## DEF-T006-CLEANUP — Video removal leaves provider media behind
+
+State: Fixed (resolved in code). Severity: P2. Owner: Codex. Story: US-T006-AC02.
+Reproduced 2026-10-09 at `f602307`, isolated in-memory route and fake Mux.
+`server.test.ts` removal regression: HTTP 200 detaches the video but provider
+calls remain `[]` (expected asset/upload cleanup). No live Mux requests.
+Fix: detach first; check both persisted live and working references before
+best-effort cleanup. Provider metadata must bind assets/uploads to the course;
+404 is already removed. Cleanup failures log course/asset/upload IDs for manual
+follow-up and allow removal and re-upload. Pending uploads are cancelled.
+Regression: `muxRoutes.test.ts` VO-01/04, `muxService.test.ts` VO-01.
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery commit pending recording. Live cancellation/deletion races remain
+in the rehearsal checklist in the story spec.
+
+## DEF-T006-PUBLIC — Signed playback accepted without tokens
+
+State: Fixed (resolved in code). Severity: P2. Owner: Codex. Story: US-T006-AC01/03.
+Reproduced 2026-10-09 at `f602307`: isolated `muxService.test.ts` constructor
+accepted signed configuration instead of refusing unsupported playback.
+Fix: reject signed configuration before creating the client/API startup; upload
+policy stays public. Signed-only ready callbacks produce an actionable error.
+Regression: `muxService.test.ts` VO-02 and `muxRoutes.test.ts` VO-02.
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery commit pending recording. Hosted public playback remains unverified.
+
+## DEF-T006-POLLING — Pending videos stop updating and lack recovery guidance
+
+State: Fixed (resolved in code). Severity: P2. Owner: Codex. Story: US-T006-AC01.
+Reproduced 2026-10-09: reopening an isolated pending-video editor made one load,
+then no further read after 65 simulated seconds. Panel tests returned only
+"Provider failed." for an error and "Processing" after eleven minutes.
+Fix: resume pending polls on editor entry, retry transient reads, continue until
+terminal/removal/navigation; slow polling after ten minutes. Error/waiting/delay
+messages explain removal and re-upload. Ten-minute age uses the first observed
+pending timestamp (persisted content update time on reopen); unrelated earlier
+saves can delay the warning, since media has no separate persisted start time.
+Regression: `course-media.spec.ts`, `course-builder-video.spec.ts` VO-03.
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build and all six journeys pass. Delivery commit pending recording. Real upload/transcoding behavior unverified.
+
+
+## DEF-T006-UPLOAD-FAILURE — Provider outage returns an opaque write error
+
+State: Fixed (resolved in code). Severity: P2. Owner: Codex.
+Story: US-T006-AC03. Reproduced 2026-10-10 with an isolated route stub:
+provider upload creation failure returns 500 instead of actionable 503.
+The provider call was also classified as an uncertain course write even though
+course content had not been written. No real provider call was made.
+Fix: return 503 with saved-draft/retry guidance and release the course lock;
+actual course persistence retains its existing uncertain-write protections.
+Provider creation may have an unknown upload outcome; log for cleanup.
+Regression: `muxRoutes.test.ts` VO-03 verifies unchanged draft and successful
+retry. Verified by the four delivery checks and six journeys. Commit pending.

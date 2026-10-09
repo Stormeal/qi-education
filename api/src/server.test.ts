@@ -1083,7 +1083,8 @@ describe('QI-Education API', () => {
   });
 
   it('removes a Mux video from a video component', async () => {
-    const isolatedServer = createServer().listen(0);
+    const muxVideoService = new FakeMuxVideoService();
+    const isolatedServer = createServer({ muxVideoService }).listen(0);
     const address = isolatedServer.address() as AddressInfo;
     const isolatedBaseUrl = `http://127.0.0.1:${address.port}`;
 
@@ -1150,6 +1151,7 @@ describe('QI-Education API', () => {
       const body = await removeResponse.json();
 
       expect(removeResponse.status).toBe(200);
+      expect(muxVideoService.removedVideos).toEqual([{ courseId: created.id, assetId: 'asset-1', uploadId: 'upload-1' }]);
       expect(body.content.sections[0].components[0]).toEqual({
         id: 'component-1',
         title: 'Intro video',
@@ -1930,6 +1932,8 @@ class FailingCourseContentRepository implements CourseContentRepository {
 }
 
 class FakeMuxVideoService implements MuxVideoService {
+  removedVideos: Array<{ courseId: string; assetId: string; uploadId: string }> = [];
+  async removeVideo(video: { courseId: string; assetId: string; uploadId: string }) { this.removedVideos.push(video); }
   lastInput: Parameters<MuxVideoService['createDirectUpload']>[0] | null = null;
 
   async createDirectUpload(input: Parameters<MuxVideoService['createDirectUpload']>[0]) {

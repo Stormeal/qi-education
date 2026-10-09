@@ -4,6 +4,23 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
+**US-T006 / INV-002 — Video operations; INV-016 / US-P008-AC04 — Main checks.**
+In progress. Owner: Codex. Branch: `main`. Base: `f602307`. Isolated clone:
+`qi-education-codex-media`; no shared environment or provider mutations.
+Scope: Mux service/routes/webhook, upload/polling and builder video panel, CI main
+trigger. Decisions: public playback; preserve assets referenced by published or
+working content; cleanup failures must not block removal. Next: stub reproductions,
+regressions and focused fixes, then journeys and all four delivery checks. No push.
+2026-10-10 continuation: user's instruction to proceed follows the requested
+exception for the existing video-polling test fixture in `course-ownership.spec.ts`.
+Only that fixture is corrected; no ownership implementation changes.
+Spec: [video operations](specs/US-T006-video-operations.md).
+Verified 2026-10-10: API build, 328 API tests, 135 frontend tests, Pages build,
+all six journeys; independent review has no important outstanding findings.
+Confirmed defects: DEF-T006-CLEANUP/PUBLIC/POLLING/UPLOAD-FAILURE. CI main trigger
+implemented; Pages workflow untouched. Live provider gaps are listed in the spec.
+Next: local delivery commit and record its hash. No push or deployment.
+
 **US-L009 / US-L012 / US-T008 (with the US-L006 read foundation) — Career paths.** In progress.
 Owner: Claude Code. Selected by user 2026-10-09. Branch: `main`. Base: `5211365`.
 Spec, decisions and scenario map: [career paths](specs/US-L009-L012-T008-career-paths.md).

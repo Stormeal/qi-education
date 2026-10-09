@@ -94,6 +94,11 @@ describe('course ownership UI (DEF-001)', () => {
     state.currentPath.set('/courses/owned-course/edit');
     state.loadedCourseContentId.set('owned-course');
     const outline = { _id: 'owned-course', view: 'outline' as const, sections: [], createdAt: '', updatedAt: '' };
+    state.courseContent.set({ ...outline, view: 'author', sections: [{ id: 's', title: 'Video', components: [{
+      id: 'video', type: 'video', title: 'Video', content: '', resourceUrl: '', durationMinutes: 1, attachments: [],
+      mux: { provider: 'mux', uploadId: 'pending-upload', assetId: '', playbackId: '', playbackPolicy: 'public',
+        status: 'processing', durationSeconds: null, thumbnailUrl: '', errorMessage: '', captions: [] },
+    }] }] });
     let resolve!: (value: typeof outline) => void;
     const load = vi.spyOn(TestBed.inject(CourseService), 'loadCourseContent').mockImplementation(() => new Promise((done) => { resolve = done; }));
     const poll = (state as unknown as { refreshMuxVideoUntilReady(id: string, component: string, attempts: number): Promise<void> })
