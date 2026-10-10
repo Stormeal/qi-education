@@ -72,6 +72,9 @@ There is currently no lint script or permanent browser E2E suite.
   passing checks, and remaining release verification. Fixed means resolved in code;
   it does not imply a production deployment. Never delete resolved defect records.
 - Mark the story Done only when its criteria pass and its delivery commit is recorded.
+  Then remove it from `user_stories.md` (and remove delivered scenarios from a story that
+  stays open); its spec and verification file keep the record. This applies to stories
+  only: resolved defects stay in `defect_management.md`.
   A local commit is not a deployment; track release verification separately.
 - Clear or replace the active queue record. Preserve useful handoff notes for partial work.
 - Use commits such as `feat(US-T001): enforce course ownership` or

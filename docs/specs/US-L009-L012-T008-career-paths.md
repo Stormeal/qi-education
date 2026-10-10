@@ -78,3 +78,35 @@ Known limit: two admins saving the same path at once — last save wins.
 
 1. Browser-check a completed step with a course that has lessons.
 2. Hosted release check with real MongoDB; then an admin maps real courses and publishes.
+
+## Increment 2 (selected 2026-10-10, not yet implemented)
+
+Stories: US-L010, US-L011, US-L002-AC02, US-P004. Owners and files are in the
+[work queue](../work_queue.md); Codex's part is in
+[its handoff](../handoffs/career-paths-increment-2-codex.md).
+
+Decisions taken by the lead from the stories' recommendations (confirm or change):
+
+- Next step = the first required step, in path order, that is incomplete and whose
+  prerequisites are complete. Within it, a course already in progress wins; otherwise the
+  first available course. Prerequisites are advisory: they order the guidance and never
+  block opening a course.
+- The next action names its course and says why ("Next required step", "You are 40% through").
+  It opens the course page; enrollment and access stay with the existing course rules.
+- A step with no available course is explained as not available yet and guidance moves to
+  the next step that can be started. No enabled link points at a preview course.
+- Still one active path. Switching shows what carries over (completed steps the new path
+  also counts) and what is new, and saves only on confirm. Switching back is the undo;
+  no switch history is stored.
+- Lesson completion moves to the account, stored in MongoDB. The completion rules
+  (DEF-007/009/014) do not change. Completion already saved in a browser is merged up on
+  sign-in and never dropped.
+
+Checklist:
+
+- [ ] Claude: completed step seen in a browser (remaining item 1)
+- [ ] Claude: US-L010-AC01–04 on the roadmap and the Home tile
+- [ ] Claude: US-L011-AC01–03
+- [ ] Claude: US-P004-AC01–02 (a late response cannot land in another account's session)
+- [ ] Codex: US-L002-AC02
+- [ ] Codex: US-P004-AC03–04

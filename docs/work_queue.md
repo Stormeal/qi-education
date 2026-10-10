@@ -4,21 +4,31 @@ Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
-**US-L009 / US-L012 / US-T008 (with the US-L006 read foundation) — Career paths.** In progress.
-Owner: Claude Code. Selected by user 2026-10-09. Branch: `main`. Base: `5211365`.
-Spec, decisions and scenario map: [career paths](specs/US-L009-L012-T008-career-paths.md).
-Done locally: path model/validation, read/selection/admin APIs, admin editor, learner
-compare/choose/roadmap flow, Home tile; 14 API + 5 progress tests and isolated browser walk.
-First increment committed and pushed on `main` (version 0.1.59), on top of `150e701`.
-296 API/126 frontend tests and all builds pass. Next: browser-check a completed step,
-hosted MongoDB check, then an admin maps real courses and publishes paths.
+**US-P001 — Role journey verification.** In progress. Owner: Claude Code.
+Delivered: `npm run verify:journeys` and two manual walks of the teacher, admin and learner
+screens ([record](verification/2026-10-09/teacher-walkthrough.md)). Remaining: the live
+rehearsal in the [teacher rehearsal checklist](release/teacher-rehearsal-checklist.md)
+before the first teacher session, and the browser-runner decision.
 
-**US-P001 — Role journey verification.** In progress. Owner: Claude Code. Selected by user
-2026-10-09. First increment in the same delivery: `api/src/journey.test.ts`, run by
-`npm run verify:journeys` and every `npm run api:test`. Open decision: browser runner.
-Second increment 2026-10-09: the teacher journey walked in the real UI against in-memory
-stores; four defects fixed, five items open. Record:
-[teacher walkthrough](verification/2026-10-09/teacher-walkthrough.md).
+**Career paths, increment 2 — selected by the user 2026-10-10.** This lifts the feature pause
+below for career paths only. Branch: `main`. Base: `35567db`. Split decided by Claude Code
+as lead; the two owners touch no common file.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | Completed-step browser check (spec remaining 1); US-L010 next step on the roadmap and Home; US-L011 confirm before switching; US-P004-AC01–02 in the page and service | `app/src/app/pages/career-path-page/`, `app/src/app/pages/dashboard-page/`, `app/src/app/services/career-path.service.ts`, `app/src/app/utils/career-path-progress*` | Selected; not started |
+| Codex | US-L002-AC02 lesson completion saved to the account; US-P004-AC03–04 on the selection API | `api/src/**`, `app/src/app/services/learning-progress.service.ts` and its spec | Selected; [handoff](handoffs/career-paths-increment-2-codex.md); not started |
+| Alex | Hosted MongoDB check, then map real courses and publish the paths | Admin page, hosted | After both merge |
+
+Decisions and the scenario map are in the [spec](specs/US-L009-L012-T008-career-paths.md).
+Codex commits in its clone without pushing; Claude merges and aligns the version.
+Out of scope: CV analysis, teacher proposals, unpublishing a path, step reorder, US-L003.
+Next: Claude starts the completed-step check, then US-L010; Codex starts from its handoff.
+
+Delivered stories no longer appear here or in `user_stories.md`. Career paths (US-L006,
+US-L009, US-L012, US-T008) are delivered; their open checks are a completed step seen in a
+browser, real MongoDB, and an admin mapping real courses before publishing a path
+([spec](specs/US-L009-L012-T008-career-paths.md)).
 
 ## Latest audit
 
@@ -195,7 +205,8 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-US-T002, US-T003 and US-T005 are Done. All documented confirmed defects remain Fixed.
+All documented confirmed defects remain Fixed. Feature work is paused until the first
+teacher session is over; only fixes found in rehearsal go in.
 Await the user's next selected story or investigation; no Proposed enhancement is authorized by
 this delivery. Shared-provider/hosted release checks require a separate release.
 

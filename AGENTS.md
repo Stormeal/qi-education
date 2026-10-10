@@ -34,7 +34,8 @@ Engineering conventions are in [.agents/AGENTS.md](.agents/AGENTS.md).
   ideas as Proposed stories with BDD criteria. Do not silently expand the task.
 - Never run mutation probes against shared Sheets, MongoDB, Mux, or GitHub data.
   Use isolated test stores; report any integration coverage limitations.
-- Update story, defect, spec, and queue status together. Done requires verification
+- Update story, defect, spec, and queue status together. A delivered story is removed from
+  `docs/user_stories.md`; a resolved defect is never removed from the defect log. Done requires verification
   evidence and a delivery commit; Deferred or Blocked must explain the next action.
 - Prioritize confirmed defects before enhancements within the requested journey.
   Preserve resolved defect records with the fix, date, commit, regression evidence,
