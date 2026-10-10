@@ -2,7 +2,7 @@
 
 ## Record
 
-- State: In progress, API increment. Owner: Codex; frontend owner: Claude Code.
+- State: Done, API increment. Owner: Codex; frontend owner: Claude Code.
 - Selected 2026-10-11; main/base `5bfda0d` (required assignment present).
 - Decisions: Alex's reference and the [agreed handoff](../handoffs/US-T013-simple-quiz-codex.md).
 - Related defects: none confirmed at selection. US-T014 question images stay Proposed.
@@ -174,6 +174,10 @@ Frontend layout, accessibility and image implementation belong to Claude/later w
   completion visibility after edits and concurrent Finish/edit behavior, arbitrary
   fields outside questions (preserved existing document contract), live durability.
 
-Local delivery hashes are recorded in the Codex queue row after committing. The
-API increment can be complete while US-T013-AC07/08 authoring/learner UI remain
-Claude's work. US-T014 remains Proposed with no implementation.
+API implementation delivered locally in `1808432` (version 0.1.101). This subsequent
+delivery-record commit includes the hook's aligned patch bump. The Codex queue
+row records the same commit and checks. Delivered API AC01..AC06 are removed from
+the open backlog; US-T013 remains open there for Claude's AC07/08 frontend acceptance
+record, with frontend code already committed in `1e6506b`. US-T014 remains Proposed
+with no implementation. No outside-scope dependency, provider mutation or push.
+Codex stops after the delivery record; combined browser/release checks remain separate.

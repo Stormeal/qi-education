@@ -11,7 +11,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
-| US-T013 | Write simple quiz questions | In progress | P2 | API/frontend handoff | None confirmed |
+| US-T013 | Write simple quiz questions | In progress (frontend acceptance) | P2 | API delivered; Claude frontend record | None confirmed |
 | US-T014 | Add an image to a quiz question | Proposed | P3 | T013; image contract decisions | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
@@ -67,62 +67,16 @@ Feature: Instructor introduction
 **As a teacher, I want simple questions with flexible answers and one explanation,
 so that I can author useful quizzes without configuring points or repeated explanations.**
 
-State: In progress. Selected 2026-10-11. API owner Codex; frontend owner Claude Code.
-Confirmed by Alex: 1 point, 2..6 answers, one or more correct choices, exact-set
-scoring, optional question explanation. Contract and numbered US-T013-AC01..AC06
-scenarios: [simple quiz spec](specs/US-T013-simple-quiz.md). Includes save/readiness,
-learner secrecy, both attempt routes, legacy compatibility and account completion.
-Question images are explicitly excluded.
+State: In progress, remaining frontend acceptance AC07/08 owned by Claude Code.
+Selected 2026-10-11. API AC01..AC06 delivered locally by Codex in 1808432 (0.1.101):
+save/readiness, one-point exact-set grading, learner secrecy, both attempt routes,
+legacy compatibility and account completion. Their contract/evidence remain in the
+[simple quiz spec](specs/US-T013-simple-quiz.md). Claude's frontend code is committed
+in 1e6506b; its combined browser/acceptance delivery record remains Claude's work.
+Question images are explicitly excluded; US-T014 remains Proposed.
 
 ```gherkin
 Feature: Write simple quiz questions
-  Scenario: US-T013-AC01 Save simple questions
-    Given an editable quiz with two to six answer options per question
-    When the author saves question text and an optional explanation
-    Then each saved question has points 1 and explanation defaulting to an empty string
-    And explanation is at most 1000 characters and legacy answer descriptions are retained
-    And fewer than two or more than six answers returns 400 with a message
-
-  Scenario: US-T013-AC02 Require answerable questions for review
-    Given a draft quiz with incomplete questions
-    When the author saves it
-    Then incomplete text and missing correct choices may remain in the draft
-    When the author submits for review
-    Then every question needs text, two to six nonblank answers and at least one correct choice
-    And the pass mark is between one and the number of questions
-    And existing unique identity checks and Question N messages remain
-
-  Scenario: US-T013-AC03 Grade an exact selected set
-    Given a question with one or more correct answers
-    When an entitled learner submits answerIds on either attempt route
-    Then order and duplicate choices do not affect grading
-    And exactly the correct set earns one point with no partial credit
-    And unknown IDs, empty selections or duplicate question submissions return 400
-
-  Scenario: US-T013-AC04 Protect learner question data and feedback
-    Given an entitled learner reading a quiz
-    Then questions expose points 1 and multiple indicating more than one correct choice
-    And answers expose only id, text and description empty
-    And question explanation and correct-answer identities are withheld
-    When the learner submits an attempt
-    Then feedback contains only submitted selections, correctness and the question explanation
-    And legacy description falls back to the first selected answer when explanation is empty
-
-  Scenario: US-T013-AC05 Keep deployed and stored quizzes working
-    Given an existing four-answer quiz with old points and a high stored pass mark
-    When it is read or graded without a migration
-    Then every question counts one and grading clamps the pass threshold to question count
-    And legacy answerId submissions and points in content saves remain accepted
-    And permissions and both existing attempt routes are retained
-
-  Scenario: US-T013-AC06 Save completion only after a verified passing attempt
-    Given an account with no passing proof for the current quiz
-    When it saves quiz completion without passing or after an incorrect selection set
-    Then completion is refused
-    When its account attempt route persists passing proof
-    Then Finish can save completion for that same unchanged quiz
-    And changed questions invalidate that proof and another account cannot use it
-
   Scenario: US-T013-AC07 Author through the simple editor
     Given an editable quiz
     When I edit a question and add or remove options within two to six answers
