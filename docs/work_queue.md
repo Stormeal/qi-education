@@ -33,6 +33,18 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-10 (2) — started by the user with "let's start working".** Branch: `main`.
+Base: this commit. Picked by Claude Code as lead: the leftovers of career paths increment 2
+for Claude, and the next independent safety item for Codex, because career paths are about
+to go live.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | Show the account progress sync message where learners see progress; keyboard-only walk of the career path page | `app/src/app/pages/**`, `docs/specs/US-L009-L012-T008-career-paths.md` | Selected |
+| Codex | US-P008-AC01 (INV-013) and US-P008-AC03 (INV-015) | See the [handoff](handoffs/US-P008-safe-operation-codex.md) | Selected; not started |
+
+Claude records its result in the career path spec, not here, until Codex has finished.
+
 Delivered stories no longer appear here or in `user_stories.md`. Career paths (US-L006,
 US-L009, US-L012, US-T008) are delivered; their open checks are a completed step seen in a
 browser, real MongoDB, and an admin mapping real courses before publishing a path
