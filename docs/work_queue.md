@@ -33,6 +33,17 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-10 (4) — started by the user with feedback from the first teacher who built
+a course on the live site.** Branch: `main`. Base: `a2926e0` (pushed and deployed, 0.1.90).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-T010 guided course form: steps with checkmarks and Back/Next, required-field marks, bullet lists that show their bullets. DEF-020: a published course looks impossible to edit, because the form is locked and "Start revision" is a small button inside step 3 | `app/src/app/pages/**`, `app/src/app/ui/course-review-panel/**`, `docs/specs/US-T010-guided-course-form.md` | In progress |
+| Codex | US-T011 quiz authoring; US-T012 move a lesson to another chapter | See the [handoff](handoffs/teacher-feedback-builder-codex.md) | Selected; not started |
+
+Claude adds US-T010 and DEF-020 to the backlog and defect log after Codex has finished with
+those two files.
+
 **Session 2026-10-10 (3) — started by the user: the career path editor's Save buttons are cut
 off, the Admin page is chaotic, and career paths need a UI overhaul.** Branch: `main`.
 Base: `3dc9386` (pushed and deployed, version 0.1.85).
