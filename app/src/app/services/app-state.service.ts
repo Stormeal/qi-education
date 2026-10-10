@@ -1,3 +1,4 @@
+import { normalizeBulletList } from '../utils/bullet-list';
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
@@ -58,7 +59,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.91';
+  readonly appVersion = '0.1.92';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2820,13 +2821,7 @@ export class AppStateService {
   }
 
   private normalizeBulletListValue(value: string): string {
-    return value
-      .split(/\r?\n/)
-      .map((line) => {
-        const trimmed = line.replace(/^[•*-]\s*/, '').trim();
-        return trimmed ? `• ${trimmed}` : '';
-      })
-      .join('\n');
+    return normalizeBulletList(value);
   }
 
   private serializeCourseContent(content: CourseContentDocument): string {

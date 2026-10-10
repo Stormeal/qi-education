@@ -165,13 +165,139 @@
   align-content: start;
   min-height: auto;
   gap: 16px;
-  border-top: 1px solid rgba(108, 101, 88, 0.14);
-  padding: 20px 2px 0;
+  padding: 0 2px;
 }
 
-.editor-section:first-child {
-  border-top: 0;
-  padding-top: 0;
+// display: grid would otherwise override the hidden attribute.
+.editor-section[hidden] {
+  display: none;
+}
+
+.editor-section h3:focus-visible {
+  outline: 3px solid #171b4a;
+  outline-offset: 4px;
+}
+
+.editor-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 16px 18px 0;
+  list-style: none;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(108, 101, 88, 0.2);
+    border-radius: 10px;
+    padding: 6px 12px 6px 6px;
+    color: #5f4f3f;
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  button[aria-current='step'] {
+    border-color: #171b4a;
+    color: #171b4a;
+    box-shadow: inset 0 0 0 1px #171b4a;
+  }
+
+  button:focus-visible {
+    outline: 3px solid #171b4a;
+    outline-offset: 2px;
+  }
+}
+
+.editor-step-mark {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 8px;
+  color: #78350f;
+  background: #fff0d3;
+  font-size: 12px;
+  font-weight: 900;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.editor-steps button.is-done .editor-step-mark {
+  color: #fff;
+  background: #2f4f43;
+}
+
+.editor-steps-note {
+  margin: 0;
+  padding: 8px 18px 0;
+  color: #6c6558;
+  font-size: 12px;
+}
+
+.required-mark,
+.editor-steps-note > span {
+  color: #9f1239;
+  font-weight: 800;
+}
+
+.editor-locked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 18px 0;
+  border: 1px solid #2f4f43;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: rgba(47, 79, 67, 0.08);
+
+  strong {
+    color: #171b4a;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #5f4f3f;
+    font-size: 13px;
+  }
+}
+
+.editor-action-spacer {
+  flex: 1 1 auto;
+}
+
+.editor-action-bar app-button {
+  white-space: nowrap;
+}
+
+.field .required-mark {
+  color: #9f1239;
+}
+
+@media (max-width: 600px) {
+  // Four buttons do not fit beside each other on a phone with the step name spelled out.
+  .editor-next-label {
+    display: none;
+  }
 }
 
 .editor-section app-course-builder {

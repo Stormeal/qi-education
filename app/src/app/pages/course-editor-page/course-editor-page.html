@@ -62,46 +62,95 @@
         </span>
       </div>
 
+    @if (lockedReason(); as locked) {
+      <div class="editor-locked" role="status">
+        <div>
+          <strong>{{ locked.title }}</strong>
+          <p>{{ locked.text }}</p>
+        </div>
+        @if (locked.canStartRevision) {
+          <app-button
+            variant="primary"
+            [disabled]="reviewPending() || courseSubmitting() || recoveryAvailable()"
+            (buttonClicked)="reviewAction.emit('start-revision')"
+          >
+            Start revision
+          </app-button>
+        }
+      </div>
+    }
+
+    <ol class="editor-steps" aria-label="Course form steps">
+      @for (step of steps(); track step.id; let i = $index) {
+        <li>
+          <button
+            type="button"
+            [class.is-done]="step.done"
+            [disabled]="step.locked"
+            [attr.aria-current]="step.id === activeStep() ? 'step' : null"
+            [attr.aria-label]="'Step ' + (i + 1) + ': ' + step.label + (step.done ? ', complete' : '') + (step.locked ? ', available after the course is created' : '')"
+            (click)="goToStep(step.id)"
+          >
+            <span class="editor-step-mark" aria-hidden="true">
+              @if (step.done) {
+                <svg viewBox="0 0 16 16" focusable="false"><path d="M3.2 8.2 6.6 11.4 12.8 4.6" /></svg>
+              } @else {
+                {{ i + 1 }}
+              }
+            </span>
+            <span>{{ step.label }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+    <p class="editor-steps-note">
+      <span aria-hidden="true">*</span> Required.
+      @if (courseFormMode() === 'create') { Thumbnail, course content and review open once the course is created. }
+    </p>
+
     <div class="course-form">
-      <section class="editor-section" aria-labelledby="course-basics-title">
+      <section class="editor-section" aria-labelledby="course-basics-title" [hidden]="activeStep() !== 'essentials'">
         <div class="editor-section-heading">
           <span class="section-step">1</span>
           <div>
-            <h3 id="course-basics-title">Essentials</h3>
+            <h3 id="course-basics-title" tabindex="-1">Essentials</h3>
             <p>Core course information shown in listings.</p>
           </div>
         </div>
 
         <div class="editor-grid">
           <label class="field">
-            <span>Course title</span>
+            <span>Course title <span class="required-mark" aria-hidden="true">*</span></span>
             <input
               type="text"
               [value]="courseDraft().title"
               placeholder="ISTQB Foundation 4.0"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
+              required
               (input)="courseTitleChanged.emit(controlValue($event))"
             />
           </label>
 
           <label class="field">
-            <span>Teacher</span>
+            <span>Teacher <span class="required-mark" aria-hidden="true">*</span></span>
             <input
               type="text"
               [value]="courseDraft().teacher"
               placeholder="QI Education"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
+              required
               (input)="courseTeacherChanged.emit(controlValue($event))"
             />
           </label>
 
           <label class="field">
-            <span>Level</span>
+            <span>Level <span class="required-mark" aria-hidden="true">*</span></span>
             <input
               type="text"
               [value]="courseDraft().level"
               placeholder="Foundation"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
+              required
               (input)="courseLevelChanged.emit(controlValue($event))"
             />
           </label>
@@ -119,23 +168,24 @@
         </div>
       </section>
 
-      <section class="editor-section" aria-labelledby="course-content-title">
+      <section class="editor-section" aria-labelledby="course-content-title" [hidden]="activeStep() !== 'fit'">
         <div class="editor-section-heading">
           <span class="section-step">2</span>
           <div>
-            <h3 id="course-content-title">Learner fit</h3>
+            <h3 id="course-content-title" tabindex="-1">Learner fit</h3>
             <p>What learners need to know before they choose the course.</p>
           </div>
         </div>
 
         <div class="editor-grid">
           <label class="field">
-            <span>Description</span>
+            <span>Description <span class="required-mark" aria-hidden="true">*</span></span>
             <textarea
               rows="4"
               [value]="courseDraft().description"
               placeholder="What should learners expect from this course?"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
+              required
               (input)="courseDescriptionChanged.emit(controlValue($event))"
             ></textarea>
           </label>
@@ -158,7 +208,7 @@
               [value]="courseDraft().requirements"
               placeholder="• Basic testing experience&#10;• Comfort reading requirements&#10;• Access to the course materials"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
-              (input)="courseRequirementsChanged.emit(controlValue($event))"
+              (input)="courseRequirementsChanged.emit(bulletValue($event))"
             ></textarea>
           </label>
 
@@ -169,29 +219,9 @@
               [value]="courseDraft().whatYoullLearn"
               placeholder="• Write maintainable test cases&#10;• Understand course concepts quickly&#10;• Apply the lessons in real work"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
-              (input)="courseWhatYoullLearnChanged.emit(controlValue($event))"
+              (input)="courseWhatYoullLearnChanged.emit(bulletValue($event))"
             ></textarea>
           </label>
-        </div>
-      </section>
-
-      <section class="editor-section" aria-labelledby="course-publishing-title">
-        <div class="editor-section-heading">
-          <span class="section-step">3</span>
-          <div>
-            <h3 id="course-publishing-title">Publishing</h3>
-            <p>Manage the review stage and outcome tags for discovery.</p>
-          </div>
-        </div>
-
-        <div class="editor-grid">
-          @if (courseFormMode() === 'edit') {
-            <app-course-review-panel [review]="courseReview()" [canAdmin]="canAccessAdmin()"
-              [blocked]="recoveryAvailable()" [pending]="reviewPending() || courseSubmitting() || thumbnailUploading() || !!attachmentUploadComponentId() || !!muxUploadComponentId()"
-              [loading]="courseContentLoading()" [error]="reviewError()" [reason]="reviewReason()"
-              (action)="reviewAction.emit($event)" (reasonChanged)="reviewReasonChanged.emit($event)" />
-          } @else { <p>New courses start as private drafts.</p> }
-
           <label class="field">
             <span>Career goals</span>
             <input
@@ -205,12 +235,13 @@
         </div>
       </section>
 
+
       @if (courseFormMode() === 'edit') {
-        <section class="editor-section" aria-labelledby="course-thumbnail-title">
+        <section class="editor-section" aria-labelledby="course-thumbnail-title" [hidden]="activeStep() !== 'thumbnail'">
           <div class="editor-section-heading">
-            <span class="section-step">4</span>
+            <span class="section-step">3</span>
             <div>
-              <h3 id="course-thumbnail-title">Catalog thumbnail</h3>
+              <h3 id="course-thumbnail-title" tabindex="-1">Catalog thumbnail</h3>
               <p>Upload the image shown on the catalog card. JPEG, PNG, and WebP are supported up to 2 MB.</p>
             </div>
           </div>
@@ -255,11 +286,11 @@
           </div>
         </section>
 
-        <section class="editor-section" aria-labelledby="course-content-editor-title">
+        <section class="editor-section" aria-labelledby="course-content-editor-title" [hidden]="activeStep() !== 'content'">
           <div class="editor-section-heading">
-            <span class="section-step">5</span>
+            <span class="section-step">4</span>
             <div>
-              <h3 id="course-content-editor-title">Course content</h3>
+              <h3 id="course-content-editor-title" tabindex="-1">Course content</h3>
               <p>Build the lessons and resources for this course.</p>
             </div>
           </div>
@@ -309,6 +340,24 @@
           />
           </div>
         </section>
+
+        <section class="editor-section" aria-labelledby="course-publishing-title" [hidden]="activeStep() !== 'publishing'">
+          <div class="editor-section-heading">
+            <span class="section-step">5</span>
+            <div>
+              <h3 id="course-publishing-title" tabindex="-1">Publishing</h3>
+              <p>Send the course to an admin for review. Learners see it once it is published.</p>
+            </div>
+          </div>
+
+          <div class="editor-grid">
+              <app-course-review-panel [review]="courseReview()" [canAdmin]="canAccessAdmin()"
+                [blocked]="recoveryAvailable()" [pending]="reviewPending() || courseSubmitting() || thumbnailUploading() || !!attachmentUploadComponentId() || !!muxUploadComponentId()"
+                [loading]="courseContentLoading()" [error]="reviewError()" [reason]="reviewReason()"
+                (action)="reviewAction.emit($event)" (reasonChanged)="reviewReasonChanged.emit($event)" />
+
+          </div>
+        </section>
       }
 
       @if (courseCreateError()) {
@@ -320,6 +369,16 @@
         <app-button [disabled]="courseSubmitting() || reviewPending()" (buttonClicked)="courseCanceled.emit()">
           Cancel
         </app-button>
+        <span class="editor-action-spacer"></span>
+        @if (previousStep(); as previous) {
+          <app-button (buttonClicked)="goToStep(previous.id)">Back</app-button>
+        }
+        @if (nextStep(); as next) {
+          <app-button [variant]="courseFormMode() === 'create' ? 'primary' : 'outline'" (buttonClicked)="goToStep(next.id)">
+            Next<span class="editor-next-label">: {{ next.label }}</span>
+          </app-button>
+        }
+        @if (courseFormMode() === 'edit' || !nextStep()) {
         <app-button
           variant="primary"
           [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
@@ -333,6 +392,7 @@
             Create course
           }
         </app-button>
+        }
       </div>
     </section>
 

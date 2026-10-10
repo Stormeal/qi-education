@@ -2,7 +2,9 @@ import { CourseReviewPanel } from '../../ui/course-review-panel/course-review-pa
 import { CourseDraftStatus } from '../../ui/course-draft-status/course-draft-status';
 import type { CourseEditorBuffer, RecoverableCourseDraft } from '../../services/course-draft-recovery.service';
 import { CourseReviewAction, CourseReviewState } from '../../app.models';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { normalizeBulletList } from '../../utils/bullet-list';
+import { CourseFormStepId, courseFormLockedReason, courseFormSteps } from '../../utils/course-form-steps';
 import {
   CourseComponentType,
   CourseContentDocument,
@@ -28,6 +30,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 export class CourseEditorPage {
   private readonly apiClient = inject(ApiClientService);
   private readonly courseService = inject(CourseService);
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
 
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
@@ -144,11 +147,54 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
   readonly courseComponentQuizAnswerCorrectChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
-  readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number }>();
+  readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number; toSectionIndex?: number }>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
+  // One step of the form is shown at a time. A new course opens on the first step; a saved
+  // course opens on the first step that still needs something.
+  protected readonly activeStep = signal<CourseFormStepId>('essentials');
+  private openedFor: string | null = null;
+
+  protected readonly steps = computed(() => courseFormSteps(this.courseDraft(), this.courseFormMode() === 'edit',
+    !!this.editingCourse()?.thumbnailAssetId, this.totalComponentCount(), this.courseReview()));
+  private readonly openSteps = computed(() => this.steps().filter((step) => !step.locked));
+  protected readonly previousStep = computed(() => this.openSteps()[this.openSteps().findIndex((step) => step.id === this.activeStep()) - 1] ?? null);
+  protected readonly nextStep = computed(() => this.openSteps()[this.openSteps().findIndex((step) => step.id === this.activeStep()) + 1] ?? null);
+
+  // Why the form is read-only, said where the teacher is looking, with the way out when there is one.
+  protected readonly lockedReason = computed(() =>
+    this.courseFormMode() !== 'edit' || this.courseEditable() || this.courseContentLoading() ? null : courseFormLockedReason(this.courseReview()));
+
+  constructor() {
+    effect(() => {
+      const courseId = this.courseFormMode() === 'edit' ? this.editingCourse()?.id ?? null : 'new';
+      if (!courseId || courseId === this.openedFor || (courseId !== 'new' && this.courseContentLoading())) return;
+      this.openedFor = courseId;
+      const steps = untracked(() => this.openSteps());
+      this.activeStep.set(courseId === 'new' ? 'essentials' : (steps.find((step) => !step.done) ?? steps[0]).id);
+    });
+  }
+
+  protected goToStep(id: CourseFormStepId): void {
+    this.activeStep.set(id);
+    // Focus follows the step, so keyboard and screen reader users land on its heading.
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('.editor-section:not([hidden]) h3')?.focus());
+  }
+
+  // Bullet fields are rewritten while typing; put the cursor back where the teacher was.
+  protected bulletValue(event: Event): string {
+    const field = event.target as HTMLTextAreaElement;
+    const value = normalizeBulletList(field.value);
+    if (value !== field.value) {
+      const caret = Math.max(0, field.selectionStart + value.length - field.value.length);
+      field.value = value;
+      field.setSelectionRange(caret, caret);
+    }
+    return value;
+  }
+
   protected statusLabel(): string {
     switch (this.courseDraft().status) {
       case 'ready-for-review':
