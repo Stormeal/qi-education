@@ -18,7 +18,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
-| US-L010 | Follow an actionable next learning step | Proposed | P2 | L001, L002, L009 | None |
 | US-L011 | Change paths while retaining learning history | Proposed | P3 | L002, L009 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
@@ -228,45 +227,6 @@ Feature: Home recommendation emphasis
     Given my account has no recommendation
     When I view the home action list
     Then the page shows an honest starting state without a fabricated recommendation
-```
-
-### US-L010 — Follow an actionable next learning step
-
-**As a learner, I want a clear next action linked to real content, so that I can
-move from my career goal into learning without reconstructing the route myself.**
-
-State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
-Depends on US-L001 access, US-L002 progress, and US-L009 selection; US-L007 supplies
-primary-action ordering. Scope: stable destinations, resume, recommendation reason,
-alternatives, and availability. Decisions: deterministic recommendation priority,
-advisory versus enforced prerequisites, substitutions, and content revision behavior.
-
-```gherkin
-Feature: Actionable career guidance
-  Scenario: US-L010-AC01 Resume eligible learning
-    Given my selected path has an enrolled incomplete course
-    When I activate the primary next action
-    Then its learning workspace opens at the agreed next incomplete lesson
-    And the action identifies the course and explains why it is next
-
-  Scenario: US-L010-AC02 Review a course before enrollment
-    Given my next step is an available published course I have not joined
-    When I activate its recommendation
-    Then its actual course details and enrollment requirements are shown
-    And private lesson content is not exposed by the recommendation
-
-  Scenario: US-L010-AC03 Explain unavailable steps
-    Given a required step is withdrawn, missing, preview-only, or blocked by an agreed prerequisite
-    When I view guidance
-    Then its availability and an approved alternative or useful next action are explained
-    And no enabled action links to nonexistent or unauthorized learning content
-
-  Scenario: US-L010-AC04 Accessible action and progress
-    Given a primary action and real progress are available
-    When I use keyboard navigation or a supported mobile viewport
-    Then the action is reachable with a clear destination and visible focus
-    And named progress values can be read without interpreting bar width or color
-    And the current action is presented before historical completed steps
 ```
 
 ### US-L011 — Change paths while retaining learning history

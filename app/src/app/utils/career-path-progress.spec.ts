@@ -1,5 +1,5 @@
 import { CareerPath, CareerPathStep } from '../app.models';
-import { careerPathProgress } from './career-path-progress';
+import { careerPathNextCourse, careerPathProgress } from './career-path-progress';
 
 const step = (id: string, courseIds: string[], extra: Partial<CareerPathStep> = {}): CareerPathStep => ({
   id, title: id, description: '', required: true, prerequisiteStepIds: [],
@@ -32,5 +32,19 @@ describe('career path milestones (US-L012)', () => {
     expect(careerPathProgress(path([step('a', ['c1']), step('extra', ['c3'], { required: false })]), done('c1')))
       .toMatchObject({ percent: 100, finished: true, nextStepId: null });
     expect(careerPathProgress(path([step('a', [''])]), () => true)).toMatchObject({ percent: 0, finished: false });
+  });
+});
+
+describe('career path next step (US-L010)', () => {
+  it('AC03 guidance skips a step with no available course and never offers a preview course', () => {
+    const result = careerPathProgress(path([step('preview', ['']), step('real', ['c2'], { prerequisiteStepIds: ['preview'] })]), done());
+    expect(result.nextStepId).toBe('real');
+    expect(careerPathNextCourse(step('preview', ['']), () => null)).toBeNull();
+  });
+
+  it('AC01 a course already in progress wins over the first listed alternative', () => {
+    const percents: Record<string, number> = { c1: 0, 'c1-alt': 40 };
+    expect(careerPathNextCourse(step('a', ['c1', 'c1-alt']), (id) => percents[id] ?? null)?.courseId).toBe('c1-alt');
+    expect(careerPathNextCourse(step('a', ['c1', 'c1-alt']), () => null)?.courseId).toBe('c1');
   });
 });

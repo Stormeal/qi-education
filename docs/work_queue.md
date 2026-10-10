@@ -16,14 +16,14 @@ as lead; the two owners touch no common file.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | Completed-step browser check (spec remaining 1); US-L010 next step on the roadmap and Home; US-L011 confirm before switching; US-P004-AC01–02 in the page and service | `app/src/app/pages/career-path-page/`, `app/src/app/pages/dashboard-page/`, `app/src/app/services/career-path.service.ts`, `app/src/app/utils/career-path-progress*` | Selected; not started |
+| Claude Code | Completed-step browser check (spec remaining 1); US-L010 next step on the roadmap and Home; US-L011 confirm before switching; US-P004-AC01–02 in the page and service | `app/src/app/pages/career-path-page/`, `app/src/app/pages/dashboard-page/`, `app/src/app/services/career-path.service.ts`, `app/src/app/utils/career-path-progress*` | US-L010 and the completed-step check delivered locally (0.1.76); next US-L011 |
 | Codex | US-L002-AC02 lesson completion saved to the account; US-P004-AC03–04 on the selection API | `api/src/**`, `app/src/app/services/learning-progress.service.ts` and its spec | Selected; [handoff](handoffs/career-paths-increment-2-codex.md); not started |
 | Alex | Hosted MongoDB check, then map real courses and publish the paths | Admin page, hosted | After both merge |
 
 Decisions and the scenario map are in the [spec](specs/US-L009-L012-T008-career-paths.md).
 Codex commits in its clone without pushing; Claude merges and aligns the version.
 Out of scope: CV analysis, teacher proposals, unpublishing a path, step reorder, US-L003.
-Next: Claude starts the completed-step check, then US-L010; Codex starts from its handoff.
+Next: Claude continues with US-L011; Codex starts from its handoff.
 
 Delivered stories no longer appear here or in `user_stories.md`. Career paths (US-L006,
 US-L009, US-L012, US-T008) are delivered; their open checks are a completed step seen in a

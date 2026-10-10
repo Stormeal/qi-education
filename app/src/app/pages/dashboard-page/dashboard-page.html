@@ -32,6 +32,11 @@
           <a routerLink="/career-path">{{ path.title }}</a> &middot;
           {{ careerPath.progress()?.completed }} of {{ careerPath.progress()?.total }} required steps
         </p>
+        @if (careerPath.nextAction(); as next) {
+          <p class="db-stat-meta">
+            Next: <a [routerLink]="next.link">{{ next.label }}, {{ next.course.title }}</a>
+          </p>
+        }
       } @else if (careerPath.state() === 'error') {
         <strong class="db-stat-value">Unavailable</strong>
         <p class="db-stat-meta">Career path could not be loaded.</p>

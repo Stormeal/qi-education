@@ -8,7 +8,7 @@ import {
   CourseContentDocument,
   CourseListItem,
 } from '../app.models';
-import { careerPathProgress } from '../utils/career-path-progress';
+import { careerPathNextCourse, careerPathProgress } from '../utils/career-path-progress';
 import { ApiClientService } from './api-client.service';
 import { CourseService } from './course.service';
 import { LearningProgressService } from './learning-progress.service';
@@ -22,6 +22,7 @@ export class CareerPathService {
   private readonly courseService = inject(CourseService);
   private readonly learningProgress = inject(LearningProgressService);
   private readonly email = signal('');
+  private readonly enrolledCourseIds = signal<string[]>([]);
   private readonly outlines = signal<Record<string, CourseContentDocument>>({});
 
   readonly token = signal('');
@@ -37,13 +38,32 @@ export class CareerPathService {
     return path ? careerPathProgress(path, (courseId) => this.coursePercent(courseId) === 100) : null;
   });
 
+  /** The one thing to do next on the selected path; null when finished or when nothing can be started yet. */
+  readonly nextAction = computed(() => {
+    const step = this.selectedPath()?.steps.find((item) => item.id === this.progress()?.nextStepId);
+    const course = step && !this.progress()?.finished ? careerPathNextCourse(step, (id) => this.coursePercent(id)) : null;
+    if (!step || !course) return null;
+    const enrolled = this.enrolledCourseIds().includes(course.courseId);
+    const percent = this.coursePercent(course.courseId) ?? 0;
+    return {
+      step,
+      course,
+      // An enrolled course opens the learning workspace; otherwise the course page, where joining is decided.
+      link: [enrolled ? '/library' : '/courses', course.courseId],
+      label: !enrolled ? 'View course' : percent > 0 ? 'Continue course' : 'Start course',
+      reason: !enrolled ? 'Review the course and join it to begin this step.'
+        : percent > 0 ? `You are ${percent}% through this course.` : 'You have joined this course and not started it yet.',
+    };
+  });
+
   /** Percent from the same saved lesson completion that My Learning and Home use; null while unknown. */
   coursePercent(courseId: string): number | null {
     const outline = this.outlines()[courseId];
     return outline ? this.learningProgress.forContent(this.email(), outline).percent : null;
   }
 
-  async load(token: string, email: string): Promise<void> {
+  async load(token: string, email: string, enrolledCourseIds: string[] = this.enrolledCourseIds()): Promise<void> {
+    this.enrolledCourseIds.set(enrolledCourseIds);
     if (token !== this.token()) {
       this.paths.set([]);
       this.selection.set(null);
@@ -74,7 +94,10 @@ export class CareerPathService {
   }
 
   async select(pathId: string): Promise<CareerPathResult> {
-    const result = await this.request<{ selection: CareerPathSelection }>('/users/me/career-path', this.token(), 'PUT', { pathId });
+    const token = this.token();
+    const result = await this.request<{ selection: CareerPathSelection }>('/users/me/career-path', token, 'PUT', { pathId });
+    // A reply that arrives after logout or an account switch belongs to the old session.
+    if (token !== this.token()) return { ok: false, message: 'You are signed in to a different account now.' };
     if (!result.ok) return { ok: false, message: result.message };
     this.selection.set(result.body.selection);
     void this.loadOutlines();

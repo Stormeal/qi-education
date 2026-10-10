@@ -76,7 +76,7 @@ Known limit: two admins saving the same path at once — last save wins.
 
 ## Remaining before Done
 
-1. Browser-check a completed step with a course that has lessons.
+1. Done 2026-10-10, see increment 2.
 2. Hosted release check with real MongoDB; then an admin maps real courses and publishes.
 
 ## Increment 2 (selected 2026-10-10, not yet implemented)
@@ -104,9 +104,24 @@ Decisions taken by the lead from the stories' recommendations (confirm or change
 
 Checklist:
 
-- [ ] Claude: completed step seen in a browser (remaining item 1)
-- [ ] Claude: US-L010-AC01–04 on the roadmap and the Home tile
+- [x] Claude: completed step seen in a browser (remaining item 1)
+- [x] Claude: US-L010-AC01–04 on the roadmap and the Home tile
 - [ ] Claude: US-L011-AC01–03
 - [ ] Claude: US-P004-AC01–02 (a late response cannot land in another account's session)
 - [ ] Codex: US-L002-AC02
 - [ ] Codex: US-P004-AC03–04
+
+### US-L010 delivered 2026-10-10 (version 0.1.76)
+
+| Scenario | Check |
+| --- | --- |
+| US-L010-AC01 | Browser: an enrolled course shows "Start course", then "Continue course" at 50%, and opens the workspace on the next incomplete lesson; `career-path-progress.spec.ts` (a course in progress wins) |
+| US-L010-AC02 | Browser: a course not joined shows "View course" and opens its course page |
+| US-L010-AC03 | `career-path-progress.spec.ts` (guidance skips a step with no available course); browser: a step with only a preview course shows the not-available notice and no link |
+| US-L010-AC04 | Browser: the action is a link above the roadmap, progress is stated in words, no horizontal scroll at 375px |
+
+Isolated browser walk (in-memory API, demo learner, two seeded courses with two lessons
+each): completing both lessons moved the path from 0 of 2 to 1 of 2 required steps, marked
+the step Complete, and moved the next action to the second step. Home shows the same next
+action. 143 frontend tests and the frontend build pass. Not verified: keyboard-only walk,
+hosted environment.

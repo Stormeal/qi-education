@@ -58,7 +58,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.75';
+  readonly appVersion = '0.1.76';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -406,7 +406,7 @@ export class AppStateService {
       const login = this.loginState();
       const path = this.currentPath();
       if (login && (path === '/' || path === '/career-path' || path === '/admin')) {
-        untracked(() => void this.careerPaths.load(login.token, login.user.email));
+        untracked(() => void this.careerPaths.load(login.token, login.user.email, login.user.enrolledCourseIds ?? []));
       }
     });
 

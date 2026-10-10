@@ -837,6 +837,38 @@
   content: '\2192';
 }
 
+.cp-next {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 20px 22px;
+  border: 1px solid var(--cp-amber-strong);
+  border-radius: 20px;
+  background: var(--cp-amber-dim);
+
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h3 {
+    font-family: var(--cp-font-display);
+    font-size: 20px;
+  }
+
+  p:not(.cp-milestone-courses-label) {
+    color: var(--cp-text-dim);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .cp-btn {
+    margin-top: 6px;
+    text-decoration: none;
+  }
+}
+
 .cp-roadmap-actions {
   display: flex;
   flex-wrap: wrap;

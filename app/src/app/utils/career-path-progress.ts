@@ -1,4 +1,4 @@
-import { CareerPath } from '../app.models';
+import { CareerPath, CareerPathStep } from '../app.models';
 
 /**
  * Path progress counts required steps only. A step is complete when any one of
@@ -14,7 +14,10 @@ export function careerPathProgress(path: CareerPath, isCourseComplete: (courseId
   const required = path.steps.filter((step) => step.required);
   const open = required.filter((step) => !doneStepIds.has(step.id));
   const completed = required.length - open.length;
-  const next = open.find((step) => step.prerequisiteStepIds.every((id) => doneStepIds.has(id))) ?? open[0] ?? null;
+  // Guidance prefers a step that can be started now; prerequisites order it but never block it.
+  const startable = (step: CareerPathStep) => step.courses.some((course) => course.available);
+  const ready = open.filter((step) => step.prerequisiteStepIds.every((id) => doneStepIds.has(id)));
+  const next = ready.find(startable) ?? open.find(startable) ?? ready[0] ?? open[0] ?? null;
 
   return {
     doneStepIds,
@@ -24,4 +27,14 @@ export function careerPathProgress(path: CareerPath, isCourseComplete: (courseId
     finished: required.length > 0 && open.length === 0,
     nextStepId: next?.id ?? null,
   };
+}
+
+/** The course to act on in a step: one already in progress wins, otherwise the first available one. */
+export function careerPathNextCourse(step: CareerPathStep, percentOf: (courseId: string) => number | null) {
+  const available = step.courses.filter((course) => course.available);
+  const started = available.find((course) => {
+    const percent = percentOf(course.courseId);
+    return percent !== null && percent > 0 && percent < 100;
+  });
+  return started ?? available[0] ?? null;
 }

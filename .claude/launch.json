@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "app:dev"],
       "port": 4200
+    },
+    {
+      "name": "isolated-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "process.env.NODE_ENV='test';process.env.PORT='3001';import('./api/dist/index.js')"],
+      "port": 3001
+    },
+    {
+      "name": "isolated-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "app", "run", "start", "--", "--host", "127.0.0.1", "--port", "4200"],
+      "port": 4200
     }
   ]
 }

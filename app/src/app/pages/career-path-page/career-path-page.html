@@ -249,6 +249,23 @@
                   </p>
                 }
 
+                @if (careerPath.nextAction(); as next) {
+                  <section class="cp-next" aria-labelledby="cp-next-title">
+                    <p class="cp-milestone-courses-label">Next required step</p>
+                    <h3 id="cp-next-title">{{ next.step.title }}</h3>
+                    <p>{{ next.course.title }}. {{ next.reason }}</p>
+                    <a class="cp-btn cp-btn-primary" [routerLink]="next.link">
+                      {{ next.label }}
+                      <span class="cp-btn-arrow" aria-hidden="true">&rarr;</span>
+                    </a>
+                  </section>
+                } @else if (!progress?.finished) {
+                  <p class="cp-notice" role="status">
+                    Your next required step has no course available yet. It will open here once its course is
+                    published. Your completed steps are kept.
+                  </p>
+                }
+
                 <ol class="cp-roadmap-track" aria-label="Career path roadmap">
                   <li class="cp-roadmap-stage is-start">
                     <span class="cp-roadmap-stage-label">Start</span>
