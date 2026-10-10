@@ -21,41 +21,76 @@ export class CareerPathEditor {
   protected readonly paths = computed(() =>
     [...this.careerPath.adminPaths()].sort((a, b) => a.id.localeCompare(b.id)));
   protected readonly editingId = signal('');
+  // The stored path being edited; null for a new path that has not been saved yet.
+  protected readonly editing = computed(() => this.paths().find((path) => path.id === this.editingId()) ?? null);
   // Edited in place by the form; replaced whenever another path is opened.
   protected readonly draft = signal<CareerPathDraft | null>(null);
   protected readonly outcomesText = signal('');
+  protected readonly openStep = signal<EditableStep | null>(null);
   protected readonly busy = signal(false);
   protected readonly message = signal('');
   protected readonly error = signal('');
+  protected readonly listError = signal('');
+  protected readonly conflict = signal(false);
   protected readonly issues = signal<CareerPathIssue[]>([]);
+  private savedSnapshot = '';
 
   constructor() {
     effect(() => {
-      if (this.careerPath.token()) void this.careerPath.loadAdmin().then((result) => this.error.set(result.ok ? '' : result.message));
+      if (this.careerPath.token()) void this.careerPath.loadAdmin().then((result) => this.listError.set(result.ok ? '' : result.message));
     });
   }
 
   protected statusLabel(path: AdminCareerPath): string {
-    return path.published ? `Published · revision ${path.revision} · ${path.learners} following` : 'Draft · not visible to learners';
+    return path.published ? 'Published' : path.updatedAt ? 'Draft' : 'Starter, not saved';
+  }
+
+  protected statusDetail(path: AdminCareerPath): string {
+    if (!path.published) return 'Hidden from learners';
+    const edits = path.draft && JSON.stringify(path.draft) !== JSON.stringify(path.published) ? ', saved edits not published' : '';
+    return `Revision ${path.revision}, ${path.learners} following${edits}`;
+  }
+
+  protected stepSummary(step: EditableStep): string {
+    const previews = step.courses.filter((course) => !course.courseId).length;
+    const courses = `${step.courses.length} ${step.courses.length === 1 ? 'course' : 'courses'}`;
+    return `${step.required ? 'Required' : 'Optional'}, ${courses}${previews ? `, ${previews} preview` : ''}`;
+  }
+
+  // The form edits the draft object in place, so "changed" is a comparison with what was last loaded or saved.
+  protected isDirty(): boolean {
+    const draft = this.draft();
+    return !!draft && this.snapshot(draft) !== this.savedSnapshot;
   }
 
   protected edit(path: AdminCareerPath): void {
+    if (path.id === this.editingId() || !this.mayDiscard()) return;
     this.open(path.id, structuredClone(path.draft ?? path.published)!);
   }
 
-  protected createPath(title: string): void {
-    const id = slug(title);
+  protected createPath(input: HTMLInputElement): void {
+    const id = slug(input.value);
     if (id.length < 2 || this.paths().some((path) => path.id === id)) {
-      this.error.set('Enter a new, unique target role.');
+      this.listError.set('Enter a new, unique target role.');
       return;
     }
-    this.open(id, { title: title.trim(), summary: '', outcomes: [], estimatedHours: 0, steps: [] });
+    if (!this.mayDiscard()) return;
+    this.listError.set('');
+    this.open(id, { title: input.value.trim(), summary: '', outcomes: [], estimatedHours: 0, steps: [] });
+    this.savedSnapshot = ''; // A new path is unsaved from the start.
+    input.value = '';
+  }
+
+  protected toggleStep(step: EditableStep): void {
+    this.openStep.set(this.openStep() === step ? null : step);
   }
 
   protected addStep(draft: CareerPathDraft): void {
     let index = draft.steps.length + 1;
     while (draft.steps.some((step) => step.id === `step-${index}`)) index++;
-    draft.steps.push({ id: `step-${index}`, title: '', description: '', required: true, courses: [{ courseId: '', title: '' }], prerequisiteStepIds: [] });
+    const step: EditableStep = { id: `step-${index}`, title: '', description: '', required: true, courses: [{ courseId: '', title: '' }], prerequisiteStepIds: [] };
+    draft.steps.push(step);
+    this.openStep.set(step);
   }
 
   protected removeStep(draft: CareerPathDraft, step: EditableStep): void {
@@ -63,8 +98,8 @@ export class CareerPathEditor {
     for (const other of draft.steps) other.prerequisiteStepIds = other.prerequisiteStepIds.filter((id) => id !== step.id);
   }
 
-  protected moveStepUp(draft: CareerPathDraft, index: number): void {
-    [draft.steps[index - 1], draft.steps[index]] = [draft.steps[index], draft.steps[index - 1]];
+  protected moveStep(draft: CareerPathDraft, index: number, offset: -1 | 1): void {
+    [draft.steps[index + offset], draft.steps[index]] = [draft.steps[index], draft.steps[index + offset]];
   }
 
   protected togglePrerequisite(step: EditableStep, id: string, checked: boolean): void {
@@ -80,27 +115,78 @@ export class CareerPathEditor {
     if (!draft || this.busy()) return;
     draft.outcomes = this.outcomesText().split('\n').map((line) => line.trim()).filter(Boolean);
     draft.estimatedHours = Math.max(0, Math.round(Number(draft.estimatedHours) || 0));
-    this.busy.set(true);
-    this.message.set('');
-    this.error.set('');
-    this.issues.set([]);
+    this.begin();
     const result = await this.careerPath.saveDraft(this.editingId(), draft, publish);
     this.busy.set(false);
 
     if (result.ok) {
+      this.savedSnapshot = this.snapshot(draft);
       this.message.set(publish ? 'Published. Learners now see this revision.' : 'Draft saved. Learners still see the published revision.');
-    } else {
-      this.error.set(publish && result.issues ? 'Not published. The draft was saved; fix the marked steps.' : result.message);
-      this.issues.set(result.issues ?? []);
+      return;
     }
+    this.fail(result, publish && result.issues ? 'Not published. The draft was saved; fix the marked steps.' : result.message);
+    if (publish && result.issues) this.savedSnapshot = this.snapshot(draft);
+    this.issues.set(result.issues ?? []);
+    // Open the first step that needs fixing so the reason is on screen.
+    const marked = draft.steps.find((step) => this.stepIssues(step.id).length > 0);
+    if (marked) this.openStep.set(marked);
+  }
+
+  protected async withdraw(): Promise<void> {
+    const path = this.editing();
+    if (!path?.published || this.busy()) return;
+    const followers = path.learners === 1 ? '1 learner follows' : `${path.learners} learners follow`;
+    if (!window.confirm(`Withdraw "${path.published.title}"? ${followers} it. They are asked to choose another path until you publish it again. Their completed courses are kept.`)) return;
+    this.begin();
+    const result = await this.careerPath.unpublish(path.id);
+    this.busy.set(false);
+    if (result.ok) this.message.set('Withdrawn. Learners no longer see this path. It is kept here as a draft.');
+    else this.fail(result, result.message);
+  }
+
+  // After a conflict: drop the local edits and open what the other admin saved.
+  protected async loadLatest(): Promise<void> {
+    if (!window.confirm('Load the latest saved version? Your unsaved edits to this path are discarded.')) return;
+    this.begin();
+    const result = await this.careerPath.loadAdmin();
+    this.busy.set(false);
+    const latest = this.editing();
+    if (!result.ok) this.error.set(result.message);
+    else if (latest) this.open(latest.id, structuredClone(latest.draft ?? latest.published)!);
+  }
+
+  private begin(): void {
+    this.busy.set(true);
+    this.message.set('');
+    this.error.set('');
+    this.conflict.set(false);
+    this.issues.set([]);
+  }
+
+  private fail(result: { code?: string }, message: string): void {
+    this.conflict.set(result.code === 'CAREER_PATH_CONFLICT');
+    this.error.set(this.conflict()
+      ? 'Another admin changed this path after you opened it. Nothing was saved and your edits are still here. Copy what you need, then load the latest version.'
+      : message);
+  }
+
+  private mayDiscard(): boolean {
+    return !this.isDirty() || window.confirm('Discard your unsaved changes to this path?');
+  }
+
+  private snapshot(draft: CareerPathDraft): string {
+    return JSON.stringify([draft.title, draft.summary, draft.estimatedHours, draft.steps, this.outcomesText()]);
   }
 
   private open(id: string, draft: CareerPathDraft): void {
     this.editingId.set(id);
     this.draft.set(draft);
     this.outcomesText.set(draft.outcomes.join('\n'));
+    this.openStep.set(null);
+    this.savedSnapshot = this.snapshot(draft);
     this.message.set('');
     this.error.set('');
+    this.conflict.set(false);
     this.issues.set([]);
   }
 }

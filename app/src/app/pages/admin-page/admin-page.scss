@@ -1,9 +1,55 @@
+// The page scrolls as a whole. A fixed-height shell used to clip whatever came after the feedback panel.
 .admin-shell {
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
   min-height: calc(100vh - 32px);
-  overflow: hidden;
+}
+
+.admin-shell > .site-footer {
+  margin-top: auto;
+}
+
+.admin-sections {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(108, 101, 88, 0.2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: #6c6558;
+    background: rgba(255, 255, 255, 0.78);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  button[aria-current='page'] {
+    border-color: #171b4a;
+    color: #fff;
+    background: #171b4a;
+  }
+
+  button:focus-visible {
+    outline: 3px solid #171b4a;
+    outline-offset: 2px;
+  }
+
+  span {
+    border-radius: 999px;
+    padding: 1px 7px;
+    background: rgba(108, 101, 88, 0.16);
+    font-size: 11px;
+  }
+
+  button[aria-current='page'] span {
+    background: rgba(255, 255, 255, 0.22);
+  }
 }
 
 .admin-hero {

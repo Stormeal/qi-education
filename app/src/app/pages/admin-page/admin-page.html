@@ -19,21 +19,37 @@
   <header class="admin-hero">
     <div class="admin-hero-copy">
       <p class="eyebrow">Admin</p>
-      <h1>Feedback inbox</h1>
-      <p>Review user feedback, spot friction, and prioritize follow-up work.</p>
+      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : 'Career paths' }}</h1>
+      <p>
+        {{ section() === 'feedback'
+          ? 'Review user feedback, spot friction, and prioritize follow-up work.'
+          : 'Curate the paths learners can follow. Nothing reaches learners until you publish.' }}
+      </p>
     </div>
 
-    <div class="admin-hero-actions">
-      <app-button
-        variant="primary"
-        [disabled]="feedbackLoading()"
-        (buttonClicked)="feedbackReloaded.emit()"
-      >
-        {{ feedbackLoading() ? 'Refreshing...' : 'Refresh' }}
-      </app-button>
-    </div>
+    @if (section() === 'feedback') {
+      <div class="admin-hero-actions">
+        <app-button
+          variant="primary"
+          [disabled]="feedbackLoading()"
+          (buttonClicked)="feedbackReloaded.emit()"
+        >
+          {{ feedbackLoading() ? 'Refreshing...' : 'Refresh' }}
+        </app-button>
+      </div>
+    }
   </header>
 
+  <nav class="admin-sections" aria-label="Admin sections">
+    <button type="button" [attr.aria-current]="section() === 'feedback' ? 'page' : null" (click)="selectSection('feedback')">
+      Feedback <span>{{ currentFeedback().length }}</span>
+    </button>
+    <button type="button" [attr.aria-current]="section() === 'career-paths' ? 'page' : null" (click)="selectSection('career-paths')">
+      Career paths
+    </button>
+  </nav>
+
+  @if (section() === 'feedback') {
   @if (feedbackLoading()) {
     <app-loading-skeleton variant="stat-card" [count]="3" />
   } @else {
@@ -182,7 +198,9 @@
     </div>
   </section>
 
-  <app-career-path-editor />
+  } @else {
+    <app-career-path-editor />
+  }
 
   <footer class="site-footer">
     <span class="footer-credit">

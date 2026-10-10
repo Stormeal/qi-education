@@ -1,91 +1,133 @@
-<details class="cpe">
-  <summary><h2>Career paths</h2></summary>
-
-  @if (error()) { <p class="cpe-error" role="alert">{{ error() }}</p> }
-  @if (message()) { <p class="cpe-message" role="status">{{ message() }}</p> }
-
-  <ul class="cpe-list">
-    @for (path of paths(); track path.id) {
-      <li>
-        <button type="button" [attr.aria-current]="path.id === editingId()" (click)="edit(path)">
-          {{ (path.draft ?? path.published)?.title }}
-        </button>
-        <span>{{ statusLabel(path) }}</span>
-      </li>
-    }
-  </ul>
-  <form class="cpe-new" (submit)="createPath(newTitle.value); $event.preventDefault()">
-    <label>New path target role <input #newTitle type="text" maxlength="120" /></label>
-    <button type="submit">Add path</button>
-  </form>
+<section class="cpe" aria-label="Career path editor">
+  <aside class="cpe-paths" aria-label="Career paths">
+    <h2>Paths</h2>
+    @if (listError()) { <p class="cpe-error" role="alert">{{ listError() }}</p> }
+    <ul>
+      @for (path of paths(); track path.id) {
+        <li>
+          <button type="button" class="cpe-path" [attr.aria-current]="path.id === editingId()" (click)="edit(path)">
+            <strong>{{ (path.draft ?? path.published)?.title }}</strong>
+            <span class="cpe-chip" [class.is-live]="!!path.published">{{ statusLabel(path) }}</span>
+            <small>{{ statusDetail(path) }}</small>
+          </button>
+        </li>
+      }
+    </ul>
+    <form class="cpe-new" (submit)="createPath(newTitle); $event.preventDefault()">
+      <label for="cpe-new-title">New path</label>
+      <input #newTitle id="cpe-new-title" type="text" maxlength="120" placeholder="Target role, e.g. Test Lead" />
+      <button type="submit" class="cpe-btn">Add path</button>
+    </form>
+  </aside>
 
   @if (draft(); as path) {
     <form class="cpe-form" (submit)="$event.preventDefault()">
-      <h3>Editing: {{ editingId() }}</h3>
+      <header class="cpe-form-head">
+        <h2>{{ path.title || 'Untitled path' }}</h2>
+        <span class="cpe-chip" [class.is-live]="!!editing()?.published">{{ editing() ? statusLabel(editing()!) : 'New, not saved' }}</span>
+        @if (editing(); as stored) { <small>{{ statusDetail(stored) }}</small> }
+      </header>
       @for (issue of stepIssues(''); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
-      <label>Target role <input type="text" name="title" maxlength="120" [(ngModel)]="path.title" /></label>
-      <label>Summary <textarea name="summary" rows="2" maxlength="600" [(ngModel)]="path.summary"></textarea></label>
-      <label>Outcomes, one per line
-        <textarea name="outcomes" rows="3" [ngModel]="outcomesText()" (ngModelChange)="outcomesText.set($event)"></textarea>
-      </label>
-      <label>Estimated hours <input type="number" name="hours" min="0" max="2000" [(ngModel)]="path.estimatedHours" /></label>
+
+      <div class="cpe-details">
+        <label>Target role <input type="text" name="title" maxlength="120" [(ngModel)]="path.title" /></label>
+        <label>Estimated hours <input type="number" name="hours" min="0" max="2000" [(ngModel)]="path.estimatedHours" /></label>
+        <label class="is-wide">Summary <textarea name="summary" rows="2" maxlength="600" [(ngModel)]="path.summary"></textarea></label>
+        <label class="is-wide">Outcomes, one per line
+          <textarea name="outcomes" rows="3" [ngModel]="outcomesText()" (ngModelChange)="outcomesText.set($event)"></textarea>
+        </label>
+      </div>
+
+      <div class="cpe-steps-head">
+        <h3>Steps</h3>
+        <span>Learners follow them in this order. Open a step to edit it.</span>
+      </div>
 
       @for (step of path.steps; track step; let i = $index) {
-        <fieldset class="cpe-step">
-          <legend>Step {{ i + 1 }}</legend>
-          @for (issue of stepIssues(step.id); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
-          <label>Title <input type="text" [name]="'title' + i" maxlength="160" [(ngModel)]="step.title" /></label>
-          <label>Description <textarea [name]="'description' + i" rows="2" maxlength="600" [(ngModel)]="step.description"></textarea></label>
-          <label class="cpe-check"><input type="checkbox" [name]="'required' + i" [(ngModel)]="step.required" /> Required for path completion</label>
-
-          @if (path.steps.length > 1) {
-            <div class="cpe-prerequisites" role="group" aria-label="Comes after">
-              <span>Comes after:</span>
-              @for (other of path.steps; track other) {
-                @if (other !== step) {
-                  <label class="cpe-check">
-                    <input
-                      type="checkbox"
-                      [checked]="step.prerequisiteStepIds.includes(other.id)"
-                      (change)="togglePrerequisite(step, other.id, $any($event.target).checked)"
-                    />
-                    {{ other.title || other.id }}
-                  </label>
-                }
-              }
-            </div>
-          }
-
-          <p class="cpe-hint">Courses: the first is the primary recommendation, the rest are accepted alternatives.</p>
-          @for (course of step.courses; track course; let c = $index) {
-            <div class="cpe-course">
-              <label>Course
-                <select [name]="'course' + i + '-' + c" [(ngModel)]="course.courseId">
-                  <option value="">Preview course (not available yet)</option>
-                  @for (option of careerPath.adminCourses(); track option.id) {
-                    <option [value]="option.id">{{ option.title }} ({{ option.status }})</option>
-                  }
-                </select>
-              </label>
-              @if (!course.courseId) {
-                <label>Preview title <input type="text" [name]="'courseTitle' + i + '-' + c" maxlength="160" [(ngModel)]="course.title" /></label>
-              }
-              <button type="button" (click)="step.courses.splice(c, 1)">Remove course</button>
-            </div>
-          }
-          <div class="cpe-actions">
-            <button type="button" (click)="step.courses.push({ courseId: '', title: '' })">Add course</button>
-            @if (i > 0) { <button type="button" (click)="moveStepUp(path, i)">Move step up</button> }
-            <button type="button" (click)="removeStep(path, step)">Remove step</button>
+        <section class="cpe-step" [class.is-open]="openStep() === step" [class.has-issue]="stepIssues(step.id).length > 0">
+          <div class="cpe-step-head">
+            <button type="button" class="cpe-step-toggle" [attr.aria-expanded]="openStep() === step" (click)="toggleStep(step)">
+              <span class="cpe-step-number">{{ i + 1 }}</span>
+              <span class="cpe-step-title">{{ step.title || 'Untitled step' }}</span>
+              <span class="cpe-step-meta">{{ stepSummary(step) }}</span>
+            </button>
+            <button type="button" class="cpe-btn is-small" [disabled]="i === 0" [attr.aria-label]="'Move step ' + (i + 1) + ' up'" (click)="moveStep(path, i, -1)">Up</button>
+            <button type="button" class="cpe-btn is-small" [disabled]="i === path.steps.length - 1" [attr.aria-label]="'Move step ' + (i + 1) + ' down'" (click)="moveStep(path, i, 1)">Down</button>
+            <button type="button" class="cpe-btn is-small is-danger" [attr.aria-label]="'Remove step ' + (i + 1)" (click)="removeStep(path, step)">Remove</button>
           </div>
-        </fieldset>
-      }
+          @for (issue of stepIssues(step.id); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
 
-      <div class="cpe-actions">
-        <button type="button" (click)="addStep(path)">Add step</button>
-        <button type="button" [disabled]="busy()" (click)="save(false)">Save draft</button>
-        <button type="button" class="cpe-primary" [disabled]="busy()" (click)="save(true)">Save and publish</button>
-      </div>
+          @if (openStep() === step) {
+            <div class="cpe-step-body">
+              <label>Title <input type="text" [name]="'title' + i" maxlength="160" [(ngModel)]="step.title" /></label>
+              <label>Description <textarea [name]="'description' + i" rows="2" maxlength="600" [(ngModel)]="step.description"></textarea></label>
+              <label class="cpe-check"><input type="checkbox" [name]="'required' + i" [(ngModel)]="step.required" /> Required for path completion</label>
+
+              @if (path.steps.length > 1) {
+                <fieldset class="cpe-group">
+                  <legend>Comes after</legend>
+                  @for (other of path.steps; track other) {
+                    @if (other !== step) {
+                      <label class="cpe-check">
+                        <input
+                          type="checkbox"
+                          [checked]="step.prerequisiteStepIds.includes(other.id)"
+                          (change)="togglePrerequisite(step, other.id, $any($event.target).checked)"
+                        />
+                        {{ other.title || other.id }}
+                      </label>
+                    }
+                  }
+                </fieldset>
+              }
+
+              <fieldset class="cpe-group is-stacked">
+                <legend>Courses</legend>
+                <p class="cpe-hint">Completing any one course completes the step. The first is the one learners are sent to.</p>
+                @for (course of step.courses; track course; let c = $index) {
+                  <div class="cpe-course">
+                    <label>Course
+                      <select [name]="'course' + i + '-' + c" [(ngModel)]="course.courseId">
+                        <option value="">Preview (not available yet)</option>
+                        @for (option of careerPath.adminCourses(); track option.id) {
+                          <option [value]="option.id">{{ option.title }} ({{ option.status }})</option>
+                        }
+                      </select>
+                    </label>
+                    @if (!course.courseId) {
+                      <label>Preview title <input type="text" [name]="'courseTitle' + i + '-' + c" maxlength="160" [(ngModel)]="course.title" /></label>
+                    }
+                    <button type="button" class="cpe-btn is-small is-danger" (click)="step.courses.splice(c, 1)">Remove course</button>
+                  </div>
+                }
+                <button type="button" class="cpe-btn is-small" (click)="step.courses.push({ courseId: '', title: '' })">Add course</button>
+              </fieldset>
+            </div>
+          }
+        </section>
+      } @empty {
+        <p class="cpe-hint">This path has no steps yet.</p>
+      }
+      <button type="button" class="cpe-btn cpe-add-step" (click)="addStep(path)">Add step</button>
+
+      <footer class="cpe-savebar">
+        <p [class.cpe-error]="!!error()" [attr.role]="error() ? 'alert' : 'status'">
+          {{ error() || message() || (isDirty() ? 'You have unsaved changes.' : 'No unsaved changes.') }}
+        </p>
+        @if (conflict()) {
+          <button type="button" class="cpe-btn" [disabled]="busy()" (click)="loadLatest()">Load latest version</button>
+        }
+        @if (editing()?.published) {
+          <button type="button" class="cpe-btn is-danger" [disabled]="busy()" (click)="withdraw()">Withdraw</button>
+        }
+        <button type="button" class="cpe-btn" [disabled]="busy()" (click)="save(false)">Save draft</button>
+        <button type="button" class="cpe-btn is-primary" [disabled]="busy()" (click)="save(true)">Save and publish</button>
+      </footer>
     </form>
+  } @else {
+    <div class="cpe-empty">
+      <strong>Choose a path to edit</strong>
+      <span>Pick one from the list, or add a new one. Nothing reaches learners until you publish.</span>
+    </div>
   }
-</details>
+</section>

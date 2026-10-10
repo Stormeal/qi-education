@@ -1,113 +1,396 @@
-.cpe {
-  flex: 0 0 auto;
-  max-height: 70vh;
-  overflow: auto;
-  margin-bottom: 12px;
-  border: 1px solid rgba(108, 101, 88, 0.16);
-  border-radius: 8px;
-  background: #fff;
-  padding: 16px;
+// Uses the Admin page's palette and 8px corners; small status chips are pills as elsewhere on that page.
+$ink: #171b4a;
+$muted: #6c6558;
+$green: #2f4f43;
+$danger: #9f1239;
+$line: rgba(108, 101, 88, 0.2);
 
-  summary {
-    cursor: pointer;
+.cpe {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 12px;
+  color: $ink;
+  font-size: 14px;
+
+  h2,
+  h3,
+  p {
+    margin: 0;
   }
 
   h2 {
-    display: inline;
-    margin: 0;
-    color: #171b4a;
-    font-size: 1.1rem;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 800;
   }
 
   label {
     display: grid;
     gap: 4px;
-    font-size: 0.85rem;
+    color: $muted;
+    font-size: 12px;
+    font-weight: 700;
   }
 
   input[type='text'],
   input[type='number'],
   textarea,
   select {
-    font: inherit;
-    padding: 6px 8px;
+    width: 100%;
     border: 1px solid rgba(108, 101, 88, 0.35);
-    border-radius: 6px;
-  }
-
-  button {
-    font: inherit;
-    padding: 6px 12px;
-    border: 1px solid rgba(108, 101, 88, 0.35);
-    border-radius: 6px;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: $ink;
     background: #fff;
-    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
   }
 
-  button[aria-current='true'],
-  .cpe-primary {
-    background: #171b4a;
-    color: #fff;
+  textarea {
+    resize: vertical;
+  }
+
+  :is(input, textarea, select, button):focus-visible {
+    outline: 3px solid $ink;
+    outline-offset: 2px;
   }
 }
 
-.cpe-list {
+.cpe-paths,
+.cpe-form,
+.cpe-empty {
+  border: 1px solid rgba(108, 101, 88, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgba(57, 57, 58, 0.07);
+}
+
+.cpe-paths {
+  position: sticky;
+  top: 12px;
+  display: grid;
+  gap: 12px;
+
+  ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.cpe-path {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: inherit;
+  background: rgba(108, 101, 88, 0.06);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $line;
+  }
+
+  &[aria-current='true'] {
+    border-color: $green;
+    background: rgba(47, 79, 67, 0.1);
+  }
+
+  small {
+    color: $muted;
+    font-size: 12px;
+  }
+}
+
+.cpe-chip {
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: $muted;
+  background: rgba(108, 101, 88, 0.12);
+  font-size: 11px;
+  font-weight: 800;
+
+  &.is-live {
+    color: #fff;
+    background: $green;
+  }
+}
+
+.cpe-new {
   display: grid;
   gap: 6px;
-  margin: 12px 0;
-  padding: 0;
-  list-style: none;
+  border-top: 1px solid $line;
+  padding-top: 12px;
+}
 
-  li {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.85rem;
+.cpe-btn {
+  border: 1px solid rgba(108, 101, 88, 0.35);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: $ink;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $ink;
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &.is-small {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  &.is-primary {
+    border-color: $ink;
+    color: #fff;
+    background: $ink;
+  }
+
+  &.is-danger {
+    color: $danger;
   }
 }
 
-.cpe-new,
-.cpe-actions,
-.cpe-course,
-.cpe-prerequisites {
+.cpe-form {
+  display: grid;
+  gap: 14px;
+  // The save bar is sticky inside the form, so the form must not clip it.
+  padding-bottom: 0;
+}
+
+.cpe-form-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: end;
+  align-items: center;
   gap: 10px;
+
+  small {
+    color: $muted;
+    font-size: 12px;
+  }
 }
 
-.cpe-form,
-.cpe-step {
+.cpe-details {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  gap: 12px;
+
+  .is-wide {
+    grid-column: 1 / -1;
+  }
+}
+
+.cpe-steps-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: 10px;
-  margin-top: 14px;
+  border-top: 1px solid $line;
+  padding-top: 14px;
+
+  span {
+    color: $muted;
+    font-size: 12px;
+  }
 }
 
 .cpe-step {
-  border: 1px solid rgba(108, 101, 88, 0.25);
+  border: 1px solid $line;
   border-radius: 8px;
-  padding: 12px;
+
+  &.is-open {
+    border-color: $green;
+  }
+
+  &.has-issue {
+    border-color: $danger;
+  }
+
+  > .cpe-error {
+    padding: 0 12px 10px;
+  }
+}
+
+.cpe-step-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 6px;
+}
+
+.cpe-step-toggle {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px;
+  color: inherit;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cpe-step-number {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: #fff;
+  background: $ink;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cpe-step-title {
+  font-weight: 700;
+}
+
+.cpe-step-meta {
+  color: $muted;
+  font-size: 12px;
+}
+
+.cpe-step-body {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid $line;
+  padding: 14px 12px;
+}
+
+.cpe-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+
+  &.is-stacked {
+    display: grid;
+    justify-items: start;
+  }
+
+  legend {
+    margin-bottom: 6px;
+    padding: 0;
+    color: $muted;
+    font-size: 12px;
+    font-weight: 700;
+  }
 }
 
 .cpe label.cpe-check {
   display: flex;
   align-items: center;
   gap: 6px;
+  color: $ink;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.cpe-course {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  width: 100%;
+
+  // Stays at the end of the row whether or not the preview title field is shown.
+  button {
+    grid-column: -2 / -1;
+  }
+}
+
+.cpe-add-step {
+  justify-self: start;
 }
 
 .cpe-hint {
-  margin: 0;
-  font-size: 0.8rem;
-  opacity: 0.75;
+  color: $muted;
+  font-size: 12px;
 }
 
 .cpe-error {
-  margin: 0;
-  color: #9f1239;
+  color: $danger;
+  font-size: 13px;
 }
 
-.cpe-message {
-  margin: 0;
-  color: #0f766e;
+// Always in view while editing, so saving never depends on scrolling to the end.
+.cpe-savebar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -16px;
+  border-top: 1px solid $line;
+  border-radius: 0 0 8px 8px;
+  padding: 12px 16px;
+  background: #fff;
+
+  p {
+    flex: 1 1 220px;
+    color: $muted;
+    font-size: 13px;
+  }
+}
+
+.cpe-empty {
+  display: grid;
+  gap: 6px;
+  padding: 40px 24px;
+
+  span {
+    color: $muted;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 900px) {
+  .cpe {
+    grid-template-columns: 1fr;
+  }
+
+  .cpe-paths {
+    position: static;
+  }
+
+  .cpe-details,
+  .cpe-course {
+    grid-template-columns: 1fr;
+  }
 }

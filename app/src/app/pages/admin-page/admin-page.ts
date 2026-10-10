@@ -15,6 +15,13 @@ import { PageHeader } from '../../ui/page-header/page-header';
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 type FeedbackTab = 'current' | 'archived';
+type AdminSection = 'feedback' | 'career-paths';
+const SECTION_KEY = 'qi-education:admin-section';
+
+function storedSection(): AdminSection {
+  try { return window.sessionStorage.getItem(SECTION_KEY) === 'career-paths' ? 'career-paths' : 'feedback'; }
+  catch { return 'feedback'; }
+}
 
 @Component({
   selector: 'app-admin-page',
@@ -65,6 +72,8 @@ export class AdminPage {
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
   ];
+  // Remembered for the browser tab so a reload returns to the same section.
+  protected readonly section = signal<AdminSection>(storedSection());
   protected readonly activeTab = signal<FeedbackTab>('current');
   protected readonly feedbackTotal = computed(() => this.feedback().length);
   protected readonly needsWorkTotal = computed(
@@ -112,6 +121,11 @@ export class AdminPage {
 
   protected selectedPriority(item: FeedbackEntry): FeedbackPriority {
     return item.priority ?? 'medium';
+  }
+
+  protected selectSection(section: AdminSection): void {
+    this.section.set(section);
+    try { window.sessionStorage.setItem(SECTION_KEY, section); } catch { /* The choice still applies until reload. */ }
   }
 
   protected selectTab(tab: FeedbackTab): void {

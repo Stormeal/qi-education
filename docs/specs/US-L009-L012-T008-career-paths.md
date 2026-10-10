@@ -164,3 +164,23 @@ the confirmation (it is a polite live region), hosted environment.
   confirmation, and back to the card's button on cancel; buttons get a 3px navy ring.
   Re-walked with Tab and Enter only: next action, change target, choose, cancel.
 - Frontend tests pass on the combined tree (179). Not verified: a screen reader, the hosted environment.
+
+### Admin page and editor rebuild 2026-10-10 (version 0.1.87)
+
+Reported by Alex: the editor's Save buttons could not be reached. Cause: the Admin page had a
+fixed height of one screen with five rows and hidden overflow; the editor was a sixth element
+and was cut off. Fixed by letting the page scroll as a whole.
+
+- Admin page: two sections, Feedback and Career paths, one shown at a time; the choice is
+  kept for the browser tab.
+- Editor: path list with status and follower count beside the open path; steps collapse to
+  one line each with Up, Down and Remove; a save bar that stays in view and says whether
+  there are unsaved changes; a prompt before unsaved edits are discarded; the first step with
+  a publish problem opens by itself.
+- Built against Codex's US-A003 contract: Withdraw for a published path, and a clear message
+  with "Load latest version" when a save is refused as stale. These two cannot work until
+  Codex's API is in; saving and publishing do not depend on it.
+- Checks: `career-path-editor.spec.ts` (save bar and unsaved state, refused stale save,
+  withdraw); 182 frontend tests; frontend build. Browser, in-memory API: mapped a real course,
+  saved and published, section kept after reload, no horizontal scroll at 375px.
+  Not verified: Withdraw and the stale-save refusal against a real API; a screen reader.

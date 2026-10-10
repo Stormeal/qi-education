@@ -13,7 +13,7 @@ import { ApiClientService } from './api-client.service';
 import { CourseService } from './course.service';
 import { LearningProgressService } from './learning-progress.service';
 
-export type CareerPathResult = { ok: true } | { ok: false; message: string; issues?: CareerPathIssue[] };
+export type CareerPathResult = { ok: true } | { ok: false; message: string; code?: string; issues?: CareerPathIssue[] };
 
 /** Published career paths, the signed-in account's selected path, and its progress. */
 @Injectable({ providedIn: 'root' })
@@ -126,15 +126,31 @@ export class CareerPathService {
   }
 
   async saveDraft(id: string, draft: CareerPathDraft, publish: boolean): Promise<CareerPathResult> {
-    let result = await this.request<AdminCareerPath>(`/admin/career-paths/${encodeURIComponent(id)}`, this.token(), 'PUT', draft);
+    let result = await this.adminWrite(id, '', 'PUT', draft);
     if (result.ok && publish) {
       this.replaceAdminPath(result.body);
-      result = await this.request<AdminCareerPath>(`/admin/career-paths/${encodeURIComponent(id)}/publish`, this.token(), 'POST');
+      result = await this.adminWrite(id, '/publish', 'POST');
     }
     if (!result.ok) return result;
     this.replaceAdminPath(result.body);
     if (publish) void this.reload();
     return { ok: true };
+  }
+
+  /** Withdraws a published path from learners; its content stays as a draft. */
+  async unpublish(id: string): Promise<CareerPathResult> {
+    const result = await this.adminWrite(id, '/unpublish', 'POST');
+    if (!result.ok) return result;
+    this.replaceAdminPath(result.body);
+    void this.reload();
+    return { ok: true };
+  }
+
+  // Names the version this admin loaded, so the API can refuse to overwrite another admin's newer save.
+  private adminWrite(id: string, action: string, method: string, body?: unknown) {
+    const loaded = this.adminPaths().find((path) => path.id === id)?.updatedAt;
+    return this.request<AdminCareerPath>(`/admin/career-paths/${encodeURIComponent(id)}${action}`, this.token(), method, body,
+      loaded ? { 'X-Expected-Updated-At': loaded } : {});
   }
 
   private replaceAdminPath(path: AdminCareerPath): void {
@@ -153,17 +169,17 @@ export class CareerPathService {
     }));
   }
 
-  private async request<T>(path: string, token: string, method = 'GET', body?: unknown):
-    Promise<{ ok: true; body: T } | { ok: false; message: string; issues?: CareerPathIssue[] }> {
+  private async request<T>(path: string, token: string, method = 'GET', body?: unknown, headers: Record<string, string> = {}):
+    Promise<{ ok: true; body: T } | { ok: false; message: string; code?: string; issues?: CareerPathIssue[] }> {
     try {
       const response = await this.apiClient.fetch(path, {
         method,
-        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}`, ...headers },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       const json = await response.json().catch(() => ({}));
       return response.ok ? { ok: true, body: json as T }
-        : { ok: false, message: json.message ?? 'The request could not be completed.', issues: json.issues };
+        : { ok: false, message: json.message ?? 'The request could not be completed.', code: json.code, issues: json.issues };
     } catch {
       return { ok: false, message: 'Unable to reach the API. Please try again.' };
     }
