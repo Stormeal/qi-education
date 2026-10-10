@@ -40,8 +40,14 @@ question images later.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-T013 frontend: quiz editor rebuilt after the reference (question, answer rows with a correct box and delete, Add answer, optional explanation, New question); learner quiz view for one or several correct answers | Everything under `app/` | In progress |
+| Claude Code | US-T013 frontend: quiz editor rebuilt after the reference (question, answer rows with a correct box and delete, Add answer, optional explanation, New question); learner quiz view for one or several correct answers | Everything under `app/` | Delivered locally in `1e6506b` (0.1.100); acceptance in the [spec](specs/US-T013-simple-quiz.md) |
 | Codex | US-T013 API: quiz model, readiness rules and grading; US-T014 question image recorded as Proposed | See the [handoff](handoffs/US-T013-simple-quiz-codex.md) | API increment delivered locally: 1808432 (implementation, 0.1.101); this delivery record has the hook-aligned patch bump. Owner Codex, main/base 5bfda0d (required commit present), selected 2026-10-11. Spec/stories written first. One point, 2..6 answers, exact-set grading, optional explanation, learner multiple hint and question/answer whitelist; both attempt routes and legacy four-option/points/answerId requests retained, high old pass marks clamped for grading only, account proof aligned with raw stored quiz/Finish. Verified: 458 API tests including 33 simpleQuiz cases, six journeys, API build, 221 frontend tests and Pages build on concurrent combined tree (stylesheet budget warnings). Read-only review: no Critical/Important; malformed unused alias Minor reproduced and fixed; 5,213 independent set combinations pass. No newly confirmed existing defect or further outside-scope need. Not verified: hosted frontend/API, real Mongo durability/providers, combined browser/keyboard/accessibility; Claude owns frontend AC07/08. US-T014 Proposed only. app/ and CLAUDE.md preserved except required version lines; isolated memory stores and ephemeral ports only; no shared data, push or deployment. Claude frontend commit 1e6506b preserved; frontend suite/Pages build repeated after it and pass. Delivered API AC01..AC06 removed from the open backlog; Claude AC07/08 acceptance remains open, US-T014 stays Proposed. Next: Claude records the combined browser acceptance; hosted/provider checks require separate release authorization. Codex stopped |
+
+Lead check 2026-10-11 on `becd1d6`: Codex stayed within its files and the version lines. 458 API
+and 221 frontend tests, six journeys and both builds pass. The new editor and learner view
+were exercised against the new API in the browser (in-memory); details in the spec. US-T013 is
+Done locally and out of the open backlog; US-T014 (question image) stays Proposed.
+Next: Alex decides on the push.
 
 **Session 2026-10-10 (4) — started by the user with feedback from the first teacher who built
 a course on the live site.** Branch: `main`. Base: `a2926e0` (pushed and deployed, 0.1.90).

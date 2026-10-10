@@ -181,3 +181,19 @@ the open backlog; US-T013 remains open there for Claude's AC07/08 frontend accep
 record, with frontend code already committed in `1e6506b`. US-T014 remains Proposed
 with no implementation. No outside-scope dependency, provider mutation or push.
 Codex stops after the delivery record; combined browser/release checks remain separate.
+
+## Frontend acceptance by the lead (2026-10-11)
+
+Frontend delivered in `1e6506b` (0.1.100). Story Done locally; removed from the open backlog.
+
+| Scenario | Check |
+| --- | --- |
+| US-T013-AC07 | `course-builder-authoring.spec.ts` (answer rows, add and delete, two-to-six limits, optional explanation), `course-quiz.spec.ts` (loading keeps five answers, two correct answers and the explanation; edits through the routed editor). Browser, in-memory API: added a fifth answer, ticked a second correct answer, wrote an explanation, saved (PATCH 200); the stored question had 5 answers, 2 correct, the explanation and 1 point |
+| US-T013-AC08 | `course-view-page.spec.ts` (ticks for a question with several correct answers, all selected IDs sent, result and explanation shown, no single answer painted wrong). Browser as the demo learner on the published course: five tick boxes and "Select all that apply"; one tick gave "Not correct" and Score 0 / 1; both correct ticks gave "Correct", the quiz lesson was saved as complete to the account and the view moved to the next lesson |
+
+Combined tree: 458 API and 221 frontend tests, six journeys, API and Pages builds pass.
+Decisions taken by the lead: a wrong attempt shows the explanation too, as the per-answer
+explanations did before; the editor edits only the per-question explanation, and existing
+per-answer explanations stay stored and are still shown to learners when a question has no
+explanation of its own. Not verified: keyboard-only walk of the new editor rows, a screen
+reader, hosted behavior. The lesson builder stylesheet is at 15.95 of its 16 kB limit.

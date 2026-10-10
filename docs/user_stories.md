@@ -11,7 +11,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
-| US-T013 | Write simple quiz questions | In progress (frontend acceptance) | P2 | API delivered; Claude frontend record | None confirmed |
 | US-T014 | Add an image to a quiz question | Proposed | P3 | T013; image contract decisions | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
@@ -60,36 +59,6 @@ Feature: Instructor introduction
     When their card is displayed
     Then it uses an agreed empty fallback without inventing biographical details
     And private profile data is not disclosed
-```
-
-### US-T013 - Write simple quiz questions
-
-**As a teacher, I want simple questions with flexible answers and one explanation,
-so that I can author useful quizzes without configuring points or repeated explanations.**
-
-State: In progress, remaining frontend acceptance AC07/08 owned by Claude Code.
-Selected 2026-10-11. API AC01..AC06 delivered locally by Codex in 1808432 (0.1.101):
-save/readiness, one-point exact-set grading, learner secrecy, both attempt routes,
-legacy compatibility and account completion. Their contract/evidence remain in the
-[simple quiz spec](specs/US-T013-simple-quiz.md). Claude's frontend code is committed
-in 1e6506b; its combined browser/acceptance delivery record remains Claude's work.
-Question images are explicitly excluded; US-T014 remains Proposed.
-
-```gherkin
-Feature: Write simple quiz questions
-  Scenario: US-T013-AC07 Author through the simple editor
-    Given an editable quiz
-    When I edit a question and add or remove options within two to six answers
-    Then I can mark one or several correct options and enter an optional question explanation
-    And each question shows one point without a configurable weight
-    And authoring controls remain labelled and keyboard usable
-
-  Scenario: US-T013-AC08 Select the right set in the learner view
-    Given an entitled learner opening a quiz
-    When a question has one correct option or several correct options
-    Then the view provides the corresponding single or multiple selection controls
-    And after submitting it shows server correctness and explanation feedback
-    And quiz completion still waits for a passing server attempt
 ```
 
 ### US-T014 - Add an image to a quiz question
