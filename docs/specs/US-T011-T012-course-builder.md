@@ -2,7 +2,7 @@
 
 ## Record
 
-- Stories: US-T011 and US-T012. State: In progress.
+- Stories: US-T011 and US-T012. State: Done (local implementation; browser/release checks remain below).
 - Owner: Codex. Selected 2026-10-10. Initial base: main / baf852c; resumed on main / 853c249.
 - Required assignment commit: a61771f, present in the first 15 history entries.
 - Contract: [teacher feedback handoff](../handoffs/teacher-feedback-builder-codex.md).
@@ -209,8 +209,10 @@ Continuation evidence, 2026-10-10, main/base 853c249:
 - Not verified: actual browser geometry at 375px or tall desktop heights,
   native keyboard interaction/drag layout, live Mux callbacks, Mongo durability,
   shared Sheets and hosted behavior. These are release/browser checks below.
-- Implementation and delivery-record commit hashes are recorded in the Codex
-  row of `docs/work_queue.md` once the local commits exist.
+- Implementation delivered locally in `a8595d6` (version 0.1.96). This subsequent
+  delivery record includes the hook's aligned patch bump, removes the delivered
+  stories from the open backlog and records DEF-T012-CALLBACK as Fixed. Codex stops
+  after this record; Claude owns the browser checks below. No push.
 
 After implementation, Claude should inspect the actual routed teacher editor:
 add several questions on both a tall desktop and a short viewport and confirm

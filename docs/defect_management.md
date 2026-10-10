@@ -44,7 +44,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-017 | Production without user-store settings accepts demo credentials | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `safeOperation.test.ts` regression and full checks pass | US-P008-AC01 |
 | DEF-018 | Local API network failures replay mutations against hosted API | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `api-client.service.spec.ts` regression and full checks pass | US-P008-AC03 |
 | DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Fixed | Resolved 2026-10-10 in a889155; mixed-client regression/full checks/review pass | US-A003-AC02 |
-| DEF-T012-CALLBACK | Video callbacks miss a lesson moved to another chapter | P2 | In progress | Reproduced 2026-10-10 in isolated courseMove.test.ts; old-chapter callback returns 200 but lesson stays processing | US-T012-AC05 |
+| DEF-T012-CALLBACK | Video callbacks miss a lesson moved to another chapter | P2 | Fixed | Reproduced then fixed 2026-10-10 in a8595d6; seven isolated media regressions and 425 API tests pass; live provider checks pending | US-T012-AC05 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -715,7 +715,7 @@ withdrawal/conflict flow remain release checks. No shared providers were accesse
 
 ### DEF-T012-CALLBACK - Video callbacks miss a moved lesson
 
-Owner: Codex. Severity: P2. State: In progress. Found 2026-10-10 on main/base
+Owner: Codex. Severity: P2. State: Fixed. Resolved in code 2026-10-10, fixing commit a8595d6. Found 2026-10-10 on main/base
 853c249 with disposable memory stores; not observed against a live provider.
 Contract: US-T012-AC05; [spec](specs/US-T011-T012-course-builder.md).
 
@@ -729,5 +729,5 @@ The ready-playback retention and old-upload/replacement guards already pass.
 Regression: api/src/courseMove.test.ts has three expected failures for matching
 callbacks (both prefixes and split live/working locations). Attachment uploads
 use the existing PUT method; no attachment route defect is confirmed.
-Resolution: callbacks locate the stable component ID across chapters in each live/working snapshot; matching upload/asset checks still reject a replaced video. All seven courseMove tests and all 425 API tests pass. Fixing commit pending local delivery. Real Mux, MongoDB and hosted/browser checks
+Resolution: callbacks locate the stable component ID across chapters in each live/working snapshot; matching upload/asset checks still reject a replaced video. All seven courseMove tests and all 425 API tests pass. Fixing commit a8595d6 (0.1.96). Real Mux, MongoDB and hosted/browser checks
 remain outside this isolated regression.
