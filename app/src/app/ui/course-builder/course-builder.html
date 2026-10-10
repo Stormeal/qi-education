@@ -267,10 +267,11 @@
 
             @if (isQuizComponent(component)) {
               <label class="builder-field">
-                <span>Pass points</span>
+                <span>Correct answers needed to pass</span>
                 <input
                   type="number"
                   min="1"
+                  [max]="component.quiz.questions.length"
                   [value]="component.quiz.passPoints"
                   [disabled]="courseContentSaving() || courseSubmitting()"
                   (input)="updateQuizPassPoints(editor.sectionIndex, editor.componentIndex, controlValue($event))"
@@ -327,70 +328,86 @@
 
                     @if (isQuizQuestionExpanded(questionIndex)) {
                       <div class="quiz-question-body" [id]="'quiz-question-body-' + component.id + '-' + question.id">
-                        <div class="builder-modal-grid quiz-settings-grid">
-                          <label class="builder-field quiz-question-field">
-                            <span>Question</span>
-                            <input
-                              type="text"
-                              [value]="question.question"
-                              [disabled]="courseContentSaving() || courseSubmitting()"
-                              (input)="updateQuizQuestion(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
-                            />
-                          </label>
+                        <label class="builder-field quiz-question-field">
+                          <span>Question</span>
+                          <input
+                            type="text"
+                            placeholder="Write your question here"
+                            [value]="question.question"
+                            [disabled]="courseContentSaving() || courseSubmitting()"
+                            (input)="updateQuizQuestion(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
+                          />
+                        </label>
 
-                          <label class="builder-field">
-                            <span>Question points</span>
-                            <input
-                              type="number"
-                              min="1"
-                              [value]="question.points"
-                              [disabled]="courseContentSaving() || courseSubmitting()"
-                              (input)="updateQuizPoints(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
-                            />
-                          </label>
-                        </div>
-
-                        <div class="quiz-answer-list">
+                        <fieldset class="quiz-answers">
+                          <legend>Answers <span>Tick every correct answer. One or several can be correct.</span></legend>
                           @for (answer of question.answers; track answer.id; let answerIndex = $index) {
                             <div class="quiz-answer-row">
-                              <div class="quiz-answer-header">
-                                <p class="quiz-answer-label">Answer {{ answerIndex + 1 }}</p>
-
-                                <label class="quiz-answer-toggle">
-                                  <input
-                                    type="checkbox"
-                                    [checked]="answer.isCorrect"
-                                    [disabled]="courseContentSaving() || courseSubmitting()"
-                                    (change)="updateQuizAnswerCorrectness(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, toggleValue($event))"
-                                  />
-                                  <span>Correct</span>
-                                </label>
-                              </div>
-
                               <input
                                 type="text"
                                 class="quiz-answer-input"
-                                [attr.aria-label]="'Answer ' + (answerIndex + 1) + ' text'"
-                                placeholder="Answer text"
+                                [attr.aria-label]="'Answer ' + (answerIndex + 1)"
+                                [placeholder]="'Answer ' + (answerIndex + 1)"
                                 [value]="answer.text"
                                 [disabled]="courseContentSaving() || courseSubmitting()"
                                 (input)="updateQuizAnswerText(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, controlValue($event))"
                               />
-
-                              <label class="quiz-answer-explanation">
-                              <span>Explanation (optional)</span>
-                              <textarea
-                                rows="2"
-                                class="quiz-answer-description"
-                                placeholder="Why this is right or wrong"
-                                [value]="answer.description"
-                                [disabled]="courseContentSaving() || courseSubmitting()"
-                                (input)="updateQuizAnswerDescription(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, controlValue($event))"
-                              ></textarea>
+                              <label class="quiz-answer-correct" [class.is-correct]="answer.isCorrect">
+                                <input
+                                  type="checkbox"
+                                  [attr.aria-label]="'Answer ' + (answerIndex + 1) + ' is correct'"
+                                  [checked]="answer.isCorrect"
+                                  [disabled]="courseContentSaving() || courseSubmitting()"
+                                  (change)="updateQuizAnswerCorrectness(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, toggleValue($event))"
+                                />
+                                <span aria-hidden="true">Correct</span>
                               </label>
+                              <button
+                                type="button"
+                                class="quiz-answer-remove"
+                                [attr.aria-label]="'Delete answer ' + (answerIndex + 1)"
+                                [title]="question.answers.length <= quizMinAnswers ? 'A question needs at least two answers' : 'Delete answer'"
+                                [disabled]="courseContentSaving() || courseSubmitting() || question.answers.length <= quizMinAnswers"
+                                (click)="removeQuizAnswer(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex)"
+                              >
+                                <span class="inline-icon" aria-hidden="true" [innerHTML]="trashIcon"></span>
+                              </button>
                             </div>
                           }
-                        </div>
+                          @if (question.answers.length < quizMaxAnswers) {
+                            <button
+                              type="button"
+                              class="quiz-inline-action"
+                              [disabled]="courseContentSaving() || courseSubmitting()"
+                              (click)="addQuizAnswer(editor.sectionIndex, editor.componentIndex, questionIndex)"
+                            >
+                              + Add answer
+                            </button>
+                          }
+                        </fieldset>
+
+                        @if (isQuizExplanationOpen(question)) {
+                          <label class="builder-field quiz-explanation">
+                            <span>Explanation (optional)</span>
+                            <textarea
+                              rows="2"
+                              maxlength="1000"
+                              placeholder="Shown to learners after they answer this question"
+                              [value]="question.explanation ?? ''"
+                              [disabled]="courseContentSaving() || courseSubmitting()"
+                              (input)="updateQuizExplanation(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
+                            ></textarea>
+                          </label>
+                        } @else {
+                          <button
+                            type="button"
+                            class="quiz-inline-action"
+                            [disabled]="courseContentSaving() || courseSubmitting()"
+                            (click)="openQuizExplanation(question)"
+                          >
+                            + Add explanation
+                          </button>
+                        }
                       </div>
                     }
                   </section>
@@ -403,7 +420,7 @@
                 [disabled]="courseContentSaving() || courseSubmitting()"
                 (click)="addQuizQuestion(editor.sectionIndex, editor.componentIndex)"
               >
-                + Add question
+                + New question
               </button>
               <div class="quiz-scroll-space" aria-hidden="true"></div>
             </section>

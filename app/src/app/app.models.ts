@@ -157,9 +157,22 @@ export type QuizAnswerOption = {
 export type QuizQuestion = {
   id: string;
   question: string;
+  // Every question counts 1; the field stays because stored quizzes and the API still carry it.
   points: number;
-  answers: [QuizAnswerOption, QuizAnswerOption, QuizAnswerOption, QuizAnswerOption];
+  explanation?: string;
+  // Learner reads only: more than one answer is correct, so all of them must be selected.
+  multiple?: boolean;
+  answers: QuizAnswerOption[];
 };
+
+export const QUIZ_MIN_ANSWERS = 2;
+export const QUIZ_MAX_ANSWERS = 6;
+
+/** A change to one quiz question that is not a plain text edit of an existing field. */
+export type QuizQuestionEdit =
+  | { kind: 'add-answer' }
+  | { kind: 'remove-answer'; answerIndex: number }
+  | { kind: 'explanation'; value: string };
 
 export type QuizComponentContent = {
   passPoints: number;
@@ -242,7 +255,7 @@ export type QuizAssessmentResult = {
   totalPoints: number;
   passPoints: number;
   passed: boolean;
-  feedback: { questionId: string; answerId: string; correct: boolean; description: string }[];
+  feedback: { questionId: string; answerIds?: string[]; answerId: string; correct: boolean; explanation?: string; description: string }[];
 };
 
 export type NextAction = {

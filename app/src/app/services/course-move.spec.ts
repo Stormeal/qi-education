@@ -24,7 +24,7 @@ const content: CourseContentDocument = { _id: 'course', createdAt: '', updatedAt
     mux: { provider: 'mux', uploadId: 'upload', assetId: 'mux-asset', playbackId: 'playback', playbackPolicy: 'public',
       status: 'ready', durationSeconds: 180, thumbnailUrl: '', errorMessage: '', captions: [] } },
     { id: 'quiz', title: 'Quiz', type: 'quiz', content: 'Which?', resourceUrl: '', durationMinutes: 2, attachments: [],
-      quiz: { passPoints: 1, questions: [{ id: 'question', question: 'Which?', points: 1, answers: [
+      quiz: { passPoints: 1, questions: [{ id: 'question', question: 'Which?', points: 1, explanation: '', answers: [
         { id: 'a', text: 'A', description: '', isCorrect: true }, { id: 'b', text: 'B', description: '', isCorrect: false },
         { id: 'c', text: 'C', description: '', isCorrect: false }, { id: 'd', text: 'D', description: '', isCorrect: false },
       ] }] } }] },

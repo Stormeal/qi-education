@@ -1,7 +1,7 @@
 import { CourseReviewPanel } from '../../ui/course-review-panel/course-review-panel';
 import { CourseDraftStatus } from '../../ui/course-draft-status/course-draft-status';
 import type { CourseEditorBuffer, RecoverableCourseDraft } from '../../services/course-draft-recovery.service';
-import { CourseReviewAction, CourseReviewState } from '../../app.models';
+import { CourseReviewAction, CourseReviewState, QuizQuestionEdit } from '../../app.models';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { normalizeBulletList } from '../../utils/bullet-list';
 import { CourseFormStepId, courseFormLockedReason, courseFormSteps } from '../../utils/course-form-steps';
@@ -147,6 +147,8 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
   readonly courseComponentQuizAnswerCorrectChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
+  readonly courseComponentQuizQuestionEdited =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; edit: QuizQuestionEdit }>();
   readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number; toSectionIndex?: number }>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();

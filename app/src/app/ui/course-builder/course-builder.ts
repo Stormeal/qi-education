@@ -37,7 +37,7 @@ import {
   lucideX,
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
-import { CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QuizQuestion } from '../../app.models';
+import { CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
@@ -169,7 +169,13 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
   readonly courseComponentQuizAnswerCorrectChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
+  readonly courseComponentQuizQuestionEdited =
+    output<{ sectionIndex: number; componentIndex: number; questionIndex: number; edit: QuizQuestionEdit }>();
   readonly courseComponentMoved = output<CourseComponentMoved>();
+  protected readonly quizMinAnswers = QUIZ_MIN_ANSWERS;
+  protected readonly quizMaxAnswers = QUIZ_MAX_ANSWERS;
+  // Questions whose optional explanation field was opened in this session.
+  private readonly openQuizExplanations = signal<string[]>([]);
 
   protected readonly editingComponent = computed(() => {
     const editor = this.activeEditor();
@@ -1012,7 +1018,7 @@ export class CourseBuilder {
       return null;
     }
 
-    return `${plural(component.quiz.questions.length, 'question')} · Pass at ${component.quiz.passPoints} pts`;
+    return `${plural(component.quiz.questions.length, 'question')} · ${Math.min(component.quiz.passPoints, component.quiz.questions.length)} correct to pass`;
   }
 
   protected isSectionCollapsed(sectionIndex: number): boolean {
@@ -1256,17 +1262,43 @@ export class CourseBuilder {
 
   protected quizQuestionSummary(question: QuizQuestion): string {
     const correct = question.answers.filter(answer => answer.isCorrect).length;
-    return `${question.question.trim() || 'Untitled question'} · ${question.points} pts · ${plural(question.answers.length, 'answer')} · ${correct === 0 ? 'No correct answer' : correct === 1 ? 'Correct answer marked' : 'Multiple correct answers'}`;
+    return `${question.question.trim() || 'Untitled question'} · ${plural(question.answers.length, 'answer')} · ${correct === 0 ? 'No correct answer' : plural(correct, 'correct answer')}`;
   }
 
   protected quizQuestionIssues(question: QuizQuestion, questions: QuizQuestion[]): string[] {
     const issues: string[] = [];
     if (questions.filter(item => item.id === question.id).length > 1) issues.push('Question IDs must be unique.');
     if (new Set(question.answers.map(answer => answer.id)).size !== question.answers.length) issues.push('Answer IDs must be unique within the question.');
-    if (!question.question.trim()) issues.push('Enter a question.');
-    if (question.answers.some(answer => !answer.text.trim())) issues.push('Fill in all four answers.');
-    if (question.answers.filter(answer => answer.isCorrect).length !== 1) issues.push('Mark exactly one correct answer.');
+    if (!question.question.trim()) issues.push('Write the question.');
+    if (question.answers.some(answer => !answer.text.trim())) issues.push('Fill in every answer, or delete the empty ones.');
+    if (!question.answers.some(answer => answer.isCorrect)) issues.push('Tick at least one correct answer.');
     return issues;
+  }
+
+  protected addQuizAnswer(sectionIndex: number, componentIndex: number, questionIndex: number): void {
+    this.courseComponentQuizQuestionEdited.emit({ sectionIndex, componentIndex, questionIndex, edit: { kind: 'add-answer' } });
+    // The new row does not exist until the state has re-rendered.
+    setTimeout(() => {
+      const inputs = this.host.nativeElement.querySelectorAll<HTMLInputElement>('.quiz-question-card:not(.is-collapsed) .quiz-answer-input');
+      inputs.item(inputs.length - 1)?.focus();
+    });
+  }
+
+  protected removeQuizAnswer(sectionIndex: number, componentIndex: number, questionIndex: number, answerIndex: number): void {
+    this.courseComponentQuizQuestionEdited.emit({ sectionIndex, componentIndex, questionIndex, edit: { kind: 'remove-answer', answerIndex } });
+  }
+
+  protected updateQuizExplanation(sectionIndex: number, componentIndex: number, questionIndex: number, value: string): void {
+    this.courseComponentQuizQuestionEdited.emit({ sectionIndex, componentIndex, questionIndex, edit: { kind: 'explanation', value } });
+  }
+
+  protected isQuizExplanationOpen(question: QuizQuestion): boolean {
+    return !!question.explanation || this.openQuizExplanations().includes(question.id);
+  }
+
+  protected openQuizExplanation(question: QuizQuestion): void {
+    this.openQuizExplanations.update(ids => [...ids, question.id]);
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLTextAreaElement>('.quiz-question-card:not(.is-collapsed) .quiz-explanation textarea')?.focus());
   }
 
   private scrollQuizQuestionIntoView(questionIndex: number): void {

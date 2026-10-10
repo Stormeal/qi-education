@@ -75,8 +75,8 @@
 
                       <section class="learning-quiz-prompt" aria-labelledby="learning-player-title">
                         <div class="learning-quiz-meta">
-                          <span>{{ activeQuizQuestion().points }} points</span>
-                          <span>{{ currentComponent.quiz.passPoints }} points to pass</span>
+                          <span>{{ activeQuizPassNeeded(currentComponent.quiz.passPoints) }} of {{ activeQuizTotalPoints() }} correct to pass</span>
+                          @if (activeQuizQuestion().multiple) { <span>Select all that apply</span> }
                         </div>
                         <h1 id="learning-player-title">
                           {{ activeQuizQuestion().question || 'Question text coming soon.' }}
@@ -97,22 +97,25 @@
                               @for (answer of question.answers; track answer.id; let answerIndex = $index) {
                                 <label class="learning-quiz-answer" [class.is-correct]="answerState(question, answer.id) === 'correct'" [class.is-incorrect]="answerState(question, answer.id) === 'incorrect'">
                                   <input
-                                    type="radio"
+                                    [type]="question.multiple ? 'checkbox' : 'radio'"
                                     [name]="'quiz-' + question.id"
-                                    [checked]="selectedQuizAnswerId(question.id) === answer.id"
+                                    [checked]="selectedQuizAnswerIds(question.id).includes(answer.id)"
                                     [disabled]="activeQuizQuestionSubmitted() || quizSubmitted() || quizScoring()"
-                                    (change)="selectQuizAnswer(question.id, answer.id)"
+                                    (change)="selectQuizAnswer(question, answer.id, $any($event.target).checked)"
                                   />
-                                  <span class="learning-answer-letter" aria-hidden="true">{{ 'ABCD'[answerIndex] }}</span>
+                                  <span class="learning-answer-letter" aria-hidden="true">{{ 'ABCDEF'[answerIndex] }}</span>
                                   <span>
                                     <strong>{{ answer.text || 'Answer option' }}</strong>
-                                    @if (shouldShowAnswerDescription(question, answer.id)) {
-                                      <small>{{ answerDescription(question.id, answer.id) }}</small>
-                                    }
                                   </span>
                                 </label>
                               }
                             </div>
+                            @if (questionResult(question); as result) {
+                              <p class="learning-quiz-result" role="status" [class.is-correct]="result.correct">
+                                <strong>{{ result.text }}</strong>
+                                @if (result.explanation) { <span>{{ result.explanation }}</span> }
+                              </p>
+                            }
                           </fieldset>
                         }
                       </div>

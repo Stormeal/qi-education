@@ -281,7 +281,7 @@ export class CourseService {
   }
 
   async gradeQuiz(courseId: string, sectionId: string, componentId: string,
-    answers: { questionId: string; answerId: string }[], token: string): Promise<QuizAssessmentResult> {
+    answers: { questionId: string; answerIds: string[] }[], token: string): Promise<QuizAssessmentResult> {
     const response = await this.apiClient.fetch(`/users/me/learning-progress/${encodeURIComponent(courseId)}/components/${encodeURIComponent(componentId)}/quiz-attempts`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({ sectionId, answers }),

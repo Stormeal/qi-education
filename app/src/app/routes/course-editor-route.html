@@ -98,6 +98,7 @@
     (courseComponentQuizAnswerTextChanged)="state.updateCourseComponentQuizAnswerText($event.sectionIndex, $event.componentIndex, $event.questionIndex, $event.answerIndex, $event.value)"
     (courseComponentQuizAnswerDescriptionChanged)="state.updateCourseComponentQuizAnswerDescription($event.sectionIndex, $event.componentIndex, $event.questionIndex, $event.answerIndex, $event.value)"
     (courseComponentQuizAnswerCorrectChanged)="state.updateCourseComponentQuizAnswerCorrect($event.sectionIndex, $event.componentIndex, $event.questionIndex, $event.answerIndex, $event.value)"
+    (courseComponentQuizQuestionEdited)="state.editCourseComponentQuizQuestion($event.sectionIndex, $event.componentIndex, $event.questionIndex, $event.edit)"
     (courseComponentMoved)="state.moveCourseComponent($event.sectionIndex, $event.fromIndex, $event.toIndex, $event.toSectionIndex)"
     (feedbackClosed)="state.closeFeedback()"
     (feedbackRatingSelected)="state.selectFeedbackRating($event)"

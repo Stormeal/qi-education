@@ -49,7 +49,7 @@ describe('trusted quiz feedback (DEF-003)', () => {
       feedback: [{ questionId: 'q', answerId: 'a', correct: false, description: 'Server explanation' }] });
     const { fixture, body, button, choose } = setup();
     choose(); button('Submit answer').click(); await fixture.whenStable(); fixture.detectChanges();
-    expect(gradeQuiz).toHaveBeenCalledWith('course', 's', 'quiz', [{ questionId: 'q', answerId: 'a' }], 'session');
+    expect(gradeQuiz).toHaveBeenCalledWith('course', 's', 'quiz', [{ questionId: 'q', answerIds: ['a'] }], 'session');
     expect(body.textContent).toContain('Server explanation');
     button('Finish quiz').click(); await fixture.whenStable(); fixture.detectChanges();
     expect(body.textContent).toContain('Score: 0 / 1');
@@ -90,5 +90,26 @@ describe('trusted quiz feedback (DEF-003)', () => {
     button('Skip').click(); await fixture.whenStable(); fixture.detectChanges();
     expect(body.textContent).toContain('Try again');
     expect(localStorage.getItem('qi-education:course-progress:learner@example.test:course') ?? '').not.toContain('quiz');
+  });
+
+  it('US-T013 a question with several correct answers takes ticks and sends them all', async () => {
+    const document = structuredClone(content);
+    const quiz = document.sections[0].components[0];
+    if (quiz.type !== 'quiz') throw new Error('Missing quiz');
+    quiz.quiz.questions[0].multiple = true;
+    gradeQuiz.mockResolvedValue({ score: 0, totalPoints: 1, passPoints: 1, passed: false,
+      feedback: [{ questionId: 'q', answerIds: ['a', 'c'], answerId: 'a', correct: false, explanation: 'Both first and second.', description: '' }] });
+    const { fixture, body, button } = setup(document);
+    expect(body.textContent).toContain('Select all that apply');
+    expect(body.textContent).toContain('1 of 1 correct to pass');
+    const boxes = [...body.querySelectorAll<HTMLInputElement>('input[type=checkbox]')];
+    expect(boxes).toHaveLength(4);
+    boxes[0].click(); boxes[2].click(); fixture.detectChanges();
+    button('Submit answer').click(); await fixture.whenStable(); fixture.detectChanges();
+    expect(gradeQuiz).toHaveBeenCalledWith('course', 's', 'quiz', [{ questionId: 'q', answerIds: ['a', 'c'] }], 'session');
+    expect(body.textContent).toContain('Not correct. Every correct answer must be ticked, and nothing else.');
+    expect(body.textContent).toContain('Both first and second.');
+    // The API does not say which tick was wrong, so no single answer is painted as wrong.
+    expect(body.querySelector('.learning-quiz-answer.is-incorrect')).toBeNull();
   });
 });

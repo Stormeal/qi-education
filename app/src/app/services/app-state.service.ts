@@ -20,7 +20,10 @@ import {
   FeedbackTriageUpdate,
   LoginState,
   MuxVideoStatus,
+  QUIZ_MAX_ANSWERS,
+  QUIZ_MIN_ANSWERS,
   QuizComponentContent,
+  QuizQuestionEdit,
   SignupRequest,
   UserProfileDetails,
   UserRole,
@@ -59,7 +62,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.99';
+  readonly appVersion = '0.1.100';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1693,6 +1696,23 @@ export class AppStateService {
     });
   }
 
+  editCourseComponentQuizQuestion(sectionIndex: number, componentIndex: number, questionIndex: number, edit: QuizQuestionEdit): void {
+    this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
+      if (component.type !== 'quiz') return component;
+      const questions = component.quiz.questions.map((question, index) => {
+        if (index !== questionIndex) return question;
+        if (edit.kind === 'explanation') return { ...question, explanation: edit.value };
+        if (edit.kind === 'add-answer') {
+          return question.answers.length >= QUIZ_MAX_ANSWERS ? question
+            : { ...question, answers: [...question.answers, this.createEmptyQuizAnswer(question.answers.length + 1)] };
+        }
+        return question.answers.length <= QUIZ_MIN_ANSWERS ? question
+          : { ...question, answers: question.answers.filter((_, answerIndex) => answerIndex !== edit.answerIndex) };
+      });
+      return { ...component, resourceUrl: '', quiz: { ...component.quiz, questions } };
+    });
+  }
+
   moveCourseComponent(sectionIndex: number, fromIndex: number, toIndex: number, toSectionIndex = sectionIndex): void {
     const content = this.courseContent();
     const source = content?.sections[sectionIndex];
@@ -2763,8 +2783,9 @@ export class AppStateService {
   private createEmptyQuizQuestion(questionNumber: number) {
     return {
       id: this.createContentId(`question-${questionNumber}`),
-      question: 'New question',
+      question: '',
       points: 1,
+      explanation: '',
       answers: [
         this.createEmptyQuizAnswer(1),
         this.createEmptyQuizAnswer(2),
@@ -2901,17 +2922,16 @@ export class AppStateService {
                     'question' in question && typeof question.question === 'string'
                       ? question.question
                       : fallbackQuestion.question,
-                  points:
-                    'points' in question &&
-                    typeof question.points === 'number' &&
-                    question.points > 0
-                      ? question.points
-                      : 1,
-                  answers: fallbackQuestion.answers.map((fallbackAnswer, answerIndex) => {
-                    const answer =
-                      'answers' in question && Array.isArray(question.answers)
-                        ? question.answers[answerIndex]
-                        : undefined;
+                  points: 1,
+                  explanation: 'explanation' in question && typeof question.explanation === 'string' ? question.explanation : '',
+                  ...('multiple' in question && question.multiple === true ? { multiple: true } : {}),
+                  answers: (
+                    'answers' in question && Array.isArray(question.answers) && question.answers.length >= QUIZ_MIN_ANSWERS
+                      ? question.answers.slice(0, QUIZ_MAX_ANSWERS)
+                      : fallbackQuestion.answers
+                  ).map((storedAnswer: unknown, answerIndex: number) => {
+                    const fallbackAnswer = fallbackQuestion.answers[answerIndex] ?? this.createEmptyQuizAnswer(answerIndex + 1);
+                    const answer = storedAnswer as { id?: unknown; text?: unknown; description?: unknown; isCorrect?: unknown } | undefined;
 
                     return {
                       id:

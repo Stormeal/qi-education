@@ -229,12 +229,22 @@
   line-height: 1.4;
 }
 
-.learning-quiz-answer small {
-  display: block;
-  margin-top: 4px;
-  color: #6c6558;
-  font-size: 12px;
+// The result of a submitted question, with the teacher's optional explanation.
+.learning-quiz-result {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  border-left: 3px solid #991b1b;
+  padding: 10px 14px;
+  color: #39393a;
+  background: #fff5f5;
+  font-size: 13px;
   line-height: 1.5;
+}
+
+.learning-quiz-result.is-correct {
+  border-left-color: #2f4f43;
+  background: rgba(47, 79, 67, 0.08);
 }
 
 .learning-quiz-answer.is-correct {

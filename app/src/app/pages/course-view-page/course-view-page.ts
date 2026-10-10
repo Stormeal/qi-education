@@ -110,7 +110,7 @@ export class CourseViewPage {
     const content = this.courseContent();
     return content ? this.learningProgress.forContent(this.userEmail(), content) : null;
   });
-  protected readonly quizSelectedAnswerIds = signal<Record<string, string>>({});
+  protected readonly quizSelectedAnswerIds = signal<Record<string, string[]>>({});
   protected readonly submittedQuizQuestionIds = signal<string[]>([]);
   protected readonly quizSubmitted = signal(false);
   protected readonly quizScoring = signal(false);
@@ -158,9 +158,8 @@ export class CourseViewPage {
     () => this.activeQuizQuestionIndex() >= this.activeQuizQuestions().length - 1,
   );
   protected readonly activeQuizScore = computed(() => this.quizResult()?.score ?? 0);
-  protected readonly activeQuizTotalPoints = computed(() =>
-    this.activeQuizQuestions().reduce((total, question) => total + question.points, 0),
-  );
+  // Every question counts 1.
+  protected readonly activeQuizTotalPoints = computed(() => this.activeQuizQuestions().length);
   protected readonly activeQuizPassed = computed(() => {
     return this.quizResult()?.passed ?? false;
   });
@@ -514,25 +513,31 @@ export class CourseViewPage {
     }
   }
 
-  protected selectQuizAnswer(questionId: string, answerId: string): void {
-    if (this.quizSubmitted() || this.quizScoring() || this.isQuizQuestionSubmitted(questionId)) {
+  // One correct answer: choosing replaces the choice. Several: each answer is ticked on or off.
+  protected selectQuizAnswer(question: QuizQuestion, answerId: string, checked: boolean): void {
+    if (this.quizSubmitted() || this.quizScoring() || this.isQuizQuestionSubmitted(question.id)) {
       return;
     }
 
-    this.quizSelectedAnswerIds.update((selected) => ({
-      ...selected,
-      [questionId]: answerId,
-    }));
+    this.quizSelectedAnswerIds.update((selected) => {
+      const current = selected[question.id] ?? [];
+      const next = !question.multiple ? [answerId] : checked ? [...current, answerId] : current.filter((id) => id !== answerId);
+      return { ...selected, [question.id]: [...new Set(next)] };
+    });
   }
 
-  protected selectedQuizAnswerId(questionId: string): string {
-    return this.quizSelectedAnswerIds()[questionId] ?? '';
+  protected selectedQuizAnswerIds(questionId: string): string[] {
+    return this.quizSelectedAnswerIds()[questionId] ?? [];
+  }
+
+  protected activeQuizPassNeeded(passPoints: number): number {
+    return Math.max(1, Math.min(passPoints, this.activeQuizTotalPoints()));
   }
 
   protected activeQuizQuestionAnswered(): boolean {
     const question = this.activeQuizQuestion();
 
-    return question ? !!this.selectedQuizAnswerId(question.id) : false;
+    return question ? this.selectedQuizAnswerIds(question.id).length > 0 : false;
   }
 
   protected activeQuizQuestionSubmitted(): boolean {
@@ -590,25 +595,26 @@ export class CourseViewPage {
     this.resetQuizAttempt();
   }
 
+  private quizFeedback(questionId: string) {
+    return this.isQuizQuestionSubmitted(questionId) ? this.quizResult()?.feedback.find((item) => item.questionId === questionId) ?? null : null;
+  }
+
+  // The API says only whether the whole question was right. With several correct answers a wrong
+  // result does not say which tick was wrong, so single answers are not marked incorrect there.
   protected answerState(question: QuizQuestion, answerId: string): 'correct' | 'incorrect' | '' {
-    if (!this.isQuizQuestionSubmitted(question.id) || this.selectedQuizAnswerId(question.id) !== answerId) {
-      return '';
-    }
-
-    const feedback = this.quizResult()?.feedback.find((item) => item.questionId === question.id && item.answerId === answerId);
-    return feedback ? (feedback.correct ? 'correct' : 'incorrect') : '';
+    const feedback = this.quizFeedback(question.id);
+    if (!feedback || !this.selectedQuizAnswerIds(question.id).includes(answerId)) return '';
+    return feedback.correct ? 'correct' : question.multiple ? '' : 'incorrect';
   }
 
-  protected shouldShowAnswerDescription(question: QuizQuestion, answerId: string): boolean {
-    return (
-      this.isQuizQuestionSubmitted(question.id) &&
-      this.selectedQuizAnswerId(question.id) === answerId &&
-      !!this.answerDescription(question.id, answerId)
-    );
-  }
-
-  protected answerDescription(questionId: string, answerId: string): string {
-    return this.quizResult()?.feedback.find((item) => item.questionId === questionId && item.answerId === answerId)?.description ?? '';
+  protected questionResult(question: QuizQuestion): { correct: boolean; text: string; explanation: string } | null {
+    const feedback = this.quizFeedback(question.id);
+    if (!feedback) return null;
+    return {
+      correct: feedback.correct,
+      text: feedback.correct ? 'Correct.' : question.multiple ? 'Not correct. Every correct answer must be ticked, and nothing else.' : 'Not correct.',
+      explanation: feedback.explanation || feedback.description || '',
+    };
   }
 
   private async scoreActiveQuiz(questionIds: string[]): Promise<boolean> {
@@ -620,7 +626,7 @@ export class CourseViewPage {
     this.quizScoring.set(true);
     this.quizError.set('');
     try {
-      const answers = questionIds.map((questionId) => ({ questionId, answerId: this.selectedQuizAnswerId(questionId) }));
+      const answers = questionIds.map((questionId) => ({ questionId, answerIds: this.selectedQuizAnswerIds(questionId) }));
       const result = await this.courseService.gradeQuiz(content._id, section.id, component.id, answers, this.authToken());
       if (generation !== this.quizAttemptGeneration) return false;
       this.quizResult.set(result);

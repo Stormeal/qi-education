@@ -76,7 +76,7 @@ describe('US-T011 quiz authoring interactions', () => {
     const { fixture, host, open } = setup(); open();
     const headers = () => [...host.querySelectorAll<HTMLButtonElement>('.quiz-question-trigger')];
     expect(headers()[1].getAttribute('aria-expanded')).toBe('false');
-    expect(headers()[1].textContent).toMatch(/Second question.*2.*4 answers.*No correct answer/s);
+    expect(headers()[1].textContent).toMatch(/Second question.*4 answers.*No correct answer/s);
     headers()[0].click(); fixture.detectChanges();
     expect(host.querySelectorAll('.quiz-question-body')).toHaveLength(0);
     expect(headers()[0].getAttribute('aria-expanded')).toBe('false');
@@ -92,16 +92,16 @@ describe('US-T011 quiz authoring interactions', () => {
     fixture.componentRef.setInput('courseContent', structuredClone(doc)); fixture.detectChanges(); open();
     const second = host.querySelectorAll('.quiz-question-card')[1];
     expect(second.textContent).toMatch(/Needs attention/);
-    expect(second.textContent).toMatch(/Enter a question/);
-    expect(second.textContent).toMatch(/Fill in all four answers/);
-    expect(second.textContent).toMatch(/Mark exactly one correct answer/);
+    expect(second.textContent).toMatch(/Write the question/);
+    expect(second.textContent).toMatch(/Fill in every answer/);
+    expect(second.textContent).toMatch(/Tick at least one correct answer/);
     expect(second.querySelector('.quiz-question-body')).toBeNull();
   });
   it('AC04 does not mark a complete collapsed question as needing attention', () => {
     const { fixture, host, open } = setup(); open();
     (host.querySelector('.quiz-question-trigger') as HTMLButtonElement).click(); fixture.detectChanges();
     expect(host.querySelector('.quiz-question-card')!.querySelector('.quiz-question-attention')).toBeNull();
-    expect(host.querySelector('.quiz-question-card')!.textContent).toContain('Correct answer marked');
+    expect(host.querySelector('.quiz-question-card')!.textContent).toContain('1 correct answer');
   });
   it('AC05 labels answer text and explanation fields and connects toggle to its content', () => {
     const { host, open } = setup(); open();
@@ -184,4 +184,51 @@ describe('US-T012 builder move events', () => {
     target.dispatchEvent(new Event('drop', { bubbles: true }));
     expect(moves).toEqual([]);
   });
+
+describe('US-T013 simple quiz questions', () => {
+  afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
+  const button = (host: HTMLElement, label: string) =>
+    [...host.querySelectorAll<HTMLButtonElement>('.quiz-question-body button')].find(item => (item.textContent ?? '').trim() === label);
+
+  it('offers answer rows with a correct box and delete, and no points field', () => {
+    const { fixture, host, open } = setup(); open();
+    const edits: unknown[] = [];
+    fixture.componentInstance.courseComponentQuizQuestionEdited.subscribe(event => edits.push(event.edit));
+    expect(host.querySelectorAll('.quiz-question-body .quiz-answer-row')).toHaveLength(4);
+    expect(host.querySelector('.quiz-question-body')!.textContent).not.toContain('points');
+    button(host, '+ Add answer')!.click();
+    host.querySelector<HTMLButtonElement>('[aria-label="Delete answer 2"]')!.click();
+    expect(edits).toEqual([{ kind: 'add-answer' }, { kind: 'remove-answer', answerIndex: 1 }]);
+  });
+
+  it('keeps a question between two and six answers', () => {
+    const { fixture, host, doc, open } = setup();
+    const quiz = doc.sections[0].components[0];
+    if (quiz.type !== 'quiz') throw new Error('Missing quiz');
+    quiz.quiz.questions[0].answers = quiz.quiz.questions[0].answers.slice(0, 2);
+    fixture.componentRef.setInput('courseContent', structuredClone(doc)); fixture.detectChanges(); open();
+    expect(host.querySelector<HTMLButtonElement>('[aria-label="Delete answer 1"]')!.disabled).toBe(true);
+    quiz.quiz.questions[0].answers = [0, 1, 2, 3, 4, 5].map(index => ({ id: `a${index}`, text: `Choice ${index}`, description: '', isCorrect: index === 0 }));
+    fixture.componentRef.setInput('courseContent', structuredClone(doc)); fixture.detectChanges();
+    expect(button(host, '+ Add answer')).toBeUndefined();
+  });
+
+  it('opens the optional explanation only when asked, or when one is already written', () => {
+    const { fixture, host, doc, open } = setup(); open();
+    const edits: unknown[] = [];
+    fixture.componentInstance.courseComponentQuizQuestionEdited.subscribe(event => edits.push(event.edit));
+    expect(host.querySelector('.quiz-explanation')).toBeNull();
+    button(host, '+ Add explanation')!.click(); fixture.detectChanges();
+    const field = host.querySelector<HTMLTextAreaElement>('.quiz-explanation textarea')!;
+    field.value = 'Because.'; field.dispatchEvent(new Event('input')); 
+    expect(edits).toEqual([{ kind: 'explanation', value: 'Because.' }]);
+
+    const quiz = doc.sections[0].components[0];
+    if (quiz.type !== 'quiz') throw new Error('Missing quiz');
+    quiz.quiz.questions[1].explanation = 'Already written.';
+    fixture.componentRef.setInput('courseContent', structuredClone(doc)); fixture.detectChanges();
+    host.querySelectorAll<HTMLButtonElement>('.quiz-question-trigger')[1].click(); fixture.detectChanges();
+    expect(host.querySelector<HTMLTextAreaElement>('.quiz-explanation textarea')!.value).toBe('Already written.');
+  });
+});
 });
