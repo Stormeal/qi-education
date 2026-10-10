@@ -24,7 +24,14 @@ Decisions and the scenario map are in the [spec](specs/US-L009-L012-T008-career-
 User correction 2026-10-10: Codex works and commits here on `main`, with the hook's
 aligned version bump, without pushing. Claude has finished editing.
 Out of scope: CV analysis, teacher proposals, unpublishing a path, step reorder, US-L003.
-Next: Codex delivers locally from its handoff, then the hosted check.
+Lead check 2026-10-10 on `190a3e8`: Codex stayed within its files plus the recorded
+`course.service.ts` exception; existing routes are unchanged and the old quiz route remains.
+352 API and 156 frontend tests, six journeys and the Pages build pass. Browser, in-memory API:
+a lesson completed in one browser showed as 50% after all browser storage was wiped and the
+learner signed in again. Open: the service's sync messages (`accountSyncError`) are shown on
+no page yet, so a quiz passed before this change counts only in the browser that passed it
+until it is passed again, without telling the learner. Not checked: keyboard-only walk.
+Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
 Delivered stories no longer appear here or in `user_stories.md`. Career paths (US-L006,
 US-L009, US-L012, US-T008) are delivered; their open checks are a completed step seen in a
