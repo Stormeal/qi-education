@@ -43,7 +43,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-016 | Public career references expose private course titles | P1 | Fixed | Resolved 2026-10-10 in b66a8e1; isolated boundary regression and full checks pass | US-P004-AC03 |
 | DEF-017 | Production without user-store settings accepts demo credentials | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `safeOperation.test.ts` regression and full checks pass | US-P008-AC01 |
 | DEF-018 | Local API network failures replay mutations against hosted API | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `api-client.service.spec.ts` regression and full checks pass | US-P008-AC03 |
-| DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Confirmed | Reproduced during US-A003 review; code/regressions pass; delivery commit pending | US-A003-AC02 |
+| DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Fixed | Resolved 2026-10-10 in a889155; mixed-client regression/full checks/review pass | US-A003-AC02 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -687,8 +687,8 @@ pending. Details: [safe-operation spec](specs/US-P008-safe-operation.md).
 
 ### DEF-019 - Legacy path writes can reuse a version token
 
-Owner: Codex. Severity: P2. State: Confirmed; fix and regressions pass,
-local delivery commit pending. Found 2026-10-10 in the initial uncommitted
+Owner: Codex. Severity: P2. State: Fixed; fix and regressions pass,
+resolved 2026-10-10 in a889155. Found 2026-10-10 in the initial uncommitted
 US-A003 implementation on main/base 5278f7c; this was not a live-service incident.
 Contract: US-A003-AC02; [spec](specs/US-A003-career-path-withdrawal.md).
 

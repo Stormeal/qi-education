@@ -2,7 +2,7 @@
 
 ## Record
 
-- Story: US-A003. State: In progress. Owner: Codex. Selected 2026-10-10.
+- Story: US-A003. State: Done (local delivery). Owner: Codex. Selected 2026-10-10.
 - Branch/base: main / 5278f7c; required handoff 9f716fa is in the history.
 - Product contract: [handoff](../handoffs/US-A003-career-path-withdrawal-codex.md).
 - Related defect: DEF-019, found and reproduced in the initial uncommitted
@@ -135,8 +135,11 @@ fix. Moving allocation into persistence and returning the saved token resolved
 it. Final 58 focused tests pass (28 withdrawal, 12 repository, 18 existing path
 tests); final independent review has no remaining important findings.
 
-Implementation and local delivery commit: pending. Version bump read/applied
-at commit time. No file outside the assigned ownership is needed.
+Implementation commit: `a889155` (version 0.1.88), 2026-10-10. This delivery-record
+commit applies the next aligned version required by the hook. The version is
+read immediately before each commit. Delivered story/scenarios are removed from
+the open backlog; this spec retains the contract and evidence. DEF-019 is Fixed
+in `a889155`. No file outside the assigned ownership was needed. No push.
 
 All mutation tests use disposable memory stores, fetch stubs and ephemeral ports.
 Mongo adapter tests can prove the issued compare-and-replace command and modeled
