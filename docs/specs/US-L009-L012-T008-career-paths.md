@@ -183,4 +183,5 @@ and was cut off. Fixed by letting the page scroll as a whole.
 - Checks: `career-path-editor.spec.ts` (save bar and unsaved state, refused stale save,
   withdraw); 182 frontend tests; frontend build. Browser, in-memory API: mapped a real course,
   saved and published, section kept after reload, no horizontal scroll at 375px.
-  Not verified: Withdraw and the stale-save refusal against a real API; a screen reader.
+  Withdraw and the stale-save refusal were then verified in the browser against Codex's API
+  (in-memory). Not verified: a screen reader, real MongoDB.

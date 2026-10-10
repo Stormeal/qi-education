@@ -39,11 +39,17 @@ Base: `3dc9386` (pushed and deployed, version 0.1.85).
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | Fix the clipped editor (Admin page has a fixed height that hides it); Admin page organized into sections; career path editor rebuilt with a path list, collapsible steps and an always-visible save bar; Withdraw and conflict handling in the editor against Codex's contract | `app/**`, `CLAUDE.md`, `docs/specs/US-L009-L012-T008-career-paths.md` | In progress |
+| Claude Code | Fix the clipped editor (Admin page has a fixed height that hides it); Admin page organized into sections; career path editor rebuilt with a path list, collapsible steps and an always-visible save bar; Withdraw and conflict handling in the editor against Codex's contract | `app/**`, `CLAUDE.md`, `docs/specs/US-L009-L012-T008-career-paths.md` | Delivered locally in `5278f7c` (0.1.87); record in the career path spec |
 | Codex | US-A003: withdraw a published path; refuse a stale save | See the [handoff](handoffs/US-A003-career-path-withdrawal-codex.md) | Delivered locally: a889155 (implementation, 0.1.88); this delivery-record commit also has the hook's aligned bump. Owner Codex, main, base 5278f7c (required 9f716fa present). Story and [spec](specs/US-A003-career-path-withdrawal.md) written first; DEF-019 Fixed after mixed legacy/versioned race regression. Verified: 418 API/182 frontend tests, six journeys, API build, 58 focused path tests; final independent review clear. Not verified: actual Mongo durability/atomicity/instances, hosted/API-to-editor browser withdrawal/conflict flow. No outside-scope file needed, shared providers or push; Claude's app/docs preserved except authorized version lines. Next: Claude/Alex's editor and disposable-provider release checks; Codex stopped |
 
+Lead check 2026-10-10 on `3d80100`: Codex stayed within its files and the four version lines;
+existing routes and shapes are unchanged. 418 API and 182 frontend tests, six journeys and the
+API and Pages builds pass. Browser, in-memory API, new editor against the new routes: a save
+made after a second admin's save was refused with the conflict message and the edits kept;
+"Load latest version" showed the other admin's text; Withdraw asked first, removed the path
+from the public list and left it as a draft. Not verified: real MongoDB, hosted behavior.
 Open question for Alex: what the overhaul of the learner's Career Path page should change.
-Claude records its result in the career path spec, not here, until Codex has finished.
+Next: Alex decides on the push.
 
 **Session 2026-10-10 (2) — started by the user with "let's start working".** Branch: `main`.
 Base: this commit. Picked by Claude Code as lead: the leftovers of career paths increment 2
