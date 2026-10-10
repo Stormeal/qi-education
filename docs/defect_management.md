@@ -43,6 +43,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-016 | Public career references expose private course titles | P1 | Fixed | Resolved 2026-10-10 in b66a8e1; isolated boundary regression and full checks pass | US-P004-AC03 |
 | DEF-017 | Production without user-store settings accepts demo credentials | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `safeOperation.test.ts` regression and full checks pass | US-P008-AC01 |
 | DEF-018 | Local API network failures replay mutations against hosted API | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `api-client.service.spec.ts` regression and full checks pass | US-P008-AC03 |
+| DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Confirmed | Reproduced during US-A003 review; code/regressions pass; delivery commit pending | US-A003-AC02 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -683,3 +684,30 @@ sign-up and protected routes with 503 and a message; `/health/auth` reports it. 
 localhost frontend never sends a request that changes data to a non-local API. 378 API and
 179 frontend tests, six journeys and the API and Pages builds pass. Hosted verification is
 pending. Details: [safe-operation spec](specs/US-P008-safe-operation.md).
+
+### DEF-019 - Legacy path writes can reuse a version token
+
+Owner: Codex. Severity: P2. State: Confirmed; fix and regressions pass,
+local delivery commit pending. Found 2026-10-10 in the initial uncommitted
+US-A003 implementation on main/base 5278f7c; this was not a live-service incident.
+Contract: US-A003-AC02; [spec](specs/US-A003-career-path-withdrawal.md).
+
+Reproduction with isolated memory stores and ephemeral HTTP ports: seed a future
+updatedAt to model clock skew, suspend legacy save B after its route read, finish
+legacy save A, then release B. Both returned the same next timestamp. A versioned
+editor loaded after A could overwrite B with A's token and receive 200. The new
+regression failed in both normal and /api prefixes before the fix.
+
+Root cause: timestamp allocation used the route's old snapshot. Mongo's conditional
+predicate was correct, but unconditional legacy writes could reuse that token.
+Resolution implemented: allocate against persisted state in the repository and
+return that saved document to the route. Memory allocation/replacement is synchronous;
+Mongo legacy saves retry conditional replacements, with unique-id insertion retries
+for simultaneous creation. Versioned writes still have one atomic comparison and
+return 409 CAREER_PATH_CONFLICT when stale. Legacy writes still succeed/last win.
+
+Regression evidence: delayed legacy HTTP race, overlapping memory/Mongo-adapter
+legacy writes, conditional contention, and concurrent first creation. Final 418 API
+and 182 frontend tests, six journeys and API build pass; independent review clear.
+Actual Mongo deployment, clock/instance contention and durability, hosted editor
+withdrawal/conflict flow remain release checks. No shared providers were accessed.

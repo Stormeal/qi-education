@@ -13,6 +13,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
+| US-A003 | Withdraw a published career path and protect concurrent edits | In progress | P2 | Existing admin path API | Spec US-A003-career-path-withdrawal |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
@@ -373,6 +374,38 @@ Feature: Safe operation of the live service
     When the agreed limit is exceeded
     Then further attempts are refused for the agreed period
     And other users can still sign in
+```
+
+### US-A003 - Withdraw a published career path and protect concurrent edits
+
+**As an admin, I want to withdraw a published path and refuse stale edits, so
+that I can correct publication mistakes without losing learners or another
+admin's work.**
+
+State: In progress. Owner: Codex. Selected by the user 2026-10-10.
+Contract and decisions: [spec](specs/US-A003-career-path-withdrawal.md) and
+[handoff](handoffs/US-A003-career-path-withdrawal-codex.md). Scope: admin API,
+atomic optional updatedAt checks; frontend is Claude's concurrent work.
+
+```gherkin
+Feature: Career path withdrawal and edit protection
+  Scenario: US-A003-AC01 Admin withdraws a published path
+    Given a published path with learner selections
+    When an admin withdraws it
+    Then public list omits it and detail returns 404 with a message
+    And draft content, revision and learner selections remain for republishing
+    And students and teachers get 403 and anonymous callers get 401
+
+  Scenario: US-A003-AC02 Refuse a stale save or publish
+    Given another admin changed the loaded path
+    When I save, publish or withdraw with its old X-Expected-Updated-At
+    Then the API returns 409 with code CAREER_PATH_CONFLICT
+    And nothing is saved
+
+  Scenario: US-A003-AC03 Preserve requests without a version
+    Given a request omits X-Expected-Updated-At or sends it empty
+    When an admin saves or publishes
+    Then existing behavior and response shapes are retained
 ```
 
 ## Adding a story

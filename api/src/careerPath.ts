@@ -38,6 +38,12 @@ export type CareerPathDocument = {
 export type CareerPathSelection = { _id: string; pathId: string; revision: number; selectedAt: string };
 export type CareerPathIssue = { stepId: string; message: string };
 
+/** updatedAt is the edit token: even same-millisecond writes must retire it. */
+export function nextCareerPathUpdatedAt(previous?: string, now = Date.now()): string {
+  const previousTime = previous ? Date.parse(previous) : NaN;
+  return new Date(Number.isFinite(previousTime) ? Math.max(now, previousTime + 1) : now).toISOString();
+}
+
 /** Structural checks a revision must pass before learners can see it. */
 export function careerPathIssues(content: CareerPathContent, courses: Course[]): CareerPathIssue[] {
   const issues: CareerPathIssue[] = [];

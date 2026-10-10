@@ -40,7 +40,7 @@ Base: `3dc9386` (pushed and deployed, version 0.1.85).
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | Fix the clipped editor (Admin page has a fixed height that hides it); Admin page organized into sections; career path editor rebuilt with a path list, collapsible steps and an always-visible save bar; Withdraw and conflict handling in the editor against Codex's contract | `app/**`, `CLAUDE.md`, `docs/specs/US-L009-L012-T008-career-paths.md` | In progress |
-| Codex | US-A003: withdraw a published path; refuse a stale save | See the [handoff](handoffs/US-A003-career-path-withdrawal-codex.md) | Selected; not started |
+| Codex | US-A003: withdraw a published path; refuse a stale save | See the [handoff](handoffs/US-A003-career-path-withdrawal-codex.md) | Verified; owner Codex, main, base 5278f7c (required 9f716fa present). Story and [spec](specs/US-A003-career-path-withdrawal.md) written first. 418 API/182 frontend tests, six journeys and API build pass; final independent review clear after DEF-019 mixed legacy/versioned race regression. No outside-scope file needed. Not verified: real Mongo atomicity/durability/instances, hosted/editor browser withdrawal/conflict flow. Next: aligned version bump, implementation commit and delivery record; no push; Claude's files preserved |
 
 Open question for Alex: what the overhaul of the learner's Career Path page should change.
 Claude records its result in the career path spec, not here, until Codex has finished.

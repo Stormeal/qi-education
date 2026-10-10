@@ -17,6 +17,24 @@ Path references never enroll a learner or grant learning access. Public referenc
 titles use live published metadata or the curator's published label, never a
 private draft or archived course's current metadata.
 
+US-A003 adds admin withdrawal (`POST /admin/career-paths/:id/unpublish`): public
+reads hide the path, while its draft, revision and learner selections remain.
+Republishing restores the path without altering course completion or enrollment.
+Save, publish and withdrawal optionally compare `X-Expected-Updated-At`; a stale
+nonempty token returns 409 `{ message, code: "CAREER_PATH_CONFLICT" }` without a
+write. Missing/empty tokens keep successful last-save-wins behavior. Unsaved
+seeds have no version; nonempty fictional versions conflict, while legacy saves
+and direct publication remain supported. CORS reflects the new header.
+
+The path repository allocates and returns each persisted ISO updatedAt, strictly
+advancing from the current stored timestamp even under a fixed/backward clock.
+Mongo conditional replacement filters by `_id` plus updatedAt with no upsert
+and majority acknowledgment. Legacy writes internally retry comparisons, and
+concurrent first creations retry unique `_id` collisions, so overlapping legacy
+clients cannot reuse a token and conceal edits from a protected editor. Memory
+comparison/allocation/replacement does not yield. Actual provider contention
+and durability remain release checks; see [withdrawal](specs/US-A003-career-path-withdrawal.md).
+
 `LearningProgressService` keeps synchronous completion readers/mutations and its
 email/course localStorage arrays. New routes persist a union per authenticated
 account/course. Restoration starts on course loading or a direct roadmap
@@ -161,6 +179,9 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes |
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
 | `GET /auth/me` (also `/me`) | Active bearer session |
+| `GET /career-paths`, `/career-paths/:id` | Public published paths only; withdrawn detail is 404 |
+| `GET /admin/career-paths`, `PUT /admin/career-paths/:id`, `POST .../publish`, `POST .../unpublish` | Admin; writes optionally reject stale updatedAt with 409 CAREER_PATH_CONFLICT |
+| `GET /users/me/career-path`, `PUT /users/me/career-path` | Own goal selection; withdrawal retains selections without granting course access |
 | `GET /courses`, `/courses/:id/thumbnail`, `/courses/:id/outline` | Public published metadata/title outlines; owner/admin private access; enrolled archived access |
 | `GET /courses/:id/content` | Authenticated owner/admin or enrolled published/archived learner; learner DTO by default; owner/admin-only `?view=author` |
 | `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
