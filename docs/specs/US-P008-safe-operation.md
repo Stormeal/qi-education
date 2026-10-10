@@ -1,6 +1,6 @@
 # US-P008 - Safe authentication configuration and local mutations
 
-State: In progress. Owner: Codex. Branch: main. Base: 0435029.
+State: Done 2026-10-10 in `e7afd6d` (version 0.1.84), hosted verification pending. Owner: Codex; completed by Claude Code as lead. Branch: main. Base: 0435029.
 Selected 2026-10-10. Contract: AC01 / INV-013 and AC03 / INV-015.
 Related defects: DEF-017 and DEF-018 (reproduced before implementation).
 
@@ -110,3 +110,12 @@ No shared Sheets, MongoDB, Mux or GitHub data will be touched. Tests use disposa
 memory repositories, ephemeral HTTP ports, and browser fetch stubs. Hosted
 configuration, provider reads/writes, actual deployment and browser UI messages
 remain release checks. Claude's concurrent page/spec changes are outside this work.
+
+## Lead completion 2026-10-10
+
+Codex stopped before committing, waiting for approval of one fixture change. The lead
+approved and applied it: `learning-progress.spec.ts` now points its stubbed API at a loopback
+URL, because a localhost test page may no longer send changes to a remote host. With it, 378
+API and 179 frontend tests, six journeys and the API and Pages builds pass on the combined
+tree. Consequence for developers: `npm run app:dev:frontend` without the local API can
+browse public pages but cannot sign in or save.

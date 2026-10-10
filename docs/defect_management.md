@@ -41,8 +41,8 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-015 | A stale authoring save silently replaces newer course work | P2 | Fixed | Resolved 2026-10-09 in `d674ee3`; stale/race/partial-save regressions and browser checks pass | US-T005 |
 | DEF-016 | Public career references expose private course titles | P1 | Fixed | Resolved 2026-10-10 in b66a8e1; isolated boundary regression and full checks pass | US-P004-AC03 |
-| DEF-017 | Production without user-store settings accepts demo credentials | P1 | Confirmed | INV-013 reproduced 2026-10-10 with isolated stores; regression pending fix | US-P008-AC01 |
-| DEF-018 | Local API network failures replay mutations against hosted API | P1 | Confirmed | INV-015 reproduced 2026-10-10 with browser fetch stubs; regression pending fix | US-P008-AC03 |
+| DEF-017 | Production without user-store settings accepts demo credentials | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `safeOperation.test.ts` regression and full checks pass | US-P008-AC01 |
+| DEF-018 | Local API network failures replay mutations against hosted API | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `api-client.service.spec.ts` regression and full checks pass | US-P008-AC03 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -674,3 +674,12 @@ No real network request or shared mutation occurred.
 
 Root cause: fetch retries every failed request against every candidate API URL,
 without checking method or the local frontend context. Resolution pending.
+
+### DEF-017 and DEF-018 resolution (2026-10-10)
+
+Fixed in `e7afd6d` (version 0.1.84), implemented by Codex and completed by the lead.
+DEF-017: a production API without user-store settings has no accounts and answers sign-in,
+sign-up and protected routes with 503 and a message; `/health/auth` reports it. DEF-018: a
+localhost frontend never sends a request that changes data to a non-local API. 378 API and
+179 frontend tests, six journeys and the API and Pages builds pass. Hosted verification is
+pending. Details: [safe-operation spec](specs/US-P008-safe-operation.md).

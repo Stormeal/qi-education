@@ -40,10 +40,10 @@ to go live.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | Show the account progress sync message where learners see progress; keyboard-only walk of the career path page | `app/src/app/pages/**`, `docs/specs/US-L009-L012-T008-career-paths.md` | Selected |
-| Codex | US-P008-AC01 (INV-013) and US-P008-AC03 (INV-015) | See the [handoff](handoffs/US-P008-safe-operation-codex.md) | In progress; owner Codex, main, base 0435029. [Spec](specs/US-P008-safe-operation.md) written first; DEF-017/018 reproduced then fixed locally. Verified: 378 API tests, 30 client tests including real auth/enrollment consumers, six journeys, API/Pages builds; final independent review clear. Full frontend run: seven learning-progress fixture failures from its remote stub URL; asked Alex to allow only a loopback URL substitution outside this scope. Next: that answer, full frontend verification, aligned version bump and local commit/delivery record. Not verified: hosted/provider/browser checks. AC02 excluded; Claude's files preserved; no commit or push yet |
+| Claude Code | Show the account progress sync message where learners see progress; keyboard-only walk of the career path page | `app/src/app/pages/**`, `docs/specs/US-L009-L012-T008-career-paths.md` | Delivered locally in `b5b284d` (0.1.83); record in the career path spec |
+| Codex | US-P008-AC01 (INV-013) and US-P008-AC03 (INV-015) | See the [handoff](handoffs/US-P008-safe-operation-codex.md) | Delivered locally in `e7afd6d` (0.1.84). DEF-017 and DEF-018 reproduced, then Fixed. Codex stopped before committing, waiting on one fixture approval; the lead approved it, verified and committed. 378 API and 179 frontend tests, six journeys, API and Pages builds pass. Not verified: hosted behavior. AC02 remains Proposed. [Spec](specs/US-P008-safe-operation.md) |
 
-Claude records its result in the career path spec, not here, until Codex has finished.
+Next: Alex decides on the push; then the hosted checks.
 
 Delivered stories no longer appear here or in `user_stories.md`. Career paths (US-L006,
 US-L009, US-L012, US-T008) are delivered; their open checks are a completed step seen in a
