@@ -51,6 +51,12 @@ IDs; files it owns and files it must not edit; the contract Claude's side relies
 "isolated in-memory stores only"; the shared-tree rules below; "commit locally, do not push";
 "update your row in `docs/work_queue.md`, then stop and summarize".
 
+Two rules learned on 2026-10-10. Trace every event and argument Codex's work passes through
+(component output, page, route template, state handler) and put each of those files, or the
+exact line, in its list. And never tell Codex to stop when it needs a file outside its list:
+tell it to finish everything else first and report the need, otherwise it stops before writing
+any code.
+
 ### Shared-tree rules (both agents)
 
 - Stage your own files by path. Never `git add -A`, and never stash, reset, restore or check
