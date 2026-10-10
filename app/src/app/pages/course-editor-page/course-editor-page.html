@@ -375,7 +375,7 @@
         }
         @if (nextStep(); as next) {
           <app-button [variant]="courseFormMode() === 'create' ? 'primary' : 'outline'" (buttonClicked)="goToStep(next.id)">
-            Next<span class="editor-next-label">: {{ next.label }}</span>
+            <span>Next<span class="editor-next-label">: {{ next.label }}</span></span>
           </app-button>
         }
         @if (courseFormMode() === 'edit' || !nextStep()) {

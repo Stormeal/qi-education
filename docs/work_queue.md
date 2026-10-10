@@ -38,15 +38,24 @@ a course on the live site.** Branch: `main`. Base: `a2926e0` (pushed and deploye
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-T010 guided course form: steps with checkmarks and Back/Next, required-field marks, bullet lists that show their bullets. DEF-020: a published course looks impossible to edit, because the form is locked and "Start revision" is a small button inside step 3 | `app/src/app/pages/**`, `app/src/app/ui/course-review-panel/**`, `docs/specs/US-T010-guided-course-form.md` | In progress |
+| Claude Code | US-T010 guided course form: steps with checkmarks and Back/Next, required-field marks, bullet lists that show their bullets. DEF-020: a published course looks impossible to edit, because the form is locked and "Start revision" is a small button inside step 3 | `app/src/app/pages/**`, `app/src/app/ui/course-review-panel/**`, `docs/specs/US-T010-guided-course-form.md` | Delivered locally in `baf852c` (0.1.92); [spec](specs/US-T010-guided-course-form.md) |
 | Codex | US-T011 quiz authoring; US-T012 move a lesson to another chapter | See the [handoff](handoffs/teacher-feedback-builder-codex.md) | Delivered locally: a8595d6 (implementation, 0.1.96); this delivery-record commit also has the hook-aligned patch bump. Owner Codex, main/base 853c249; prior spec 6928646/43f480b and route exception preserved. Quiz add/focus/top alignment, toggle/summaries/readiness and cleaner layout; cross-chapter drag/select with focus, full-content state/save/recovery/conflict and guards; DEF-T012-CALLBACK reproduced then fixed. Verified: 425 API/215 frontend tests, six journeys, API/Pages builds; 27 focused builder/state cases and seven media API cases. Review scroll-clamp and move-focus regressions fixed. Not verified: actual 375px/tall viewport, native keyboard/drag browser, live Mux/Mongo/Sheets/hosted behavior. Claude browser: add several questions on tall/short screens, header top and field focus, Enter/Space collapse/reopen, collapsed summaries and readiness at 375px; drag before/end/empty/collapsed chapter, keyboard select opens destination and retains focus; save/reopen text/video/quiz/attachments; busy/upload/read-only guards, conflict and local recovery. No additional outside-scope need; one authorized route line only; isolated stores, no shared mutations or push. DEF-T012-CALLBACK Fixed in a8595d6; completed stories removed from the open backlog, contract/evidence retained in docs/specs/US-T011-T012-course-builder.md. Pages build succeeds with stylesheet budget warnings. Next: Claude checks the browser checklist above; Codex stopped |
 
 Lead decision 2026-10-10 on Codex's block: the lead missed that the route template passes the
 move event's fields one by one. Codex now also owns line 101 of
 `app/src/app/routes/course-editor-route.html` (the `courseComponentMoved` binding) and resumes
 from its spec checklist. Claude's part is delivered locally in `baf852c` (0.1.92).
-Claude adds US-T010 and DEF-020 to the backlog and defect log after Codex has finished with
-those two files.
+Lead check 2026-10-10 on `4e7793d`: Codex stayed within its files and the one route line.
+425 API and 215 frontend tests, six journeys and the API and Pages builds pass. Browser,
+in-memory API, as the demo teacher: "Move to chapter" moved a lesson into an empty chapter and
+kept focus on it; a drag onto the end of another chapter moved a lesson (dispatched drag
+events, not a hand drag); adding a quiz question collapsed the first, put the new one at the
+top of the editor with the cursor in its text, and showed "Needs attention"; after Save and
+reload the moved lesson and the second question were still there. Lead polish on top: the
+"drop at end of chapter" targets are now invisible until a lesson is being dragged.
+DEF-020 is in the defect log; US-T010 is delivered, so it is not in the open backlog.
+Not verified: a hand drag with a mouse, a moved lesson with a real video or attachment,
+hosted behavior. Next: Alex decides on the push.
 
 **Session 2026-10-10 (3) — started by the user: the career path editor's Save buttons are cut
 off, the Admin page is chaotic, and career paths need a UI overhaul.** Branch: `main`.

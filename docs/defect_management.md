@@ -45,6 +45,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-018 | Local API network failures replay mutations against hosted API | P1 | Fixed | Resolved 2026-10-10 in e7afd6d; `api-client.service.spec.ts` regression and full checks pass | US-P008-AC03 |
 | DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Fixed | Resolved 2026-10-10 in a889155; mixed-client regression/full checks/review pass | US-A003-AC02 |
 | DEF-T012-CALLBACK | Video callbacks miss a lesson moved to another chapter | P2 | Fixed | Reproduced then fixed 2026-10-10 in a8595d6; seven isolated media regressions and 425 API tests pass; live provider checks pending | US-T012-AC05 |
+| DEF-020 | A published course looks impossible to edit: the form is locked without explanation and Start revision is hidden in a later step | P2 | Fixed | Reported by the first teacher 2026-10-10; reproduced and fixed in baf852c; `course-form-steps.spec.ts` and browser check pass | US-T010 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -731,3 +732,14 @@ callbacks (both prefixes and split live/working locations). Attachment uploads
 use the existing PUT method; no attachment route defect is confirmed.
 Resolution: callbacks locate the stable component ID across chapters in each live/working snapshot; matching upload/asset checks still reject a replaced video. All seven courseMove tests and all 425 API tests pass. Fixing commit a8595d6 (0.1.96). Real Mux, MongoDB and hosted/browser checks
 remain outside this isolated regression.
+
+### DEF-020 - A published course looks impossible to edit
+
+Owner: Claude Code. Severity: P2. State: Fixed in `baf852c` (2026-10-10). Reported by the
+first teacher on the live site as "not possible to edit the course once it's published".
+Reproduction, in-memory API: open a published course in the editor; every field is disabled
+and nothing says why. Editing was possible through "Start revision" (US-T002), a small button
+inside the third section. Fix: a notice at the top of the form states that the course is
+published, archived or in review, and offers "Start revision" when that is the way forward.
+Regression: `course-form-steps.spec.ts`; browser check that the button unlocks the form.
+Hosted verification pending. Details: [guided course form spec](specs/US-T010-guided-course-form.md).

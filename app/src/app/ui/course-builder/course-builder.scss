@@ -1088,3 +1088,5 @@ select:focus {
 .lesson-move-select:disabled { opacity: 0.6; }
 .chapter-drop-end { padding: 8px 14px; border: 1px dashed #cfc7bc; border-radius: 6px; color: #75624d; font-size: 12px; overflow-wrap: anywhere; }
 .chapter-drop-end.is-dragging { border-color: #4f773e; background: #eef5ed; }
+// Only a target while a lesson is being dragged. It keeps its space so starting a drag does not shift the page.
+.chapter-drop-end:not(.is-dragging) { visibility: hidden; }
