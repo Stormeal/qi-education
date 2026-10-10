@@ -17,13 +17,14 @@ as lead; the two owners touch no common file.
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | Completed-step browser check (spec remaining 1); US-L010 next step on the roadmap and Home; US-L011 confirm before switching; US-P004-AC01–02 in the page and service | `app/src/app/pages/career-path-page/`, `app/src/app/pages/dashboard-page/`, `app/src/app/services/career-path.service.ts`, `app/src/app/utils/career-path-progress*` | Delivered locally: completed-step check, US-L010 (0.1.76), US-L011 and US-P004-AC01–02 (0.1.77). Next: merge Codex's part |
-| Codex | US-L002-AC02 lesson completion saved to the account; US-P004-AC03–04 on the selection API | `api/src/**`, `app/src/app/services/learning-progress.service.ts` and its spec | Selected; [handoff](handoffs/career-paths-increment-2-codex.md); not started |
+| Codex | US-L002-AC02 lesson completion saved to the account; US-P004-AC03–04 on the selection API | `api/src/**`, `app/src/app/services/learning-progress.service.ts` and its spec; authorized grading-URL-only exception in `course.service.ts` | Verified on `main`; initial guard `5c2a4b5`, later `a81255d` preserved with user approval. [Spec](specs/US-L002-account-progress.md) written first. 352 API/156 frontend tests, six journeys, API/Pages builds pass; independent review clear. Not verified: real Mongo durability/concurrency, hosted API/frontend and two-device browser walk. Delivery commit pending; local only, no push |
 | Alex | Hosted MongoDB check, then map real courses and publish the paths | Admin page, hosted | After both merge |
 
 Decisions and the scenario map are in the [spec](specs/US-L009-L012-T008-career-paths.md).
-Codex commits in its clone without pushing; Claude merges and aligns the version.
+User correction 2026-10-10: Codex works and commits here on `main`, with the hook's
+aligned version bump, without pushing. Claude has finished editing.
 Out of scope: CV analysis, teacher proposals, unpublishing a path, step reorder, US-L003.
-Next: Codex delivers from its handoff; Claude merges, then the hosted check.
+Next: Codex delivers locally from its handoff, then the hosted check.
 
 Delivered stories no longer appear here or in `user_stories.md`. Career paths (US-L006,
 US-L009, US-L012, US-T008) are delivered; their open checks are a completed step seen in a

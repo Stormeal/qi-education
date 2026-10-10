@@ -79,7 +79,7 @@ Known limit: two admins saving the same path at once — last save wins.
 1. Done 2026-10-10, see increment 2.
 2. Hosted release check with real MongoDB; then an admin maps real courses and publishes.
 
-## Increment 2 (selected 2026-10-10, not yet implemented)
+## Increment 2 (selected and delivered locally 2026-10-10)
 
 Stories: US-L010, US-L011, US-L002-AC02, US-P004. Owners and files are in the
 [work queue](../work_queue.md); Codex's part is in
@@ -108,8 +108,23 @@ Checklist:
 - [x] Claude: US-L010-AC01–04 on the roadmap and the Home tile
 - [x] Claude: US-L011-AC01–03
 - [x] Claude: US-P004-AC01–02 in the page and service. Loading, retry, empty and not-chosen states exist from increment 1; a late load or selection reply is dropped when the session changed. Late replies are covered by `career-path.service.spec.ts`.
-- [ ] Codex: US-L002-AC02
-- [ ] Codex: US-P004-AC03–04
+- [x] Codex: US-L002-AC02 — [account progress contract and checks](US-L002-account-progress.md)
+- [x] Codex: US-P004-AC03–04 — account isolation, public reference privacy and atomic selection/retry checks
+
+### Codex API/account increment delivered locally 2026-10-10
+
+New progress and grading routes save account completion by atomic union and
+require server-verified quiz evidence. Existing grading/selection routes and DTO
+shapes remain unchanged; selection retains last-committed-write-wins, with a
+retried PUT reasserting the choice. Public path references no longer expose private
+draft/archived titles (DEF-016). Legacy records merge independently; unverified
+quiz IDs stay local until a fresh passing attempt. Synchronous readers restore
+account state even when the roadmap is opened directly.
+
+352 API tests, 156 frontend tests, all six journeys, API and Pages builds pass with
+isolated stores; final independent review has no important findings. Exact delivery
+commit is in [the queue](../work_queue.md). No push or shared-service mutation.
+Real Mongo durability/concurrency and hosted two-device verification remain pending.
 
 ### US-L010 delivered 2026-10-10 (version 0.1.76)
 

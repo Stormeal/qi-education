@@ -14,14 +14,13 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
-| US-L002 | See trustworthy progress across learning views | Proposed | P2 | L001 | DEF-007, DEF-009, DEF-014 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
-| US-P004 | Recover career guidance safely across failures and sessions | Proposed | P2 | L006, L009; per-increment checks | None |
+| US-P004 | Recover career guidance safely across failures and sessions | In progress | P2 | L006, L009; per-increment checks | DEF-016 fixed in this delivery |
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Fail safely on misconfiguration, abuse, and unchecked releases | Proposed | P2 | None | Investigations INV-013, INV-014, INV-015 |
@@ -138,25 +137,6 @@ Feature: Enrollment and learning access
     When I request its learning content or resources
     Then only the agreed public preview is available
     And draft lesson content and quiz scoring answers are not disclosed
-```
-
-### US-L002 — See trustworthy progress across learning views
-
-**As a learner, I want consistent progress in my workspace, library, and home
-page, so that I know what to continue and what I have completed.**
-
-State: Proposed. Progress on one browser, the honest empty state and quiz position are
-delivered and removed from this story. Remaining: progress that follows the account across
-devices. Decisions: server persistence; which lesson types require explicit completion,
-video viewing, or a passing quiz; how deleted or revised lessons affect totals.
-
-```gherkin
-Feature: Consistent learning progress
-  Scenario: US-L002-AC02 Restore progress across devices
-    Given progress has been saved for my account
-    When I sign in on another device
-    Then the same completed lessons and progress are restored
-
 ```
 
 ### US-L003 — Keep profile details across devices
@@ -308,11 +288,13 @@ Feature: Safe account and feedback writes
 **As a learner, I want guidance to stay honest and private during failures, so
 that I can retry safely without seeing another account's path or false success.**
 
-State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
+State: In progress. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
 Depends on US-L006 and US-L009; apply relevant checks to each delivered increment.
-Scope: loading/empty/error states, retry, session changes, private DTOs, and selection
-concurrency. Decisions: safe cache lifetime, revision conflict contract, and retry
-idempotency. A last known selection must be labeled stale when freshness is unknown.
+API boundaries and selection concurrency (AC03–04) are delivered and removed;
+[account progress spec](specs/US-L002-account-progress.md) records the atomic
+last-committed-write-wins/reassertion retry policy and verification. Claude delivered
+AC01–02 in the career page/service; final story closure remains with the lead.
+A last known selection must be labeled stale when freshness is unknown.
 
 ```gherkin
 Feature: Reliable private career guidance
@@ -328,17 +310,6 @@ Feature: Reliable private career guidance
     Then its response cannot overwrite the new account's selection or progress
     And private cached path data is not shown to the new account
 
-  Scenario: US-P004-AC03 Preserve course and account boundaries
-    Given I request another learner's progress or a preview containing a private draft course
-    When the API processes the request
-    Then private account data and unpublished learning content are denied or omitted according to the agreed DTO
-    And a path reference alone does not bypass course entitlement
-
-  Scenario: US-P004-AC04 Resolve conflicting selections safely
-    Given two devices change the same saved selection concurrently or retry a timed-out request
-    When the writes are reconciled
-    Then the agreed revision and retry policy produces one identifiable saved outcome
-    And a rejected update preserves the user's choice with actionable feedback
 ```
 
 ### US-P005 — Recover uncertain course operations safely

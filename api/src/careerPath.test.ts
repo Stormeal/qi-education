@@ -1,6 +1,6 @@
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
 import { InMemoryAuthRepository } from './authRepository.js';
 import { InMemoryCareerPathRepository } from './careerPathRepository.js';
@@ -38,6 +38,56 @@ describe.each(['', '/api'])('career paths: US-L006, US-L009, US-T008 (%s)', (pre
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterEach(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
+
+  it('US-P004-AC03 omits private draft catalog titles through a published reference and grants no access', async () => {
+    await publish('test-manager', path([step('a', [{ courseId: 'demo-course-1', title: 'Curator public label' }])]));
+    // Replace the catalog at the HTTP boundary with a course that is now private.
+    const courses = new InMemoryCourseRepository();
+    const course = (await courses.listCourses())[0];
+    await courses.updateCourse(course.id, { ...course, title: 'Private unpublished revision title', status: 'draft' });
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    server = createServer({ authRepository: auth, careerPathRepository: paths, courseRepository: courses,
+      courseContentRepository: new InMemoryCourseContentRepository(), courseAssetRepository: new InMemoryCourseAssetRepository(),
+      feedbackRepository: new InMemoryFeedbackRepository(), muxVideoService: null, muxWebhookService: null }).listen(0);
+    base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    for (const route of ['/career-paths', '/career-paths/test-manager']) {
+      const view = JSON.stringify(await (await request(route)).json());
+      expect(view).not.toContain('Private unpublished revision title');
+      expect(view).toContain('Curator public label');
+      expect(view).toContain('"available":false');
+    }
+    expect((await request('/users/me/career-path', student, 'PUT', { pathId: 'test-manager', _id: teacher.id })).status).toBe(200);
+    expect(await (await request('/users/me/career-path?userId=' + student.id, teacher)).json()).toEqual({ selection: null });
+    expect((await request('/users/' + student.id + '/career-path', teacher)).status).toBe(404);
+    expect((await request('/courses/' + course.id + '/content', student)).status).toBe(403);
+    expect((await auth.findById(student.id))!.enrolledCourseIds).toEqual([]);
+  });
+
+  it('US-P004-AC04 identifies the atomic last write and a retried choice without changing the DTO', async () => {
+    await publish('test-manager', path([step('a', [{ title: 'Preview' }])]));
+    await publish('agile-tester', path([step('b', [{ title: 'Preview' }])]));
+    const save = paths.saveSelection.bind(paths);
+    let entered!: () => void, release!: () => void;
+    const waiting = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    vi.spyOn(paths, 'saveSelection').mockImplementationOnce(async selection => { entered(); await gate; await save(selection); });
+    const delayed = request('/users/me/career-path', student, 'PUT', { pathId: 'test-manager' });
+    await waiting;
+    const fast = await request('/users/me/career-path', student, 'PUT', { pathId: 'agile-tester' });
+    expect(fast.status).toBe(200);
+    release(); const last = await (await delayed).json();
+    expect(await (await request('/users/me/career-path', student)).json()).toEqual(last);
+    expect(Object.keys(last.selection).sort()).toEqual(['_id', 'pathId', 'revision', 'selectedAt']);
+    const retry = await (await request('/users/me/career-path', student, 'PUT', { pathId: 'test-manager' })).json();
+    expect(await (await request('/users/me/career-path', student)).json()).toEqual(retry);
+    expect(retry.selection).toMatchObject({ pathId: 'test-manager', revision: 1 });
+    vi.spyOn(paths, 'saveSelection').mockRejectedValueOnce(new Error('Isolated save failed'));
+    const logging = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect((await request('/users/me/career-path', student, 'PUT', { pathId: 'agile-tester' })).status).toBe(500);
+    logging.mockRestore();
+    expect(await (await request('/users/me/career-path', student)).json()).toEqual(retry);
+    vi.restoreAllMocks();
+  });
 
   it('US-L006-AC02/T008 seeds are admin-only drafts and nothing is public until published', async () => {
     expect(await (await request('/career-paths')).json()).toEqual([]);

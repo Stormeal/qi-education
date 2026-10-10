@@ -28,6 +28,8 @@ import {
   type CareerPathDocument,
 } from './careerPath.js';
 import { createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
+import { registerLearningProgressRoutes } from './learningProgress.js';
+import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
   apiConfig,
   getCorsOrigins,
@@ -77,6 +79,7 @@ import {
 type ServerDependencies = {
   authRepository?: AuthRepository;
   careerPathRepository?: CareerPathRepository;
+  learningProgressRepository?: LearningProgressRepository;
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
   feedbackRepository?: FeedbackRepository;
@@ -97,6 +100,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
+  const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
@@ -1175,6 +1179,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const adminCareerPath = async (path: CareerPathDocument) =>
     ({ id: path._id, revision: path.revision, published: path.published, draft: path.draft, updatedAt: path.updatedAt,
       learners: await careerPaths.countSelections(path._id) });
+
+  registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
+    courses, content: courseContent, progress: learningProgress });
 
   app.get('/career-paths', async (_request, response, next) => {
     try {

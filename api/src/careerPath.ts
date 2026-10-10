@@ -95,7 +95,8 @@ export function learnerCareerPath(document: CareerPathDocument, courses: Course[
     steps: document.published.steps.map((step) => ({
       ...step,
       courses: step.courses.map((reference) => {
-        const course = reference.courseId ? byId.get(reference.courseId) : undefined;
+        const storedCourse = reference.courseId ? byId.get(reference.courseId) : undefined;
+        const course = storedCourse?.status === 'published' ? storedCourse : undefined;
         return {
           courseId: reference.courseId,
           title: course?.title ?? reference.title,

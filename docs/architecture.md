@@ -7,31 +7,42 @@ The career path section was checked again on 2026-10-05 at `9a2f30b` plus
 unfinished lifecycle work. Access was delivered in `a6767f6`; see
 [work_queue.md](work_queue.md) for subsequent delivery and verification records.
 
-## Career path and local progress boundary — checked 2026-10-09
+## Career path and account progress boundary — checked 2026-10-10
 
-There is no career path model, repository, API endpoint, or dedicated route today.
-Home now derives enrolled course summaries from catalog metadata, current title
-outlines and shared local completion. Each course has a stable learning link.
-Career path progress is explicitly unavailable; role-based percentages, fictional
-chapters/courses and claims of matched recommendations have been removed.
+Career paths have published revisions, admin drafts, one selection per account,
+and required-step progress derived from current course completion. The roadmap
+and Home show the next available required course; switching asks for confirmation.
+See [the career path spec](specs/US-L009-L012-T008-career-paths.md) for those deliveries.
+Path references never enroll a learner or grant learning access. Public reference
+titles use live published metadata or the curator's published label, never a
+private draft or archived course's current metadata.
 
-Course metadata has free-text `partOfCareer` and `careerGoals`; catalog search
-uses them as terms, not curriculum relationships. Accounts persist enrollments
-but have no selected path, career goal, milestone, or server progress fields.
-Profile learning goals are device-local and do not change career recommendations.
+`LearningProgressService` keeps synchronous completion readers/mutations and its
+email/course localStorage arrays. New routes persist a union per authenticated
+account/course. Restoration starts on course loading or a direct roadmap
+`forContent` read, with network/signal work deferred outside computed calculations.
+Account IDs merge into local memory/storage; writes add single lessons atomically.
+Off-page legacy IDs go directly to the authoritative API without an outline
+prerequisite. Failures retain completion; transient failures retry with bounded
+backoff. Reset aborts requests/timers and clears the context; every reply checks
+the initiating account/token and context before updating signals or storage.
 
-`LearningProgressService` owns the existing localStorage arrays keyed by email
-and course ID, shared by workspace, library and Home. Resume selects the first
-incomplete current component. Percentages count unique current component IDs,
-ignore stale/duplicate records and reserve 100% for full completion; empty courses
-remain 0%. Non-quiz completion retains Mark complete/video-ended triggers; quiz
-completion still requires a trusted passing score and Finish quiz. Question
-position is labeled separately in visible and accessible output. Outline loading
-and failure have distinct states and retry. Route changes retain memory when
-storage writes fail; account replacement/logout clears memory and invalidates
-pending loads. Persistence across devices remains unimplemented. Career path selection,
-curation, revisions, switching, milestone logic, and reliable account persistence
-are Proposed capabilities, not implemented parts of the architecture.
+Resume selects the first incomplete current component. Percentages count unique
+current IDs, ignore stale/duplicate records, require all lessons for 100%, and
+leave empty courses at 0%. Mark complete/video-ended triggers are unchanged.
+The new grading route saves passing evidence before returning success, but only
+Finish quiz saves its completion. The save route requires a fingerprint for the
+current quiz. Legacy quiz IDs remain local until a new verified passing attempt.
+The previous grading route remains unchanged for existing clients. MongoDB
+stores account/course sets beside career paths; without configuration the
+repository is in-memory. Real Mongo and hosted two-device checks remain pending.
+Profile goals stay device-local (US-L003).
+
+Selection preserves atomic last-committed-write-wins replacement. Its unchanged
+DTO identifies the chosen path, path revision and selection timestamp; GET reads
+the current outcome. A retried PUT reasserts its choice, including after another
+device's intervening choice. There is no compare-and-swap rejection in the
+existing client. See [account progress](specs/US-L002-account-progress.md).
 
 See the [career path audit](audits/2026-10-05/career_path_audit.md) for evidence,
 suggested boundaries, outstanding decisions, and delivery dependencies.
@@ -56,7 +67,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
-| Progress/profile | Shared device-local completion in workspace/library/Home and local profile details | Not server-synced; no selected career path or career completion model |
+| Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance | Legacy quizzes need fresh passing evidence; profile remains local; hosted Mongo checks pending |
 
 Statuses are `draft`, `ready-for-review`, `published`, and `archived`. Explicit
 review actions enforce transitions. One private working revision may coexist with
@@ -95,7 +106,7 @@ future organization, not paths a fresh contributor can navigate today.
 | `services/app-state.service.ts` | Signals, session/navigation, authoring drafts, uploads, feedback |
 | `services/api-client.service.ts` | Fetch, response cache, base URL selection/fallback, 401 notifications |
 | `services/course.service.ts` | Course requests, thumbnail warmup, attachment XMLHttpRequest |
-| `services/learning-progress.service.ts` | Shared local completion, current-outline summaries, loading/errors and session cache boundaries |
+| `services/learning-progress.service.ts` | Account completion union/retry, local cache, synchronous current-outline summaries and session boundaries |
 | `services/auth.service.ts`, `session.service.ts` | Auth requests and stored token/session restoration |
 | `services/profile.service.ts` | Profile data keyed by user ID in localStorage |
 
@@ -107,8 +118,8 @@ to `/`. Authentication views are rendered by route wrappers rather than a separa
 `AppStateService` is approximately 2,900 lines and handles many unrelated concerns.
 Changes need a full data-flow check; avoid a wholesale refactor as a side effect of
 fixing one story. Draft saves compare JSON snapshots. Loaded content normalizes
-legacy quiz structures. LearningProgressService centralizes local completion;
-there is still no server progress endpoint.
+legacy quiz structures. LearningProgressService centralizes account completion
+and the browser cache; new progress routes preserve existing clients/course routes.
 
 Course navigation compares metadata/content snapshots and focused builder buffers.
 Native confirmation protects links, Cancel, Back, editor-ID changes and voluntary
@@ -147,6 +158,8 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /courses`, `/courses/:id/thumbnail`, `/courses/:id/outline` | Public published metadata/title outlines; owner/admin private access; enrolled archived access |
 | `GET /courses/:id/content` | Authenticated owner/admin or enrolled published/archived learner; learner DTO by default; owner/admin-only `?view=author` |
 | `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
+| `GET /users/me/learning-progress`, `PUT /users/me/learning-progress/:courseId/lessons/:componentId` | Own account and entitled current lessons only; atomic union; quizzes require passing evidence |
+| `POST /users/me/learning-progress/:courseId/components/:componentId/quiz-attempts` | Same server grading with account passing proof persisted before success; does not complete until Finish |
 | `POST /users/me/courses/:id` | Active session; published-only new enrollment; published retry is idempotent |
 | `POST /courses` | All roles create drafts; teachers use default admin fields; authenticated owner ID |
 | `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; editable working draft only; required loaded revision; no direct status/price changes |
