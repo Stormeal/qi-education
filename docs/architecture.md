@@ -63,7 +63,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
-| Account | Student signup, login, remembered session, role permissions | No reset flow; demo auth fallback without Sheets configuration |
+| Account | Student signup, login, remembered session, role permissions | No reset flow; demo fallback only outside production; missing production user store disables auth |
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
@@ -141,8 +141,14 @@ and entitled content after restored session identity/permissions have been appli
 
 The API client selects a configured `window.qiEducationConfig.apiBaseUrl` first.
 GitHub Pages calls the hosted Vercel API. On other hosts it tries local port 3001
-then the hosted API after a network failure. This matters for isolated testing:
-pin the API URL or keep the local API healthy before performing mutations.
+then the hosted API after a network failure for reads. On loopback frontends
+(localhost/subdomains, 127/8 and IPv6 loopback), methods other than GET/HEAD
+attempt only a loopback API, including configured overrides. They never replay
+to the hosted fallback. Local network failure or a remote mutation override
+returns a client-generated 503 JSON message through existing caller error paths,
+so signup/save/enrollment display local API guidance and retain unsaved work.
+Deployed hosts and GET/HEAD fallback retain their previous behavior. See
+[safe operation](specs/US-P008-safe-operation.md).
 Course responses use private/no-store and Vary: Authorization. The client honors no-store. Private thumbnails use authenticated blobs revoked on logout. Course response guards use session identity, route, and operation generation; stale 401s cannot end a newer session. Session restoration/enrollment reset pending loaders before applying the updated session. Other successful JSON responses retain explicit invalidation and no TTL.
 
 ## API map and current access
@@ -190,7 +196,7 @@ using their current stored role. Tokens are stored in browser storage by
 
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
-| Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts |
+| Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts outside production; empty unavailable repository in production |
 | Identity, owner, admin catalog/price | GoogleSheetsCourseRepository | InMemoryCourseRepository with one published demo course |
 | Reviewed author metadata, live/working snapshots, review history | Mongo course-content document | InMemoryCourseContentRepository |
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
@@ -292,6 +298,13 @@ checks. The workflow publishes `app/dist/qi-education-app/browser`, with a gener
 `404.html` SPA fallback. Vercel serves the API via `api/[...path].ts` and can also
 serve the frontend using `vercel.json` routing.
 
+Production is exactly NODE_ENV=production, matching the existing session-secret
+policy. Complete resolved Sheets settings select the configured user repository;
+otherwise no demo store is constructed and login/signup/protected routes answer
+503 with the existing message shape. Local development and NODE_ENV=test retain
+demo users. `/health/auth` checks the session secret and the selected user store's
+configuration availability; `/health/config` marks auth unconfigured when either
+is absent. Existing health fields/storage labels are retained for compatibility.
 Hosted health checks do not prove Google Sheets reads/writes or an entire login
-journey: `/health/auth` currently checks secret presence. Follow the release
+journey. Follow the release
 checklist and record actual integration verification separately.

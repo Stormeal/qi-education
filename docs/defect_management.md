@@ -41,6 +41,8 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-015 | A stale authoring save silently replaces newer course work | P2 | Fixed | Resolved 2026-10-09 in `d674ee3`; stale/race/partial-save regressions and browser checks pass | US-T005 |
 | DEF-016 | Public career references expose private course titles | P1 | Fixed | Resolved 2026-10-10 in b66a8e1; isolated boundary regression and full checks pass | US-P004-AC03 |
+| DEF-017 | Production without user-store settings accepts demo credentials | P1 | Confirmed | INV-013 reproduced 2026-10-10 with isolated stores; regression pending fix | US-P008-AC01 |
+| DEF-018 | Local API network failures replay mutations against hosted API | P1 | Confirmed | INV-015 reproduced 2026-10-10 with browser fetch stubs; regression pending fix | US-P008-AC03 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -541,9 +543,9 @@ Hosted clocks, durability and uncertain provider outcomes require release checks
 | INV-010 | Attachment limit is 25 MB in app and API, above the host's 4.5 MB request/response body limit and MongoDB's 16 MB document limit | Hosted disposable course: upload 5 MB and 17 MB files; record the response and message shown | US-T009 |
 | INV-011 | US-T002 code (`86196cf`): `CourseReviewService.list` loads each course's full content document on every course list | Count Mongo reads and bytes for `GET /courses` with 50 seeded courses | US-P006, US-T002 |
 | INV-012 | `PATCH /courses/:id/content` fetches every referenced attachment's binary to compare `courseId` | Save a lesson with ten 4 MB attachments; measure bytes read and duration | US-P006 |
-| INV-013 | Without Sheets settings the API falls back to in-memory demo users in any environment, including the documented demo admin password | Start with `NODE_ENV=production` and no Google settings; attempt the demo admin login | US-P008 |
+| INV-013 | Reproduced in isolated stores as DEF-017 on 2026-10-10. Without Sheets settings the API falls back to in-memory demo users in any environment, including the documented demo admin password | Start with `NODE_ENV=production` and no Google settings; attempt the demo admin login | US-P008 |
 | INV-014 | Login and signup accept unlimited attempts; each also consumes Sheets reads | Scripted attempts against a local instance; confirm no throttle and count Sheets calls | US-P008 |
-| INV-015 | On localhost the API client retries a failed request against the hosted API, including mutations | Stop the local API, submit signup from the local frontend with the network inspector open; do not complete it against shared data | US-P008 |
+| INV-015 | Reproduced with isolated fetch stubs as DEF-018 on 2026-10-10. On localhost the API client retries a failed request against the hosted API, including mutations | Stop the local API, submit signup from the local frontend with the network inspector open; do not complete it against shared data | US-P008 |
 | INV-016 | CI event configuration reproduced locally: pull requests only, no push trigger | Main push trigger added under US-P008-AC04; actual GitHub run/host gating unverified (no push authorized) | US-P008 |
 | INV-017 | US-T002 code (`86196cf`): status branches in `PATCH /courses/:id` are unreachable because the review service rejects status changes; reviewed title/status live only in MongoDB so the Courses sheet goes stale | Route tests for each legacy status transition; publish a revision and compare the sheet row | US-T002 |
 | INV-018 | Course thumbnails are served `Cache-Control: private, no-store` even when the URL carries the asset id as a version | Reload the catalog and count thumbnail transfers | US-P006 |
@@ -638,3 +640,37 @@ actual course persistence retains its existing uncertain-write protections.
 Provider creation may have an unknown upload outcome; log for cleanup.
 Regression: `muxRoutes.test.ts` VO-03 verifies unchanged draft and successful
 retry. Verified by the four delivery checks and six journeys. Delivery: `cb38175`.
+
+### DEF-017 - Production without user-store settings accepts demo credentials
+
+Owner: Codex. Severity: P1. State: Confirmed. Source: INV-013.
+Reproduced 2026-10-10 on main, base 0435029, before implementation.
+Contract: US-P008-AC01; [spec](specs/US-P008-safe-operation.md).
+
+Given NODE_ENV=production, a synthetic valid session secret, and no user-store
+settings, the factory contains all three documented demo users. Real Express
+login and signup requests on ephemeral ports return 200/201 instead of 503,
+and health/auth incorrectly returns 200. safeOperation.test.ts initially
+failed 15 of 20 tests, including each missing setting and all route aliases.
+All other dependencies were explicit memory stores and forbidden provider
+stubs; api/.env was never loaded. No shared service was accessed.
+
+Root cause: createAuthRepository selected the demo repository whenever Sheets
+configuration was absent, regardless of production. Resolution pending.
+
+### DEF-018 - Local network failures replay mutations against hosted API
+
+Owner: Codex. Severity: P1. State: Confirmed. Source: INV-015.
+Reproduced 2026-10-10 on main, base 0435029, before implementation.
+Contract: US-P008-AC03; [spec](specs/US-P008-safe-operation.md).
+
+Given a localhost frontend and a fetch stub rejecting the local API, the real
+ApiClientService sends signup, save, enrollment, selection, DELETE, OPTIONS and
+lowercase POST to a hosted-URL stub. Its disposable hosted-write list changes
+and the promise succeeds instead of reporting a local failure. An explicit
+hosted override also sends a local mutation. Eight new regression cases failed
+before implementation; existing frontend tests and read fallback passed.
+No real network request or shared mutation occurred.
+
+Root cause: fetch retries every failed request against every candidate API URL,
+without checking method or the local frontend context. Resolution pending.

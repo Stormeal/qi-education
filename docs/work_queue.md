@@ -41,7 +41,7 @@ to go live.
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | Show the account progress sync message where learners see progress; keyboard-only walk of the career path page | `app/src/app/pages/**`, `docs/specs/US-L009-L012-T008-career-paths.md` | Selected |
-| Codex | US-P008-AC01 (INV-013) and US-P008-AC03 (INV-015) | See the [handoff](handoffs/US-P008-safe-operation-codex.md) | Selected; not started |
+| Codex | US-P008-AC01 (INV-013) and US-P008-AC03 (INV-015) | See the [handoff](handoffs/US-P008-safe-operation-codex.md) | In progress; owner Codex, main, base 0435029. [Spec](specs/US-P008-safe-operation.md) written first; DEF-017/018 reproduced then fixed locally. Verified: 378 API tests, 30 client tests including real auth/enrollment consumers, six journeys, API/Pages builds; final independent review clear. Full frontend run: seven learning-progress fixture failures from its remote stub URL; asked Alex to allow only a loopback URL substitution outside this scope. Next: that answer, full frontend verification, aligned version bump and local commit/delivery record. Not verified: hosted/provider/browser checks. AC02 excluded; Claude's files preserved; no commit or push yet |
 
 Claude records its result in the career path spec, not here, until Codex has finished.
 

@@ -212,7 +212,7 @@ describe('account-backed completion (US-L002-AC02)', () => {
   let gateWrite: (() => Promise<void>) | undefined;
   beforeEach(() => {
     localStorage.clear(); sessionStorage.clear();
-    window.qiEducationConfig = { apiBaseUrl: 'http://isolated.test/api' };
+    window.qiEducationConfig = { apiBaseUrl: 'http://127.0.0.1:9/api' };
     localStorage.setItem('qiEducationSession', JSON.stringify(login));
     server = new Map(); writes = []; failSaves = quizAllowed = false; gateRead = gateWrite = undefined;
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -31,7 +31,14 @@ export class ApiClientService {
 
   async fetch(path: string, init: RequestInit): Promise<Response> {
     const initiatingSession = this.sessionContext();
-    const apiBaseUrls = this.apiBaseUrls();
+    const localMutation = isLocalMutation(window.location, init.method);
+    let apiBaseUrls: string[];
+    try {
+      apiBaseUrls = this.apiBaseUrls(init.method);
+    } catch (error) {
+      if (error instanceof LocalApiTargetError) return localApiFailure(error.message);
+      throw error;
+    }
     let lastError: unknown;
 
     this.logApiBaseUrls(apiBaseUrls);
@@ -46,6 +53,9 @@ export class ApiClientService {
 
         return response;
       } catch (error) {
+        if (localMutation) {
+          return localApiFailure('Local API is unavailable. Start the local API and retry. This request was not sent to the hosted API.');
+        }
         lastError = error;
         this.logApiFallback(apiBaseUrl, apiBaseUrls);
       }
@@ -142,10 +152,10 @@ export class ApiClientService {
     return headers[name] ?? headers[name.toLowerCase()] ?? '';
   }
 
-  private apiBaseUrls(): string[] {
+  private apiBaseUrls(method?: string): string[] {
     const configuredApiBaseUrl = window.qiEducationConfig?.apiBaseUrl?.trim().replace(/\/+$/, '');
 
-    return resolveApiBaseUrls(window.location, configuredApiBaseUrl);
+    return resolveApiBaseUrls(window.location, configuredApiBaseUrl, method);
   }
 
   private logApiBaseUrls(apiBaseUrls: string[]): void {
@@ -170,7 +180,41 @@ export class ApiClientService {
 
 type ApiLocation = Pick<Location, 'hostname' | 'origin' | 'protocol'>;
 
-export function resolveApiBaseUrls(location: ApiLocation, configuredApiBaseUrl?: string): string[] {
+class LocalApiTargetError extends Error {}
+
+// Existing consumers display non-ok JSON messages, whereas their catch blocks
+// replace thrown network errors with generic guidance. Keep local failures on
+// that established error path without modifying pages or API response shapes.
+function localApiFailure(message: string): Response {
+  return new Response(JSON.stringify({ message }), {
+    status: 503,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+  });
+}
+
+export function resolveApiBaseUrls(location: ApiLocation, configuredApiBaseUrl?: string, method?: string): string[] {
+  const baseUrls = candidateApiBaseUrls(location, configuredApiBaseUrl);
+  if (!isLocalMutation(location, method)) return baseUrls;
+
+  // An override may otherwise send a local signup/save straight to production.
+  const target = new URL(baseUrls[0], location.origin);
+  if (!['http:', 'https:'].includes(target.protocol) || !isLoopbackHost(target.hostname)) {
+    throw new LocalApiTargetError('Local API required: local development cannot send mutations to a remote API. Configure a local API and retry.');
+  }
+  return [baseUrls[0]];
+}
+
+function isLocalMutation(location: ApiLocation, method = 'GET'): boolean {
+  return isLoopbackHost(location.hostname) && !['GET', 'HEAD'].includes(method.toUpperCase());
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === 'localhost' || host.endsWith('.localhost') || host === '[::1]' || host === '::1'
+    || /^127(?:\.\d{1,3}){3}$/.test(host);
+}
+
+function candidateApiBaseUrls(location: ApiLocation, configuredApiBaseUrl?: string): string[] {
   if (configuredApiBaseUrl) {
     return [configuredApiBaseUrl];
   }

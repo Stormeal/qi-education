@@ -23,7 +23,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P004 | Recover career guidance safely across failures and sessions | In progress | P2 | L006, L009; per-increment checks | DEF-016 fixed in this delivery |
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
-| US-P008 | Fail safely on misconfiguration, abuse, and unchecked releases | Proposed | P2 | None | Investigations INV-013, INV-014, INV-015 |
+| US-P008 | Limit repeated sign-in attempts | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -359,30 +359,20 @@ Feature: Course availability under class load
 missing setting, a guessing script, or an untested push cannot expose accounts or
 reach users unnoticed.**
 
-State: Proposed. Checks on pushes to `main` are delivered and removed from this story.
-Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md), INV-013, INV-014, INV-015.
-Scope: production startup checks, sign-in attempt limits, and the local frontend's API
-target. Decisions: attempt limits and where they are enforced (host firewall or API).
+State: Proposed (remaining AC02). Checks on pushes to `main` are delivered and removed
+from this story. AC01 and AC03 are implemented with isolated regressions; their
+delivery and release checks are in the [safe-operation spec](specs/US-P008-safe-operation.md).
+Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md), INV-014.
+Scope: sign-in attempt limits. Decisions: attempt limits and where they are enforced
+(host firewall or API). The attempt-limit behavior was not changed by AC01/AC03.
 
 ```gherkin
 Feature: Safe operation of the live service
-  Scenario: US-P008-AC01 No demo accounts in production
-    Given the production API starts without its user store settings
-    When anyone attempts to sign in with a demo account
-    Then sign-in is unavailable and no demo account exists
-    And a health endpoint reports the missing configuration
-
   Scenario: US-P008-AC02 Limit repeated sign-in attempts
     Given repeated failed sign-ins for one account or from one client
     When the agreed limit is exceeded
     Then further attempts are refused for the agreed period
     And other users can still sign in
-
-  Scenario: US-P008-AC03 Local development never writes to production
-    Given the frontend runs on localhost and the local API is unreachable
-    When I sign up, save, or enroll
-    Then the request fails locally with a clear message
-    And nothing is sent to the hosted API
 ```
 
 ## Adding a story

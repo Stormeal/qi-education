@@ -12,6 +12,7 @@ import {
 import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 
 export interface AuthRepository {
+  readonly unavailableReason?: string;
   findByEmail(email: string): Promise<AuthUser | null>;
   findById(id: string): Promise<AuthUser | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
@@ -146,7 +147,25 @@ export class InMemoryAuthRepository implements AuthRepository {
 }
 
 export function createAuthRepository(): AuthRepository {
-  return hasGoogleSheetsConfig() ? new GoogleSheetsAuthRepository() : new InMemoryAuthRepository();
+  if (hasGoogleSheetsConfig()) return new GoogleSheetsAuthRepository();
+  if (process.env.NODE_ENV === 'production') return new UnavailableAuthRepository();
+  return new InMemoryAuthRepository();
+}
+
+export class AuthUnavailableError extends Error {
+  constructor() {
+    super('Production user store is not configured. Authentication is unavailable.');
+  }
+}
+
+// No seeded users and no writes when the production store is missing. Keep the
+// server running so existing health routes can explain the unavailable state.
+class UnavailableAuthRepository implements AuthRepository {
+  readonly unavailableReason = new AuthUnavailableError().message;
+  async findByEmail(_email: string): Promise<AuthUser | null> { return null; }
+  async findById(_id: string): Promise<AuthUser | null> { return null; }
+  async createUser(_user: AuthUser): Promise<AuthUser> { throw new AuthUnavailableError(); }
+  async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
 }
 
 function createDemoUser(role: AuthUser['role'], email: string, displayName: string): AuthUser {

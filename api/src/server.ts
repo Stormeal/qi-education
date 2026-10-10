@@ -17,7 +17,7 @@ import {
   type AuthUser,
   type AuthenticatedUser,
 } from './auth.js';
-import { createAuthRepository, type AuthRepository } from './authRepository.js';
+import { AuthUnavailableError, createAuthRepository, type AuthRepository } from './authRepository.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -396,7 +396,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     response.json({
       status: 'ok',
       auth: {
-        configured: Boolean(apiConfig.AUTH_TOKEN_SECRET),
+        configured: Boolean(apiConfig.AUTH_TOKEN_SECRET) && !auth.unavailableReason,
         storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
       },
       content: {
@@ -429,6 +429,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
       return;
     }
 
+    if (auth.unavailableReason) {
+      response.status(503).json({ status: 'unavailable', message: auth.unavailableReason });
+      return;
+    }
+
     response.json({ status: 'ok' });
   });
 
@@ -456,8 +461,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
     try {
       const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
 
-      if (!authTokenSecret) {
-        response.status(503).json({ message: 'Authentication is temporarily unavailable.' });
+      if (!authTokenSecret || auth.unavailableReason) {
+        response.status(503).json({ message: auth.unavailableReason ?? 'Authentication is temporarily unavailable.' });
         return;
       }
 
@@ -484,8 +489,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
     try {
       const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
 
-      if (!authTokenSecret) {
-        response.status(503).json({ message: 'Authentication is temporarily unavailable.' });
+      if (!authTokenSecret || auth.unavailableReason) {
+        response.status(503).json({ message: auth.unavailableReason ?? 'Authentication is temporarily unavailable.' });
         return;
       }
 
@@ -1324,6 +1329,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
+    if (error instanceof AuthUnavailableError) {
+      response.status(503).json({ message: error.message });
+      return;
+    }
     if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.code ? { code: error.code } : {}), ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {
       response.status(409).json({ message: error.message });
@@ -1774,8 +1783,8 @@ function authenticateRequest(authRepository: AuthRepository) {
     try {
       const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
 
-      if (!authTokenSecret) {
-        response.status(503).json({ message: 'Authentication is temporarily unavailable.' });
+      if (!authTokenSecret || authRepository.unavailableReason) {
+        response.status(503).json({ message: authRepository.unavailableReason ?? 'Authentication is temporarily unavailable.' });
         return;
       }
 
