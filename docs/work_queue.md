@@ -33,6 +33,18 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-10 (3) — started by the user: the career path editor's Save buttons are cut
+off, the Admin page is chaotic, and career paths need a UI overhaul.** Branch: `main`.
+Base: `3dc9386` (pushed and deployed, version 0.1.85).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | Fix the clipped editor (Admin page has a fixed height that hides it); Admin page organized into sections; career path editor rebuilt with a path list, collapsible steps and an always-visible save bar; Withdraw and conflict handling in the editor against Codex's contract | `app/**`, `CLAUDE.md`, `docs/specs/US-L009-L012-T008-career-paths.md` | In progress |
+| Codex | US-A003: withdraw a published path; refuse a stale save | See the [handoff](handoffs/US-A003-career-path-withdrawal-codex.md) | Selected; not started |
+
+Open question for Alex: what the overhaul of the learner's Career Path page should change.
+Claude records its result in the career path spec, not here, until Codex has finished.
+
 **Session 2026-10-10 (2) — started by the user with "let's start working".** Branch: `main`.
 Base: this commit. Picked by Claude Code as lead: the leftovers of career paths increment 2
 for Claude, and the next independent safety item for Codex, because career paths are about
