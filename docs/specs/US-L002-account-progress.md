@@ -5,7 +5,7 @@
 - Owner: Codex. Selected 2026-10-10. Branch/base: `main` / `5c2a4b5`.
 - Initial guard passed. User approved preserving the later workflow commit
   `a81255d` and continuing on that base while this work was uncommitted.
-- State: In progress. Contract: the increment-2 handoff and the user's ownership limits.
+- State: Delivered locally in `b66a8e1` (0.1.79). Contract: the increment-2 handoff and the user's ownership limits.
 - Related resolved defects: DEF-007/009/014; their completion rules remain unchanged.
 - User-authorized exception: change only the request URL in `CourseService.gradeQuiz`
   to the new grading route; keep its signature and assessment response unchanged.
@@ -126,7 +126,7 @@ Feature: Account progress
 - [x] Add session-safe background progress loading/union/retries and service tests.
 - [x] Change the authorized grading URL only; keep all career/dashboard files intact.
 - [x] Run API/frontend suites, journeys, API and Pages builds; review; bump version.
-- [ ] Record delivery and unavailable hosted/provider checks in the queue.
+- [x] Record delivery and unavailable hosted/provider checks in the queue.
 
 ## Verification and delivery
 
@@ -137,7 +137,8 @@ Feature: Account progress
 | CP-03/04 | `api/src/careerPath.test.ts` | Pass; forced commit ordering, retry and failed write, private reference/account isolation |
 | Atomic Mongo adapter operations | `api/src/learningProgressRepository.test.ts` | Pass; isolated collection double only |
 
-Delivery commit and check results will be recorded in `docs/work_queue.md`.
+Implementation commit: `b66a8e1` (0.1.79). The delivery-record commit (0.1.80,
+required by the documentation hook) updates `docs/work_queue.md` with that hash.
 Verified 2026-10-10 on `a81255d` plus this delivery: 352 API tests, 156 frontend
 tests, all six journeys, API build and Pages build. Independent review found
 direct-roadmap restoration and off-page outline dependency gaps; both gained

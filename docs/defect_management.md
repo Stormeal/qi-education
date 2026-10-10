@@ -40,7 +40,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-013 | Catalog titles/badges are clipped at responsive widths | P3 | Fixed | Resolved 2026-10-09 in `79c2ea5`; RD-06 pass | US-L008 |
 | DEF-014 | Quiz completion indicator counts question position as completed work | P2 | Fixed | Resolved 2026-10-09 in `6729b74`; LP-01-05 regression/browser checks pass | US-L002 |
 | DEF-015 | A stale authoring save silently replaces newer course work | P2 | Fixed | Resolved 2026-10-09 in `d674ee3`; stale/race/partial-save regressions and browser checks pass | US-T005 |
-| DEF-016 | Public career references expose private course titles | P1 | In progress | Isolated red-to-green regression 2026-10-10; delivery commit pending | US-P004-AC03 |
+| DEF-016 | Public career references expose private course titles | P1 | Fixed | Resolved 2026-10-10 in b66a8e1; isolated boundary regression and full checks pass | US-P004-AC03 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -557,8 +557,8 @@ the next DEF ID, retain the investigation link, and document concrete evidence.
 
 ### DEF-016 - Public career references expose private course titles
 
-Owner: Codex. Severity: P1 (private metadata disclosure). State: In progress;
-implementation and regression verified, delivery commit pending. Discovered
+Owner: Codex. Severity: P1 (private metadata disclosure). State: Fixed;
+implementation and regression verified; fixing commit b66a8e1. Discovered
 2026-10-10 against initial 5c2a4b5, with a81255d preserved by user approval.
 Contract: US-P004-AC03; [account progress spec](specs/US-L002-account-progress.md).
 
@@ -575,7 +575,7 @@ references use the curator's published label and remain unavailable. No route
 handler or response shape changes. Regression also proves account selection
 isolation, forged account IDs are ignored, and the path never grants content
 access or enrollment. Full API/frontend/build checks pass. Hosted verification
-is pending; exact fixing commit will be recorded with the delivery row.
+is pending. Fixing commit: b66a8e1; delivery row records the release limitations.
 
 ## New defect record
 
