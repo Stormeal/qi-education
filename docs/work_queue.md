@@ -33,6 +33,16 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 — started by the user with a reference design for a simpler quiz editor.**
+Branch: `main`. Base: `a79828f` (pushed and deployed, 0.1.98). Decided by Alex: 1 point per
+question, 2 to 6 answers, one or more correct answers, optional explanation per question;
+question images later.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-T013 frontend: quiz editor rebuilt after the reference (question, answer rows with a correct box and delete, Add answer, optional explanation, New question); learner quiz view for one or several correct answers | Everything under `app/` | In progress |
+| Codex | US-T013 API: quiz model, readiness rules and grading; US-T014 question image recorded as Proposed | See the [handoff](handoffs/US-T013-simple-quiz-codex.md) | Selected; not started |
+
 **Session 2026-10-10 (4) — started by the user with feedback from the first teacher who built
 a course on the live site.** Branch: `main`. Base: `a2926e0` (pushed and deployed, 0.1.90).
 
