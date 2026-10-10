@@ -708,6 +708,7 @@
               <button
                 type="button"
                 class="component-picker-add"
+                [attr.aria-label]="'Add ' + choice.title + ' lesson'"
                 [disabled]="courseContentSaving() || courseSubmitting()"
                 (click)="addComponentOfType(choice.type)"
               >

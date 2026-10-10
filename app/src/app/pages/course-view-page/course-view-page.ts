@@ -1,5 +1,8 @@
 import { DatePipe } from '@angular/common';
+import { DOCUMENT } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { inertHtml } from '../../utils/inert-html';
+import { plural } from '../../utils/plural';
 import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
@@ -65,6 +68,7 @@ export class CourseViewPage {
   private readonly courseService = inject(CourseService);
   private readonly learningProgress = inject(LearningProgressService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly document = inject(DOCUMENT);
 
   protected readonly editCourseIcon = this.asSafeIcon(lucidePencil);
   protected readonly setPriceIcon = this.asSafeIcon(lucideBanknote);
@@ -80,6 +84,7 @@ export class CourseViewPage {
   protected readonly completedIcon = this.asSafeIcon(lucideCircleCheck);
 
   protected readonly priceDraft = signal('');
+  protected readonly priceDraftError = signal('');
   protected readonly isPriceModalOpen = signal(false);
   protected readonly pendingPriceSave = signal(false);
   protected readonly isCatalogModalOpen = signal(false);
@@ -270,6 +275,7 @@ export class CourseViewPage {
 
   protected openPriceModal(course: CourseListItem): void {
     this.priceDraft.set(course.priceDkk === null ? '' : String(course.priceDkk));
+    this.priceDraftError.set('');
     this.pendingPriceSave.set(false);
     this.isPriceModalOpen.set(true);
   }
@@ -302,18 +308,21 @@ export class CourseViewPage {
   }
 
   protected updatePriceDraft(value: string): void {
+    this.priceDraftError.set('');
     this.priceDraft.set(value);
   }
 
   protected applyPriceDraft(courseId: string): void {
     const value = this.priceDraft().trim();
-    const parsed = value ? Number.parseInt(value, 10) : null;
+    // An invalid amount used to be saved silently as free.
+    if (value && !/^\d+$/.test(value)) {
+      this.priceDraftError.set('Enter a whole number of DKK, or leave it empty to keep the course free.');
+      return;
+    }
 
+    this.priceDraftError.set('');
     this.pendingPriceSave.set(true);
-    this.coursePriceSaved.emit({
-      courseId,
-      priceDkk: parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? parsed : null,
-    });
+    this.coursePriceSaved.emit({ courseId, priceDkk: value ? Number.parseInt(value, 10) : null });
   }
 
   protected updateCatalogPremium(value: boolean): void {
@@ -633,7 +642,7 @@ export class CourseViewPage {
       return 'No course content';
     }
 
-    return `${content.sections.length} sections - ${this.totalLessonCount()} components - ${this.formatDurationLong(this.totalContentDurationMinutes())} total length`;
+    return `${plural(content.sections.length, 'section')} - ${plural(this.totalLessonCount(), 'component')} - ${this.formatDurationLong(this.totalContentDurationMinutes())} total length`;
   }
 
   protected emptyCourseContentMessage(): string {
@@ -739,7 +748,10 @@ export class CourseViewPage {
 
   protected renderMarkdown(markdown: string): string {
     if (this.looksLikeHtml(markdown)) {
-      return markdown;
+      // Attachment cards carry editor-only download/remove controls; learners use the list below the lesson.
+      const container = inertHtml(this.document, markdown);
+      container.querySelectorAll('.rich-attachment-actions').forEach((actions) => actions.remove());
+      return container.innerHTML;
     }
 
     const lines = markdown.split(/\r?\n/);

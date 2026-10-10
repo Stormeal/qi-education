@@ -58,7 +58,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.73';
+  readonly appVersion = '0.1.74';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1835,6 +1835,8 @@ export class AppStateService {
   }
   private acceptCourseContentSave(content: CourseContentDocument): void {
     if (content.review) this.courseReview.set(content.review);
+    // A refused submission lists lessons to fix; a successful save makes that list stale.
+    this.courseReviewError.set('');
     this.courseContent.set(content); this.initialCourseContentSnapshot.set(this.serializeCourseContent(content));
   }
   private async saveOutlineBeforeMedia(courseId: string, token: string, isCurrent: () => boolean): Promise<boolean> {
@@ -2970,7 +2972,8 @@ export class AppStateService {
   private courseCatalogIdFromPath(path: string): string | null {
     const match = path.match(/^\/courses\/([^/]+)$/);
 
-    if (!match) {
+    // "/courses/new" is the create form, not a course called "new".
+    if (!match || match[1] === 'new') {
       return null;
     }
 

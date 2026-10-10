@@ -70,3 +70,36 @@ not replace it. Video and anything depending on the real stores were not exercis
 Video upload and playback (needs real Mux; US-T006 in progress), editing a published
 course through "Start revision", price setting, mobile layout, and everything specific to
 the real Google Sheet and MongoDB. These remain in the live rehearsal checklist.
+
+## Second pass — 2026-10-10
+
+Same setup (built frontend, in-memory API, demo accounts), tree `af1a803` plus the fixes
+below (version 0.1.74).
+
+| Stage | Result |
+| --- | --- |
+| Teacher opens a published course | Read-only, with "Start revision" |
+| Start revision, edit a lesson, save | Works; the learner still gets the published text |
+| Submit the revision; admin publishes | Works; the learner then gets the revised text; history lists both revisions |
+| Admin sets a price | Works (499 DKK shown). A negative amount was silently saved as free (fixed) |
+| Teacher logs out and back in through the form | Works; own course still listed |
+| "New course" form at phone width (375 px) | No horizontal overflow; usable |
+
+Fixed in this pass:
+
+- The four "Add" buttons in the lesson picker now have distinct names ("Add Text lesson", ...).
+- "1 SECTIONS", "1 questions" and similar now use the singular.
+- The quiz header no longer says "100% through questions" before anything is answered;
+  "Question 1 of 1" stays.
+- A "fix these quiz questions" message is cleared by the next successful save (was O2).
+- An invalid price shows an error and keeps the dialog open instead of saving as free.
+- Lesson attachment cards no longer expose the editor's invisible Download/Remove buttons
+  to learners' screen readers.
+- Opening "New course" no longer sends a request that always returned 404.
+
+Withdrawn: two items from the first pass were artefacts of the test tooling, not defects.
+Course form fields do have proper labels, and the quiz question is shown once (the second
+copy is a visually hidden legend for screen readers).
+
+Still open: O5 (one local draft per interrupted session). Still not covered: video, the
+lesson editor at phone width, and everything specific to the real stores.

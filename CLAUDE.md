@@ -7,6 +7,13 @@ Start with [AGENTS.md](AGENTS.md), [docs/work_queue.md](docs/work_queue.md), and
 and specs define the selected scope. Current architecture is documented in
 [docs/architecture.md](docs/architecture.md); keep proposed behavior separate from implementation.
 
+## Default skills
+
+Use these without being asked (set by Alex, 2026-10-10):
+
+- **Always:** work in `ponytail:ponytail` mode on this project.
+- **Anything frontend** (pages, components, templates, styles, UI copy or layout in `app/`): load the `design-taste-frontend` skill before making the change.
+
 ## Project Overview
 
 QI-Education is a full-stack educational platform where teachers create courses and students enroll and learn. The repo is an npm workspace with two packages: `app/` (Angular frontend) and `api/` (Express backend).
@@ -101,6 +108,13 @@ The catalog carousel's skeleton gate is the `thumbnailsReady` signal in `courses
 
 Spec files share `localStorage`/`sessionStorage`, and file order differs on CI. Every new spec must clear both in `beforeEach`; a stored login left by another spec otherwise changes what renders (e.g. the session-restore screen instead of the login page).
 
+### Tests that pass locally but fail on CI
+
+CI runs on slower Linux machines and has caught two patterns that pass on a Windows dev machine:
+
+- `vi.mock('<library>')` may not reach app code there (the service keeps the real module). Do not fake a library at module level; give the service a replaceable member and override it in the test (see `createChunkedUpload` in `AppStateService` and `course-media.spec.ts`).
+- Do not assert exact counts or timings that depend on how many requests overlap. Assert the property instead (e.g. "fewer reads than without sharing").
+
 ### Career paths
 
 Paths are curated by admins and stored in MongoDB; a learner saves one selected path per account. Path completion is **computed** from existing lesson completion (`LearningProgressService`), which lives in the browser only — so path progress is per-browser, not cross-device, and a step is complete when any one of its courses is 100% complete. Only required steps count.
@@ -133,6 +147,7 @@ owner remain admin-editable only. Release integration checks are tracked in DEF-
 - Frontend → GitHub Pages (`app:build:pages`)
 - API → Vercel Serverless Functions; environment variables managed via Vercel (`npm run env:pull`)
 - Health endpoints: `/health`, `/health/config`, `/health/auth`, `/health/content`
+- A push to `main` deploys the API on Vercel immediately, but the frontend only if the Pages workflow's tests pass. A failing test therefore leaves a new API serving an old frontend, so keep API changes backward compatible and run both test suites and `npm run app:build:pages` before pushing.
 
 ## Capturing Learnings
 

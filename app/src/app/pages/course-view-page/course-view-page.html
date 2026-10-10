@@ -59,7 +59,6 @@
                     <div class="learning-quiz-player">
                       <header class="learning-quiz-topbar">
                         <span>Question {{ activeQuizQuestionNumber() }} of {{ activeQuizQuestions().length }}</span>
-                        <span>{{ activeQuizPositionPercent() }}% through questions</span>
                       </header>
 
                       <div
@@ -628,6 +627,9 @@
         />
       </label>
       <p class="price-field-note">Leave empty to keep the course free. All saved prices use DKK.</p>
+      @if (priceDraftError()) {
+        <p class="price-field-note" role="alert">{{ priceDraftError() }}</p>
+      }
 
       <footer class="price-modal-actions">
         <app-button variant="outline" [disabled]="priceSaving()" (buttonClicked)="closePriceModal()">Cancel</app-button>

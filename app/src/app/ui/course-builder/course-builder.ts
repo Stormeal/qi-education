@@ -42,6 +42,7 @@ import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
 import { attachmentProblem } from '../../utils/attachment-rules';
 import { inertHtml } from '../../utils/inert-html';
+import { plural } from '../../utils/plural';
 
 type ComponentPickerState = {
   sectionIndex: number;
@@ -277,7 +278,8 @@ export class CourseBuilder {
       return 'No content loaded';
     }
 
-    return `${content.sections.length} sections - ${content.sections.reduce((total, section) => total + section.components.length, 0)} components`;
+    const components = content.sections.reduce((total, section) => total + section.components.length, 0);
+    return `${plural(content.sections.length, 'section')} - ${plural(components, 'component')}`;
   }
 
   protected componentTypeLabel(component: CourseComponent): string {
@@ -1007,7 +1009,7 @@ export class CourseBuilder {
       return null;
     }
 
-    return `${component.quiz.questions.length} questions · Pass at ${component.quiz.passPoints} pts`;
+    return `${plural(component.quiz.questions.length, 'question')} · Pass at ${component.quiz.passPoints} pts`;
   }
 
   protected isSectionCollapsed(sectionIndex: number): boolean {
