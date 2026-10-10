@@ -11,6 +11,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
+| US-T011 | Author quiz questions without losing my place | Blocked | P2 | Shared-tree handoff resumed after route wiring | None confirmed |
+| US-T012 | Move a lesson to another chapter | Blocked | P2 | Claude forwards optional toSectionIndex in editor route | AC05 investigation pending |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
@@ -58,6 +60,86 @@ Feature: Instructor introduction
     When their card is displayed
     Then it uses an agreed empty fallback without inventing biographical details
     And private profile data is not disclosed
+```
+
+### US-T011 - Author quiz questions without losing my place
+
+**As a teacher, I want adding and reviewing quiz questions to keep my place,
+so that I can author and correct a quiz without searching through the editor.**
+
+State: Blocked before implementation under the handoff's outside-scope stop rule.
+Owner: Codex. Selected 2026-10-10 from the first teacher's feedback.
+Contract/design: [builder spec](specs/US-T011-T012-course-builder.md).
+No outstanding product decision; the combined handoff awaits Claude's route wiring.
+
+```gherkin
+Feature: Quiz authoring without losing my place
+  Scenario: US-T011-AC01 Add a question
+    Given an editable quiz
+    When I add a question
+    Then only the new question opens, its header aligns to the visible editor top
+    And its question text field receives focus
+
+  Scenario: US-T011-AC02 Understand collapsed questions
+    Given a collapsed question
+    When I inspect it
+    Then an expand control exposes aria-expanded and a distinct collapsed state
+    And a summary shows text, points, answer count and correct-answer status
+
+  Scenario: US-T011-AC03 Collapse the open question
+    Given an open question
+    When I activate its header
+    Then it collapses without losing its contents
+
+  Scenario: US-T011-AC04 See readiness problems while closed
+    Given a collapsed question that fails existing readiness rules
+    When I inspect it
+    Then it is marked as needing attention with the reason available without opening it
+
+  Scenario: US-T011-AC05 Author with a keyboard or narrow screen
+    Given keyboard-only operation or a 375px-wide screen
+    When I use the quiz editor
+    Then controls, labels and focus remain usable
+```
+
+### US-T012 - Move a lesson to another chapter
+
+**As a teacher, I want to move lessons between chapters,
+so that reorganizing a course preserves the content and media I already authored.**
+
+State: Blocked before implementation. Owner: Codex. Selected 2026-10-10.
+Dependency: Claude's editor route must pass the optional destination chapter to state.
+Contract/design: [builder spec](specs/US-T011-T012-course-builder.md).
+Existing route and API shapes are retained; AC05 requires isolated reproduction.
+
+```gherkin
+Feature: Moving a lesson to another chapter
+  Scenario: US-T012-AC01 Drag to another chapter
+    Given an editable lesson
+    When I drop it at a position or the end of another chapter including an empty one
+    Then it moves there
+
+  Scenario: US-T012-AC02 Move using a control
+    Given another chapter
+    When I choose it in the lesson's keyboard- and touch-usable move control
+    Then the lesson moves to its end
+
+  Scenario: US-T012-AC03 Preserve and save the moved lesson
+    Given a lesson with text, video, attachments or a quiz
+    When I move it
+    Then its ID and full content are retained as an unsaved change
+    And saving, draft recovery and conflicts work as for a reorder
+
+  Scenario: US-T012-AC04 Deny moving in protected states
+    Given a read-only builder or an upload in progress for the lesson
+    When I attempt a move
+    Then it is not emitted or applied
+
+  Scenario: US-T012-AC05 Keep media working after saving
+    Given a saved moved lesson
+    When I play its video or download, add or remove an attachment
+    Then media operations still target that lesson under existing access rules
+    And a matching pending video callback still resolves after the chapter changes
 ```
 
 ### US-A001 — Administer teaching access
