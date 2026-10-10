@@ -74,7 +74,10 @@ export class CourseReviewService {
     const { base, doc, workflow } = await this.load(id);
     const selected = workflow.working?.sections ?? workflow.live?.sections ?? [];
     const document = doc ?? { _id: id, sections: [], createdAt: base.createdAt, updatedAt: base.createdAt };
-    return { ...cleanContent(document, selected), view: 'author', review: reviewState(base, workflow) };
+    const authorSections = selected.map(section => ({ ...section, components: section.components.map(component =>
+      component.type === 'quiz' ? { ...component, quiz: { ...component.quiz, questions: component.quiz.questions.map(question =>
+        ({ ...question, points: 1, explanation: question.explanation ?? '' })) } } : component) }));
+    return { ...cleanContent(document, authorSections), view: 'author', review: reviewState(base, workflow) };
   }
   async assertEditable(id: string) {
     const { workflow } = await this.load(id);

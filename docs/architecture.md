@@ -242,12 +242,29 @@ strings still say `Courses!A:R`; the course repository derives the width from it
 headers. Do not treat the config string as the complete data schema.
 
 Course content contains sections of discriminated `text`, `resources`, `quiz`,
-and `video` components. Quizzes contain questions with four answer options,
-correctness flags, points, and a pass mark. Learner DTOs omit correctness/explanations;
-the authenticated quiz-attempt route scores stored answers and returns submitted-answer
-feedback only. Scoring refuses invalid legacy quizzes. Incomplete draft quizzes are
+and `video` components. Quizzes contain questions with two to six answer options,
+one or more correctness flags, fixed one-point scoring and an optional question
+explanation (at most 1000 characters, default empty). Content saves ignore sent
+weights and store points 1; author reads normalize old weights/default explanations
+without a migration. Legacy answer descriptions remain supported.
+Learner question DTOs explicitly expose only ID, text, points 1, `multiple` and
+options with ID/text/empty description. Correct answer identities, question
+explanations and arbitrary stored question fields are withheld before an attempt.
+Both existing course and account quiz-attempt routes accept `answerIds` and legacy
+`answerId`; answerIds takes precedence. Selected sets ignore order/duplicates and
+earn one point only when equal to the correct set. Unknown/empty selections and
+duplicate question entries are 400. Feedback exposes submitted IDs, correctness,
+question explanation and the first selected answer's legacy description fallback,
+never unselected correct IDs. Attempt totalPoints counts questions, while an old
+stored high passPoints is clamped for passing comparison only. Scoring otherwise
+refuses unanswerable stored quizzes. Incomplete draft quizzes are
 editable, including empty question lists, but review/publication requires nonblank
-questions/options, exactly one correct answer, and an attainable pass mark. Replacement
+questions/options, at least one correct answer, and a pass mark in 1..question count.
+Account passing proof fingerprints the same stored quiz as Finish, so parser
+defaults and old weights cannot create mismatching proof; changed quiz data still
+invalidates it. [US-T013 spec](specs/US-T013-simple-quiz.md) records API verification;
+Claude owns the simple authoring and learner frontend. Question images are Proposed
+US-T014 and have no implementation. Replacement
 of a live course requires a private revision; submitted revisions cannot be edited.
 All content saves reject duplicate section/component/question/answer identities. Combined draft
 content/review saves persist the outline first, so validation sees the latest quiz.

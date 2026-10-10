@@ -807,7 +807,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       const section = parsed.data.sections.find((item) => item.id === input.sectionId);
       const component = section?.components.find((item) => item.id === request.params.componentId);
       if (!component || component.type !== 'quiz') { response.status(404).json({ message: 'Quiz not found' }); return; }
-      if (assessmentIssues([{ ...section!, components: [component] }], true).length) {
+      if (assessmentIssues([{ ...section!, components: [component] }], true, { forAttempt: true }).length) {
         response.status(409).json({ message: 'This assessment needs correction by its author.' }); return;
       }
       const result = scoreQuiz(component, input.answers);

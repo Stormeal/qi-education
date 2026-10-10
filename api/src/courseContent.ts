@@ -10,13 +10,10 @@ const quizAnswerOptionSchema = z.object({
 const quizQuestionSchema = z.object({
   id: z.string().trim().min(1).max(120),
   question: z.string().trim().max(1000).default(''),
-  points: z.coerce.number().int().min(1).max(100).default(1),
-  answers: z.tuple([
-    quizAnswerOptionSchema,
-    quizAnswerOptionSchema,
-    quizAnswerOptionSchema,
-    quizAnswerOptionSchema,
-  ]),
+  // Retain the deployed client's field, but question weights are no longer configurable.
+  points: z.unknown().transform(() => 1),
+  explanation: z.string().max(1000).default(''),
+  answers: z.array(quizAnswerOptionSchema).min(2).max(6),
 });
 
 const quizComponentSchema = z.object({

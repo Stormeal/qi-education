@@ -81,12 +81,19 @@ export function registerLearningProgressRoutes(app: Express, dependencies: {
     const section = parsed.data.sections.find(item => item.id === input.sectionId);
     const component = section?.components.find(item => item.id === request.params.componentId);
     if (!component || component.type !== 'quiz') throw new ProgressError(404, 'Quiz not found');
-    if (assessmentIssues([{ ...section!, components: [component] }], true).length) {
+    if (assessmentIssues([{ ...section!, components: [component] }], true, { forAttempt: true }).length) {
       throw new ProgressError(409, 'This assessment needs correction by its author.');
     }
     const result = scoreQuiz(component, input.answers);
     if (!result) throw new ProgressError(400, 'Select valid answer IDs once per question.');
-    if (result.passed) await progress.recordPass(user(request).id, document._id, fingerprint(component));
+    if (result.passed) {
+      // Fingerprint the stored quiz, as Finish does. Parsing legacy data supplies
+      // defaults and normalizes points without changing the stored document.
+      const storedQuiz = document.sections.find(item => item.id === input.sectionId)?.components
+        .find(item => item.id === component.id);
+      if (!storedQuiz || storedQuiz.type !== 'quiz') throw new ProgressError(409, 'Quiz changed before its passing proof was saved.');
+      await progress.recordPass(user(request).id, document._id, fingerprint(storedQuiz));
+    }
     response.json(result);
   }));
 }

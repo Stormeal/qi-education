@@ -30,7 +30,9 @@ export function learnerCourseContent(content: CourseContentDocument) {
     ...section, components: section.components.map((component) => {
       if (component.type !== 'quiz') return component;
       return { ...component, quiz: { ...component.quiz, questions: component.quiz.questions.map((question) => ({
-        ...question, answers: question.answers.map((answer) => ({ id: answer.id, text: answer.text })),
+        id: question.id, question: question.question, points: 1,
+        multiple: question.answers.filter(answer => answer.isCorrect).length > 1,
+        answers: question.answers.map((answer) => ({ id: answer.id, text: answer.text, description: '' })),
       })) } };
     }),
   })) };

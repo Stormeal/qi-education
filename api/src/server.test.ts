@@ -857,9 +857,11 @@ describe('QI-Education API', () => {
     const updated = await updateResponse.json();
 
     expect(updateResponse.status).toBe(200);
+    const normalizedSections = structuredClone(sections);
+    Object.assign(normalizedSections[0].components[0].quiz.questions[0], { points: 1, explanation: '' });
     expect(updated).toMatchObject({
       _id: created.id,
-      sections,
+      sections: normalizedSections,
       createdAt: created.createdAt,
     });
     expect(updated.updatedAt).toEqual(expect.any(String));
@@ -868,7 +870,7 @@ describe('QI-Education API', () => {
     const loaded = await getResponse.json();
 
     expect(getResponse.status).toBe(200);
-    expect(loaded.sections).toEqual(sections);
+    expect(loaded.sections).toEqual(normalizedSections);
   });
 
   it('stores component attachments and only lets enrolled learners download them', async () => {

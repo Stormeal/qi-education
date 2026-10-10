@@ -286,8 +286,8 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
         const body = await response.json();
         expect(body.sections[0].components[0].content).toBe('Secret lesson body');
         expect(body.sections[0].components[1].quiz.questions[0].answers).toEqual([
-          { id: 'a', text: 'Correct choice' }, { id: 'b', text: 'Wrong choice' },
-          { id: 'c', text: 'Third choice' }, { id: 'd', text: 'Fourth choice' },
+          { id: 'a', text: 'Correct choice', description: '' }, { id: 'b', text: 'Wrong choice', description: '' },
+          { id: 'c', text: 'Third choice', description: '' }, { id: 'd', text: 'Fourth choice', description: '' },
         ]);
         expect(response.headers.get('cache-control')).toContain('no-store');
         expect((await request(`${prefix}/courses/course/content?view=author`, student)).status).toBe(403);
@@ -350,7 +350,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       expect((await content.getCourseContent('course'))?.sections).toEqual(validSections);
     });
 
-    it(`LC-05 ${prefix} rejects duplicate assessment IDs even in drafts and multiple correct options on submission`, async () => {
+    it(`LC-05 ${prefix} rejects duplicate assessment IDs and missing correct choices, allowing multiple correct choices`, async () => {
       const sections = structuredClone(validSections);
       const quiz = sections[0].components[1];
       if (quiz.type !== 'quiz') throw new Error('Quiz fixture missing');
@@ -360,9 +360,13 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
       quiz.quiz.questions[0].answers[1].id = 'a';
       expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(400);
       quiz.quiz.questions[0].answers[1].id = 'b';
+      quiz.quiz.questions[0].answers[0].isCorrect = false;
+      expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
+      expect((await reviewAction('submit', teacher, prefix)).status).toBe(400);
+      quiz.quiz.questions[0].answers[0].isCorrect = true;
       quiz.quiz.questions[0].answers[1].isCorrect = true;
       expect((await request(`${prefix}/courses/course/content`, teacher, 'PATCH', { sections })).status).toBe(200);
-      expect((await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, status: 'ready-for-review' })).status).toBe(400);
+      expect((await reviewAction('submit', teacher, prefix)).status).toBe(200);
     });
 
     it.each(['empty questions', 'blank answer', 'unreachable pass mark'])(`LC-05 ${prefix} permits %s in drafts but refuses review`, async (problem) => {
