@@ -505,6 +505,7 @@
 .cp-career-card {
   position: relative;
   display: grid;
+  align-content: start;
   gap: 6px;
   text-align: left;
   border: 1px solid var(--cp-border);
@@ -867,6 +868,27 @@
     margin-top: 6px;
     text-decoration: none;
   }
+}
+
+.cp-switch {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--cp-border-strong);
+  font-size: 13px;
+  line-height: 1.6;
+
+  p {
+    margin: 0;
+    color: var(--cp-text-dim);
+  }
+}
+
+.cp-switch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .cp-roadmap-actions {

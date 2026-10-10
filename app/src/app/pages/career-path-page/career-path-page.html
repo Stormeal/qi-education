@@ -216,14 +216,34 @@
                       &middot; {{ facts.available }} {{ facts.available === 1 ? 'course' : 'courses' }} available now
                       @if (facts.preview) { &middot; {{ facts.preview }} not available yet }
                     </p>
+                    @if (path.id === confirmingPathId() && switchImpact(); as impact) {
+                      <div class="cp-switch" role="group" aria-live="polite" [attr.aria-label]="'Switch to ' + path.title">
+                        <strong>Switch from {{ careerPath.selectedPath()?.title }} to {{ path.title }}?</strong>
+                        <p>
+                          {{ impact.keptCount }} of {{ impact.total }} required steps are already complete from courses you
+                          finished@if (impact.kept) {: {{ impact.kept }}}.
+                        </p>
+                        @if (impact.fresh) { <p>Still to do: {{ impact.fresh }}.</p> }
+                        <p>Your completed courses and enrollments are kept. You can switch back at any time.</p>
+                        <div class="cp-switch-actions">
+                          <button type="button" class="cp-btn cp-btn-primary" [disabled]="saving()" (click)="savePath(path.id)">
+                            {{ saving() ? 'Saving…' : saveError() ? 'Retry switching' : 'Switch to ' + path.title }}
+                          </button>
+                          <button type="button" class="cp-btn cp-btn-secondary" [disabled]="saving()" (click)="cancelSwitch()">
+                            Keep {{ careerPath.selectedPath()?.title }}
+                          </button>
+                        </div>
+                      </div>
+                    } @else {
                     <button
                       type="button"
                       class="cp-btn cp-btn-primary"
                       [disabled]="saving()"
                       (click)="choosePath(path.id)"
                     >
-                      {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry saving this path' : 'Choose this path' }}
+                      {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry saving this path' : path.id === careerPath.selection()?.pathId ? 'Keep this path' : 'Choose this path' }}
                     </button>
+                    }
                   </article>
                 }
               </div>

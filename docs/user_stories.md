@@ -18,7 +18,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L004 | Recover account access | Proposed | P2 | None | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
-| US-L011 | Change paths while retaining learning history | Proposed | P3 | L002, L009 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
@@ -227,39 +226,6 @@ Feature: Home recommendation emphasis
     Given my account has no recommendation
     When I view the home action list
     Then the page shows an honest starting state without a fabricated recommendation
-```
-
-### US-L011 — Change paths while retaining learning history
-
-**As a learner, I want to change my career direction deliberately, so that I can
-follow a new goal while keeping the learning I have already completed.**
-
-State: Proposed. Source: [career path audit](audits/2026-10-05/career_path_audit.md).
-Depends on US-L002 and US-L009. Scope: preview impact, explicit confirmation,
-historical completion, and revised recommendations. Decisions: equivalence between
-courses/revisions, multiple active paths, and the extent of switch reversibility.
-Free-text profile edits should not silently select a different path.
-
-```gherkin
-Feature: Deliberate career path changes
-  Scenario: US-L011-AC01 Compare the impact of switching
-    Given I have a selected path with completed courses
-    When I choose another path to preview
-    Then I see retained recognized learning, new required steps, and the new goal
-    And the saved selection remains unchanged until I confirm
-
-  Scenario: US-L011-AC02 Confirm a switch
-    Given I have reviewed the switch impact
-    When I confirm the new path
-    Then it becomes the agreed active selection and next actions are recalculated
-    And completed learning and existing enrollments remain in my history
-    And a shared course or alternative is not counted twice
-
-  Scenario: US-L011-AC03 Cancel or fail safely
-    Given I am previewing a different path
-    When I cancel or the switch fails to save
-    Then my saved path and completion remain unchanged
-    And a failed save preserves the proposed choice with retry guidance
 ```
 
 ## Platform reliability

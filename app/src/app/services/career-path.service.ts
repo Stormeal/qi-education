@@ -35,8 +35,13 @@ export class CareerPathService {
   readonly selectedPath = computed(() => this.paths().find((path) => path.id === this.selection()?.pathId) ?? null);
   readonly progress = computed(() => {
     const path = this.selectedPath();
-    return path ? careerPathProgress(path, (courseId) => this.coursePercent(courseId) === 100) : null;
+    return path ? this.progressFor(path) : null;
   });
+
+  /** Progress the account would have on any published path, from the courses it has completed. */
+  progressFor(path: CareerPath) {
+    return careerPathProgress(path, (courseId) => this.coursePercent(courseId) === 100);
+  }
 
   /** The one thing to do next on the selected path; null when finished or when nothing can be started yet. */
   readonly nextAction = computed(() => {
@@ -136,9 +141,9 @@ export class CareerPathService {
     this.adminPaths.update((paths) => [...paths.filter((item) => item.id !== path.id), path]);
   }
 
-  private async loadOutlines(): Promise<void> {
+  async loadOutlines(path = this.selectedPath()): Promise<void> {
     const token = this.token();
-    const courseIds = (this.selectedPath()?.steps ?? []).flatMap((step) => step.courses)
+    const courseIds = (path?.steps ?? []).flatMap((step) => step.courses)
       .filter((course) => course.available && !this.outlines()[course.courseId]).map((course) => course.courseId);
     await Promise.all([...new Set(courseIds)].map(async (courseId) => {
       try {

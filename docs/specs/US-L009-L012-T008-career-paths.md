@@ -106,8 +106,8 @@ Checklist:
 
 - [x] Claude: completed step seen in a browser (remaining item 1)
 - [x] Claude: US-L010-AC01–04 on the roadmap and the Home tile
-- [ ] Claude: US-L011-AC01–03
-- [ ] Claude: US-P004-AC01–02 (a late response cannot land in another account's session)
+- [x] Claude: US-L011-AC01–03
+- [x] Claude: US-P004-AC01–02 in the page and service. Loading, retry, empty and not-chosen states exist from increment 1; a late load or selection reply is dropped when the session changed. No automated test for the late reply.
 - [ ] Codex: US-L002-AC02
 - [ ] Codex: US-P004-AC03–04
 
@@ -123,5 +123,17 @@ Checklist:
 Isolated browser walk (in-memory API, demo learner, two seeded courses with two lessons
 each): completing both lessons moved the path from 0 of 2 to 1 of 2 required steps, marked
 the step Complete, and moved the next action to the second step. Home shows the same next
-action. 143 frontend tests and the frontend build pass. Not verified: keyboard-only walk,
+action. 141 frontend tests and the frontend build pass. Not verified: keyboard-only walk,
 hosted environment.
+
+### US-L011 delivered 2026-10-10 (version 0.1.77)
+
+| Scenario | Check |
+| --- | --- |
+| US-L011-AC01 | `career-path-page.spec.ts` (preview names kept and new steps, nothing saved); browser: "1 of 2 required steps are already complete ... Still to do: Second step" |
+| US-L011-AC02 | `career-path-page.spec.ts` (confirm saves, shared course counted once); browser: confirm opened the new roadmap at 1 of 2 with the completed course kept |
+| US-L011-AC03 | `career-path-page.spec.ts` (cancel saves nothing; a failed save keeps the proposal and offers "Retry switching") |
+
+A first choice, and re-choosing the current path, still save without a confirmation.
+144 frontend tests and the frontend build pass. Not verified: screen-reader announcement of
+the confirmation (it is a polite live region), hosted environment.

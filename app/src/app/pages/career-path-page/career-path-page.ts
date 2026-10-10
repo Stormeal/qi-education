@@ -66,6 +66,21 @@ export class CareerPathPage {
   protected readonly draftPathId = signal('');
   protected readonly saving = signal(false);
   protected readonly saveError = signal('');
+  protected readonly confirmingPathId = signal('');
+
+  // What changing to the path being confirmed would mean, before anything is saved.
+  protected readonly switchImpact = computed(() => {
+    const path = this.careerPath.paths().find((item) => item.id === this.confirmingPathId());
+    if (!path) return null;
+    const done = this.careerPath.progressFor(path).doneStepIds;
+    const required = path.steps.filter((step) => step.required);
+    return {
+      total: required.length,
+      kept: required.filter((step) => done.has(step.id)).map((step) => step.title).join(', '),
+      keptCount: required.filter((step) => done.has(step.id)).length,
+      fresh: required.filter((step) => !done.has(step.id)).map((step) => step.title).join(', '),
+    };
+  });
 
   protected readonly allQuestionsAnswered = computed(
     () => this.careerQuestions.every((question) => this.questionAnswers()[question.id] !== undefined),
@@ -154,7 +169,26 @@ export class CareerPathPage {
     this.wizardStep.set('choose-career');
   }
 
-  protected async choosePath(pathId: string): Promise<void> {
+  // Replacing a saved path asks first; a first choice, or re-choosing the current path, saves directly.
+  protected choosePath(pathId: string): void {
+    const current = this.careerPath.selectedPath();
+    if (!current || current.id === pathId) {
+      void this.savePath(pathId);
+      return;
+    }
+    this.saveError.set('');
+    this.draftPathId.set('');
+    this.confirmingPathId.set(pathId);
+    void this.careerPath.loadOutlines(this.careerPath.paths().find((path) => path.id === pathId) ?? null);
+  }
+
+  protected cancelSwitch(): void {
+    this.saveError.set('');
+    this.draftPathId.set('');
+    this.confirmingPathId.set('');
+  }
+
+  protected async savePath(pathId: string): Promise<void> {
     if (this.saving()) return;
     this.draftPathId.set(pathId);
     this.saveError.set('');
@@ -162,7 +196,9 @@ export class CareerPathPage {
     const result = await this.careerPath.select(pathId);
     this.saving.set(false);
 
-    if (result.ok) this.wizardStep.set('roadmap');
-    else this.saveError.set(`Your choice was not saved. ${result.message}`);
+    if (result.ok) {
+      this.confirmingPathId.set('');
+      this.wizardStep.set('roadmap');
+    } else this.saveError.set(`Your choice was not saved. ${result.message}`);
   }
 }
