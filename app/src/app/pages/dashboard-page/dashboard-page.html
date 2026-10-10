@@ -74,6 +74,7 @@
   <section class="db-actions-section" id="actions">
     <div class="db-section-heading">
       <h2>Your learning</h2>
+      @if (progressSyncNotice()) { <p role="status">{{ progressSyncNotice() }}</p> }
     </div>
     <div class="db-action-list">
       @if (coursesLoading()) {

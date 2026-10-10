@@ -219,6 +219,7 @@
                 <p>{{ contentSummary() }}</p>
                 @if (courseProgress() && !courseContentLoading() && !courseContentError()) {
                   <p>{{ courseProgress()!.completed }} of {{ courseProgress()!.total }} completed · {{ courseProgress()!.percent }}%</p>
+                  @if (progressSyncNotice()) { <p role="status">{{ progressSyncNotice() }}</p> }
                 }
               </div>
               @if (hasRealCurriculum()) {

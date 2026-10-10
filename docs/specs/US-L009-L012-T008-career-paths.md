@@ -152,3 +152,15 @@ hosted environment.
 A first choice, and re-choosing the current path, still save without a confirmation.
 144 frontend tests and the frontend build pass. Not verified: screen-reader announcement of
 the confirmation (it is a polite live region), hosted environment.
+
+### Follow-up 2026-10-10 (version 0.1.83)
+
+- The learning workspace and Home now show a plain notice while some completion is saved on
+  this device only (`accountSyncState` is `pending`). Browser, in-memory API: a quiz marked
+  complete only in browser storage was refused by the account (409) and the notice appeared.
+- Keyboard-only walk of the career path page (US-L010-AC04). Found: after a step or button
+  was replaced, focus fell back to the top of the page, and the focus ring on the amber
+  buttons was hard to see. Fixed: focus moves to the new step's heading, to the switch
+  confirmation, and back to the card's button on cancel; buttons get a 3px navy ring.
+  Re-walked with Tab and Enter only: next action, change target, choose, cancel.
+- Frontend tests pass on the combined tree (179). Not verified: a screen reader, the hosted environment.

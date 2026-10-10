@@ -269,6 +269,13 @@
   transition: all 160ms ease;
 }
 
+.cp-btn:focus-visible,
+.cp-step h2:focus-visible,
+.cp-switch:focus-visible {
+  outline: 3px solid var(--cp-text);
+  outline-offset: 2px;
+}
+
 .cp-btn:disabled {
   cursor: not-allowed;
   opacity: 0.4;

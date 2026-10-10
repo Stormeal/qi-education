@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
@@ -57,6 +57,7 @@ export class CareerPathPage {
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
   protected readonly careerPath = inject(CareerPathService);
+  private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   protected readonly careerQuestions = CAREER_QUESTIONS;
 
   protected readonly wizardStep = signal<CareerPathWizardStep>('intro');
@@ -130,8 +131,23 @@ export class CareerPathPage {
     };
   }
 
+  // A replaced step or button drops keyboard focus to the top of the page; move it to what replaced it.
+  private focusAfterRender(selector: string): void {
+    setTimeout(() => {
+      const target = this.host.nativeElement.querySelector<HTMLElement>(selector);
+      if (!target) return;
+      if (!target.matches('a, button')) target.tabIndex = -1;
+      target.focus();
+    });
+  }
+
+  private showStep(step: CareerPathWizardStep): void {
+    this.wizardStep.set(step);
+    this.focusAfterRender('.cp-step h2');
+  }
+
   protected beginWizard(): void {
-    this.wizardStep.set('upload');
+    this.showStep('upload');
   }
 
   protected onDropzoneDragOver(event: DragEvent): void {
@@ -157,7 +173,7 @@ export class CareerPathPage {
   // The CV step is a preview: the file never leaves the browser and nothing is read from it.
   protected continueToQuestions(fileName = ''): void {
     this.cvFileName.set(fileName);
-    this.wizardStep.set('questions');
+    this.showStep('questions');
   }
 
   protected answerQuestion(questionId: string, answer: boolean): void {
@@ -166,7 +182,7 @@ export class CareerPathPage {
 
   protected continueToCareerChoice(): void {
     this.saveError.set('');
-    this.wizardStep.set('choose-career');
+    this.showStep('choose-career');
   }
 
   // Replacing a saved path asks first; a first choice, or re-choosing the current path, saves directly.
@@ -179,10 +195,12 @@ export class CareerPathPage {
     this.saveError.set('');
     this.draftPathId.set('');
     this.confirmingPathId.set(pathId);
+    this.focusAfterRender('.cp-switch');
     void this.careerPath.loadOutlines(this.careerPath.paths().find((path) => path.id === pathId) ?? null);
   }
 
   protected cancelSwitch(): void {
+    this.focusAfterRender(`[data-path="${this.confirmingPathId()}"] .cp-btn`);
     this.saveError.set('');
     this.draftPathId.set('');
     this.confirmingPathId.set('');
@@ -198,7 +216,7 @@ export class CareerPathPage {
 
     if (result.ok) {
       this.confirmingPathId.set('');
-      this.wizardStep.set('roadmap');
+      this.showStep('roadmap');
     } else this.saveError.set(`Your choice was not saved. ${result.message}`);
   }
 }

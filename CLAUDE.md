@@ -45,7 +45,8 @@ the check routine.
 
 ### Every Codex prompt contains
 
-The folder and branch; the commit it must start from; the handoff path; story and scenario
+The folder and branch; the commit its history must contain (not "latest commit must be", because
+Claude keeps committing); the handoff path; story and scenario
 IDs; files it owns and files it must not edit; the contract Claude's side relies on;
 "isolated in-memory stores only"; the shared-tree rules below; "commit locally, do not push";
 "update your row in `docs/work_queue.md`, then stop and summarize".
@@ -85,7 +86,7 @@ Run from the repo root unless noted.
 # Full local dev (frontend + API together)
 npm run app:dev           # http://localhost:4200 + API on :3001
 
-# Frontend only
+# Frontend only (sign-in and saving need the local API: localhost never sends changes to the hosted API)
 npm run app:dev:frontend
 
 # API only

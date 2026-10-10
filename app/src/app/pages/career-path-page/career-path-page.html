@@ -190,7 +190,7 @@
               }
               <div class="cp-career-grid">
                 @for (path of orderedPaths(); track path.id) {
-                  <article class="cp-career-card" [class.is-draft-choice]="path.id === draftPathId()">
+                  <article class="cp-career-card" [attr.data-path]="path.id" [class.is-draft-choice]="path.id === draftPathId()">
                     @if (path.id === suggestedPathId()) {
                       <span class="cp-career-recommended">Suggested from your answers</span>
                     }

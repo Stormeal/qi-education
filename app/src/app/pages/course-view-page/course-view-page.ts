@@ -1,3 +1,4 @@
+import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
 import { DatePipe } from '@angular/common';
 import { DOCUMENT } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -104,6 +105,7 @@ export class CourseViewPage {
   protected readonly activeComponentId = signal('');
   protected readonly completedComponentIds = computed(() =>
     this.learningProgress.completedIds(this.userEmail(), this.courseContent()?._id ?? ''));
+  protected readonly progressSyncNotice = computed(() => this.learningProgress.accountSyncState() === 'pending' ? PROGRESS_SYNC_NOTICE : '');
   protected readonly courseProgress = computed(() => {
     const content = this.courseContent();
     return content ? this.learningProgress.forContent(this.userEmail(), content) : null;
