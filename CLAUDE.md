@@ -14,6 +14,65 @@ Use these without being asked (set by Alex, 2026-10-10):
 - **Always:** work in `ponytail:ponytail` mode on this project.
 - **Anything frontend** (pages, components, templates, styles, UI copy or layout in `app/`): load the `design-taste-frontend` skill before making the change.
 
+## Working sessions with Codex
+
+Claude is the lead. Alex's Codex project is this same folder, so both agents work on `main`
+in one working tree, at the same time. Set by Alex, 2026-10-10.
+
+Triggers: "let's start working" or "start <item>" runs the start routine. "check Codex" runs
+the check routine.
+
+### Start routine
+
+1. **State.** `git status`, `git log -3`, and Active work in `docs/work_queue.md`. Uncommitted
+   changes in files Claude does not own mean Codex is mid-task: leave them alone.
+2. **Pick.** In this order: the item Alex named; unfinished Active work; leftovers of the last
+   increment (unticked spec boxes, "Not verified" lines); the first open item in queue order,
+   confirmed defects before stories. Say in one line what was picked and why. Ask only when a
+   product decision blocks the work; otherwise take the story's recommended default and record
+   it in the spec as "confirm or change".
+3. **Split** into two parts that can run in parallel with no file in common. Default:
+   Claude takes pages, UI components and UI-facing services in `app/`; Codex takes
+   `api/src/**`, storage, and frontend services that only move data. If the item is too small
+   to split, Codex gets the next independent item from the queue. If Codex is still busy,
+   do not hand it more.
+4. **Record.** Owner, scope, files and state per owner in Active work; a handoff at
+   `docs/handoffs/<item>-codex.md`; decisions in the spec. Commit locally.
+5. **Hand Alex the Codex prompt first**, before starting Claude's own part: one fenced block
+   to paste into Codex as is. Alex does nothing else: no shell commands, no folders to open.
+6. **Do Claude's part**: implement, test, browser-check on the isolated servers, record,
+   commit locally. Never push without Alex saying so.
+
+### Every Codex prompt contains
+
+The folder and branch; the commit it must start from; the handoff path; story and scenario
+IDs; files it owns and files it must not edit; the contract Claude's side relies on;
+"isolated in-memory stores only"; the shared-tree rules below; "commit locally, do not push";
+"update your row in `docs/work_queue.md`, then stop and summarize".
+
+### Shared-tree rules (both agents)
+
+- Stage your own files by path. Never `git add -A`, and never stash, reset, restore or check
+  out the other agent's changes.
+- Read the version from `package.json` right before committing; the later committer bumps again.
+- A failure caused by the other agent's files is reported, not fixed.
+- Claude's browser checks use ports 3001 and 4200. Codex uses in-process tests or other ports.
+- While Codex has uncommitted API changes, do not rebuild `api/dist` for a browser check.
+
+### Check routine
+
+1. `git status` and `git log`: has Codex committed and updated its queue row?
+2. Review its diff against the handoff: only its files, the contract kept, existing routes unchanged.
+3. Run `npm run api:test`, `npm run app:test`, `npm run verify:journeys`, `npm run app:build:pages`.
+4. Fix small findings in Claude's own files; return the rest to Codex as a new paste-ready prompt.
+5. Update queue, spec and stories; tell Alex in plain words what is done and what only Alex
+   can do (push, hosted checks).
+
+### Talking to Alex
+
+Every instruction for Alex is an exact thing to paste or click, with full paths. Never
+"open X with folder Y". State what Alex will see and how to tell it is finished.
+
 ## Project Overview
 
 QI-Education is a full-stack educational platform where teachers create courses and students enroll and learn. The repo is an npm workspace with two packages: `app/` (Angular frontend) and `api/` (Express backend).

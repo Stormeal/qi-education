@@ -107,7 +107,7 @@ Checklist:
 - [x] Claude: completed step seen in a browser (remaining item 1)
 - [x] Claude: US-L010-AC01–04 on the roadmap and the Home tile
 - [x] Claude: US-L011-AC01–03
-- [x] Claude: US-P004-AC01–02 in the page and service. Loading, retry, empty and not-chosen states exist from increment 1; a late load or selection reply is dropped when the session changed. No automated test for the late reply.
+- [x] Claude: US-P004-AC01–02 in the page and service. Loading, retry, empty and not-chosen states exist from increment 1; a late load or selection reply is dropped when the session changed. Late replies are covered by `career-path.service.spec.ts`.
 - [ ] Codex: US-L002-AC02
 - [ ] Codex: US-P004-AC03–04
 

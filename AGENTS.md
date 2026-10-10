@@ -24,6 +24,14 @@ Engineering conventions are in [.agents/AGENTS.md](.agents/AGENTS.md).
 4. Record the item ID, owner, branch, base commit, and next step in the queue when
    implementation starts. Keep unfinished work resumable.
 
+## Two agents in one working tree
+
+Claude Code and Codex may work in this folder at the same time, each on files assigned in
+the work queue and the handoff. Stage your own files by path; never `git add -A`, and never
+stash, reset, restore or check out changes you did not make. Read the version from
+`package.json` right before committing. Report a failure caused by the other agent's files
+instead of fixing it.
+
 ## Delivery
 
 - Work and commit on `main` in this project unless the user requests a branch.
