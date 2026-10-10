@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   computed,
   effect,
   inject,
@@ -36,7 +37,7 @@ import {
   lucideX,
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
-import { CourseComponent, CourseComponentType, CourseContentDocument } from '../../app.models';
+import { CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QuizQuestion } from '../../app.models';
 import { AppButton } from '../app-button/app-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
@@ -70,11 +71,12 @@ export class CourseBuilder {
   private readonly videoClockTimer = setInterval(() => this.videoClock.set(Date.now()), 5000);
   private readonly stopVideoClock = inject(DestroyRef).onDestroy(() => clearInterval(this.videoClockTimer));
   private readonly document = inject(DOCUMENT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly collapsedSections = new Set<number>();
   private editingSectionIndex: number | null = null;
   private scrollLockTop = 0;
-  private expandedQuizQuestionIndex = signal(0);
+  private expandedQuizQuestionIndex = signal<number | null>(0);
   protected readonly activeEditor = signal<{ sectionIndex: number; componentIndex: number } | null>(null);
   protected readonly componentPicker = signal<ComponentPickerState>(null);
   protected readonly richTextHtml = signal('');
@@ -103,7 +105,8 @@ export class CourseBuilder {
   protected readonly xIcon = this.asSafeIcon(lucideX);
   private readonly downloadIconSvg = lucideDownload;
   private readonly trashIconSvg = lucideTrash2;
-  private dragSource: { sectionIndex: number; componentIndex: number } | null = null;
+  private dragSource: { sectionIndex: number; componentIndex: number; id: string } | null = null;
+  protected readonly draggingLesson = signal(false);
   private richTextComponentId = '';
   private richTextDraftHtml = '';
 
@@ -166,7 +169,7 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
   readonly courseComponentQuizAnswerCorrectChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
-  readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number }>();
+  readonly courseComponentMoved = output<CourseComponentMoved>();
 
   protected readonly editingComponent = computed(() => {
     const editor = this.activeEditor();
@@ -1071,6 +1074,7 @@ export class CourseBuilder {
     // An upload error belongs to the lesson it happened in; do not carry it into another editor.
     if (this.attachmentUploadError()) this.attachmentErrorDismissed.emit();
     this.expandedQuizQuestionIndex.set(0);
+    this.resetQuizScrollSpace();
     this.activeEditor.set({ sectionIndex, componentIndex });
   }
 
@@ -1108,7 +1112,10 @@ export class CourseBuilder {
   }
 
   protected dragComponentStarted(sectionIndex: number, componentIndex: number, event: DragEvent): void {
-    this.dragSource = { sectionIndex, componentIndex };
+    const component = this.courseContent()?.sections[sectionIndex]?.components[componentIndex];
+    if (!component || !this.canMoveComponent(component)) { event.preventDefault(); return; }
+    this.dragSource = { sectionIndex, componentIndex, id: component.id };
+    this.draggingLesson.set(true);
     event.dataTransfer?.setData('text/plain', `${sectionIndex}:${componentIndex}`);
 
     if (event.dataTransfer) {
@@ -1117,6 +1124,7 @@ export class CourseBuilder {
   }
 
   protected dragComponentAllowed(event: DragEvent): void {
+    if (!this.movableDragSource()) return;
     event.preventDefault();
 
     if (event.dataTransfer) {
@@ -1126,22 +1134,54 @@ export class CourseBuilder {
 
   protected dropComponent(sectionIndex: number, componentIndex: number, event: DragEvent): void {
     event.preventDefault();
-    const source = this.dragSource;
-    this.dragSource = null;
-
-    if (!source || source.sectionIndex !== sectionIndex || source.componentIndex === componentIndex) {
-      return;
-    }
-
-    this.courseComponentMoved.emit({
-      sectionIndex,
-      fromIndex: source.componentIndex,
-      toIndex: componentIndex,
-    });
+    event.stopPropagation();
+    const source = this.movableDragSource();
+    this.dragComponentEnded();
+    if (!source || (source.sectionIndex === sectionIndex && source.componentIndex === componentIndex)) return;
+    this.courseComponentMoved.emit({ sectionIndex: source.sectionIndex, fromIndex: source.componentIndex,
+      toIndex: componentIndex, ...(source.sectionIndex === sectionIndex ? {} : { toSectionIndex: sectionIndex }) });
   }
 
   protected dragComponentEnded(): void {
     this.dragSource = null;
+    this.draggingLesson.set(false);
+  }
+
+  protected canMoveComponent(component: CourseComponent): boolean {
+    return !this.readOnly() && !this.courseContentSaving() && !this.courseSubmitting() &&
+      this.muxUploadComponentId() !== component.id && this.attachmentUploadComponentId() !== component.id &&
+      !(component.type === 'video' && component.mux?.status === 'uploading');
+  }
+
+  private movableDragSource() {
+    const source = this.dragSource;
+    const component = source && this.courseContent()?.sections[source.sectionIndex]?.components[source.componentIndex];
+    return component && component.id === source?.id && this.canMoveComponent(component) ? source : null;
+  }
+
+  protected moveComponentToChapter(sectionIndex: number, componentIndex: number, event: Event): void {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) return;
+    const value = select.value;
+    select.value = '';
+    if (!value) return;
+    const toSectionIndex = Number(value);
+    const destination = this.courseContent()?.sections[toSectionIndex];
+    const component = this.courseContent()?.sections[sectionIndex]?.components[componentIndex];
+    if (!Number.isInteger(toSectionIndex) || toSectionIndex === sectionIndex || !destination || !component || !this.canMoveComponent(component)) return;
+    const hadFocus = this.document.activeElement === select;
+    this.collapsedSections.delete(toSectionIndex);
+    this.courseComponentMoved.emit({ sectionIndex, fromIndex: componentIndex,
+      toIndex: destination.components.length, toSectionIndex });
+    if (hadFocus) this.document.defaultView?.setTimeout(() => {
+      // A cross-chapter move recreates the row. Keep keyboard users on that lesson
+      // unless they have deliberately focused another control in the meantime.
+      if (this.readOnly() || !this.host.nativeElement.isConnected ||
+        (this.document.activeElement !== this.document.body && this.document.activeElement !== select)) return;
+      const row = [...this.host.nativeElement.querySelectorAll<HTMLElement>('[data-component-id]')]
+        .find(item => item.dataset['componentId'] === component.id);
+      row?.querySelector<HTMLSelectElement>('.lesson-move-select')?.focus();
+    }, 0);
   }
 
   protected controlValue(event: Event): string {
@@ -1195,8 +1235,9 @@ export class CourseBuilder {
   }
 
   protected removeQuizQuestion(sectionIndex: number, componentIndex: number, questionIndex: number): void {
+    this.resetQuizScrollSpace();
     const activeIndex = this.expandedQuizQuestionIndex();
-    if (questionIndex < activeIndex) {
+    if (activeIndex !== null && questionIndex < activeIndex) {
       this.expandedQuizQuestionIndex.set(activeIndex - 1);
     } else if (questionIndex === activeIndex) {
       this.expandedQuizQuestionIndex.set(Math.max(0, activeIndex - 1));
@@ -1209,20 +1250,52 @@ export class CourseBuilder {
   }
 
   protected expandQuizQuestion(questionIndex: number): void {
-    this.expandedQuizQuestionIndex.set(questionIndex);
-    this.scrollQuizQuestionIntoView(questionIndex);
+    this.resetQuizScrollSpace();
+    this.expandedQuizQuestionIndex.update(active => active === questionIndex ? null : questionIndex);
+  }
+
+  protected quizQuestionSummary(question: QuizQuestion): string {
+    const correct = question.answers.filter(answer => answer.isCorrect).length;
+    return `${question.question.trim() || 'Untitled question'} · ${question.points} pts · ${plural(question.answers.length, 'answer')} · ${correct === 0 ? 'No correct answer' : correct === 1 ? 'Correct answer marked' : 'Multiple correct answers'}`;
+  }
+
+  protected quizQuestionIssues(question: QuizQuestion, questions: QuizQuestion[]): string[] {
+    const issues: string[] = [];
+    if (questions.filter(item => item.id === question.id).length > 1) issues.push('Question IDs must be unique.');
+    if (new Set(question.answers.map(answer => answer.id)).size !== question.answers.length) issues.push('Answer IDs must be unique within the question.');
+    if (!question.question.trim()) issues.push('Enter a question.');
+    if (question.answers.some(answer => !answer.text.trim())) issues.push('Fill in all four answers.');
+    if (question.answers.filter(answer => answer.isCorrect).length !== 1) issues.push('Mark exactly one correct answer.');
+    return issues;
   }
 
   private scrollQuizQuestionIntoView(questionIndex: number): void {
     const viewport = this.document.defaultView;
+    const editor = this.activeEditor();
+    const componentId = this.editingComponent()?.id;
 
     viewport?.setTimeout(() => {
-      const question = this.document.querySelectorAll('.quiz-question-card').item(questionIndex);
-
-      if (question instanceof HTMLElement) {
-        question.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      if (this.activeEditor() !== editor || this.editingComponent()?.id !== componentId ||
+        !this.isQuizQuestionExpanded(questionIndex)) return;
+      const body = this.host.nativeElement.querySelector<HTMLElement>('.builder-modal-body');
+      const question = this.host.nativeElement.querySelectorAll<HTMLElement>('.quiz-question-card').item(questionIndex);
+      if (!body || !question) return;
+      const space = this.host.nativeElement.querySelector<HTMLElement>('.quiz-scroll-space');
+      if (space) {
+        // The final question may be shorter than the visible editor. Reserve its
+        // maximum visible height so the browser does not clamp header alignment.
+        const maximumHeight = viewport.getComputedStyle(body).maxHeight;
+        space.style.height = maximumHeight && maximumHeight !== 'none' ? maximumHeight : `${body.clientHeight}px`;
       }
+      // One scroll container keeps the header visible when focus moves to the field.
+      body.scrollTo({ top: body.scrollTop + question.getBoundingClientRect().top - body.getBoundingClientRect().top, behavior: 'auto' });
+      question.querySelector<HTMLInputElement>('.quiz-question-field input')?.focus({ preventScroll: true });
     }, 0);
+  }
+
+  private resetQuizScrollSpace(): void {
+    const space = this.host.nativeElement.querySelector<HTMLElement>('.quiz-scroll-space');
+    if (space) space.style.height = '0px';
   }
 
   protected updateQuizAnswerText(

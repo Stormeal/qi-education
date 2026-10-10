@@ -59,7 +59,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.95';
+  readonly appVersion = '0.1.96';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1693,36 +1693,27 @@ export class AppStateService {
     });
   }
 
-  moveCourseComponent(sectionIndex: number, fromIndex: number, toIndex: number): void {
-    if (fromIndex === toIndex) {
+  moveCourseComponent(sectionIndex: number, fromIndex: number, toIndex: number, toSectionIndex = sectionIndex): void {
+    const content = this.courseContent();
+    const source = content?.sections[sectionIndex];
+    const destination = content?.sections[toSectionIndex];
+    const moved = source?.components[fromIndex];
+    if (!content || !source || !destination || !moved || !this.courseEditable() ||
+      this.courseContentSaving() || this.courseSubmitting() || this.courseReviewPending() ||
+      this.muxUploadComponentId() === moved.id || this.attachmentUploadComponentId() === moved.id ||
+      (moved.type === 'video' && moved.mux?.status === 'uploading') ||
+      ![sectionIndex, fromIndex, toIndex, toSectionIndex].every(index => Number.isInteger(index) && index >= 0) ||
+      toIndex > destination.components.length || (sectionIndex === toSectionIndex && fromIndex === toIndex)) {
       return;
     }
 
-    this.courseContent.update((content) =>
-      content
-        ? {
-            ...content,
-            sections: content.sections.map((section, currentSectionIndex) => {
-              if (currentSectionIndex !== sectionIndex) {
-                return section;
-              }
-
-              const components = [...section.components];
-              const [moved] = components.splice(fromIndex, 1);
-
-              if (!moved) {
-                return section;
-              }
-
-              components.splice(toIndex, 0, moved);
-              return {
-                ...section,
-                components,
-              };
-            }),
-          }
-        : content,
-    );
+    this.courseContent.set({ ...content, sections: content.sections.map((section, index) => {
+      if (index !== sectionIndex && index !== toSectionIndex) return section;
+      const components = [...section.components];
+      if (index === sectionIndex) components.splice(fromIndex, 1);
+      if (index === toSectionIndex) components.splice(toIndex, 0, moved);
+      return { ...section, components };
+    }) });
     this.courseContentError.set('');
   }
 

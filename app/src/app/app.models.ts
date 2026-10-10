@@ -214,6 +214,13 @@ export type CourseSection = {
   components: CourseComponent[];
 };
 
+export type CourseComponentMoved = {
+  sectionIndex: number;
+  fromIndex: number;
+  toIndex: number;
+  toSectionIndex?: number;
+};
+
 export type CourseReviewAction = 'start-revision' | 'submit' | 'return' | 'publish' | 'archive';
 export type CourseReviewState = {
   course: CourseListItem; version: number; revisionId: string | null;
@@ -283,6 +290,7 @@ export type CareerPathStep = {
   courses: CareerPathCourse[];
   prerequisiteStepIds: string[];
 };
+
 export type CareerPath = {
   id: string;
   revision: number;

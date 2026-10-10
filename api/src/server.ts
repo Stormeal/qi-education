@@ -1538,43 +1538,41 @@ async function updateMuxVideoComponent(
   }
 
   let changed = false;
-  const updateSections = (sections: CourseContentSection[]) => sections.map((section) =>
-    section.id === passthrough.sectionId
-      ? {
-          ...section,
-          components: section.components.map((component) => {
-            if (component.id !== passthrough.componentId || component.type !== 'video' || !component.mux) {
-              return component;
-            }
+  // A lesson can change chapter while Mux processes it. Its component and upload
+  // identities, checked below, remain stable in each live/working snapshot.
+  const updateSections = (sections: CourseContentSection[]) => sections.map((section) => ({
+    ...section,
+    components: section.components.map((component) => {
+      if (component.id !== passthrough.componentId || component.type !== 'video' || !component.mux) {
+        return component;
+      }
 
-            if (update.uploadId && component.mux.uploadId !== update.uploadId) {
-              return component;
-            }
-            if (!update.uploadId && update.assetId && component.mux.assetId !== update.assetId) return component;
-            // At-least-once provider events may arrive out of order.
-            if (update.status === 'processing' && ['ready', 'errored'].includes(component.mux.status)) return component;
-            const updated = {
-              ...component,
-              mux: {
-                provider: 'mux' as const,
-                uploadId: component.mux.uploadId,
-                assetId: update.assetId ?? component.mux.assetId,
-                playbackId: update.playbackId ?? component.mux.playbackId,
-                playbackPolicy: update.playbackPolicy ?? component.mux.playbackPolicy,
-                status: update.status ?? component.mux.status,
-                durationSeconds: update.durationSeconds ?? component.mux.durationSeconds,
-                thumbnailUrl: update.thumbnailUrl ?? component.mux.thumbnailUrl,
-                errorMessage: update.errorMessage ?? component.mux.errorMessage,
-                captions: component.mux.captions,
-              },
-            };
-            if (JSON.stringify(updated.mux) === JSON.stringify(component.mux)) return component;
-            changed = true;
-            return updated;
-          }),
-        }
-      : section,
-  );
+      if (update.uploadId && component.mux.uploadId !== update.uploadId) {
+        return component;
+      }
+      if (!update.uploadId && update.assetId && component.mux.assetId !== update.assetId) return component;
+      // At-least-once provider events may arrive out of order.
+      if (update.status === 'processing' && ['ready', 'errored'].includes(component.mux.status)) return component;
+      const updated = {
+        ...component,
+        mux: {
+          provider: 'mux' as const,
+          uploadId: component.mux.uploadId,
+          assetId: update.assetId ?? component.mux.assetId,
+          playbackId: update.playbackId ?? component.mux.playbackId,
+          playbackPolicy: update.playbackPolicy ?? component.mux.playbackPolicy,
+          status: update.status ?? component.mux.status,
+          durationSeconds: update.durationSeconds ?? component.mux.durationSeconds,
+          thumbnailUrl: update.thumbnailUrl ?? component.mux.thumbnailUrl,
+          errorMessage: update.errorMessage ?? component.mux.errorMessage,
+          captions: component.mux.captions,
+        },
+      };
+      if (JSON.stringify(updated.mux) === JSON.stringify(component.mux)) return component;
+      changed = true;
+      return updated;
+    }),
+  }));
 
   if (content.review) {
     const workflow = structuredClone(content.review);

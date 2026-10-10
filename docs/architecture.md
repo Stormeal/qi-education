@@ -253,6 +253,26 @@ All content saves reject duplicate section/component/question/answer identities.
 content/review saves persist the outline first, so validation sees the latest quiz.
 Assets have binary payload, type, filename, size, and course/component association.
 
+The quiz builder opens only the newly added question, scrolls its header to the
+modal body's top and focuses the question field without scrolling again. Question
+headers toggle open/closed with `aria-expanded`; summaries retain text, points,
+answer count and correct-answer status. Existing question-readiness reasons remain
+visible when closed. The modal body is the sole quiz scroll container. Adding a
+question reserves trailing scroll space so a short last question can align even
+in a tall viewport; opening, toggling or removing questions resets that space.
+
+Lessons move between chapters by dragging onto a lesson position or chapter end,
+including empty/collapsed chapters, or by a labelled chapter select. Selecting a
+chapter expands the destination and restores focus to the moved lesson's control.
+The builder's
+existing `courseComponentMoved` event gains only optional `toSectionIndex`; the
+route forwards it as the fourth state-handler argument. Omission retains the
+same-chapter reorder contract. State validates indices and editable/busy/upload
+guards and inserts the complete component, preserving IDs, content and media.
+The existing dirty, revision-save, local recovery and conflict paths capture the
+changed outline. No API shape or storage migration is introduced. See the
+[builder spec](specs/US-T011-T012-course-builder.md) for tests and browser checks.
+
 Course operations pair lifecycle reads/content under per-course coordination.
 Memory uses its repository lock; Mongo uses a separate nonexpiring owner record.
 Sheets operations require Mongo coordination. Acquisition/deletion have bounded
@@ -290,6 +310,13 @@ references in either authorized snapshot; learners can download only live ones.
 Private thumbnail previews require the exact working pointer and authorization.
 Mux callbacks match stored media IDs, ignore duplicates and late processing events
 after terminal states, and version changed snapshots without losing live playback.
+Callback lookup follows the stable component ID across chapters in each live and
+working snapshot. The passthrough chapter may predate a lesson move; upload ID
+(or asset ID when no upload ID is supplied) must still match before an update.
+Chapter-scoped upload/remove routes use the lesson's newly saved chapter; attachment
+ownership uses course/component IDs and downloads remain course-scoped. Isolated
+move tests cover retained playback, pending callbacks and attachment add/remove/
+download. Real provider delivery and browser playback remain separate checks.
 
 ## Integration lifecycles
 

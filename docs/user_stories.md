@@ -11,8 +11,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
 | US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
-| US-T011 | Author quiz questions without losing my place | Blocked | P2 | Shared-tree handoff resumed after route wiring | None confirmed |
-| US-T012 | Move a lesson to another chapter | Blocked | P2 | Claude forwards optional toSectionIndex in editor route | AC05 investigation pending |
+| US-T011 | Author quiz questions without losing my place | In progress | P2 | Existing builder | None confirmed |
+| US-T012 | Move a lesson to another chapter | In progress | P2 | Route binding exception granted | DEF-T012-CALLBACK |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
@@ -67,10 +67,10 @@ Feature: Instructor introduction
 **As a teacher, I want adding and reviewing quiz questions to keep my place,
 so that I can author and correct a quiz without searching through the editor.**
 
-State: Blocked before implementation under the handoff's outside-scope stop rule.
+State: In progress; resumed after the route binding exception was granted.
 Owner: Codex. Selected 2026-10-10 from the first teacher's feedback.
 Contract/design: [builder spec](specs/US-T011-T012-course-builder.md).
-No outstanding product decision; the combined handoff awaits Claude's route wiring.
+No outstanding product decision; Codex now owns the one required route binding.
 
 ```gherkin
 Feature: Quiz authoring without losing my place
@@ -107,8 +107,8 @@ Feature: Quiz authoring without losing my place
 **As a teacher, I want to move lessons between chapters,
 so that reorganizing a course preserves the content and media I already authored.**
 
-State: Blocked before implementation. Owner: Codex. Selected 2026-10-10.
-Dependency: Claude's editor route must pass the optional destination chapter to state.
+State: In progress. Owner: Codex. Selected 2026-10-10.
+Dependency: editor route forwards the optional destination chapter under the granted exception.
 Contract/design: [builder spec](specs/US-T011-T012-course-builder.md).
 Existing route and API shapes are retained; AC05 requires isolated reproduction.
 

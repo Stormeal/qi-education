@@ -111,13 +111,14 @@
             @for (component of section.components; track component.id; let componentIndex = $index) {
               <section
                 class="builder-component-row"
-                draggable="true"
+                [attr.data-component-id]="component.id"
+                [attr.draggable]="canMoveComponent(component)"
                 (dragstart)="dragComponentStarted(sectionIndex, componentIndex, $event)"
                 (dragover)="dragComponentAllowed($event)"
                 (drop)="dropComponent(sectionIndex, componentIndex, $event)"
                 (dragend)="dragComponentEnded()"
               >
-                <button type="button" class="drag-handle" aria-label="Drag component">
+                <button type="button" class="drag-handle" aria-label="Drag component" [disabled]="!canMoveComponent(component)">
                   <span class="inline-icon" aria-hidden="true" [innerHTML]="gripIcon"></span>
                 </button>
 
@@ -138,6 +139,19 @@
                   <span class="inline-icon inline-icon-muted" aria-hidden="true" [innerHTML]="clockIcon"></span>
                   <span>{{ formatDuration(component) }}</span>
                 </div>
+
+                @if (courseContent()!.sections.length > 1) {
+                  <select class="lesson-move-select" [attr.aria-label]="'Move ' + (component.title || 'lesson') + ' to chapter'"
+                    [disabled]="!canMoveComponent(component)"
+                    (change)="moveComponentToChapter(sectionIndex, componentIndex, $event)">
+                    <option value="">Move to chapter</option>
+                    @for (destination of courseContent()!.sections; track destination.id; let destinationIndex = $index) {
+                      @if (destinationIndex !== sectionIndex) {
+                        <option [value]="destinationIndex">{{ destinationIndex + 1 }}. {{ destination.title || 'Untitled chapter' }}</option>
+                      }
+                    }
+                  </select>
+                }
 
                 <button
                   type="button"
@@ -170,6 +184,10 @@
             Add New Component
           </button>
         }
+        <div class="chapter-drop-end" [class.is-dragging]="draggingLesson()"
+          (dragover)="dragComponentAllowed($event)" (drop)="dropComponent(sectionIndex, section.components.length, $event)">
+          Drop lesson at end of {{ section.title || 'chapter' }}
+        </div>
       </article>
     } @empty {
       <p class="course-content-empty">No sections yet. Add the first section to start building the course.</p>
@@ -276,16 +294,17 @@
                       <button
                         type="button"
                         class="quiz-question-trigger"
+                        [attr.aria-expanded]="isQuizQuestionExpanded(questionIndex)"
+                        [attr.aria-controls]="'quiz-question-body-' + component.id + '-' + question.id"
                         [disabled]="courseContentSaving() || courseSubmitting()"
                         (click)="expandQuizQuestion(questionIndex)"
                       >
-                        <div>
-                          <p class="quiz-editor-kicker">Question {{ questionIndex + 1 }}</p>
-                          <strong>{{ question.question || 'Untitled question' }}</strong>
-                        </div>
+                        <span class="inline-icon" aria-hidden="true" [innerHTML]="isQuizQuestionExpanded(questionIndex) ? chevronDownIcon : chevronRightIcon"></span>
+                        <span class="quiz-question-heading">
+                          <strong>Question {{ questionIndex + 1 }} <span class="quiz-question-state">{{ isQuizQuestionExpanded(questionIndex) ? 'Open' : 'Collapsed' }}</span></strong>
+                          <span class="quiz-question-summary">{{ quizQuestionSummary(question) }}</span>
+                        </span>
                       </button>
-
-                      <span class="quiz-question-meta">{{ question.points }} pt</span>
 
                       @if (isQuizQuestionExpanded(questionIndex) && component.quiz.questions.length > 1) {
                         <button
@@ -300,8 +319,14 @@
                       }
                     </div>
 
+                    @if (quizQuestionIssues(question, component.quiz.questions).length) {
+                      <p class="quiz-question-attention">
+                        <strong>Needs attention:</strong> {{ quizQuestionIssues(question, component.quiz.questions).join(' ') }}
+                      </p>
+                    }
+
                     @if (isQuizQuestionExpanded(questionIndex)) {
-                      <div class="quiz-question-body">
+                      <div class="quiz-question-body" [id]="'quiz-question-body-' + component.id + '-' + question.id">
                         <div class="builder-modal-grid quiz-settings-grid">
                           <label class="builder-field quiz-question-field">
                             <span>Question</span>
@@ -345,12 +370,15 @@
                               <input
                                 type="text"
                                 class="quiz-answer-input"
+                                [attr.aria-label]="'Answer ' + (answerIndex + 1) + ' text'"
                                 placeholder="Answer text"
                                 [value]="answer.text"
                                 [disabled]="courseContentSaving() || courseSubmitting()"
                                 (input)="updateQuizAnswerText(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, controlValue($event))"
                               />
 
+                              <label class="quiz-answer-explanation">
+                              <span>Explanation (optional)</span>
                               <textarea
                                 rows="2"
                                 class="quiz-answer-description"
@@ -359,6 +387,7 @@
                                 [disabled]="courseContentSaving() || courseSubmitting()"
                                 (input)="updateQuizAnswerDescription(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex, controlValue($event))"
                               ></textarea>
+                              </label>
                             </div>
                           }
                         </div>
@@ -376,6 +405,7 @@
               >
                 + Add question
               </button>
+              <div class="quiz-scroll-space" aria-hidden="true"></div>
             </section>
           }
 

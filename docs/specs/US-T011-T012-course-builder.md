@@ -2,13 +2,13 @@
 
 ## Record
 
-- Stories: US-T011 and US-T012. State: Blocked before implementation.
-- Owner: Codex. Selected 2026-10-10. Branch/base: main / baf852c.
+- Stories: US-T011 and US-T012. State: In progress.
+- Owner: Codex. Selected 2026-10-10. Initial base: main / baf852c; resumed on main / 853c249.
 - Required assignment commit: a61771f, present in the first 15 history entries.
 - Contract: [teacher feedback handoff](../handoffs/teacher-feedback-builder-codex.md).
-- Related confirmed defects: none added; API/media investigations remain pending.
-- Outside-scope dependency: Claude must forward `toSectionIndex` in
-  `app/src/app/routes/course-editor-route.html` before the move can reach state.
+- Related confirmed defect: DEF-T012-CALLBACK, reproduced in isolated API tests.
+- Route exception granted on continuation: only the moved binding at line 101
+  is now owned by Codex. Required continuation commit 853c249 is present.
 
 ## Problem and outcome
 
@@ -18,9 +18,9 @@ The current quiz scroll uses `block: 'nearest'` and does not focus the new quest
 field. Its header only opens a question. Dragging currently rejects another
 chapter; the state handler only reorders inside one chapter.
 
-This document specifies requested behavior, not implemented behavior. The user
-requires committing owned work and stopping if an outside-scope file is needed.
-No builder, state-handler or API implementation has been changed in this task.
+The initial documentation-only stop is resolved by 853c249 and the user's route
+exception. Implementation and isolated checks are complete; local delivery is
+being recorded. No additional outside-scope file is needed.
 
 ## Scope and ownership
 
@@ -107,7 +107,9 @@ copy has no emoji or em dashes. Use semantic buttons, labelled inputs and visibl
 focus. Collapsed summaries wrap at narrow widths rather than clipping important
 readiness information. Opening one question closes the others; all may be closed.
 After adding, wait for the new question to render before aligning its header and
-focusing the text input with scroll prevention. Existing content remains intact.
+focusing the text input with scroll prevention. Trailing scroll space prevents
+the browser from clamping alignment for a short final question in a tall editor.
+Opening, toggling or removing questions resets it. Existing content remains intact.
 
 Readiness must match `api/src/quizAssessment.ts`: question text, all four answer
 texts and exactly one correct answer. Existing duplicate-ID checks remain valid;
@@ -115,7 +117,8 @@ no new submit restriction is introduced. The quiz-wide pass-mark and empty-quiz
 checks remain quiz-level concerns. Summary reasons must be readable while closed.
 
 Each lesson has a labelled control listing other chapters. The selected chapter
-receives it at the end. Drag destinations include positions and the chapter end,
+receives it at the end, expands that chapter and restores keyboard focus to the
+moved lesson's control. Drag destinations include positions and the chapter end,
 including empty chapters. Disable and guard moves during read-only, save/submit,
 and uploads affecting the source lesson. Preserve same-chapter reorder behavior.
 
@@ -128,32 +131,29 @@ object and stable ID. Validate indices and protected states before changing stat
 Use the existing content signal, dirty tracking, recovery and save/conflict path.
 
 The page already passes the event through and declares the optional property.
-However, its route currently calls:
-
-```typescript
-state.moveCourseComponent($event.sectionIndex, $event.fromIndex, $event.toIndex)
-```
-
-Required change in Claude's owned route:
+The authorized one-line route change now calls:
 
 ```typescript
 state.moveCourseComponent($event.sectionIndex, $event.fromIndex, $event.toIndex, $event.toSectionIndex)
 ```
 
-The matching owned state-handler extension remains to be implemented. Omitting
-that argument makes a cross-chapter event indistinguishable from a reorder and
-can move a lesson to the wrong position in its original chapter. Do not encode
-the destination in another existing field or alter its legacy semantics.
+The state handler accepts that optional fourth argument. The routed page-output
+regression verifies the destination reaches state; legacy three-argument calls
+remain same-chapter reorders. No existing field encodes a new meaning.
 
 No API shape or migration is proposed. Save retains lesson and asset IDs. Before
 changing media code, reproduce behavior with isolated stores: chapter-scoped
 upload/remove routes, asset ownership/downloads, and callbacks containing an old
 chapter ID. A callback must not attach an old upload to a replacement video.
-Any actual failure found by these probes must be documented before a fix.
+DEF-T012-CALLBACK was reproduced before fixing: a matching ready callback carrying
+the former chapter ID left the moved video processing. The callback now locates
+the stable component ID across chapters in each live/working snapshot, retaining
+upload/asset identity checks and existing coordination. Attachment routes and
+response shapes are unchanged.
 
 ## Implementation checklist
 
-1. Claude forwards the optional destination argument in the owned route.
+1. Codex forwards the optional destination argument in the one authorized route binding.
 2. Re-read the shared-tree state and version; resume within the assigned files.
 3. Write and run failing builder tests for adding/focus/scroll, toggle, summaries
    and readiness; implement quiz interaction and responsive layout changes.
@@ -171,27 +171,54 @@ Any actual failure found by these probes must be documented before a fix.
 
 | Scenario | Required evidence | Current result |
 | --- | --- | --- |
-| US-T011-AC01 | Builder add event, render, header scroll and field focus test | Pending |
-| US-T011-AC02/03 | DOM/keyboard expand state, summaries and toggle tests | Pending |
-| US-T011-AC04 | Existing readiness-rule examples in collapsed DOM | Pending |
-| US-T011-AC05 | Keyboard tests and Claude's 375px browser walk | Pending |
-| US-T012-AC01/02 | Builder drag/drop, empty chapter and move-control tests | Pending |
-| US-T012-AC03 | State preservation, dirty/save/recovery/conflict tests | Pending |
-| US-T012-AC04 | UI and state guards for read-only and both upload types | Pending |
-| US-T012-AC05 | Memory API save, playback, old-chapter callback and attachment tests | Pending |
+| US-T011-AC01 | Builder add event, render, header scroll and field focus test | Passing, including modeled browser scroll clamping; real layout pending |
+| US-T011-AC02/03 | Semantic expand controls, summaries and toggle tests | Passing DOM interactions; actual Enter/Space walk pending |
+| US-T011-AC04 | Existing readiness-rule examples in collapsed DOM | Passing invalid and valid collapsed examples |
+| US-T011-AC05 | Label/control/focus tests and Claude's 375px browser walk | DOM labels/focus pass; browser width, overflow and keyboard walk pending |
+| US-T012-AC01/02 | Builder drag/drop, empty chapter and move-control tests | Passing, including destination focus after rerender |
+| US-T012-AC03 | State preservation, dirty/save/recovery/conflict tests | Passing, including real route binding and legacy reorder |
+| US-T012-AC04 | UI and state guards for read-only and both upload types | Passing, including a captured drag that becomes locked |
+| US-T012-AC05 | Memory API save, playback, old-chapter callback and attachment tests | Passing seven API tests; live providers pending |
 
-2026-10-10: source inspection confirms the missing fourth route argument at
+Initial stop, 2026-10-10: source inspection confirmed the missing fourth route argument at
 `app/src/app/routes/course-editor-route.html:101`. The route is outside Codex's
 ownership. No feature tests, full suites or builds were run for this documentation
 handoff; no product behavior is claimed verified. Delivery commit will be recorded
-in the Codex queue row. Only documentation and required aligned version strings
-are changed. No shared Sheets, MongoDB, Mux or GitHub data has been accessed.
+in the Codex queue row (6928646/43f480b). That initial delivery changed only
+documentation and required aligned version strings.
+
+Continuation evidence, 2026-10-10, main/base 853c249:
+
+- `course-builder-authoring.spec.ts`: 15 passing builder interactions, semantic
+  summaries, guards, focus and scroll cases. Review identified scroll clamping
+  and loss of focus after a move; both were reproduced as failing tests and fixed.
+- `course-move.spec.ts`: 12 passing state, real-route binding, complete-object
+  retention, save, local recovery, conflict, guards and compatibility cases.
+- `api/src/courseMove.test.ts`: seven passing isolated API cases. Three matching
+  callback regressions failed before the fix. Existing playback, replacement
+  upload guards, attachment access/download/upload/removal were retained.
+- Full requested checks pass: `npm run api:test` (425 tests), `npm run app:test`
+  (215 tests), `npm run verify:journeys` (six scenarios), `npm run api:build`,
+  `npm run app:build:pages`. Pages build emits stylesheet budget warnings:
+  builder 15.91 kB, career path 14.98 kB, course learning 14.00 kB against 12 kB
+  warning thresholds; the build succeeds. Existing jsdom window-scroll warnings
+  do not fail the frontend suite.
+- Tests use disposable in-memory repositories, ephemeral API ports and stub
+  provider/SDK boundaries. No servers on 3001/4200, shared Sheets, MongoDB, Mux
+  or GitHub mutations, push or deployment. No further outside-scope dependency.
+- Not verified: actual browser geometry at 375px or tall desktop heights,
+  native keyboard interaction/drag layout, live Mux callbacks, Mongo durability,
+  shared Sheets and hosted behavior. These are release/browser checks below.
+- Implementation and delivery-record commit hashes are recorded in the Codex
+  row of `docs/work_queue.md` once the local commits exist.
 
 After implementation, Claude should inspect the actual routed teacher editor:
-add several questions and confirm header alignment/focus; collapse/reopen using
+add several questions on both a tall desktop and a short viewport and confirm
+each new header aligns at the top and its text field receives focus; collapse/reopen using
 Enter/Space; see text/points/answers/correct status and attention reasons while
 closed; repeat at 375px. Drag a lesson before another lesson and to the end of a
-different or empty chapter; use the move control with a keyboard; save/reopen and
+different or empty/collapsed chapter; use the move control with a keyboard and
+confirm the destination opens and focus follows the moved lesson; save/reopen and
 check content, video and attachments. Try a move during an upload and in read-only
 preview. Check a save conflict and local recovery retain the moved outline.
-These browser checks are pending and require the route wiring and implementation.
+These browser checks remain pending; the route wiring and implementation are delivered.
