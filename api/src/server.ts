@@ -1,3 +1,4 @@
+import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
@@ -88,6 +89,8 @@ import {
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
+  userChangeRepository?: UserChangeRepository;
+  userChangeOptions?: UserChangeOptions;
   mailSender?: MailSender;
   passwordResetRepository?: PasswordResetRepository;
   passwordResetOptions?: PasswordResetOptions;
@@ -110,6 +113,7 @@ type AuthenticatedRequest = Request & {
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
+  const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
   const mailSender = dependencies.mailSender ?? createMailSender();
   const passwordResetTokens = dependencies.passwordResetRepository ?? createPasswordResetRepository();
   const storedCourses = requestCachedCourses(dependencies.courseRepository ?? createCourseRepository());
@@ -489,7 +493,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     options: dependencies.passwordResetOptions });
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
-    sender: mailSender, options: dependencies.passwordResetOptions });
+    sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
@@ -501,15 +505,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
 
       const input = loginSchema.parse(request.body);
-      const user = await auth.findByEmail(input.email);
+      const user = await auth.findByEmail(input.email, { fresh: true });
 
-      if (!user || !verifyPassword(input.password, user.passwordHash)) {
+      if (!user || !verifyPassword(input.password, user.passwordHash) || user.status !== 'active') {
         response.status(401).json({ message: 'Invalid email or password' });
-        return;
-      }
-
-      if (user.status !== 'active') {
-        response.status(403).json({ message: 'User account is disabled' });
         return;
       }
 

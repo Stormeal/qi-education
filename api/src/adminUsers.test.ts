@@ -226,7 +226,7 @@ describe.each(['', '/api'])('US-A001 isolated HTTP (%s)', prefix => {
   it.each(['list', 'role', 'reset', 'auth'])('AC06 safely handles %s storage failures without private diagnostics', async action => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     if (action === 'list') vi.spyOn(auth, 'listUsers').mockRejectedValueOnce(new Error('private ' + users[0].passwordHash));
-    if (action === 'role') vi.spyOn(auth, 'updateRole').mockRejectedValueOnce(new Error('private ' + users[0].passwordHash));
+    if (action === 'role') vi.spyOn(auth, 'updateRoleWithChange').mockRejectedValueOnce(new Error('private ' + users[0].passwordHash));
     if (action === 'reset') vi.spyOn(tokens, 'reserve').mockRejectedValueOnce(new Error('private ' + users[0].passwordHash));
     if (action === 'auth') vi.spyOn(auth, 'findById').mockRejectedValueOnce(new Error('private ' + users[0].passwordHash));
     const response = await request(action === 'list' || action === 'auth' ? '/admin/users' : action === 'role' ? rolePath() : resetPath(),

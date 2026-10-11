@@ -10,7 +10,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-A001 | Account status and role audit follow-up | Proposed | P2 | US-A001 role/search/reset delivered locally | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
@@ -35,34 +34,6 @@ numbering are delivered work. Their contracts and evidence remain in `specs/`,
 [defect_management.md](defect_management.md).
 
 ## Teacher journey
-
-### US-A001 — Account status and role audit follow-up
-
-**As an admin, I want supported account status changes and a record of role changes,
-so that access changes can be managed and traced.**
-
-State: Proposed, remaining scope only. Source: [GitHub #20](https://github.com/Stormeal/qi-education/issues/20).
-Search, role changes and admin-triggered reset links (AC01/02 and the implementation
-rules) are delivered locally in the [user management spec](specs/US-A001-user-management.md).
-The current increment forbids changing one's own role and keeps courses owned by
-demoted teachers. Status changes and role-change auditing are explicitly still open.
-Decisions Alex must take: supported status transitions, protection against simultaneous
-mutual admin demotions, audit fields/visibility/retention, and privacy of audit records.
-These follow-up scenarios are Proposed, not implemented by the current increment.
-
-```gherkin
-Feature: Account status and role audit follow-up
-  Scenario: US-A001-AC07 Manage account status
-    Given I am an admin viewing another account
-    When I apply an agreed supported status change
-    Then the persisted status follows the agreed account/admin protection rules
-    And subsequent authenticated requests use the account's new access
-  Scenario: US-A001-AC08 Trace role changes
-    Given an admin changes another account's role
-    When the change is persisted
-    Then an audit entry records the agreed actor, target, change and time
-    And only authorized administrators can read it under the agreed retention policy
-```
 
 ### US-A002 - Warn about missing category before publication
 

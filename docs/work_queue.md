@@ -42,7 +42,7 @@ deactivate and reactivate accounts (not one's own) plus a change log for admins.
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | US-A001-AC07/AC08 frontend: Deactivate and Reactivate in the User management tab; "Recent changes" list | Everything under `app/` except the version lines | In progress |
-| Codex | US-A001-AC07/AC08 API: status change, change log storage and read | See the [handoff](handoffs/US-A001-status-and-change-log-codex.md) | Handed over; not started |
+| Codex | US-A001-AC07/AC08 API: status change, change log storage and read | See the [handoff](handoffs/US-A001-status-and-change-log-codex.md) and appended [spec](specs/US-A001-user-management.md) | Verified locally 2026-10-11, implementation commit pending. Main/base 5bc4ed4 confirmed; Claude 3306233 preserved. Spec appended first, DEF-031 disabled-login disclosure and DEF-032 stale-login reads reproduced/append-logged before fixes. Status F-only, snapshot log after change with safe failure, same-value no-write/log, fresh login and adapter mutation metadata. All five checks pass: API 1055/46, journeys 6, API build, app 269/34, Pages build (existing warnings); independent review clear, 92 new cases. No shared services, real mail, .env inspection or push. Real Sheets/Mongo durability, hosted/UI/keyboard and monitoring unverified; append failure/crash may leave unlogged changes; distributed CAS/last-admin protection absent. No outside-file change needed. Next: fresh scoped commits, record hashes and stop |
 
 **Session 2026-10-11 (9) — started by the user with "let's start working on these".**
 Branch: `main`. Base: `1d5eebe` (local, 0.1.145; seven commits not pushed). Selected by Alex:

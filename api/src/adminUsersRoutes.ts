@@ -1,5 +1,8 @@
+import { randomUUID } from 'node:crypto';
+import { KeyedSerialQueue } from './keyedSerialQueue.js';
+import { userChangeDto, type UserChange, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import type { Express, NextFunction, Request, RequestHandler, Response } from 'express';
-import { userRoleSchema, type AuthenticatedUser, type AuthUser } from './auth.js';
+import { userRoleSchema, userStatusSchema, type AuthenticatedUser, type AuthUser } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
 import type { MailSender } from './mailSender.js';
 import { resetMailUnavailable, sendPasswordResetLink, type PasswordResetOptions } from './passwordResetDelivery.js';
@@ -12,8 +15,17 @@ const userDto = ({ id, email, displayName, role, status, createdAt }: AuthUser) 
 export function registerAdminUserRoutes(app: Express, dependencies: {
   authenticate: RequestHandler; requireAdmin: RequestHandler; auth: AuthRepository;
   tokens: PasswordResetRepository; sender: MailSender; options?: PasswordResetOptions;
+  changes: UserChangeRepository; changeOptions?: UserChangeOptions;
 }): void {
-  const { authenticate, requireAdmin, auth, tokens, sender, options } = dependencies;
+  const { authenticate, requireAdmin, auth, tokens, sender, options, changes, changeOptions } = dependencies;
+  const accessWrites = new KeyedSerialQueue();
+  const logChange = async (actor: AuthenticatedUser, target: AuthUser, field: UserChange['field'], to: string) => {
+    try {
+      await changes.append({ id: (changeOptions?.createId ?? randomUUID)(), at: new Date((changeOptions?.now ?? Date.now)()).toISOString(),
+        actor: { id: actor.id, displayName: actor.displayName }, target: { id: target.id, displayName: target.displayName, email: target.email },
+        field, from: target[field], to });
+    } catch { console.warn('User change log write failed.'); }
+  };
   const path = '/admin/users';
   const handle = (handler: (request: Request, response: Response) => Promise<void>) =>
     async (request: Request, response: Response) => {
@@ -38,9 +50,30 @@ export function registerAdminUserRoutes(app: Express, dependencies: {
     if (userId === (request as Request & { user: AuthenticatedUser }).user.id) {
       response.status(409).json({ message: 'You cannot change your own role.', code: 'own-role' }); return;
     }
-    const user = await auth.updateRole(userId, role.data);
-    if (!user) { response.status(404).json(notFound); return; }
-    response.json(userDto(user));
+    await accessWrites.run(userId, async () => {
+      const result = await auth.updateRoleWithChange(userId, role.data);
+      if (!result) { response.status(404).json(notFound); return; }
+      if (result.previous) await logChange((request as Request & { user: AuthenticatedUser }).user, result.previous, 'role', result.user.role);
+      response.json(userDto(result.user));
+    });
+  }));
+  app.patch(`${path}/:userId/status`, authenticate, requireAdmin, handle(async (request, response) => {
+    const status = userStatusSchema.safeParse(request.body?.status);
+    if (!status.success) { response.status(400).json({ message: 'Status must be active or disabled.' }); return; }
+    const userId = String(request.params.userId);
+    const actor = (request as Request & { user: AuthenticatedUser }).user;
+    if (userId === actor.id) {
+      response.status(409).json({ message: 'You cannot change the status of your own account.', code: 'own-status' }); return;
+    }
+    await accessWrites.run(userId, async () => {
+      const result = await auth.updateStatusWithChange(userId, status.data);
+      if (!result) { response.status(404).json(notFound); return; }
+      if (result.previous) await logChange(actor, result.previous, 'status', result.user.status);
+      response.json(userDto(result.user));
+    });
+  }));
+  app.get(`${path}/changes`, authenticate, requireAdmin, handle(async (_request, response) => {
+    response.json({ changes: (await changes.recent()).map(userChangeDto) });
   }));
   app.post(`${path}/:userId/password-reset`, authenticate, requireAdmin, handle(async (request, response) => {
     const user = await auth.findById(String(request.params.userId), { fresh: true });

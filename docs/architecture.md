@@ -83,7 +83,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | --- | --- | --- |
 | Account | Student signup, login, remembered session, role permissions; account email, hashed single-use password reset and signed-in password change API | Existing sessions survive password changes; shared-store concurrency and new profile/browser flow remain release checks; missing hosted user store disables auth |
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
-| Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
+| Admin | Authoring, price/catalog fields, feedback triage, user search/role/reset/status and recent change log | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
 | Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance; per-account public instructor description API | Legacy quizzes need fresh passing evidence; other profile details remain local; hosted Mongo checks pending |
 
@@ -191,7 +191,9 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `POST /auth/password-reset/request`, `/check`, `/confirm` | Public; both normal and /api prefixes; no-store; 202 privacy-preserving request (400 invalid email, 503 mail unavailable), 204 check/confirm, 410 reset-link-invalid, 400 signup password validation |
 | `POST /users/me/password` | Active session, every role; no-store; current proof first, wrong current 400 current-password-incorrect (never 401), signup policy/different password 400, changed 204, invalid session 401, unavailable storage 503; notice failure is harmless |
 | `GET /admin/users` | Admin only; no-store; optional trimmed <=100 name/email substring ignoring case; <=50 display-name sorted six-field users plus total before cap; 400 invalid search, 401/403 without user data |
-| `PATCH /admin/users/:userId/role` | Admin only; no-store; student/teacher/admin, six-field User 200; same role no write, own-role 409, invalid 400, missing 404 |
+| `PATCH /admin/users/:userId/role` | Admin only; no-store; student/teacher/admin, six-field User 200; same role no write/log, actual change logged, own-role 409, invalid 400, missing 404 |
+| `PATCH /admin/users/:userId/status` | Admin only; no-store; active/disabled, safe User 200; same status no write/log; own-status 409, invalid 400, missing 404; deactivation revokes existing-session access on next request |
+| `GET /admin/users/changes` | Admin only; no-store; newest 50 safe Change snapshots; empty array when none, safe 503 when log unavailable; no password/enrollment/document extras |
 | `POST /admin/users/:userId/password-reset` | Admin only; no-store; ordinary shared reset link and three-mail limit; 202 target email, missing 404, inactive/limit 409, unavailable/failed mail 503; no password/token in response |
 | `GET /auth/me` (also `/me`) | Active bearer session |
 | `GET /users/me/instructor-profile`, `PUT /users/me/instructor-profile` | Active teacher/admin; own description only, trimmed string 0..280, empty clears; 200 `{ description }`; 400 invalid input, 401 invalid/missing session, 403 student |
@@ -337,9 +339,38 @@ roles even when they read an earlier snapshot. Same-role requests do not write.
 Memory preserves independent account fields as well. Existing sessions use the
 new role on their next request, without a new token or browser push. Demoted
 teachers keep their courses but cannot author; no data is transferred/deleted.
-Self-role changes are refused, including a same-role request. Simultaneous mutual
-admin demotion is not protected by a distributed last-admin CAS. Account status
-changes and role-change auditing remain Proposed under US-A001.
+Self-role and self-status changes are refused, including unchanged-value requests.
+Simultaneous mutual admin demotion/deactivation is not protected by a distributed
+last-admin CAS. US-A001-AC07/AC08 adds active/disabled transitions through admin routes.
+Sheets status writes use RAW column F only; concurrent password D, role E and enrollment
+H writes preserve every independent field. Existing sessions of disabled users get 401
+on their next protected request, and login returns the same generic 401 as a wrong
+password (DEF-031); reactivation restores access with a still-valid old token. Login
+requests fresh findByEmail reads so it cannot share a snapshot begun before another
+instance changed status (DEF-032); non-security email lookups retain coalescing.
+
+`userChangeRepository.ts` stores role/status changes in the permanent
+`<MONGODB_COURSE_CONTENT_COLLECTION>_user_changes` Mongo collection when hosted. The new
+log's explicit contract keeps nonhosted local/test logs in memory, including opted-in
+local runs. No TTL, spreadsheet audit column, migration or historical backfill. Hosted
+missing Mongo returns safe 503 on log reads; account changes still stand when append
+fails. Mongo inserts use the change id as _id and majority acknowledgment; recent reads
+sort descending by ISO at/id and limit 50 without deleting older records. Memory returns
+detached snapshots. Both storage and HTTP projections whitelist the exact Change fields:
+id/at, actor id/displayName, target id/displayName/email, field/from/to. Renames do not
+rewrite recorded names. No credentials, password hash or enrollment list is captured.
+
+Role/status admin routes share an instance-owned keyed queue by target for read/change/log;
+unrelated targets proceed independently. New adapter mutation results contain the actual
+read-before-write snapshot, or previous=null for no write; the existing updateRole/status
+wrappers still return AuthUser. Logging uses that result without a second route lookup,
+so an adapter-observed no-op produces no entry and from reflects its actual input. Account persistence precedes append; successful
+changes remain 200 on a log failure, with one constant warning containing no personal data.
+A crash/log failure can leave an unlogged change; no reconciliation or cross-store
+transaction is added. Cross-instance access mutations still lack compare-and-swap, so
+concurrent decisions are last-write-wins rather than a distributed audit/last-admin
+invariant. Existing role/reset/search DTOs and unrelated route wiring remain unchanged.
+See the appended increment in [user management](specs/US-A001-user-management.md).
 
 `passwordResetDelivery.ts` shares issuance between the existing public request
 and the new admin action: identical random token, hash/fingerprint, pending slot,

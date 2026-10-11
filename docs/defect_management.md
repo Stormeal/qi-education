@@ -1089,3 +1089,35 @@ HTTP only; no actual .env inspection/change, shared providers or real mail. Exis
 invalid UTF-8 bytes and all earlier defect entries are preserved. Local delivery is
 not deployment; hosted login/startup, shared provider readiness and combined browser
 acceptance remain unverified. No push. Codex stopped after the delivery-record commit.
+
+
+### DEF-031 - Disabled-account login discloses account status
+
+| ID | State | Priority | Reproduction |
+| --- | --- | --- | --- |
+| DEF-031 | Confirmed, Codex, 2026-10-11 | P2 | An isolated disabled user with its correct password receives 403 User account is disabled; a wrong password receives 401 Invalid email or password |
+
+Reproduced before repair in adminUserChanges.test.ts, DEF-031 case under both
+normal and /api prefixes: expected generic 401 but received 403. Existing login
+checks status after password verification and exposes the account's disabled
+state. US-A001-AC07 explicitly requires the wrong-password response instead.
+Synthetic memory users and loopback HTTP only; no shared services or .env reads.
+Planned repair: the existing generic invalid-credentials condition also checks
+inactive status. Existing login paths and active-account responses stay unchanged.
+Regression, fixing commit and release limitations follow in append-only records.
+
+
+### DEF-032 - Login shares a users snapshot begun before a status change
+
+| ID | State | Priority | Reproduction |
+| --- | --- | --- | --- |
+| DEF-032 | Confirmed, Codex, 2026-10-11 | P2 | Hold one instance's old users read, complete status PATCH on another, then log in on the first: disabled account receives 200; reactivated account receives 401 |
+
+Four isolated HTTP assertions in adminUserChanges.test.ts failed before repair,
+covering normal and /api prefixes and both active-to-disabled and disabled-to-active.
+Sheets doubles capture and hold the old read; the status change finishes before
+login starts. Protected requests already use fresh reads (DEF-027), but login
+findByEmail still shares the old listUsers read. No real providers or .env reads.
+Planned repair: optional fresh findByEmail selection using the existing fresh-read
+coalescer, requested only by login; unrelated routes/read budgets stay as before.
+Fixing commit, regression and release limitations follow in append-only records.

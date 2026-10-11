@@ -211,3 +211,155 @@ change is saved at once, without a Save button; at most 50 users are shown.
 Combined tree: 912 API and 258 frontend tests, six journeys, API and Pages builds pass.
 Not verified: the real users sheet (the role cell write, the read count under a real class),
 a real reset mail from this button, a screen reader, phone width.
+
+
+## Account status and change log increment (AC07/AC08), 2026-10-11
+
+State: Verified locally, implementation commit pending. Codex API/storage;
+main/base 5bc4ed4 confirmed; concurrent Claude frontend commit 3306233 preserved.
+Spec appended before implementation. Claude owns the Admin page/frontend; preserve
+its concurrent files and commits. [Handoff](../handoffs/US-A001-status-and-change-log-codex.md).
+
+### Decisions (confirm or change)
+
+Alex: administrators deactivate/reactivate other accounts, existing sessions are refused
+on the next request, and only admins read the permanent log of role/status changes.
+Lead: active/disabled only; self-status changes refused, including an unchanged value.
+Self-protection does not prevent two admins simultaneously disabling/demoting each other.
+Change first, log second; failed log writes preserve successful account changes and emit
+one constant diagnostic line without personal data. No backfill or retention expiry.
+Capture actor/target names and target email at the time of change, never join current names.
+
+Implementation decisions: extend AuthRepository.updateStatus(userId, status), preserving
+all other fields and writing RAW F only in Sheets. Existing role/status methods keep
+their AuthUser return; new updateRoleWithChange/updateStatusWithChange return
+{ user, previous }, with previous null for no actual write. Log uses the adapter
+read which actually supplied the mutation, not an earlier route lookup. Reuse fresh security reads and existing
+no-store/admin authentication. Serialize role/status read-change-log by target inside each
+API instance so overlapping identical requests do not create duplicate entries. No new
+cross-instance compare-and-swap or last-admin guarantee. UserChangeRepository exposes
+append(Change) and recent(): newest first, at most 50, with detached snapshots. Store
+Mongo documents in <MONGODB_COURSE_CONTENT_COLLECTION>_user_changes with majority insert
+acknowledgment, no TTL/delete/backfill. Hosted uses configured Mongo and refuses log reads
+when unavailable; local/test uses memory, including opted-in nonhosted local runs as this
+increment's contract requires. Inject repository, clock and identifier generator into the
+server. Login alone additionally requests a fresh findByEmail read (DEF-032),
+using the existing coalescer rather than a pre-change list read. Keep the existing
+instructor/reset and every unrelated route wiring unchanged.
+
+### Contract and numbered scenarios
+
+User remains exactly { id, email, displayName, role, status, createdAt }. All errors are
+message-only except agreed self-protection codes. Both new routes support /api; no-store
+on successes, denials, malformed JSON and errors. No token/password/hash/enrollment in logs
+or output. The disabled-login behavior is the explicit change to existing auth responses:
+wrong password and disabled account both return the same generic 401 message. Reactivation
+restores the old still-valid session and login. It does not renew expired sessions.
+
+| Route | Contract |
+| --- | --- |
+| PATCH /admin/users/:userId/status | { status: active or disabled }; 200 safe User, same status without write/log; invalid 400 message; missing 404 User not found; own 409 { message: "You cannot change the status of your own account.", code: "own-status" } |
+| GET /admin/users/changes | 200 { changes: Change[] }, newest first, at most 50; [] when none; safe message-only 503 if log store unavailable |
+| PATCH /admin/users/:userId/role | Existing request/response unchanged; append Change only for actual role mutation |
+
+Change = { id, at: ISO UTC time, actor: { id, displayName }, target: { id, displayName,
+email }, field: role or status, from, to }. Explicit output projection hides Mongo _id or
+any extra stored fields. No direct Spreadsheet audit column or schema migration.
+
+```gherkin
+Feature: Account status and permanent administrator change log
+  Scenario: US-A001-AC07 Disable and reactivate another account
+    Given an admin and another active account with an existing session
+    When the admin changes its status to disabled
+    Then the API returns the agreed safe User with disabled status
+    And its next authenticated request is 401 and login matches a wrong-password failure
+    When the admin reactivates it
+    Then both existing-session requests and correct-password login work again
+  Scenario: US-A001-AC08 Trace actual role and status changes
+    Given an admin changes another account's role or status
+    When the account write succeeds
+    Then one permanent Change stores the actor and target names at that time
+    And admins read at most 50 newest entries, with no hashes or enrollments
+  Scenario: US-A001-AC10 Validate and protect account status
+    Given an admin status request
+    When the value is invalid, target missing, or target is the caller
+    Then agreed 400, 404 or own-status 409 is returned without account/log writes
+    And repeating another account's current status returns 200 without account/log writes
+  Scenario: US-A001-AC11 Deny status and change-log access
+    Given a student, teacher, anonymous, expired or malformed session
+    When requesting either new route
+    Then existing 401/403 is returned before target lookup or log read, with no user/change data
+    And all responses retain no-store, including malformed bodies and store errors
+  Scenario: US-A001-AC12 Preserve concurrent independent account writes
+    Given a held Sheets status write and concurrent enrollment, role change and password reset
+    When all writes finish
+    Then only F, H, E and D respectively changed, and every independent update remains
+    And status writes invalidate prior local auth snapshots
+  Scenario: US-A001-AC13 Log after success without undoing it
+    Given a log store which fails or an account write which fails
+    When an admin changes an account
+    Then a successful account write stays successful despite log failure with one safe warning
+    And a failed account write gets safe 503 and no log entry
+    And overlapping identical changes within one instance have one write and one log entry
+```
+
+### Implementation plan and evidence ledger
+
+- [x] Confirm branch/ancestor/shared edits, append spec and select queue row.
+- [x] RED: disabled login disclosure; DEF-031 confirmed and appended before fixing.
+- [x] RED: status/role logging HTTP, permissions, validation, session/login round trip,
+      ordering/50/snapshots/failures/concurrency; Sheets F/H/E/D overlap; Mongo adapter doubles.
+- [x] Implement userChangeRepository.ts and status-cell method; integrate only admin routes
+      and new dependency, plus generic disabled login. Pass focused/new and existing regressions.
+- [x] Update architecture/backlog, independent read-only review; run five required checks.
+- [ ] Fresh aligned version and scoped implementation commit, then record hash/evidence/limits
+      in this spec and own queue row with a hook-required version; stop without push.
+
+No live provider or shared data probes, real mail or ports 3001/4200. Use synthetic rows,
+Mongo collection doubles and ephemeral loopback HTTP. No .env inspection necessary. Live
+Sheets/Mongo durability, log failure monitoring, hosted/UI and keyboard acceptance remain
+release checks. Nontransactional account/log writes can leave an unlogged change after a
+log failure or crash; no repair/backfill feature is promised. No outside file need identified.
+
+
+### AC07/AC08 verification, 2026-10-11
+
+| Scenarios | Isolated evidence | Result |
+| --- | --- | --- |
+| AC07 / DEF-031 | Normal and /api status round-trip in memory/Sheets doubles, old sessions, login aliases, generic disabled 401 | Pass |
+| AC07 / DEF-032 | Four held old-read/two-instance disable/reactivate login cases; login now opts into fresh reads | Pass |
+| AC08/AC13 | Exact snapshots, renames, role/status no-ops, latest 50/empty/permanent history, safe append failure and accurate adapter mutation metadata | Pass |
+| AC10/AC11 | Invalid inputs, own-status/no-op protection, 404, all roles/anonymous/bad/expired tokens, no-store and safe 503/malformed JSON | Pass |
+| AC12 | Actual reset confirmation and independent H/E/D writes while F is held; all fields preserved; memory/Sheets metadata/no-op and refreshed reads | Pass |
+
+All five required checks pass on main/3306233 plus this implementation:
+api:test **1055 tests / 46 files**; verify:journeys **6**; api:build; app:test
+**269 / 34**; app:build:pages and generated SPA fallback. Existing style budget,
+test-setup type-check and jsdom scrollTo warnings remain. No failed frontend check,
+frontend fix or integration probe. api/dist rebuilt only by final api:build.
+
+TDD record: DEF-031 first failed twice (disabled login 403 vs 401), then appended
+as Confirmed before repair. Initial route RED: 48 failed, four already-passing
+characterization cases, six overlap cases skipped until methods existed. Status
+repository RED: six missing-method failures; new log repository module absent.
+First focused GREEN: 173 existing/new cases. Review identified stale login and
+route-vs-adapter mutation metadata; ten added assertions failed before correction
+(four DEF-032, six audit cases). DEF-032 appended before repair. Updated overlap
+assertions count actual mutation outcomes, not repository invocations. The final
+suite includes **92 new cases**, plus all existing admin/reset/journey regressions.
+
+Independent review found no remaining material issues after the two corrections;
+final four overlap checks independently pass. Protected sessions continue using
+existing fresh findById reads; only login adds fresh findByEmail. Role/status change
+metadata comes from the adapter's actual read/no-op result. Sheets still lacks
+cross-instance CAS: an external write after that read can race the eventual write,
+so exact concurrent audit linearization/last-admin preservation is not promised.
+Actor/target fields are explicit snapshots; repository return metadata never enters
+HTTP/log storage directly, and no password hash is stored or exposed there.
+
+DEF-031/032 are resolved in code, fixing commit to be recorded after committing.
+AC07/AC08 are removed from the open story list. No outside-owned file is needed.
+Real Sheets behavior, Mongo acknowledgment/durability, hosted/UI/keyboard acceptance
+and log-failure monitoring remain unverified. A successful change can be unlogged
+on append failure or crash; simultaneous mutual admin disable/demotion remains the
+agreed limitation. No shared provider, real mail, .env inspection, push or deployment.
