@@ -40,8 +40,18 @@ stories (US-P009, US-P008-AC05 and US-L004 are live).
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-L013 frontend: a password section on the profile page | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-L013 frontend: a password section on the profile page | Everything under `app/` except the version lines | Delivered locally in `821a3dc` (0.1.135); acceptance in the [spec](specs/US-L013-change-password.md) |
 | Codex | US-L013 API: change the password with the current one; notice mail; a password change cancels unused reset links | See the [spec](specs/US-L013-change-password.md) and [handoff](handoffs/US-L013-change-password-codex.md) | Delivered locally 2026-10-11: implementation f8a3713 (0.1.136), delivery record in this commit. Main/base 673fd59 confirmed; Claude frontend 821a3dc preserved. Spec first, isolated RED, 151 focused cases pass; read-only review clear after late-claim/fresh-read fixes. All five checks pass: API 813/39, journeys 6, API build, app 252/32, Pages build (existing style warnings). Real Sheets/Mongo/Brevo/mail and hosted combined profile/browser/keyboard unverified; no outside-file change needed. Sessions remain signed in; attempt limits open P008-AC02. Scoped local commits with fresh version/hook; Codex stopped, no push |
+
+Lead check 2026-10-11 on `783d02a`: Codex stayed within its files and the version lines. New:
+`POST /users/me/password`. Changed on purpose in the reset routes: a reset link is now tied to
+the password it was issued for, so any password change makes older links answer 410. 813 API
+and 252 frontend tests, six journeys and the API and Pages builds pass. Browser, in-memory
+API: wrong current password, weak and unchanged new password, a valid change, old and new
+login, one notice mail, and an earlier reset link no longer working. Nothing to fix.
+US-L013 is Done locally and out of the open backlog.
+Not verified: hosted behavior.
+Next: Alex decides on the push.
 
 **Session 2026-10-11 (6) — Alex chose Brevo without a domain and the sender `xqiacademy@gmail.com`.**
 Branch: `main`. Base: `80aef51` (local, 0.1.124; one commit not pushed). Selected by Alex in the

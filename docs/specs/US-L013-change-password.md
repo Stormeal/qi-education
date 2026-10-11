@@ -157,3 +157,21 @@ A password write already underway in the separate user store cannot be revoked
 retroactively. A stale claim may cancel newer sibling links before the fresh
 credential check rejects it; a new request follows the existing mail limit.
 This implementation does not claim a cross-provider password-write transaction.
+
+## Frontend acceptance by the lead (2026-10-11)
+
+Frontend delivered in `821a3dc` (0.1.135). Story Done locally and out of the open backlog.
+
+| Scenario | Check |
+| --- | --- |
+| US-L013-AC01 | `profile-page.spec.ts` (the current and new password go out with the session token and the form is cleared; a wrong current password is shown and keeps what was typed; two different new passwords are caught before anything is sent; the API's rule is shown). Browser, in-memory API, demo learner on the profile page: a wrong current password showed "Your current password is not correct." and the learner stayed signed in; a weak new password showed the API's rule; the current password as the new one showed "Choose a password that differs from your current one."; a valid change showed "Your password is changed", cleared the three fields and kept the learner signed in; `/auth/login` then answered 401 for the old password and 200 for the new one |
+| US-L013-AC02 | Browser: the API printed exactly one "Your QI-Education password was changed" mail to the learner, after the successful change and none for the three refused attempts |
+| Reset links cancelled | Browser: a reset link requested before the change opened "This link no longer works" afterwards |
+
+Decisions taken by the lead (confirm or change): the password form is its own card under the
+profile form with its own button; it states that other signed-in browsers stay signed in.
+
+Combined tree: 813 API and 252 frontend tests, six journeys, API and Pages builds pass. The
+combined check found nothing to fix.
+Not verified: hosted behavior against the real users sheet and Brevo, a screen reader, phone
+width.
