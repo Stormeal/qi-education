@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import {
   FeedbackEntry,
   FeedbackOption,
   FeedbackTriageUpdate,
   StudentSummary,
 } from '../../app.models';
+import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -15,11 +16,14 @@ import { PageHeader } from '../../ui/page-header/page-header';
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 type FeedbackTab = 'current' | 'archived';
-type AdminSection = 'feedback' | 'career-paths';
+type AdminSection = 'feedback' | 'career-paths' | 'instructors';
 const SECTION_KEY = 'qi-education:admin-section';
 
 function storedSection(): AdminSection {
-  try { return window.sessionStorage.getItem(SECTION_KEY) === 'career-paths' ? 'career-paths' : 'feedback'; }
+  try {
+    const stored = window.sessionStorage.getItem(SECTION_KEY);
+    return stored === 'career-paths' || stored === 'instructors' ? stored : 'feedback';
+  }
   catch { return 'feedback'; }
 }
 
@@ -74,6 +78,13 @@ export class AdminPage {
   ];
   // Remembered for the browser tab so a reload returns to the same section.
   protected readonly section = signal<AdminSection>(storedSection());
+  private readonly instructorProfiles = inject(InstructorProfileService);
+  protected readonly instructors = signal<AdminInstructorProfile[]>([]);
+  protected readonly instructorsState = signal<'loading' | 'ready' | 'error'>('loading');
+  protected readonly instructorsMessage = signal('');
+  private readonly instructorsLoader = effect(() => {
+    if (this.section() === 'instructors' && this.instructorProfiles.token()) void this.loadInstructors();
+  });
   protected readonly activeTab = signal<FeedbackTab>('current');
   protected readonly feedbackTotal = computed(() => this.feedback().length);
   protected readonly needsWorkTotal = computed(
@@ -121,6 +132,21 @@ export class AdminPage {
 
   protected selectedPriority(item: FeedbackEntry): FeedbackPriority {
     return item.priority ?? 'medium';
+  }
+
+  protected async loadInstructors(): Promise<void> {
+    this.instructorsState.set('loading');
+    const result = await this.instructorProfiles.adminList();
+    if (result.ok) this.instructors.set(result.body);
+    else this.instructorsMessage.set(result.message);
+    this.instructorsState.set(result.ok ? 'ready' : 'error');
+  }
+
+  protected async clearInstructor(profile: AdminInstructorProfile): Promise<void> {
+    if (!window.confirm(`Clear the public description of ${profile.displayName}? It disappears from their instructor card at once. They can write a new one.`)) return;
+    const result = await this.instructorProfiles.adminClear(profile.userId);
+    this.instructorsMessage.set(result.ok ? `Cleared the description of ${profile.displayName}.` : `Not cleared. ${result.message}`);
+    if (result.ok) this.instructors.update((items) => items.filter((item) => item.userId !== profile.userId));
   }
 
   protected selectSection(section: AdminSection): void {

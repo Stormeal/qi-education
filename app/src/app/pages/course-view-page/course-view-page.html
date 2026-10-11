@@ -534,6 +534,7 @@
               <div>
                 <small>Instructor</small>
                 <strong>{{ currentCourse.teacher }}</strong>
+                @if (instructorDescription()) { <span class="instructor-about">{{ instructorDescription() }}</span> }
               </div>
             </div>
           </div>

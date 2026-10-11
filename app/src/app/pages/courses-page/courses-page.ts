@@ -13,6 +13,7 @@ import {
 } from '../../app.models';
 import { ApiClientService } from '../../services/api-client.service';
 import { CourseService } from '../../services/course.service';
+import { InstructorProfileService } from '../../services/instructor-profile.service';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -34,6 +35,7 @@ type RatingFilterOption = {
 
 type PopularInstructorCard = {
   name: string;
+  description: string;
   topics: string[];
   rating: number;
   ratingCount: number;
@@ -50,6 +52,7 @@ type PopularInstructorCard = {
 export class CoursesPage {
   private readonly apiClient = inject(ApiClientService);
   private readonly courseService = inject(CourseService);
+  private readonly instructorProfiles = inject(InstructorProfileService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -148,6 +151,7 @@ export class CoursesPage {
   ];
 
   constructor() {
+    void this.instructorProfiles.loadPublic();
     effect(() => {
       if (this.coursesLoading() || this.coursesError()) {
         return;
@@ -250,18 +254,20 @@ export class CoursesPage {
   protected readonly popularInstructors = computed<PopularInstructorCard[]>(() => {
     const grouped = new Map<
       string,
-      { topics: Set<string>; weightedRating: number; ratingCount: number; coursesCount: number }
+      { topics: Set<string>; courseIds: string[]; weightedRating: number; ratingCount: number; coursesCount: number }
     >();
 
     for (const course of this.courses().filter((item) => item.status === 'published')) {
       const existing = grouped.get(course.teacher) ?? {
         topics: new Set<string>(),
+        courseIds: [],
         weightedRating: 0,
         ratingCount: 0,
         coursesCount: 0,
       };
 
       existing.coursesCount += 1;
+      existing.courseIds.push(course.id);
       existing.ratingCount += course.ratingCount;
       existing.weightedRating += course.rating * course.ratingCount;
 
@@ -279,6 +285,7 @@ export class CoursesPage {
     return [...grouped.entries()]
       .map(([name, value]) => ({
         name,
+        description: this.instructorProfiles.descriptionFor(value.courseIds),
         topics: [...value.topics].slice(0, 2),
         rating: value.ratingCount > 0 ? Math.round((value.weightedRating / value.ratingCount) * 10) / 10 : 0,
         ratingCount: value.ratingCount,
@@ -363,6 +370,8 @@ export class CoursesPage {
   }
 
   protected instructorMetaLabel(value: PopularInstructorCard): string {
+    // US-T007: the teacher's own words when they wrote some; otherwise the course topics, never invented biography.
+    if (value.description) return value.description;
     return value.topics.length > 0 ? value.topics.join(', ') : 'Course instructor';
   }
 

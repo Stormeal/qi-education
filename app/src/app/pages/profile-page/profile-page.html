@@ -63,7 +63,9 @@
         [value]="bio()"
         (input)="bioChanged.emit(controlValue($event))"
       ></textarea>
-      <p class="profile-field-hint">{{ bioMaxLength - bio().length }} characters left</p>
+      <p class="profile-field-hint">
+        {{ bioMaxLength - bio().length }} characters left@if (bioPublic()) {. Shown publicly on your instructor card once you have a published course.}
+      </p>
     </div>
 
     <div class="profile-grid">
@@ -109,10 +111,12 @@
 
     <div class="profile-actions">
       <p class="profile-save-state" role="status" aria-live="polite">
-        @if (profileSaved()) {
-          <span class="profile-saved">Saved on this device.</span>
+        @if (saveError()) {
+          <span class="profile-save-error">{{ saveError() }}</span>
+        } @else if (profileSaved()) {
+          <span class="profile-saved">{{ bioPublic() ? 'Saved. "About you" is on your account; the rest stays on this device.' : 'Saved on this device.' }}</span>
         } @else {
-          <span class="profile-save-hint">Changes are stored on this device.</span>
+          <span class="profile-save-hint">{{ bioPublic() ? '"About you" is saved to your account and shown publicly. Other changes are stored on this device.' : 'Changes are stored on this device.' }}</span>
         }
       </p>
       <app-button variant="primary" type="submit" [disabled]="!profileDirty() || profileSaving()">

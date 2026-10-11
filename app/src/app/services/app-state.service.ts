@@ -32,6 +32,7 @@ import { AuthService } from './auth.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
+import { InstructorProfileService } from './instructor-profile.service';
 import { SessionService } from './session.service';
 import { CareerPathService } from './career-path.service';
 import { LearningProgressService } from './learning-progress.service';
@@ -46,6 +47,7 @@ export class AppStateService {
   private readonly courseService = inject(CourseService);
   private readonly feedbackService = inject(FeedbackService);
   private readonly profileService = inject(ProfileService);
+  private readonly instructorProfiles = inject(InstructorProfileService);
   private readonly sessionService = inject(SessionService);
   private readonly learningProgress = inject(LearningProgressService);
   private readonly careerPaths = inject(CareerPathService);
@@ -62,7 +64,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.114';
+  readonly appVersion = '0.1.115';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -86,6 +88,9 @@ export class AppStateService {
   readonly profileAvatarColor = signal(DEFAULT_AVATAR_COLOR);
   readonly profileSaving = signal(false);
   readonly profileSaved = signal(false);
+  readonly profileError = signal('');
+  /** US-T007: a teacher's or admin's "About you" is saved to the account and shown on instructor cards. */
+  readonly profileBioPublic = computed(() => ['teacher', 'admin'].includes(this.loginState()?.user.role ?? ''));
   private readonly profileSnapshot = signal('');
   private profileSavedTimeout: ReturnType<typeof setTimeout> | null = null;
   readonly avatarColorOptions: readonly string[] = [
@@ -350,6 +355,7 @@ export class AppStateService {
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
   constructor() {
+    effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
     this.sessionService.setSessionContextProvider(() => this.loginState());
     this.sessionService.onUnauthorized(() => {
       this.logout(true);
@@ -724,7 +730,7 @@ export class AppStateService {
     this.profileSaved.set(false);
   }
 
-  saveProfile(): void {
+  async saveProfile(): Promise<void> {
     const userId = this.loginState()?.user.id;
 
     if (!userId || this.profileSaving() || !this.profileDirty()) {
@@ -732,6 +738,17 @@ export class AppStateService {
     }
 
     this.profileSaving.set(true);
+    this.profileError.set('');
+
+    if (this.profileBioPublic()) {
+      const saved = await this.instructorProfiles.saveOwn(this.profileBio().trim());
+      if (!saved.ok) {
+        // Nothing is stored on the device either, so the form stays unsaved and can be retried.
+        this.profileError.set(`Your profile was not saved. ${saved.message}`);
+        this.profileSaving.set(false);
+        return;
+      }
+    }
 
     const details: UserProfileDetails = {
       bio: this.profileBio().trim(),
@@ -763,6 +780,15 @@ export class AppStateService {
     this.profileAvatarColor.set(profile.avatarColor);
     this.profileSnapshot.set(this.serializeProfile());
     this.profileSaved.set(false);
+    this.profileError.set('');
+    if (!this.profileBioPublic()) return;
+    const userId = this.loginState()?.user.id;
+    // The account's description wins over the device copy, unless the user is already typing.
+    void this.instructorProfiles.loadOwn().then((result) => {
+      if (!result.ok || this.loginState()?.user.id !== userId || this.profileDirty()) return;
+      this.profileBio.set(result.body.description ?? '');
+      this.profileSnapshot.set(this.serializeProfile());
+    });
   }
 
   private serializeProfile(): string {

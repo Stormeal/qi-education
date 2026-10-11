@@ -488,3 +488,41 @@
     min-width: 180px;
   }
 }
+
+.admin-instructor-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: start;
+    border: 1px solid rgba(108, 101, 88, 0.16);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  strong {
+    color: #171b4a;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #6c6558;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+}
+
+.admin-instructor-message,
+.admin-instructor-empty {
+  margin: 0 0 12px;
+  color: #6c6558;
+  font-size: 14px;
+}

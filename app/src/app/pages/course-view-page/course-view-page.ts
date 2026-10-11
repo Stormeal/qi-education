@@ -47,6 +47,7 @@ import {
   StudentSummary,
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
+import { InstructorProfileService } from '../../services/instructor-profile.service';
 import { ApiClientService } from '../../services/api-client.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
 import { AppButton } from '../../ui/app-button/app-button';
@@ -67,6 +68,7 @@ type CourseViewMode = 'details' | 'learning';
 export class CourseViewPage {
   private readonly apiClient = inject(ApiClientService);
   private readonly courseService = inject(CourseService);
+  private readonly instructorProfiles = inject(InstructorProfileService);
   private readonly learningProgress = inject(LearningProgressService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly document = inject(DOCUMENT);
@@ -176,6 +178,7 @@ export class CourseViewPage {
   readonly canAccessAdmin = input.required<boolean>();
   readonly canEditCourse = input.required<boolean>();
   readonly course = input.required<CourseListItem | null>();
+  protected readonly instructorDescription = computed(() => this.instructorProfiles.descriptionFor([this.course()?.id ?? '']));
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();
   readonly courseContent = input.required<CourseContentDocument | null>();
@@ -218,6 +221,7 @@ export class CourseViewPage {
   readonly feedbackSubmittedClicked = output<void>();
 
   constructor() {
+    void this.instructorProfiles.loadPublic();
     effect(() => {
       const content = this.courseContent();
 

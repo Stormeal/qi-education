@@ -31,6 +31,8 @@ export class ProfilePage {
   readonly learningGoals = input.required<string>();
   readonly profileSaving = input.required<boolean>();
   readonly profileSaved = input.required<boolean>();
+  readonly bioPublic = input(false);
+  readonly saveError = input('');
   readonly profileDirty = input.required<boolean>();
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();

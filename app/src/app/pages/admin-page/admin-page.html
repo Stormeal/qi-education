@@ -19,11 +19,13 @@
   <header class="admin-hero">
     <div class="admin-hero-copy">
       <p class="eyebrow">Admin</p>
-      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : 'Career paths' }}</h1>
+      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : 'Career paths' }}</h1>
       <p>
         {{ section() === 'feedback'
           ? 'Review user feedback, spot friction, and prioritize follow-up work.'
-          : 'Curate the paths learners can follow. Nothing reaches learners until you publish.' }}
+          : section() === 'instructors'
+            ? 'Teachers write these in their profile. They are public as soon as they are saved; clear one that is unsuitable.'
+            : 'Curate the paths learners can follow. Nothing reaches learners until you publish.' }}
       </p>
     </div>
 
@@ -46,6 +48,9 @@
     </button>
     <button type="button" [attr.aria-current]="section() === 'career-paths' ? 'page' : null" (click)="selectSection('career-paths')">
       Career paths
+    </button>
+    <button type="button" [attr.aria-current]="section() === 'instructors' ? 'page' : null" (click)="selectSection('instructors')">
+      Instructor descriptions
     </button>
   </nav>
 
@@ -198,6 +203,29 @@
     </div>
   </section>
 
+  } @else if (section() === 'instructors') {
+    <section class="admin-panel" aria-label="Instructor descriptions">
+      @if (instructorsMessage()) { <p class="admin-instructor-message" role="status">{{ instructorsMessage() }}</p> }
+      @if (instructorsState() === 'loading') {
+        <app-loading-skeleton variant="stat-card" [count]="2" />
+      } @else if (instructorsState() === 'error') {
+        <app-button variant="outline" (buttonClicked)="loadInstructors()">Try again</app-button>
+      } @else if (instructors().length === 0) {
+        <p class="admin-instructor-empty">No teacher has written a description yet.</p>
+      } @else {
+        <ul class="admin-instructor-list">
+          @for (profile of instructors(); track profile.userId) {
+            <li>
+              <div>
+                <strong>{{ profile.displayName }}</strong>
+                <p>{{ profile.description }}</p>
+              </div>
+              <app-button variant="outline" [ariaLabel]="'Clear the description of ' + profile.displayName" (buttonClicked)="clearInstructor(profile)">Clear</app-button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
   } @else {
     <app-career-path-editor />
   }
