@@ -22,6 +22,8 @@ export type SignupResult =
       message: string;
     };
 
+export type PasswordResetResult = { ok: true } | { ok: false; invalid: boolean; message: string };
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly apiClient = inject(ApiClientService);
@@ -96,6 +98,41 @@ export class AuthService {
     }
 
     return (await response.json()) as Omit<LoginResponse, 'token'>;
+  }
+
+  /** US-L004. The reply is the same whether or not the address has an account. */
+  async requestPasswordReset(email: string): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+    const result = await this.passwordReset('request', { email: email.trim() });
+    return result.status === 202
+      ? { ok: true, message: result.message || 'If an account exists for this address, we have sent a reset link.' }
+      : { ok: false, message: result.message || 'We could not send email right now. Please try again later.' };
+  }
+
+  checkPasswordReset(token: string): Promise<PasswordResetResult> {
+    return this.passwordResetOutcome('check', { token });
+  }
+
+  confirmPasswordReset(token: string, password: string): Promise<PasswordResetResult> {
+    return this.passwordResetOutcome('confirm', { token, password });
+  }
+
+  private async passwordResetOutcome(step: string, body: unknown): Promise<PasswordResetResult> {
+    const result = await this.passwordReset(step, body);
+    if (result.status === 204) return { ok: true };
+    // 410: the link is unknown, expired or used. Anything else can be retried with the same link.
+    return { ok: false, invalid: result.status === 410, message: result.message || 'Something went wrong. Please try again.' };
+  }
+
+  private async passwordReset(step: string, body: unknown): Promise<{ status: number; message: string }> {
+    try {
+      const response = await this.apiClient.fetch(`/auth/password-reset/${step}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const json = await response.json().catch(() => ({})) as { message?: string };
+      return { status: response.status, message: json.message ?? '' };
+    } catch {
+      return { status: 0, message: 'Unable to reach the API. Please try again.' };
+    }
   }
 
   private loginFailureMessage(message: string, response: Response): string {

@@ -38,6 +38,11 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
   },
   {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/password-reset-page/password-reset-page').then((module) => module.PasswordResetPage),
+  },
+  {
     path: 'career-path',
     loadComponent: () =>
       import('./routes/career-path-route').then((module) => module.CareerPathRoute),
