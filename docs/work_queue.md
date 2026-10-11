@@ -33,6 +33,16 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (4) — started by the user with "let's work on the next task".**
+Branch: `main`. Base: `96b9071` (local, 0.1.113; ten commits not pushed). No confirmed defect
+is open, so the lead picked the first open story in backlog order, US-T007. Decided by Alex:
+a teacher's description is public as soon as it is saved; an admin can clear it.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-T007 frontend: the profile's "About you" saved to the account for teachers and admins; description on the catalog and course instructor cards with a fallback; clear on the Admin page | Everything under `app/` except the version lines | In progress |
+| Codex | US-T007 API and storage: own description read/save, public list by published course, admin list and clear | See the [handoff](handoffs/US-T007-instructor-description-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 (3) — started by the user with "let's start working on the next".**
 Branch: `main`. Base: `28cf2fa` (local, 0.1.108; five commits not pushed). Picked by Claude
 Code as lead: DEF-022, the only open confirmed defect, for Claude. It is one component, so
