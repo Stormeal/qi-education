@@ -87,6 +87,17 @@ describe('US-L004 forgot password and reset page', () => {
     expect([...page.host.querySelectorAll('a')].at(-1)!.textContent).toContain('Go to log in');
   });
 
+  it('AC03 a link pasted into a tab that already shows the page is read as a fresh visit', () => {
+    const page = open();
+    const reload = vi.spyOn(page.fixture.componentInstance as unknown as { reloadPage(): void }, 'reloadPage').mockImplementation(() => {});
+    window.history.replaceState(null, '', '/reset-password#token=secret-token');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(reload).toHaveBeenCalledTimes(1);
+    window.history.replaceState(null, '', '/reset-password#other');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
   it('AC03 an expired, used or malformed link offers a new one', async () => {
     replies['/auth/password-reset/check'] = json(410, { message: 'This reset link is no longer valid. Request a new one.', code: 'reset-link-invalid' });
     const page = open('#token=old');

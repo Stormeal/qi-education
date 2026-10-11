@@ -14,7 +14,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
-| US-L004 | Recover account access | In progress | P2 | API/mail delivered; combined frontend/hosted verification | DEF-026 fixed; AC03 remains |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L013 | Change my password while signed in | Proposed | P2 | None | None |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
@@ -137,33 +136,6 @@ Feature: Account profile persistence
     When saving fails or validation rejects a field
     Then I see a useful error and my edits remain available
     And another account cannot read or change my private profile details
-```
-
-### US-L004 — Recover account access
-
-**As a user, I want a working recovery path when I forget my password, so that
-I can regain access without creating a duplicate account.**
-
-State: In progress, remaining AC03 frontend/combined browser verification. The API
-AC01/02/04/05 and account-mail sender are delivered in the
-[reset spec](specs/US-L004-password-reset.md) and
-[mail spec](specs/US-P009-account-email.md), including DEF-026's regression.
-The account limit is three reset-mail slots per rolling hour, stored across API
-instances. Client-address and confirmation-mail limits remain open in US-P008.
-Alex owns production settings and the real delivery/spam check. A provider failure
-can answer 503 only for an active account; that rare existence signal is accepted.
-Known limit: already signed-in browsers retain their signed session until expiry.
-No session revocation is included. Claude owns AC03 and the request form; local API
-verification does not claim a combined browser or hosted acceptance check.
-
-```gherkin
-Feature: Password recovery
-  Scenario: US-L004-AC03 Reset from the link in the mail
-    Given I opened the reset link from my mail
-    When the page loads
-    Then I can enter and confirm a new password without signing in
-    And an expired, used or malformed link tells me to request a new one
-
 ```
 
 ### US-L007 — Present the primary recommendation first

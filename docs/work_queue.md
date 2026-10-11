@@ -40,9 +40,22 @@ US-L004 and US-P008-AC05 as one increment, because the sender has no other user 
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-L004 frontend: "Forgot password?" form on the login page; reset page at `/reset-password` | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-L004 frontend: "Forgot password?" form on the login page; reset page at `/reset-password` | Everything under `app/` except the version lines | Delivered locally in `1470b3a` (0.1.126) plus the pasted-link fix in the lead-check commit; acceptance in the [spec](specs/US-L004-password-reset.md) |
 | Codex | US-P009 mail sender (Brevo and local); US-L004 reset API and token storage; US-P008-AC05 limit on reset mail | See the [handoff](handoffs/account-email-password-reset-codex.md) | Delivered locally in `9f87cb7` (implementation, 0.1.127); this delivery-record commit carries another hook-aligned patch bump. Owner Codex, main/base be57a77 (ancestor confirmed), selected 2026-10-11; both specs written first. Delivered: injectable Brevo/local sender, three no-store reset routes, hashed 60-minute tokens, atomic shared three-mail reservation/single-use claim, Sheets/memory hash update and notice. DEF-026 reproduced then Fixed: enrollment writes only H to preserve the reset hash in D. Final read-only review clear. All five checks pass: 744 API tests (95 focused, 66 HTTP), six journeys, API build, 248 frontend tests and Pages build; existing jsdom/style warnings. Unverified: shared Mongo/Sheets durability, real Brevo acceptance/delivery/spam, hosted/combined browser/keyboard flow. Failed sends retain unusable slots for one hour; a failed password write leaves the claimed token consumed; signed sessions remain. Claude frontend commit 1470b3a preserved. Remaining: Claude's AC03/browser acceptance; Alex's real settings/delivery check and client-address/confirmation-mail limit decisions. No outside-owned file needed, real mail/shared mutations, branch/worktree, push or deployment. Codex stopped |
-| Alex | Brevo account and sender confirmation; four settings in Vercel; real delivery test | Brevo, Vercel, his mailbox | Steps given in chat 2026-10-11 |
+| Alex | Brevo account and sender confirmation; four settings in Vercel; real delivery test | Brevo, Vercel, his mailbox | Four settings added in Vercel (seen by name, 2026-10-11). Open: confirm the sender in Brevo, then the real delivery test after the push |
+
+Lead check 2026-10-11 on `2a54da9`: Codex stayed within its files and the version lines. New:
+a mail sender, three reset routes and a token store; `/health/config` gained a `mail` field.
+One existing behavior changed on purpose (DEF-026, reproduced first): enrollment now writes
+only the enrolled-courses cell of the users sheet instead of the whole row, so it cannot put
+back a password that was just reset. 744 API and 249 frontend tests, six journeys and the API
+and Pages builds pass. Browser, in-memory API with the local mail sender: the whole flow from
+"Forgot password?" to signing in with the new password, the used link, the weak password and
+the three-mail limit. The check found and fixed a gap in the lead's page (a link pasted into
+an open tab). US-L004 and US-P009 are Done locally; US-P008-AC05 is delivered for accounts.
+Not verified: a real mail through Brevo, the hosted reset link, enrollment against the real
+users sheet after DEF-026.
+Next: Alex decides on the push, then runs the delivery test and one hosted enrollment.
 
 **2026-10-11, after the push of `7675e98` (0.1.123; CI and the Pages deployment succeeded).**
 Alex brainstormed account email with the lead and asked for the stories to be recorded.

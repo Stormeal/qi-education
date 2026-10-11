@@ -169,3 +169,32 @@ Local implementation commit: `9f87cb741d8942ffc4b98f97bddc01ec07a0e815` (2026-10
 This delivery-record commit preserves that hash and carries another aligned patch
 bump for the hook. The API increment is complete; frontend/hosted acceptance and
 the explicitly open limits remain with their owners. Codex stopped; no push.
+
+## Frontend acceptance by the lead (2026-10-11)
+
+Frontend delivered in `1470b3a` (0.1.126) and a fix in the lead-check commit. Story Done
+locally; removed from the open backlog. The real delivery test stays with Alex (below).
+
+| Scenario | Check |
+| --- | --- |
+| US-L004-AC01 | `password-reset-page.spec.ts` (the address is sent trimmed; the same reply is shown whatever the account). Browser, in-memory API with the local mail sender: "Forgot password?" on the login page opens `/reset-password`; an unknown address and the demo learner's address (typed with capitals) both ended on "Check your email" with the same sentence; the API printed one mail, to the learner only |
+| US-L004-AC02 | Same spec (the API's password rule is shown and the link stays usable; a link that stops working while the form is open says so). Browser: "weakpass" was refused with "Password must include at least one capital letter" and the form stayed; a valid password ended on "Your password is changed"; the old password then answered 401 and the new one 200 at `/auth/login`, and signing in through the login page worked; the same link again answered 410 |
+| US-L004-AC03 | Same spec (the link is checked, removed from the address bar, mismatched passwords are caught before anything is sent, an invalid link offers a new one, a link pasted into an open tab is read as a fresh visit). Browser: the link from the printed mail opened "Choose a new password" with focus on the heading and no token left in the address bar; the used link showed "This link no longer works" with "Request a new link" |
+| US-L004-AC04 | Browser: after the change the API printed "Your QI-Education password was changed" to the learner, without a link |
+| US-L004-AC05 | Same spec (a 503 shows "try again later" and keeps the typed address) |
+| US-P008-AC05 | Browser: four requests for the demo teacher all answered 202 and the API printed three mails; a malformed address answered 400 |
+
+Found in the combined check and fixed: opening the link in a tab that already showed the
+reset page did nothing, because only the fragment changed and the page was not rebuilt. The
+page now reloads when a fragment with a token arrives (regression case in the spec above); in
+the browser the same-tab link then opened "Choose a new password".
+
+Decisions taken by the lead (confirm or change): one page serves both steps; the token is
+removed from the address bar as soon as it is read; the "sent" step warns that the mail may
+be in the spam folder.
+
+Combined tree: 744 API and 249 frontend tests, six journeys, API and Pages builds pass.
+Not verified: a real mail through Brevo (acceptance, sender shown, spam placement), the link
+on the hosted site (GitHub Pages serves `/qi-education/reset-password` through its 404
+fallback), real Google Sheets and MongoDB, how the page looks (the browser pane was not
+displayed), a screen reader, phone width.

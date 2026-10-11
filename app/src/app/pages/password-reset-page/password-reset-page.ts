@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { AppButton } from '../../ui/app-button/app-button';
@@ -32,6 +32,11 @@ export class PasswordResetPage {
   protected readonly message = signal('');
 
   constructor() {
+    // A link pasted into a tab that already shows this page only changes the fragment, which
+    // does not rebuild the page. Reload so the new link is read like a fresh visit.
+    const reload = () => { if (window.location.hash.includes('token=')) this.reloadPage(); };
+    window.addEventListener('hashchange', reload);
+    inject(DestroyRef).onDestroy(() => window.removeEventListener('hashchange', reload));
     if (!this.token) return;
     // Remove the token from the address bar and the browser history entry.
     window.history.replaceState(null, '', window.location.pathname);
@@ -74,6 +79,11 @@ export class PasswordResetPage {
   protected startOver(): void {
     this.error.set('');
     this.show('request');
+  }
+
+  // A member so a test can observe it; a real reload would end the test run.
+  protected reloadPage(): void {
+    window.location.reload();
   }
 
   private show(step: Step): void {
