@@ -153,3 +153,23 @@ acceptance remain unverified; Alex handles them after deployment authorization.
 DEF-030 is Fixed locally in 2010bfa; its original reproduction bytes and append-only
 resolution remain in the defect log. US-P011-AC01/02/03 are removed from the backlog.
 Codex stopped after the scoped delivery-record commit; no push or deployment.
+
+## Lead check and correction (2026-10-11)
+
+Checked on the lead's machine, where `api/.env` holds the real settings, without contacting
+any service (configuration and `/health/config` only):
+
+| Start | Result |
+| --- | --- |
+| Built API on a spare port, no setting | Startup line `Stores: isolated`; `/health/config` reports `mode: isolated`, users, content and assets in memory, Mux not configured |
+| `USE_SHARED_SERVICES=1` | mode `shared`; Sheets and MongoDB settings present |
+| `NODE_ENV=production` | mode `hosted`; Sheets and MongoDB settings present |
+| `VERCEL=1` in the shell | mode `hosted` |
+
+Correction in the lead-check commit: `VERCEL` counts only when the process already has it
+before `api/.env` is loaded. A pulled `api/.env` can contain `VERCEL=1`, which would have
+turned a local run into a hosted one and put it back on the shared services.
+
+963 API and 265 frontend tests, six journeys, API and Pages builds pass on the combined tree.
+Not verified before the push: the hosted API after deployment (checked right after it; see
+the work queue). Local mail stays printed outside production, as decided.

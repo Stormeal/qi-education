@@ -39,8 +39,18 @@ the three stories from the audit and the session question. Split with no file in
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-P010: open the app from the stored session and check it in the background. US-P012: no hosted fallback on local hosts | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-P010: open the app from the stored session and check it in the background. US-P012: no hosted fallback on local hosts | Everything under `app/` except the version lines | Delivered locally in `373cf6f` (0.1.147); record in the [spec](specs/US-P010-P012-session-and-local-api.md) |
 | Codex | US-P011: local runs use isolated stores unless `USE_SHARED_SERVICES=1` | See the [spec](specs/US-P011-isolated-local-runs.md) and [handoff](handoffs/US-P011-isolated-local-runs-codex.md) | Delivered locally 2026-10-11: implementation 2010bfa (0.1.148), delivery record in this commit with fresh aligned version/hook. Main/base dba0646 confirmed; Claude 373cf6f preserved. Spec first; initial RED for API/scripts and DEF-030 ambient credential leak, then centralized filtering/factory guards. AC01/02/03 Done; DEF-030 Fixed. All five checks pass: API 963/43, journeys 6, API build, app 265/34, Pages build (existing stylesheet/test-setup/jsdom warnings). Independent read-only review clear after injected-builder correction; 50 focused cases; no hosted-detection doubt. No .env inspection/change, shared services, real mail, ports 3001/4200 or push. Real shared-service readiness, hosted startup/login and combined browser acceptance unverified; Alex handles release checks. No outside-file change needed. Codex stopped |
+
+Lead check 2026-10-11 on `b2f2bd9`: Codex stayed within its files and the version lines. The
+mode is decided in one place (`getServicesMode` in `api/src/config.ts`); an isolated run never
+sees the shared services' settings. It also found and fixed DEF-030 (credentials inherited
+from the shell could still select shared assets, Mux webhooks and GitHub in tests). The lead
+added one guard: `VERCEL` from `api/.env` does not make a local run hosted. 963 API and 265
+frontend tests, six journeys and the API and Pages builds pass. Checked with the real
+`api/.env` and no outside call: default isolated, opt-in shared, production and Vercel hosted.
+US-P010, US-P011 and US-P012 are Done locally and out of the open backlog.
+Next: push (asked for by Alex), then confirm the hosted API still reports its real stores.
 
 **2026-10-11, audit of outside calls and the session screen (asked for by Alex).**
 The lead ran both test suites with a spy that records and blocks real network calls. Two

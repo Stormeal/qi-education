@@ -16,7 +16,11 @@ function sharedServicesEnabled(): boolean { return getServicesMode() !== 'isolat
 
 if (process.env.NODE_ENV !== 'test') {
   const apiRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  // Only the host itself may say "this is Vercel". A pulled api/.env can contain VERCEL=1,
+  // which would turn a local run into a hosted one and back onto the shared services.
+  const onVercel = process.env.VERCEL !== undefined;
   loadEnv({ path: resolve(apiRoot, '.env'), quiet: true });
+  if (!onVercel) delete process.env.VERCEL;
 }
 
 const envSchema = z.object({

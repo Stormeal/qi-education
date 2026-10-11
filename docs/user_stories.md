@@ -23,8 +23,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit repeated sign-in attempts and reset requests | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
-| US-P010 | Open the app at once when I return | Proposed | P2 | None | None |
-| US-P012 | A local frontend never reads the live API silently | Proposed | P3 | None | Audit 2026-10-11, finding 4; DEF-028 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -366,74 +364,6 @@ Its contract/evidence is in the [reset spec](specs/US-L004-password-reset.md).
 Client-address limits and confirmation-mail limits remain open for Alex's decision;
 no sign-in attempt or other abuse controls were added. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
-
-### US-P010 — Open the app at once when I return
-
-**As a signed-in user, I want the page I reload to appear immediately, so that I am
-not shown "Restoring your session" every time I refresh or come back.**
-
-State: Proposed. Source: Alex, 2026-10-11. Today every page load blocks the whole screen
-until `GET /me` has answered (a host cold start plus a users sheet read), although the
-browser already stores the user, role and permissions from the last visit. Any failure of
-that request, including a network error, signs the user out.
-Proposed by the lead (confirm or change): render from the stored session at once and verify
-in the background; only an answer that says the session is invalid signs the user out; a
-stored token whose own expiry has passed goes straight to the login page without a request.
-Known effect: a user whose role was lowered may see their old menus until the check lands;
-the API refuses the actions regardless.
-
-```gherkin
-Feature: Returning to the app
-  Scenario: US-P010-AC01 Reload while signed in
-    Given I am signed in and my session is still valid
-    When I reload any page
-    Then the page appears from my stored session without a "Restoring your session" screen
-    And my session is checked in the background
-
-  Scenario: US-P010-AC02 The check finds a change
-    Given my role, status or enrollments changed since my last visit
-    When the background check answers
-    Then the page shows my current role and what it allows
-    And nothing I was not allowed to do was accepted in between
-
-  Scenario: US-P010-AC03 The session is no longer valid
-    Given my stored session has expired or was ended
-    When I open the app
-    Then I am taken to the login page with a request to log in again
-    And an expired stored token does that without first showing the app
-
-  Scenario: US-P010-AC04 The check cannot be made
-    Given the API cannot be reached or answers with a server error
-    When I open the app
-    Then I stay signed in and see which content could not be loaded
-    And I am not signed out by a temporary failure
-```
-
-### US-P012 — A local frontend never reads the live API silently
-
-**As a maintainer, I want a local frontend to fail clearly when its local API is down, so
-that I always know which service I am testing against.**
-
-State: Proposed. Source: 2026-10-11 audit of outside calls, finding 4, and DEF-028. On
-`localhost` a read that fails against the local API is retried against the hosted API
-(`resolveApiBaseUrls` in `api-client.service.ts`). Writes are already kept local (DEF-018).
-The same rule is what let frontend tests reach the live site until DEF-028 was fixed.
-Proposed by the lead (confirm or change): remove the fallback for local hosts instead of
-adding a setting for it.
-
-```gherkin
-Feature: Local frontend stays local
-  Scenario: US-P012-AC01 The local API is down
-    Given the frontend runs on a local host and the local API cannot be reached
-    When a page loads data
-    Then no request is sent to the hosted API
-    And the page says the local API is unavailable
-
-  Scenario: US-P012-AC02 Deployed sites are unchanged
-    Given the frontend runs on its deployed host
-    When a page loads data
-    Then it uses the hosted API as before
-```
 
 ## Adding a story
 

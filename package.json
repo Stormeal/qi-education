@@ -1,6 +1,6 @@
 {
   "name": "qi-education",
-  "version": "0.1.149",
+  "version": "0.1.150",
   "private": true,
   "engines": {
     "node": "22.x"
