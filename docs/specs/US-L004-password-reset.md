@@ -198,3 +198,24 @@ Not verified: a real mail through Brevo (acceptance, sender shown, spam placemen
 on the hosted site (GitHub Pages serves `/qi-education/reset-password` through its 404
 fallback), real Google Sheets and MongoDB, how the page looks (the browser pane was not
 displayed), a screen reader, phone width.
+
+## Hosted delivery test by Alex (2026-10-11, live site on 0.1.129)
+
+Seen in Alex's screenshots, account `stormlex@pm.me`:
+
+- First attempt: "We could not send email right now. Please try again later." The sender was
+  verified in Brevo and the key was an API key. Alex then authorised the calling IP address in
+  Brevo's security settings; the next attempt was accepted. The refusal reason itself was
+  never seen, because the sender logged nothing then (see the mail spec, operator diagnostics).
+- Second attempt: "Check your email", and the mail "Reset your QI-Education password" arrived
+  in a Proton mailbox. Shown sender: `QI-Academy <xqiacademy@12430448.brevosend.com>`, so Brevo
+  replaces the Gmail address with one of its own. Proton labels it "from a mailing list".
+- The link pointed at `https://stormeal.github.io/qi-education/reset-password#token=...` and the
+  hosted page ended on "Your password is changed". The GitHub Pages fallback therefore serves
+  the reset page.
+
+Not confirmed yet: whether the mail was in the inbox or the spam folder; logging in with the
+new password; arrival of the "password was changed" notice; delivery to Gmail and Outlook
+mailboxes; one hosted enrollment after DEF-026.
+Open risk: only one IP address was authorised in Brevo. Vercel calls from changing addresses,
+so sends can be refused again until IP blocking for API keys is turned off there.
