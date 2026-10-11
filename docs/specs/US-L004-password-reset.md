@@ -214,8 +214,9 @@ Seen in Alex's screenshots, account `stormlex@pm.me`:
   hosted page ended on "Your password is changed". The GitHub Pages fallback therefore serves
   the reset page.
 
-Not confirmed yet: whether the mail was in the inbox or the spam folder; logging in with the
-new password; arrival of the "password was changed" notice; delivery to Gmail and Outlook
+Reported by Alex afterwards: logging in on the live site with the new password works.
+
+Not confirmed yet: whether the mail was in the inbox or the spam folder; arrival of the "password was changed" notice; delivery to Gmail and Outlook
 mailboxes; one hosted enrollment after DEF-026.
 Open risk: only one IP address was authorised in Brevo. Vercel calls from changing addresses,
 so sends can be refused again until IP blocking for API keys is turned off there.
