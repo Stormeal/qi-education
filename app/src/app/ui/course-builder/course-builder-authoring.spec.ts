@@ -185,6 +185,47 @@ describe('US-T012 builder move events', () => {
     expect(moves).toEqual([]);
   });
 
+describe('US-T014 question image in the quiz editor', () => {
+  afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
+  const imageButton = (host: HTMLElement) => host.querySelector<HTMLButtonElement>('.quiz-question-image button')!;
+
+  it('offers Add image on a question without one and passes the chosen file on', () => {
+    const { fixture, host, open } = setup(); open();
+    const picked: unknown[] = [];
+    fixture.componentInstance.courseComponentQuizImageSelected.subscribe(event => picked.push(event));
+    expect(imageButton(host).textContent).toContain('Add image');
+    const input = host.querySelector<HTMLInputElement>('.quiz-question-image input[type="file"]')!;
+    expect(input.accept).toBe('image/jpeg,image/png,image/webp');
+    const file = new File(['x'], 'diagram.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    input.dispatchEvent(new Event('change'));
+    expect(picked).toEqual([{ sectionIndex: 0, componentIndex: 0, questionId: 'one', file }]);
+  });
+
+  it('shows the image with its description and a Remove button', () => {
+    const { fixture, host, doc, open } = setup();
+    const quiz = doc.sections[0].components[0];
+    if (quiz.type !== 'quiz') throw new Error('Missing quiz');
+    quiz.quiz.questions[0].image = { assetId: 'asset-1', alt: 'A test pyramid' };
+    fixture.componentRef.setInput('courseContent', structuredClone(doc));
+    fixture.componentRef.setInput('quizImageUrls', { 'asset-1': 'blob:test-image' });
+    fixture.detectChanges(); open();
+    const image = host.querySelector<HTMLImageElement>('.quiz-question-image img')!;
+    expect(image.getAttribute('src')).toBe('blob:test-image');
+    expect(image.alt).toBe('A test pyramid');
+    const edits: unknown[] = [], removed: unknown[] = [];
+    fixture.componentInstance.courseComponentQuizQuestionEdited.subscribe(event => edits.push(event.edit));
+    fixture.componentInstance.courseComponentQuizImageRemoved.subscribe(event => removed.push(event));
+    const alt = host.querySelector<HTMLInputElement>('.quiz-question-image input[type="text"]')!;
+    alt.value = 'Pyramid of tests'; alt.dispatchEvent(new Event('input'));
+    expect(edits).toEqual([{ kind: 'image-alt', value: 'Pyramid of tests' }]);
+    expect(imageButton(host).textContent).toContain('Remove image');
+    imageButton(host).click();
+    expect(removed).toEqual([{ sectionIndex: 0, componentIndex: 0, questionIndex: 0 }]);
+    expect(host.querySelectorAll('.quiz-question-body .quiz-answer-row')).toHaveLength(4);
+  });
+});
+
 describe('DEF-022 lesson editor dialog keyboard focus', () => {
   afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
   const key = (target: Element, init: KeyboardEventInit) => {

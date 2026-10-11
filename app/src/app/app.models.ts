@@ -160,6 +160,8 @@ export type QuizQuestion = {
   // Every question counts 1; the field stays because stored quizzes and the API still carry it.
   points: number;
   explanation?: string;
+  // US-T014: an image attachment of the quiz lesson, shown above the answers.
+  image?: QuizQuestionImage | null;
   // Learner reads only: more than one answer is correct, so all of them must be selected.
   multiple?: boolean;
   answers: QuizAnswerOption[];
@@ -169,10 +171,13 @@ export const QUIZ_MIN_ANSWERS = 2;
 export const QUIZ_MAX_ANSWERS = 6;
 
 /** A change to one quiz question that is not a plain text edit of an existing field. */
+export type QuizQuestionImage = { assetId: string; alt: string };
+
 export type QuizQuestionEdit =
   | { kind: 'add-answer' }
   | { kind: 'remove-answer'; answerIndex: number }
-  | { kind: 'explanation'; value: string };
+  | { kind: 'explanation'; value: string }
+  | { kind: 'image-alt'; value: string };
 
 export type QuizComponentContent = {
   passPoints: number;

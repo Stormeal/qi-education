@@ -310,6 +310,7 @@
             [attachmentUploadProgress]="attachmentUploadProgress()"
             [attachmentUploadStage]="attachmentUploadStage()"
             [attachmentUploadError]="attachmentUploadError()"
+            [quizImageUrls]="quizImageUrls()"
             (courseSectionAdded)="courseSectionAdded.emit()"
             (courseEditorBufferChanged)="courseEditorBufferChanged.emit($event)"
             (courseFocusedBufferChanged)="courseFocusedBufferChanged.emit($event)"
@@ -337,6 +338,8 @@
             (courseComponentQuizAnswerDescriptionChanged)="courseComponentQuizAnswerDescriptionChanged.emit($event)"
             (courseComponentQuizAnswerCorrectChanged)="courseComponentQuizAnswerCorrectChanged.emit($event)"
             (courseComponentQuizQuestionEdited)="courseComponentQuizQuestionEdited.emit($event)"
+            (courseComponentQuizImageSelected)="courseComponentQuizImageSelected.emit($event)"
+            (courseComponentQuizImageRemoved)="courseComponentQuizImageRemoved.emit($event)"
             (courseComponentMoved)="courseComponentMoved.emit($event)"
           />
           </div>

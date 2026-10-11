@@ -347,3 +347,26 @@ app-course-builder .rich-attachment-card.is-pending {
     border-bottom: 1px solid rgba(140, 121, 96, 0.16);
   }
 }
+
+app-course-builder .quiz-question-image {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+
+  img {
+    max-width: min(100%, 420px);
+    max-height: 260px;
+    border: 1px solid #cfc7bc;
+    border-radius: 6px;
+    object-fit: contain;
+  }
+
+  label {
+    width: 100%;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+  }
+}

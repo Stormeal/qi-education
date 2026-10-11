@@ -115,6 +115,9 @@ export type CourseEnrollmentResult =
 export class CourseService {
   private readonly apiClient = inject(ApiClientService);
   private readonly thumbnailUrls = signal<Record<string, string>>({});
+  /** US-T014: object URLs of question images, by asset id. Loaded with the session token; never a public URL. */
+  readonly quizImageUrls = signal<Record<string, string>>({});
+  private readonly quizImageRequests = new Set<string>();
   private readonly thumbnailWarmRequests = new Map<string, Promise<void>>();
   private thumbnailToken = '';
   private thumbnailGeneration = 0;
@@ -440,6 +443,26 @@ export class CourseService {
       ok: true,
       course: body,
     };
+  }
+
+  /** Loads every question image of this content once. A failed image just stays hidden. */
+  loadQuizImages(content: CourseContentDocument | null, token: string): void {
+    if (!content || !token) return;
+    for (const component of content.sections.flatMap((section) => section.components)) {
+      if (component.type !== 'quiz') continue;
+      for (const assetId of component.quiz.questions.map((question) => question.image?.assetId ?? '')) {
+        if (!assetId || this.quizImageRequests.has(assetId)) continue;
+        this.quizImageRequests.add(assetId);
+        void this.apiClient.fetch(`/courses/${encodeURIComponent(content._id)}/content/attachments/${encodeURIComponent(assetId)}`,
+          { method: 'GET', headers: { authorization: `Bearer ${token}` } })
+          .then(async (response) => {
+            if (!response.ok) throw new Error('unavailable');
+            const url = URL.createObjectURL(await response.blob());
+            this.quizImageUrls.update((urls) => ({ ...urls, [assetId]: url }));
+          })
+          .catch(() => { this.quizImageRequests.delete(assetId); });
+      }
+    }
   }
 
   async uploadComponentAttachment(

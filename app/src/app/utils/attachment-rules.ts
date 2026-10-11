@@ -5,6 +5,12 @@ const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
 
 /** Why this file cannot be attached to a lesson of this type, or '' when it can. */
 export function attachmentProblem(type: CourseComponentType, file: File): string {
+  // US-T014: a quiz lesson only takes question images.
+  if (type === 'quiz' && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type.toLowerCase())) {
+    return 'A question image must be a JPEG, PNG or WebP file.';
+  }
+  if (type === 'quiz') return file.size > MAX_ATTACHMENT_BYTES ? 'A question image must be 4 MB or smaller.' : '';
+
   if (!isAllowedComponentAttachment(type, file)) {
     return type === 'text'
       ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'

@@ -81,6 +81,11 @@
                         <h1 id="learning-player-title">
                           {{ activeQuizQuestion().question || 'Question text coming soon.' }}
                         </h1>
+                        @if (activeQuizQuestion().image; as image) {
+                          @if (quizImageUrls()[image.assetId]; as imageUrl) {
+                            <img class="learning-quiz-image" [src]="imageUrl" [alt]="image.alt" />
+                          }
+                        }
                         @if (isComponentCompleted(currentComponent.id)) {
                           <span class="learning-complete-badge">
                             <span class="inline-icon" aria-hidden="true" [innerHTML]="checkIcon"></span>

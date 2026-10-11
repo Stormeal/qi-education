@@ -24,6 +24,7 @@ import {
   QUIZ_MIN_ANSWERS,
   QuizComponentContent,
   QuizQuestionEdit,
+  QuizQuestionImage,
   SignupRequest,
   UserProfileDetails,
   UserRole,
@@ -45,6 +46,7 @@ export class AppStateService {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly courseService = inject(CourseService);
+  readonly quizImageUrls = this.courseService.quizImageUrls;
   private readonly feedbackService = inject(FeedbackService);
   private readonly profileService = inject(ProfileService);
   private readonly instructorProfiles = inject(InstructorProfileService);
@@ -64,7 +66,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.119';
+  readonly appVersion = '0.1.120';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -356,6 +358,7 @@ export class AppStateService {
 
   constructor() {
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
+    effect(() => this.courseService.loadQuizImages(this.courseContent(), this.loginState()?.token ?? ''));
     this.sessionService.setSessionContextProvider(() => this.loginState());
     this.sessionService.onUnauthorized(() => {
       this.logout(true);
@@ -1147,6 +1150,8 @@ export class AppStateService {
     componentIndex: number,
     file: File,
     markerId: string,
+    // US-T014: set for a question image; the uploaded file then becomes that question's image.
+    questionId = '',
   ): Promise<void> {
     const isCurrent = this.courseResponseIsCurrent();
     if (this.attachmentUploadComponentId()) {
@@ -1175,7 +1180,7 @@ export class AppStateService {
       return;
     }
 
-    if (component.type !== 'text' && component.type !== 'resources') {
+    if (component.type !== 'text' && component.type !== 'resources' && !(component.type === 'quiz' && questionId)) {
       dropPendingCard();
       this.attachmentUploadError.set('Attachments are available for text and resources components.');
       return;
@@ -1221,8 +1226,24 @@ export class AppStateService {
         return;
       }
 
-      const finalContent = this.normalizeCourseContent(result.content);
+      let finalContent = this.normalizeCourseContent(result.content);
       uploaded = true;
+      if (questionId) {
+        // Reference the new file from the question and save at once, so no unused image is left behind.
+        const image = { assetId: result.attachment.assetId, alt: '' };
+        if (result.content.review) this.courseReview.set(result.content.review);
+        const sections = finalContent.sections.map((item) => ({ ...item, components: item.components.map((entry) =>
+          entry.id !== component.id || entry.type !== 'quiz' ? entry : { ...entry, quiz: { ...entry.quiz,
+            questions: entry.quiz.questions.map((question) => question.id === questionId ? { ...question, image } : question) } }) }));
+        const saved = await this.courseService.saveCourseContent(courseId, sections, token, this.courseReview());
+        if (!isCurrent()) return;
+        if (!saved.ok) {
+          this.courseContent.set({ ...finalContent, sections });
+          this.attachmentUploadError.set(`The image was uploaded but the question was not saved. ${saved.message}`);
+          return;
+        }
+        finalContent = this.normalizeCourseContent(saved.content);
+      }
       this.acceptCourseContentSave(finalContent);
       this.loadedCourseContentId.set(finalContent._id);
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(finalContent));
@@ -1237,6 +1258,20 @@ export class AppStateService {
       this.attachmentUploadStage.update(({ [component.id]: _removedStage, ...stage }) => stage);
       this.attachmentUploadComponentId.set('');
     }
+  }
+
+  /** US-T014: the question keeps its text and answers; the image file is deleted with the reference. */
+  async removeQuizQuestionImage(sectionIndex: number, componentIndex: number, questionIndex: number): Promise<void> {
+    const component = this.courseContent()?.sections[sectionIndex]?.components[componentIndex];
+    const assetId = component?.type === 'quiz' ? component.quiz.questions[questionIndex]?.image?.assetId : '';
+    if (!assetId || this.attachmentUploadComponentId()) return;
+    this.updateCourseComponent(sectionIndex, componentIndex, (item) => item.type !== 'quiz' ? item : { ...item, quiz: { ...item.quiz,
+      questions: item.quiz.questions.map((question, index) => {
+        if (index !== questionIndex) return question;
+        const { image: _removed, ...rest } = question;
+        return rest;
+      }) } });
+    await this.removeCourseComponentAttachment(sectionIndex, componentIndex, assetId);
   }
 
   async removeCourseComponentAttachment(
@@ -1730,6 +1765,7 @@ export class AppStateService {
       const questions = component.quiz.questions.map((question, index) => {
         if (index !== questionIndex) return question;
         if (edit.kind === 'explanation') return { ...question, explanation: edit.value };
+        if (edit.kind === 'image-alt') return question.image ? { ...question, image: { ...question.image, alt: edit.value } } : question;
         if (edit.kind === 'add-answer') {
           return question.answers.length >= QUIZ_MAX_ANSWERS ? question
             : { ...question, answers: [...question.answers, this.createEmptyQuizAnswer(question.answers.length + 1)] };
@@ -2628,6 +2664,12 @@ export class AppStateService {
     };
   }
 
+  private normalizeQuizImage(value: unknown): { image?: QuizQuestionImage } {
+    const image = value as { assetId?: unknown; alt?: unknown } | null;
+    return image && typeof image.assetId === 'string' && image.assetId
+      ? { image: { assetId: image.assetId, alt: typeof image.alt === 'string' ? image.alt : '' } } : {};
+  }
+
   private removeAttachmentMarker(content: CourseContentDocument, assetId: string): CourseContentDocument {
     const escapedAssetId = this.escapeRegExp(assetId);
     const attachmentPattern = new RegExp(
@@ -2953,6 +2995,8 @@ export class AppStateService {
                   points: 1,
                   explanation: 'explanation' in question && typeof question.explanation === 'string' ? question.explanation : '',
                   ...('multiple' in question && question.multiple === true ? { multiple: true } : {}),
+                  // Absent rather than null, so a question without an image serializes as it always did.
+                  ...this.normalizeQuizImage('image' in question ? question.image : null),
                   answers: (
                     'answers' in question && Array.isArray(question.answers) && question.answers.length >= QUIZ_MIN_ANSWERS
                       ? question.answers.slice(0, QUIZ_MAX_ANSWERS)

@@ -21,7 +21,7 @@ describe('trusted quiz feedback (DEF-003)', () => {
     localStorage.clear();
     gradeQuiz.mockReset();
     await TestBed.configureTestingModule({ imports: [CourseViewPage], providers: [provideRouter([]),
-      { provide: CourseService, useValue: { gradeQuiz, thumbnailUrl: () => '' } },
+      { provide: CourseService, useValue: { gradeQuiz, thumbnailUrl: () => '', loadQuizImages: () => {}, quizImageUrls: () => ({ 'asset-1': 'blob:test-image' }) } },
     ] }).compileComponents();
   });
 
@@ -90,6 +90,17 @@ describe('trusted quiz feedback (DEF-003)', () => {
     button('Skip').click(); await fixture.whenStable(); fixture.detectChanges();
     expect(body.textContent).toContain('Try again');
     expect(localStorage.getItem('qi-education:course-progress:learner@example.test:course') ?? '').not.toContain('quiz');
+  });
+
+  it('US-T014 shows a question image with its description, and no image element without one', () => {
+    expect(setup().body.querySelector('.learning-quiz-image')).toBeNull();
+    const document = structuredClone(content);
+    const quiz = document.sections[0].components[0];
+    if (quiz.type !== 'quiz') throw new Error('Missing quiz');
+    quiz.quiz.questions[0].image = { assetId: 'asset-1', alt: 'A test pyramid' };
+    const image = setup(document).body.querySelector<HTMLImageElement>('.learning-quiz-image')!;
+    expect(image.getAttribute('src')).toBe('blob:test-image');
+    expect(image.alt).toBe('A test pyramid');
   });
 
   it('US-T013 a question with several correct answers takes ticks and sends them all', async () => {

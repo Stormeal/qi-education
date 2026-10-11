@@ -125,6 +125,7 @@ export class CourseBuilder {
   readonly attachmentUploadProgress = input.required<Record<string, number>>();
   readonly attachmentUploadStage = input.required<Record<string, 'uploading' | 'saving'>>();
   readonly attachmentUploadError = input.required<string>();
+  readonly quizImageUrls = input<Record<string, string>>({});
 
   readonly courseSectionAdded = output<void>();
   readonly courseEditorBufferChanged = output<boolean>();
@@ -170,6 +171,8 @@ export class CourseBuilder {
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
   readonly courseComponentQuizAnswerCorrectChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
+  readonly courseComponentQuizImageSelected = output<{ sectionIndex: number; componentIndex: number; questionId: string; file: File }>();
+  readonly courseComponentQuizImageRemoved = output<{ sectionIndex: number; componentIndex: number; questionIndex: number }>();
   readonly courseComponentQuizQuestionEdited =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; edit: QuizQuestionEdit }>();
   readonly courseComponentMoved = output<CourseComponentMoved>();
@@ -1338,6 +1341,35 @@ export class CourseBuilder {
       inputs.item(Math.min(answerIndex, inputs.length - 1))?.focus();
     });
   }
+
+  protected quizImageSelected(sectionIndex: number, componentIndex: number, questionId: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (file) this.courseComponentQuizImageSelected.emit({ sectionIndex, componentIndex, questionId, file });
+  }
+
+  protected updateQuizImageAlt(sectionIndex: number, componentIndex: number, questionIndex: number, value: string): void {
+    this.courseComponentQuizQuestionEdited.emit({ sectionIndex, componentIndex, questionIndex, edit: { kind: 'image-alt', value } });
+  }
+
+  protected removeQuizImage(sectionIndex: number, componentIndex: number, questionIndex: number): void {
+    this.courseComponentQuizImageRemoved.emit({ sectionIndex, componentIndex, questionIndex });
+  }
+
+  // The Add and Remove image buttons replace each other, also after an upload that takes seconds; keep focus in the block.
+  private quizImageKey: string | null = null;
+  private readonly quizImageFocus = effect(() => {
+    const component = this.editingComponent();
+    const key = component?.type === 'quiz' ? component.quiz.questions.map((question) => question.image?.assetId ?? '').join('|') : null;
+    const changed = this.quizImageKey !== null && key !== null && key !== this.quizImageKey;
+    this.quizImageKey = key;
+    if (!changed) return;
+    setTimeout(() => {
+      if (this.document.activeElement !== this.document.body) return;
+      this.host.nativeElement.querySelector<HTMLElement>('.quiz-question-card:not(.is-collapsed) .quiz-question-image :is(input[type="text"], button)')?.focus();
+    });
+  });
 
   protected updateQuizExplanation(sectionIndex: number, componentIndex: number, questionIndex: number, value: string): void {
     this.courseComponentQuizQuestionEdited.emit({ sectionIndex, componentIndex, questionIndex, edit: { kind: 'explanation', value } });

@@ -341,6 +341,54 @@
                           />
                         </label>
 
+                        <div class="quiz-question-image">
+                          @if (question.image; as image) {
+                            @if (quizImageUrls()[image.assetId]; as imageUrl) {
+                              <img [src]="imageUrl" [alt]="image.alt" />
+                            } @else {
+                              <p>Loading image…</p>
+                            }
+                            <label class="builder-field">
+                              <span>Image description (optional)</span>
+                              <input
+                                type="text"
+                                maxlength="300"
+                                placeholder="What the image shows, for learners who cannot see it"
+                                [value]="image.alt"
+                                [disabled]="courseContentSaving() || courseSubmitting()"
+                                (input)="updateQuizImageAlt(editor.sectionIndex, editor.componentIndex, questionIndex, controlValue($event))"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              class="quiz-inline-action"
+                              [disabled]="courseContentSaving() || courseSubmitting() || !!attachmentUploadComponentId()"
+                              (click)="removeQuizImage(editor.sectionIndex, editor.componentIndex, questionIndex)"
+                            >
+                              Remove image
+                            </button>
+                          } @else {
+                            <input
+                              #quizImageInput
+                              type="file"
+                              hidden
+                              accept="image/jpeg,image/png,image/webp"
+                              (change)="quizImageSelected(editor.sectionIndex, editor.componentIndex, question.id, $event)"
+                            />
+                            <button
+                              type="button"
+                              class="quiz-inline-action"
+                              [disabled]="courseContentSaving() || courseSubmitting() || !!attachmentUploadComponentId()"
+                              (click)="quizImageInput.click()"
+                            >
+                              {{ attachmentUploadComponentId() === component.id ? 'Uploading image…' : '+ Add image' }}
+                            </button>
+                          }
+                          @if (attachmentUploadError()) {
+                            <p class="attachment-error" role="alert">{{ attachmentUploadError() }}</p>
+                          }
+                        </div>
+
                         <fieldset class="quiz-answers">
                           <legend>Answers <span>Tick every correct answer. One or several can be correct.</span></legend>
                           @for (answer of question.answers; track answer.id; let answerIndex = $index) {

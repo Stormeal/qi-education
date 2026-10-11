@@ -72,6 +72,7 @@ export class CourseEditorPage {
   readonly attachmentUploadProgress = input.required<Record<string, number>>();
   readonly attachmentUploadStage = input.required<Record<string, 'uploading' | 'saving'>>();
   readonly attachmentUploadError = input.required<string>();
+  readonly quizImageUrls = input<Record<string, string>>({});
   readonly thumbnailUploading = input.required<boolean>();
   readonly thumbnailError = input.required<string>();
   readonly isFeedbackOpen = input.required<boolean>();
@@ -147,6 +148,8 @@ export class CourseEditorPage {
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: string }>();
   readonly courseComponentQuizAnswerCorrectChanged =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; answerIndex: number; value: boolean }>();
+  readonly courseComponentQuizImageSelected = output<{ sectionIndex: number; componentIndex: number; questionId: string; file: File }>();
+  readonly courseComponentQuizImageRemoved = output<{ sectionIndex: number; componentIndex: number; questionIndex: number }>();
   readonly courseComponentQuizQuestionEdited =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; edit: QuizQuestionEdit }>();
   readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number; toSectionIndex?: number }>();

@@ -178,6 +178,7 @@ export class CourseViewPage {
   readonly canAccessAdmin = input.required<boolean>();
   readonly canEditCourse = input.required<boolean>();
   readonly course = input.required<CourseListItem | null>();
+  protected readonly quizImageUrls = this.courseService.quizImageUrls;
   protected readonly instructorDescription = computed(() => this.instructorProfiles.descriptionFor([this.course()?.id ?? '']));
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();
@@ -222,6 +223,7 @@ export class CourseViewPage {
 
   constructor() {
     void this.instructorProfiles.loadPublic();
+    effect(() => this.courseService.loadQuizImages(this.courseContent(), this.authToken()));
     effect(() => {
       const content = this.courseContent();
 
