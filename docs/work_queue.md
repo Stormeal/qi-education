@@ -33,6 +33,15 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (9) — started by the user with "let's start working on these".**
+Branch: `main`. Base: `1d5eebe` (local, 0.1.145; seven commits not pushed). Selected by Alex:
+the three stories from the audit and the session question. Split with no file in common:
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-P010: open the app from the stored session and check it in the background. US-P012: no hosted fallback on local hosts | Everything under `app/` except the version lines | In progress |
+| Codex | US-P011: local runs use isolated stores unless `USE_SHARED_SERVICES=1` | See the [handoff](handoffs/US-P011-isolated-local-runs-codex.md) | Handed over; not started |
+
 **2026-10-11, audit of outside calls and the session screen (asked for by Alex).**
 The lead ran both test suites with a spy that records and blocks real network calls. Two
 leaks were found and fixed in `f38f321` (0.1.144): DEF-028 (frontend specs made 21 requests to
