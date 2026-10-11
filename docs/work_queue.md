@@ -33,6 +33,17 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (6) — Alex chose Brevo without a domain and the sender `xqiacademy@gmail.com`.**
+Branch: `main`. Base: `80aef51` (local, 0.1.124; one commit not pushed). Selected by Alex in the
+brainstorm: the mail sender, so that forgot password can be built. The lead runs US-P009,
+US-L004 and US-P008-AC05 as one increment, because the sender has no other user yet.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-L004 frontend: "Forgot password?" form on the login page; reset page at `/reset-password` | Everything under `app/` except the version lines | In progress |
+| Codex | US-P009 mail sender (Brevo and local); US-L004 reset API and token storage; US-P008-AC05 limit on reset mail | See the [handoff](handoffs/account-email-password-reset-codex.md) | Handed over; not started |
+| Alex | Brevo account and sender confirmation; four settings in Vercel; real delivery test | Brevo, Vercel, his mailbox | Steps given in chat 2026-10-11 |
+
 **2026-10-11, after the push of `7675e98` (0.1.123; CI and the Pages deployment succeeded).**
 Alex brainstormed account email with the lead and asked for the stories to be recorded.
 Added as Proposed, nothing selected or implemented: US-P009 (send account email), US-L013

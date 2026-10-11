@@ -446,7 +446,9 @@ mail included. Alex owns no domain. Reported consequences, from third-party page
 yet confirmed on Brevo's own: the sender address is confirmed by a code instead of DNS
 records; for a free mailbox address Brevo replaces the visible sender with one of its own;
 such mail is more often filed as spam; free-plan mail carries Brevo branding.
-Decisions: which address the mail comes from; whether that delivery quality is acceptable
+Decided by Alex, 2026-10-11: Brevo without a domain, sender `xqiacademy@gmail.com`; the
+alternatives below stay as fallbacks if the delivery test fails.
+Earlier open decisions: which address the mail comes from; whether that delivery quality is acceptable
 for the proof of concept, or a domain is bought (then Resend's free plan, 3,000 a month and
 100 a day, is an equal choice), or a Gmail account with an app password is used over SMTP
 (sends as the real address, but needs a mail library). A real delivery test to a Gmail and
