@@ -206,6 +206,8 @@
       aria-labelledby="component-editor-title"
       role="dialog"
       aria-modal="true"
+      tabindex="-1"
+      (keydown)="dialogKeydown($event)"
     >
       <header class="builder-modal-header">
         <div>
@@ -718,7 +720,7 @@
 
 @if (componentPicker(); as picker) {
   <div class="builder-modal-overlay">
-    <section class="builder-modal builder-picker-modal" aria-labelledby="component-picker-title" role="dialog" aria-modal="true">
+    <section class="builder-modal builder-picker-modal" aria-labelledby="component-picker-title" role="dialog" aria-modal="true" tabindex="-1" (keydown)="dialogKeydown($event)">
       <header class="builder-modal-header">
         <div>
           <p class="builder-modal-kicker">New component</p>

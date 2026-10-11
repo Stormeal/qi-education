@@ -76,6 +76,7 @@ export class CourseBuilder {
   private readonly collapsedSections = new Set<number>();
   private editingSectionIndex: number | null = null;
   private scrollLockTop = 0;
+  private dialogTrigger: HTMLElement | null = null;
   private expandedQuizQuestionIndex = signal<number | null>(0);
   protected readonly activeEditor = signal<{ sectionIndex: number; componentIndex: number } | null>(null);
   protected readonly componentPicker = signal<ComponentPickerState>(null);
@@ -1082,11 +1083,52 @@ export class CourseBuilder {
     this.expandedQuizQuestionIndex.set(0);
     this.resetQuizScrollSpace();
     this.activeEditor.set({ sectionIndex, componentIndex });
+    this.focusOpenedDialog();
   }
 
   protected closeComponentEditor(): void {
     this.expandedQuizQuestionIndex.set(0);
     this.activeEditor.set(null);
+    this.restoreDialogFocus();
+  }
+
+  // DEF-022: same keyboard contract as the feedback dialog (Escape closes, Tab stays inside).
+  protected dialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (this.courseContentSaving() || this.courseSubmitting()) return;
+      event.preventDefault();
+      if (this.activeEditor()) this.closeComponentEditor(); else this.closeComponentPicker();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = this.dialogFocusable(event.currentTarget as HTMLElement);
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    const active = this.document.activeElement;
+    if (!first) { event.preventDefault(); return; }
+    if (event.shiftKey && (active === first || active === event.currentTarget)) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+  }
+
+  private dialogFocusable(dialog: HTMLElement): HTMLElement[] {
+    return Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [contenteditable="true"], [tabindex]:not([tabindex="-1"])'));
+  }
+
+  private focusOpenedDialog(): void {
+    const active = this.document.activeElement;
+    this.dialogTrigger = active instanceof HTMLElement ? active : null;
+    // The dialog exists after the next render. Its first control is the close button.
+    setTimeout(() => {
+      const dialog = this.host.nativeElement.querySelector<HTMLElement>('[role="dialog"]');
+      if (dialog) (this.dialogFocusable(dialog)[0] ?? dialog).focus();
+    });
+  }
+
+  private restoreDialogFocus(): void {
+    const trigger = this.dialogTrigger;
+    this.dialogTrigger = null;
+    // A removed lesson's Edit button is gone; then there is nothing to return to.
+    setTimeout(() => { if (trigger?.isConnected) trigger.focus(); });
   }
 
   protected removeComponent(sectionIndex: number, componentIndex: number): void {
@@ -1100,10 +1142,12 @@ export class CourseBuilder {
 
   protected openComponentPicker(sectionIndex: number): void {
     this.componentPicker.set({ sectionIndex });
+    this.focusOpenedDialog();
   }
 
   protected closeComponentPicker(): void {
     this.componentPicker.set(null);
+    this.restoreDialogFocus();
   }
 
   protected addComponentOfType(type: CourseComponentType): void {

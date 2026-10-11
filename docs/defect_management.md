@@ -781,11 +781,23 @@ push or deployment. Claude's concurrent 9a4d032 commit preserved.
 
 ### DEF-022 - The lesson editor dialog does not manage keyboard focus
 
-Owner: Claude Code. Severity: P2 (keyboard and screen-reader users). State: Open.
+Owner: Claude Code. Severity: P2 (keyboard and screen-reader users). State: Fixed locally
+2026-10-11 (commit `fix(DEF-022)`, 0.1.110); hosted verification pending.
 Found 2026-10-11 in the keyboard check of US-T013; the dialog is older than that story and
 serves every lesson type. Reproduction, in-memory API, demo teacher: in the course editor,
 step 4, focus Edit on a lesson and activate it. The dialog opens but focus stays on the Edit
 button behind it; Escape does not close it; Tab is not kept inside it. Expected: focus moves
 into the dialog, Escape closes it, Tab stays inside, and focus returns to Edit on close.
-The component picker dialog was not checked. Evidence:
+The component picker dialog had the same gap. Evidence:
 [simple quiz spec](specs/US-T013-simple-quiz.md), keyboard-only check.
+
+Resolution: both dialogs in the course builder now follow the feedback dialog's contract.
+Opening moves focus to the dialog's first control (its close button); Tab and Shift+Tab wrap
+inside; Escape closes it, except while a save or submit is running, when the close button is
+disabled too; closing returns focus to the button that opened it (nowhere, when that lesson
+was removed). Regression: `course-builder-authoring.spec.ts`, "DEF-022 lesson editor dialog
+keyboard focus" (three cases). Browser, in-memory API, demo teacher, real key presses: Enter
+on Edit put focus on Close editor; Shift+Tab went to Done; Tab went back to Close editor and
+then to the title field; Escape closed the dialog with focus back on Edit. The picker was
+checked the same way with scripted key events. 225 frontend tests and the Pages build pass.
+Not verified: Escape while a native select list is open, a screen reader, hosted behavior.

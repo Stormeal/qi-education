@@ -185,6 +185,52 @@ describe('US-T012 builder move events', () => {
     expect(moves).toEqual([]);
   });
 
+describe('DEF-022 lesson editor dialog keyboard focus', () => {
+  afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
+  const key = (target: Element, init: KeyboardEventInit) => {
+    const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+    target.dispatchEvent(event); return event;
+  };
+
+  it('takes focus on open, keeps Tab inside, closes on Escape and returns focus', async () => {
+    const { fixture, host } = setup();
+    const edit = host.querySelector<HTMLButtonElement>('.component-row-action')!;
+    edit.focus(); edit.click(); fixture.detectChanges();
+    const dialog = host.querySelector<HTMLElement>('[role="dialog"]')!;
+    const close = dialog.querySelector<HTMLButtonElement>('[aria-label="Close editor"]')!;
+    await vi.waitFor(() => expect(document.activeElement).toBe(close));
+
+    const buttons = dialog.querySelectorAll<HTMLButtonElement>('button:not([disabled])');
+    const last = buttons[buttons.length - 1];
+    expect(key(close, { key: 'Tab', shiftKey: true }).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(last);
+    expect(key(last, { key: 'Tab' }).defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(close);
+
+    key(close, { key: 'Escape' }); fixture.detectChanges();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    await vi.waitFor(() => expect(document.activeElement).toBe(edit));
+  });
+
+  it('does not close on Escape while a save is running', () => {
+    const { fixture, host, open } = setup(); open();
+    fixture.componentRef.setInput('courseContentSaving', true); fixture.detectChanges();
+    key(host.querySelector('[role="dialog"]')!, { key: 'Escape' }); fixture.detectChanges();
+    expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+  });
+
+  it('gives the component picker the same keyboard contract', async () => {
+    const { fixture, host } = setup();
+    const add = [...host.querySelectorAll<HTMLButtonElement>('button')].find(item => (item.textContent ?? '').includes('Add New Component'))!;
+    add.focus(); add.click(); fixture.detectChanges();
+    const close = host.querySelector<HTMLButtonElement>('[aria-label="Close component picker"]')!;
+    await vi.waitFor(() => expect(document.activeElement).toBe(close));
+    key(close, { key: 'Escape' }); fixture.detectChanges();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    await vi.waitFor(() => expect(document.activeElement).toBe(add));
+  });
+});
+
 describe('US-T013 simple quiz questions', () => {
   afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
   const button = (host: HTMLElement, label: string) =>
