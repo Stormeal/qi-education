@@ -36,9 +36,9 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
   }
 
   async findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null> {
-    // Password proof/binding must not join an older in-flight credential snapshot.
-    if (options?.fresh) this.usersRead.invalidate();
-    const users = await this.listUsers();
+    // Password proof, session authentication and role checks must not join a snapshot that
+    // was requested before this call; simultaneous fresh callers still share one read.
+    const users = await (options?.fresh ? this.usersRead.runFresh(this.loadUsers) : this.listUsers());
     return users.find((user) => user.id === id) ?? null;
   }
 
@@ -134,7 +134,11 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
   }
 
   async listUsers(): Promise<AuthUser[]> {
-    return this.usersRead.run(async () => {
+    return this.usersRead.run(this.loadUsers);
+  }
+
+  private readonly loadUsers = async (): Promise<AuthUser[]> => {
+    {
       const sheets = createSheetsClient();
 
       const response = await sheets.spreadsheets.values.get({
@@ -144,8 +148,8 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
 
       const rows = response.data.values ?? [];
       return rows.slice(1).map((row) => authUserFromSheetRow(row as string[]));
-    });
-  }
+    }
+  };
 }
 
 export class InMemoryAuthRepository implements AuthRepository {

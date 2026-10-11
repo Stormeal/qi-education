@@ -40,8 +40,20 @@ reset sends the user a reset link; the admin never sees a password.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-A001 frontend: "User management" tab with search, role change and "Send reset link" | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-A001 frontend: "User management" tab with search, role change and "Send reset link" | Everything under `app/` except the version lines | Delivered locally in `b14e307` (0.1.140); acceptance and the lead correction in the [spec](specs/US-A001-user-management.md) |
 | Codex | US-A001 API: user search, role change, admin-triggered reset mail | See the [spec](specs/US-A001-user-management.md) and [handoff](handoffs/US-A001-user-management-codex.md) | Delivered locally 2026-10-11: implementation 54a9427 (0.1.141), delivery record in this commit. Main/base 9209e22 confirmed; Claude b14e307 preserved. Spec first; 87 initial RED cases, six DEF-027 stale-auth failures reproduced then fixed; 253 focused cases pass. Read-only review clear (independent 95 pass). All five checks pass: API 908/40, journeys 6, API build, app 258/33, Pages build (existing style warnings). Real Sheets/Mongo/Brevo/mail, hosted Admin tab/browser/keyboard and live quotas unverified. Status AC07/audit AC08 stay Proposed. Outside owner: append US-A001/DEF-027 note to docs/specs/US-P006-class-load.md: auth now fetches fresh per request; 20-reader burst costs 20 Users plus shared catalog reads (22 observed); retain historical four-read evidence. Scoped local commits with fresh version/hook; Codex stopped, no push |
+
+Lead check 2026-10-11 on `4b19102`: Codex stayed within its files and the version lines. New:
+three admin routes. It also found and fixed DEF-027 (a request could use a users read begun
+before a role change), but by making every authenticated request read the users sheet on its
+own. The lead changed that in `api/src/inFlightRead.ts` and `authRepository.ts`: reads are
+still fresh, and a burst shares them again (see the spec). 912 API and 258 frontend tests, six
+journeys and the API and Pages builds pass. Browser, in-memory API: list, search, role change
+taking effect on the user's existing session, reset link, and the denials for non-admins.
+US-A001's selected scope is Done locally; account status and auditing stay Proposed.
+The note Codex asked for in the US-P006 spec is added.
+Not verified: the real users sheet and a real class-sized burst; hosted behavior.
+Next: Alex decides on the push.
 
 **Session 2026-10-11 (7) — started by the user with "let's work on the next task".**
 Branch: `main`. Base: `cffae22` (pushed and deployed, 0.1.133). No confirmed defect is open.

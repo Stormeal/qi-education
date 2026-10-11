@@ -77,7 +77,10 @@ describe('US-P006 isolated route costs', () => {
     expect(burst.every(response => response.status === 200)).toBe(true);
     // DEF-027: every authentication read must start after its request, rather than
     // reuse a pre-revocation snapshot. Catalog reads can still share in-flight work.
-    expect(fixture.reads.filter(range => range.startsWith('Users!'))).toHaveLength(20);
+    // Fresh does not mean one read each: callers arriving during a read share the next one.
+    const userReads = fixture.reads.filter(range => range.startsWith('Users!')).length;
+    expect(userReads).toBeGreaterThan(0);
+    expect(userReads).toBeLessThan(20);
     const catalogReads = fixture.reads.filter(range => range.startsWith('Courses!')).length;
     expect(catalogReads).toBeGreaterThan(0);
     expect(catalogReads).toBeLessThan(20);

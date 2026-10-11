@@ -153,3 +153,13 @@ also carries the hook-required aligned patch bump. Read-only review found no Cri
 Important or Minor issues within the explicit contract; additional 503/review
 errors exit before the override, while public caching and revocation changes
 remain outside this scope.
+
+## Fresh authentication reads (2026-10-11, US-A001 / DEF-027)
+
+Session authentication no longer joins a users read that was already in flight, because such
+a read can predate a role change or deactivation made through another API instance. It uses
+`InFlightRead.runFresh`: the read starts after the request arrived, and requests that arrive
+while one read is in flight share the next one. A burst therefore costs about two users reads
+instead of one, not one per request. The historical figures above (authenticated course reads
+5 to 2 Sheets calls) are unchanged for a single request. Measured in isolation only: the
+20-reader fixture needs fewer than 20 users reads. The hosted per-minute budget is still open.

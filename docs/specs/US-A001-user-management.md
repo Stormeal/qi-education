@@ -184,3 +184,30 @@ docs/specs/US-P006-class-load.md stating 20 fresh auth reads plus shared catalog
 reads (22 observed); preserve the older four-read historical evidence and clarify
 that auth reads now bypass prior snapshots. Queue carries that exact request.
 Local commits only; no branch/worktree, push or deployment.
+
+## Frontend acceptance and lead correction (2026-10-11)
+
+Frontend delivered in `b14e307` (0.1.140). The selected scope (search, role change, reset
+link) is Done locally; account status and auditing stay Proposed in US-A001.
+
+| Scenario | Check |
+| --- | --- |
+| US-A001-AC01 | `admin-page.spec.ts` (list and search with the session; the total when more match than are shown; a role change after confirmation shows the stored result; a cancelled or refused change puts the old role back; the admin's own role is not offered). Browser, in-memory API, demo admin on Admin, User management: three users listed, the admin's own role disabled; searching "STUDENT" left Student Demo; before the change the learner's existing session got 403 creating a course; the admin changed the role to Teacher after the confirmation question and saw "Student Demo is now Teacher."; the same learner session then got 201 creating a course |
+| US-A001-AC02 | Browser: `GET /admin/users` answered 401 without a session and 403 `{ "message": "Admin access is required" }` for a non-admin, with no user in the body |
+| Reset link | Same spec (confirmation, the API's sentence, a failure in plain words; no button for an account that is not active). Browser: "Send reset link" asked first, showed "A reset link was sent to student@qi-education.local.", and the API printed one reset mail to that address |
+
+Lead correction to DEF-027's fix, in the lead-check commit. The fix made every authenticated
+request read the users sheet on its own, so a burst of 20 readers cost 20 user reads. That
+gave up the sharing US-P006 depends on to stay inside the Sheets quota when a class opens a
+course together. `InFlightRead.runFresh` now gives both: a read that starts after the caller
+arrived (so no request can use a snapshot from before a role change or deactivation), shared
+by every caller that arrives while one read is in flight (two reads per burst, not one each).
+The six DEF-027 cases still pass unchanged; `platformLoad.test.ts` again requires fewer than
+20 user reads for 20 readers; `inFlightRead.test.ts` covers the helper.
+
+Decisions taken by the lead (confirm or change): both actions ask for confirmation; a role
+change is saved at once, without a Save button; at most 50 users are shown.
+
+Combined tree: 912 API and 258 frontend tests, six journeys, API and Pages builds pass.
+Not verified: the real users sheet (the role cell write, the read count under a real class),
+a real reset mail from this button, a screen reader, phone width.
