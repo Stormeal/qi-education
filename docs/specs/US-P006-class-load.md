@@ -21,6 +21,10 @@ binaries; preserve the existing missing-reference behavior and foreign-course de
 AC05: catalog uses a batched projection of review metadata/status, excluding lesson
 sections and history, including existing documents without a migration.
 AC06 is optional after this scope; private caching policy is unchanged until tested.
+AC06 selected 2026-10-11 ([handoff](../handoffs/US-P006-thumbnail-cache-codex.md)). Decision
+taken by the lead (confirm or change): a thumbnail requested with its asset id as `v` is
+cached by the browser only (`private, max-age=31536000, immutable`); nothing is cached
+publicly until Alex decides that published thumbnails may be.
 
 ## API/storage and plan
 

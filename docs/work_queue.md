@@ -33,6 +33,16 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (2) — started by the user with "let's start working".** Branch: `main`.
+Base: `18ae097` (pushed, 0.1.103). Picked by Claude Code as lead: the open check of the last
+increment (US-T013 keyboard-only walk) for Claude; it is too small to split, so Codex takes
+the next independent open item, US-P006-AC06 (P1 story, API only).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-T013 leftover: keyboard-only walk of the new quiz editor rows and the learner's tick boxes; fix what it finds | Everything under `app/` except the version lines, `docs/specs/US-T013-simple-quiz.md` | In progress |
+| Codex | US-P006-AC06 / INV-018: unchanged thumbnails are served from the browser cache | See the [handoff](handoffs/US-P006-thumbnail-cache-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 — started by the user with a reference design for a simpler quiz editor.**
 Branch: `main`. Base: `a79828f` (pushed and deployed, 0.1.98). Decided by Alex: 1 point per
 question, 2 to 6 answers, one or more correct answers, optional explanation per question;
