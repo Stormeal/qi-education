@@ -75,9 +75,13 @@ describe('US-P006 isolated route costs', () => {
     const burst = await Promise.all(Array.from({ length: 20 }, () => fetch(base + '/courses/course/content', { headers: headers(student) })));
     await Promise.all(burst.map(response => response.arrayBuffer()));
     expect(burst.every(response => response.status === 200)).toBe(true);
-    // Unshared, 20 requests cost 40 reads. How many overlap depends on machine speed (4 locally,
-    // 6 seen on CI), so assert that sharing happens rather than an exact count.
-    expect(fixture.reads.length).toBeLessThan(20);
+    // DEF-027: every authentication read must start after its request, rather than
+    // reuse a pre-revocation snapshot. Catalog reads can still share in-flight work.
+    expect(fixture.reads.filter(range => range.startsWith('Users!'))).toHaveLength(20);
+    const catalogReads = fixture.reads.filter(range => range.startsWith('Courses!')).length;
+    expect(catalogReads).toBeGreaterThan(0);
+    expect(catalogReads).toBeLessThan(20);
+    expect(fixture.reads.length).toBeLessThan(40);
 
     // A later request must see a revoked account, not a retained auth result.
     fixture.rows.get('Users')![2][5] = 'disabled';

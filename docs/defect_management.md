@@ -956,3 +956,43 @@ The full route, hash/single-use/limit and failure contract remains in the two
 account-email/password-reset specs. No public enrollment route contract changes.
 This append-only delivery record also carries the hook-required aligned patch bump.
 Codex stopped; no push/deployment. Original invalid-UTF-8 bytes remain intact.
+
+### DEF-027 - Authentication can join a pre-revocation Sheets snapshot
+
+| ID | State | Priority | Scenarios | Reproduction |
+| --- | --- | --- | --- | --- |
+| DEF-027 | Confirmed, Codex, 2026-10-11 | P1 | US-A001-AC01/02 | Two isolated Sheets adapters: B holds an old user fetch; A completes role demotion (or the isolated row is disabled); the account's next authenticated request on B joins the old read and returns 200 instead of 403/401 |
+
+Reproduced before the authentication fix in api/src/adminUsers.test.ts, six
+DEF-027 HTTP cases covering teacher demotion, admin demotion and account disabling
+on both normal and /api prefixes. The run had six intended assertion failures and
+89 passes: four expected 403 and two expected 401, all receiving 200. The disabled
+account case reproduces the preexisting authorization-read flaw independently of
+the new role route. A read-only reviewer separately reproduced the stale admin
+role with two adapters. No shared data, provider or real mail was used.
+
+Smallest fix: request fresh user reads during session authentication, using the
+existing fresh option so a new request cannot join a pre-revocation read on any
+instance. Paths, DTOs and denial status contracts stay the same. Authenticated
+class bursts will cost one fresh Users read per request, while catalog/content
+coalescing and shared clients remain. Update the isolated read-cost assertion to
+measure that deliberate freshness tradeoff; delivery and fixed evidence follow.
+
+### DEF-027 - Implementation and isolated regression
+
+Implemented locally 2026-10-11; fixing commit follows in the delivery record.
+Session authentication uses findById with fresh:true. Six former 200 results now
+correctly deny teacher/admin demotions with 403 and disabled accounts with 401,
+using the existing session and another instance's held snapshot. Existing paths,
+DTOs, authorization denial shapes and cache headers are preserved. One fresh
+Users read per request replaces authentication coalescing; catalog/content reads
+still coalesce. The 20-reader fixture measured 22 reads, with unchanged one/two
+single-route budgets. Hosted quota impact remains unverified.
+
+253 focused cases and all five required checks pass: 908 API tests/40 files, six
+journeys, API build, 258 frontend tests/33 files, Pages build (three existing style
+budget warnings; jsdom scrollTo notices). Independent read-only review is clear
+and its separate 95-case admin run passes. Isolated Sheets rows/memory stores and
+mail recorder only. Real Sheets/Mongo/Brevo and hosted/browser flows unverified.
+US-P006 historic budget spec is outside ownership; own queue row requests its
+append-only budget/freshness clarification. No push or deployment.

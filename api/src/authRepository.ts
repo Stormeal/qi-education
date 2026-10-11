@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { apiConfig, hasGoogleSheetsConfig } from './config.js';
 import {
   type AuthUser,
+  type UserRole,
   authUserFromSheetRow,
   authSheetHeaders,
   authUserToSheetRow,
@@ -15,6 +16,8 @@ export interface AuthRepository {
   readonly unavailableReason?: string;
   findByEmail(email: string): Promise<AuthUser | null>;
   findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null>;
+  listUsers(): Promise<AuthUser[]>;
+  updateRole(userId: string, role: UserRole): Promise<AuthUser | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null>;
@@ -112,7 +115,25 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     return { ...existing, passwordHash };
   }
 
-  private async listUsers(): Promise<AuthUser[]> {
+  async updateRole(userId: string, role: UserRole): Promise<AuthUser | null> {
+    const sheets = createSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: authSheetRange(),
+    });
+    const rows = response.data.values ?? [];
+    const index = rows.slice(1).findIndex(row => (row as string[])[0] === userId);
+    if (index < 0) return null;
+    const existing = authUserFromSheetRow(rows[index + 1] as string[]);
+    if (existing.role === role) return existing;
+    const sheetTitle = authSheetRange().split('!')[0];
+    await this.write(() => sheets.spreadsheets.values.update({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: `${sheetTitle}!E${index + 2}`,
+      valueInputOption: 'RAW', requestBody: { values: [[role]] },
+    }));
+    return { ...existing, role };
+  }
+
+  async listUsers(): Promise<AuthUser[]> {
     return this.usersRead.run(async () => {
       const sheets = createSheetsClient();
 
@@ -140,6 +161,15 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async findById(id: string): Promise<AuthUser | null> {
     return this.users.find((user) => user.id === id) ?? null;
+  }
+
+  async listUsers(): Promise<AuthUser[]> { return [...this.users]; }
+
+  async updateRole(userId: string, role: UserRole): Promise<AuthUser | null> {
+    const index = this.users.findIndex(user => user.id === userId);
+    if (index < 0) return null;
+    if (this.users[index].role !== role) this.users[index] = { ...this.users[index], role };
+    return this.users[index];
   }
 
   async createUser(user: AuthUser): Promise<AuthUser> {
@@ -192,6 +222,8 @@ class UnavailableAuthRepository implements AuthRepository {
   readonly unavailableReason = new AuthUnavailableError().message;
   async findByEmail(_email: string): Promise<AuthUser | null> { return null; }
   async findById(_id: string): Promise<AuthUser | null> { return null; }
+  async listUsers(): Promise<AuthUser[]> { throw new AuthUnavailableError(); }
+  async updateRole(_userId: string, _role: UserRole): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async createUser(_user: AuthUser): Promise<AuthUser> { throw new AuthUnavailableError(); }
   async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
   async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }

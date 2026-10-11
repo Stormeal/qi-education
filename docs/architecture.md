@@ -190,6 +190,9 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
 | `POST /auth/password-reset/request`, `/check`, `/confirm` | Public; both normal and /api prefixes; no-store; 202 privacy-preserving request (400 invalid email, 503 mail unavailable), 204 check/confirm, 410 reset-link-invalid, 400 signup password validation |
 | `POST /users/me/password` | Active session, every role; no-store; current proof first, wrong current 400 current-password-incorrect (never 401), signup policy/different password 400, changed 204, invalid session 401, unavailable storage 503; notice failure is harmless |
+| `GET /admin/users` | Admin only; no-store; optional trimmed <=100 name/email substring ignoring case; <=50 display-name sorted six-field users plus total before cap; 400 invalid search, 401/403 without user data |
+| `PATCH /admin/users/:userId/role` | Admin only; no-store; student/teacher/admin, six-field User 200; same role no write, own-role 409, invalid 400, missing 404 |
+| `POST /admin/users/:userId/password-reset` | Admin only; no-store; ordinary shared reset link and three-mail limit; 202 target email, missing 404, inactive/limit 409, unavailable/failed mail 503; no password/token in response |
 | `GET /auth/me` (also `/me`) | Active bearer session |
 | `GET /users/me/instructor-profile`, `PUT /users/me/instructor-profile` | Active teacher/admin; own description only, trimmed string 0..280, empty clears; 200 `{ description }`; 400 invalid input, 401 invalid/missing session, 403 student |
 | `GET /instructors` | Public; ignores bearer token; only `{ description, courseIds }` for non-empty descriptions owning published live courses; private/no-store |
@@ -284,6 +287,40 @@ can answer 503 only for real active accounts, an accepted rare existence signal.
 Storage failures return safe 500 messages. Client-address and confirmation-mail
 limits remain open. See [reset](specs/US-L004-password-reset.md) and
 [account mail](specs/US-P009-account-email.md) for tests and release limitations.
+
+US-A001 adds `adminUsersRoutes.ts` and exposes `AuthRepository.listUsers` and
+`updateRole`. Its six-field account projection excludes passwordHash and
+enrolledCourseIds. Permissions precede all target lookups, search validation
+and writes; authentication errors use the existing 401, student/teacher denial
+is 403 with no target information. Scoped no-store middleware runs before JSON
+parsing on both prefixes. Route-specific storage errors use safe message-only 503
+without logging private provider details; existing other routes are unchanged.
+
+Sheets role changes read the current account and write only E using RAW, then
+invalidate in-flight local user reads. DEF-027 makes session authentication use a
+fresh snapshot, so another instance cannot authorize a new request from a
+pre-revocation read. Every authenticated request costs one fresh Users fetch;
+non-security user/catalog reads retain coalescing. The isolated 20-reader burst
+measured 22 Sheets reads (20 Users, two catalog), with unchanged one/two single-route
+budgets. This supersedes the earlier shared-auth burst budget; hosted quotas remain
+unverified. Password D and enrollment H writes preserve
+roles even when they read an earlier snapshot. Same-role requests do not write.
+Memory preserves independent account fields as well. Existing sessions use the
+new role on their next request, without a new token or browser push. Demoted
+teachers keep their courses but cannot author; no data is transferred/deleted.
+Self-role changes are refused, including a same-role request. Simultaneous mutual
+admin demotion is not protected by a distributed last-admin CAS. Account status
+changes and role-change auditing remain Proposed under US-A001.
+
+`passwordResetDelivery.ts` shares issuance between the existing public request
+and the new admin action: identical random token, hash/fingerprint, pending slot,
+plain text message/link, 60-minute lifetime, sender and activation. Public responses
+retain their privacy-preserving 202; admins get a specific inactive/limit 409 and
+202 target-email confirmation. Admin/public requests share the same stored three
+slots across API instances. Failed/uncertain sends remain unusable pending slots;
+activation/storage ambiguity keeps the established reset limitations. Existing
+check/confirm, single use, sibling cancellation and account notice apply to either
+issuer. See [user management](specs/US-A001-user-management.md).
 
 US-T007 adds `instructorProfile.ts`, `instructorProfileRepository.ts` and
 `instructorProfileRoutes.ts`. Only new dependency/route registration is added to

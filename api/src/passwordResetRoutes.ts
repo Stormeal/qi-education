@@ -1,29 +1,20 @@
-import { createHash, randomBytes } from 'node:crypto';
 import type { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { hashPassword, passwordCredentialVersion, signupSchema } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
-import { apiConfig } from './config.js';
 import { sendPasswordChangedNotice, type MailSender } from './mailSender.js';
 import type { PasswordResetRepository } from './passwordResetRepository.js';
-
-export type PasswordResetOptions = { now?: () => number; newToken?: () => string; appPublicUrl?: string };
+import { resetMailUnavailable as mailUnavailable, resetTokenHash as tokenHash, sendPasswordResetLink, type PasswordResetOptions } from './passwordResetDelivery.js';
+export type { PasswordResetOptions } from './passwordResetDelivery.js';
 const accepted = { message: 'If an account exists for this address, we have sent a reset link.' };
-const mailUnavailable = { message: 'We could not send email right now. Please try again later.' };
 const invalid = { message: 'This reset link is no longer valid. Request a new one.', code: 'reset-link-invalid' };
 const storageUnavailable = { message: 'Password reset is temporarily unavailable. Please try again later.' };
-function tokenHash(value: unknown): string | null {
-  return typeof value === 'string' && /^[A-Za-z0-9_-]{43,200}$/.test(value)
-    ? createHash('sha256').update(value).digest('hex') : null;
-}
 
 export function registerPasswordResetRoutes(app: Express, dependencies: {
   auth: AuthRepository; tokens: PasswordResetRepository; sender: MailSender; options?: PasswordResetOptions;
 }) {
   const { auth, tokens, sender, options = {} } = dependencies;
   const now = options.now ?? Date.now;
-  const newToken = options.newToken ?? (() => randomBytes(32).toString('base64url'));
-  const publicUrl = (options.appPublicUrl ?? apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
   const route = (handler: (request: Request, response: Response) => Promise<unknown>) =>
     async (request: Request, response: Response) => {
       try { await handler(request, response); }
@@ -37,20 +28,8 @@ export function registerPasswordResetRoutes(app: Express, dependencies: {
     if (!sender.available || auth.unavailableReason) { response.status(503).json(mailUnavailable); return; }
     const user = await auth.findByEmail(email.data);
     if (!user || user.status !== 'active') { response.status(202).json(accepted); return; }
-    const raw = newToken(); const hash = tokenHash(raw);
-    if (!hash) throw new Error('Invalid generated reset token.');
-    if (!await tokens.reserve(user.id, hash, now(), passwordCredentialVersion(user.passwordHash))) { response.status(202).json(accepted); return; }
-    try {
-      await sender.send({ to: user.email, subject: 'Reset your QI-Education password',
-        text: `We received a request to reset your QI-Education password.\n\nUse this link within 60 minutes:\n${publicUrl}/reset-password#token=${raw}\n\nIf you did not request this, you can ignore this message.` });
-    } catch {
-      // Delivery may have happened despite a timeout. Retain its unusable pending
-      // slot for the rolling hour, preventing repeated uncertain sends from bypassing the limit.
-      response.status(503).json(mailUnavailable); return;
-    }
-    // Storage failures after provider acceptance are distinct from a mail failure.
-    // An uncertain activation may have succeeded; do not retry delivery or activation.
-    if (!await tokens.activate(user.id, hash)) throw new Error('Reset reservation expired.');
+    const outcome = await sendPasswordResetLink(user, { tokens, sender, options });
+    if (outcome === 'mail-unavailable') { response.status(503).json(mailUnavailable); return; }
     response.status(202).json(accepted);
   }));
 

@@ -23,6 +23,7 @@ import { createMailSender, hasMailConfig, type MailSender } from './mailSender.j
 import { createPasswordResetRepository, type PasswordResetRepository } from './passwordResetRepository.js';
 import { registerPasswordResetRoutes, type PasswordResetOptions } from './passwordResetRoutes.js';
 import { registerChangePasswordRoute } from './changePasswordRoutes.js';
+import { registerAdminUserRoutes } from './adminUsersRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -390,7 +391,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
-  app.use(['/auth/password-reset', '/api/auth/password-reset', '/users/me/password', '/api/users/me/password'], (_request, response, next) => {
+  app.use(['/auth/password-reset', '/api/auth/password-reset', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'no-store'); next();
   });
   app.use(withRequestBodyErrors(express.json()));
@@ -486,6 +487,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
     options: dependencies.passwordResetOptions });
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
+  registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
+    sender: mailSender, options: dependencies.passwordResetOptions });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
@@ -1883,7 +1886,9 @@ function authenticateRequest(authRepository: AuthRepository) {
         return;
       }
 
-      const user = await authRepository.findById(session.sub);
+      // A later request must not join a snapshot captured before another instance
+      // revoked this account or changed its role (DEF-027).
+      const user = await authRepository.findById(session.sub, { fresh: true });
 
       if (!user || user.status !== 'active') {
         response.status(401).json({ message: 'Authentication required' });
