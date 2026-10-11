@@ -52,3 +52,13 @@ describe('API config', () => {
     expect(hasMongoConfigValues('mongodb+srv://example', 'QIEducation', undefined)).toBe(false);
   });
 });
+
+describe('tests never see real service settings', () => {
+  it('runs without the credentials in api/.env, whatever NODE_ENV the shell had', async () => {
+    const { apiConfig } = await import('./config.js');
+    expect(process.env.NODE_ENV).toBe('test');
+    for (const name of ['MONGODB_URI', 'GOOGLE_PRIVATE_KEY', 'MUX_TOKEN_ID', 'GITHUB_FEEDBACK_TOKEN', 'BREVO_API_KEY'] as const) {
+      expect(apiConfig[name], name).toBeUndefined();
+    }
+  });
+});
