@@ -6,7 +6,7 @@ import {
   FeedbackTriageUpdate,
   StudentSummary,
 } from '../../app.models';
-import { AdminUser, AdminUserRole, AdminUsersService } from '../../services/admin-users.service';
+import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService } from '../../services/admin-users.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
 import { AppButton } from '../../ui/app-button/app-button';
@@ -151,8 +151,10 @@ export class AdminPage {
   // The one user a role change or reset is running for; its controls are disabled meanwhile.
   protected readonly userBusyId = signal('');
   private usersRequest = 0;
+  // US-A001-AC08: who changed whose role or status. A failed load leaves the list as it was.
+  protected readonly userChanges = signal<AdminUserChange[]>([]);
   private readonly usersLoader = effect(() => {
-    if (this.section() === 'users' && this.authToken()) untracked(() => void this.searchUsers());
+    if (this.section() === 'users' && this.authToken()) untracked(() => { void this.searchUsers(); void this.loadUserChanges(); });
   });
 
   protected async searchUsers(event?: Event): Promise<void> {
@@ -165,6 +167,38 @@ export class AdminPage {
     if (result.ok) { this.users.set(result.body.users); this.usersTotal.set(result.body.total); this.usersError.set(''); }
     else this.usersError.set(result.message);
     this.usersState.set(result.ok ? 'ready' : 'error');
+  }
+
+  private async loadUserChanges(): Promise<void> {
+    const result = await this.adminUsers.listChanges(this.authToken());
+    if (result.ok) this.userChanges.set(result.body.changes);
+  }
+
+  /** "Admin Demo changed the role of Ann from Student to Teacher" */
+  protected userChangeText(change: AdminUserChange): string {
+    const word = (value: string) => this.userRoles.find((item) => item.value === value)?.label
+      ?? (value === 'active' ? 'Active' : value === 'disabled' ? 'Deactivated' : value);
+    return `${change.actor.displayName} changed the ${change.field} of ${change.target.displayName} from ${word(change.from)} to ${word(change.to)}`;
+  }
+
+  protected async changeUserStatus(user: AdminUser): Promise<void> {
+    const deactivate = user.status === 'active';
+    const question = deactivate
+      ? `Deactivate ${user.displayName}? They are logged out and cannot log in until the account is reactivated. Their courses and progress are kept.`
+      : `Reactivate ${user.displayName}? They can log in again with their existing password.`;
+    if (!window.confirm(question)) return;
+    this.userBusyId.set(user.id);
+    const result = await this.adminUsers.changeStatus(this.authToken(), user.id, deactivate ? 'disabled' : 'active');
+    this.userBusyId.set('');
+    if (result.ok) {
+      this.users.update((items) => items.map((item) => item.id === user.id ? result.body : item));
+      this.usersError.set('');
+      this.usersMessage.set(`${result.body.displayName} is now ${result.body.status === 'active' ? 'active' : 'deactivated'}.`);
+      void this.loadUserChanges();
+    } else {
+      this.usersMessage.set('');
+      this.usersError.set(`${user.displayName} was not ${deactivate ? 'deactivated' : 'reactivated'}. ${result.message}`);
+    }
   }
 
   protected async changeUserRole(user: AdminUser, event: Event): Promise<void> {
@@ -183,6 +217,7 @@ export class AdminPage {
       this.users.update((items) => items.map((item) => item.id === user.id ? result.body : item));
       this.usersError.set('');
       this.usersMessage.set(`${result.body.displayName} is now ${label(result.body.role)}.`);
+      void this.loadUserChanges();
     } else {
       select.value = user.role;
       this.usersMessage.set('');

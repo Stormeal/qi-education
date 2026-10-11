@@ -11,6 +11,7 @@ const json = (status: number, body: unknown) => new Response(JSON.stringify(body
 describe('US-A001 user management on the Admin page', () => {
   let calls: { url: string; method: string; authorization?: string; body?: unknown }[];
   let replies: Record<string, () => Response>;
+  const sent = (method: string) => calls.filter((call) => call.method === method);
 
   beforeEach(() => {
     localStorage.clear();
@@ -59,7 +60,7 @@ describe('US-A001 user management on the Admin page', () => {
     input.value = ' Ann B '; input.dispatchEvent(new Event('input'));
     page.host.querySelector('form[role="search"]')!.dispatchEvent(new Event('submit', { cancelable: true }));
     await vi.waitFor(() => { page.fixture.detectChanges(); expect(page.rows()).toHaveLength(1); });
-    expect(calls.at(-1)!.url).toBe('/admin/users?search=Ann%20B');
+    expect(sent('GET').at(-1)!.url).toBe('/admin/users?search=Ann%20B');
     expect(page.status()).toBe('1 user.');
   });
 
@@ -77,7 +78,7 @@ describe('US-A001 user management on the Admin page', () => {
     select.value = 'teacher'; select.dispatchEvent(new Event('change'));
     await page.settle();
     expect(confirm.mock.calls[0][0]).toContain('Change User ann from Student to Teacher?');
-    expect(calls.at(-1)).toMatchObject({ url: '/admin/users/ann/role', method: 'PATCH', body: { role: 'teacher' } });
+    expect(sent('PATCH').at(-1)).toMatchObject({ url: '/admin/users/ann/role', body: { role: 'teacher' } });
     expect(page.status()).toContain('User ann is now Teacher.');
     expect(page.rows()[1].querySelector('select')!.value).toBe('teacher');
   });
@@ -88,7 +89,7 @@ describe('US-A001 user management on the Admin page', () => {
     const select = page.rows()[1].querySelector('select')!;
     select.value = 'admin'; select.dispatchEvent(new Event('change'));
     expect(select.value).toBe('student');
-    expect(calls).toHaveLength(1);
+    expect(sent('PATCH')).toHaveLength(0);
     confirm.mockReturnValue(true);
     replies['PATCH /admin/users/ann/role'] = () => json(503, { message: 'The user store is unavailable.' });
     select.value = 'admin'; select.dispatchEvent(new Event('change'));
@@ -102,7 +103,7 @@ describe('US-A001 user management on the Admin page', () => {
     expect(page.rows()[0].querySelector('select')!.disabled).toBe(true);
     expect(page.rows()[0].textContent).toContain('Your own role cannot be changed here.');
     expect(page.rows()[1].querySelector('select')!.disabled).toBe(false);
-    expect(page.rows()[2].textContent).toContain('Not active');
+    expect(page.rows()[2].textContent).toContain('Deactivated');
     expect(page.rows()[2].querySelector<HTMLButtonElement>('app-button button')!.disabled).toBe(true);
   });
 
@@ -114,12 +115,62 @@ describe('US-A001 user management on the Admin page', () => {
     button().click();
     await page.settle();
     expect(confirm.mock.calls[0][0]).toContain('Send a password reset link to ann@example.test?');
-    expect(calls.at(-1)).toMatchObject({ url: '/admin/users/ann/password-reset', method: 'POST', authorization: 'Bearer admin-token' });
+    expect(sent('POST').at(-1)).toMatchObject({ url: '/admin/users/ann/password-reset', authorization: 'Bearer admin-token' });
     expect(page.status()).toContain('A reset link was sent to ann@example.test.');
     replies['POST /admin/users/ann/password-reset'] = () => json(503, { message: 'We could not send email right now. Please try again later.' });
     button().click();
     await page.settle();
     expect(page.error()).toBe('No reset link was sent to ann@example.test. We could not send email right now. Please try again later.');
     expect(page.status()).not.toContain('A reset link was sent');
+  });
+
+  it('AC07 deactivates and reactivates an account after confirmation, but not the own account', async () => {
+    replies['PATCH /admin/users/ann/status'] = () => json(200, user('ann', 'student', 'disabled'));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const page = await setup();
+    const statusButton = (row: number) => [...page.rows()[row].querySelectorAll<HTMLButtonElement>('app-button button')].at(-1)!;
+    expect(statusButton(0).disabled).toBe(true);
+    expect(statusButton(1).textContent).toContain('Deactivate');
+    expect(statusButton(2).textContent).toContain('Reactivate');
+    statusButton(1).click();
+    await page.settle();
+    expect(confirm.mock.calls[0][0]).toContain('Deactivate User ann?');
+    expect(sent('PATCH').at(-1)).toMatchObject({ url: '/admin/users/ann/status', body: { status: 'disabled' } });
+    expect(page.status()).toContain('User ann is now deactivated.');
+    expect(page.rows()[1].textContent).toContain('Deactivated');
+    expect(statusButton(1).textContent).toContain('Reactivate');
+
+    replies['PATCH /admin/users/ann/status'] = () => json(409, { message: 'Nope.' });
+    statusButton(1).click();
+    await page.settle();
+    expect(sent('PATCH').at(-1)!.body).toEqual({ status: 'active' });
+    expect(page.error()).toBe('User ann was not reactivated. Nope.');
+    confirm.mockReturnValue(false);
+    const before = sent('PATCH').length;
+    statusButton(1).click();
+    expect(sent('PATCH')).toHaveLength(before);
+  });
+
+  it('AC08 lists recent changes in plain words and reloads them after a change', async () => {
+    const change = (id: string, field: string, from: string, to: string) => ({ id, at: '2026-10-11T12:30:00.000Z',
+      actor: { id: 'admin', displayName: 'User admin' }, target: { id: 'ann', displayName: 'User ann', email: 'ann@example.test' }, field, from, to });
+    replies['GET /admin/users/changes'] = () => json(200, { changes: [change('c1', 'role', 'student', 'teacher')] });
+    replies['PATCH /admin/users/ann/status'] = () => json(200, user('ann', 'student', 'disabled'));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const page = await setup();
+    const log = () => [...page.host.querySelectorAll('.admin-user-changes li span')].map((item) => item.textContent);
+    await vi.waitFor(() => { page.fixture.detectChanges(); expect(log()).toEqual(['User admin changed the role of User ann from Student to Teacher']); });
+    expect(page.host.querySelector('.admin-user-changes time')!.getAttribute('datetime')).toBe('2026-10-11T12:30:00.000Z');
+
+    replies['GET /admin/users/changes'] = () => json(200, { changes: [change('c2', 'status', 'active', 'disabled'), change('c1', 'role', 'student', 'teacher')] });
+    [...page.rows()[1].querySelectorAll<HTMLButtonElement>('app-button button')].at(-1)!.click();
+    await vi.waitFor(() => { page.fixture.detectChanges(); expect(log()[0]).toBe('User admin changed the status of User ann from Active to Deactivated'); });
+    expect(log()).toHaveLength(2);
+  });
+
+  it('AC08 shows no change section when there is nothing to show or the log cannot be read', async () => {
+    const page = await setup();
+    expect(page.host.querySelector('.admin-user-changes')).toBeNull();
+    expect(page.rows()).toHaveLength(3);
   });
 });

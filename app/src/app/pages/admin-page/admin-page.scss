@@ -584,7 +584,7 @@
 
   li {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     gap: 16px;
     align-items: center;
     border: 1px solid rgba(108, 101, 88, 0.16);
@@ -633,5 +633,53 @@
 @media (max-width: 720px) {
   .admin-user-list li {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The user list and the change log share one scrolling panel. */
+.admin-user-panel {
+  overflow-y: auto;
+
+  .admin-user-list {
+    overflow-y: visible;
+  }
+}
+
+.admin-user-changes {
+  margin-top: 18px;
+  border-top: 1px solid rgba(108, 101, 88, 0.16);
+  padding-top: 14px;
+
+  h2 {
+    margin: 0 0 8px;
+    color: #171b4a;
+    font-size: 15px;
+  }
+
+  ol {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 12px;
+    color: #39393a;
+    font-size: 14px;
+  }
+
+  time {
+    color: #6c6558;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-user-changes li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
   }
 }

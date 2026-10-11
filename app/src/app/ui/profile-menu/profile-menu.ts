@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 @Component({
@@ -6,9 +6,12 @@ import { Router } from '@angular/router';
   templateUrl: './profile-menu.html',
   styleUrl: './profile-menu.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // An open menu closes on a click or tap anywhere else, and on Escape.
+  host: { '(document:click)': 'closeWhenOutside($event)', '(document:keydown.escape)': 'closeWithEscape()' },
 })
 export class ProfileMenu {
   private readonly router = inject(Router);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly displayName = input.required<string>();
   readonly email = input.required<string>();
@@ -36,6 +39,17 @@ export class ProfileMenu {
 
   protected closeMenu(): void {
     this.isOpen.set(false);
+  }
+
+  protected closeWhenOutside(event: Event): void {
+    if (this.isOpen() && !this.host.nativeElement.contains(event.target as Node)) this.closeMenu();
+  }
+
+  protected closeWithEscape(): void {
+    if (!this.isOpen()) return;
+    this.closeMenu();
+    // Keyboard focus was inside the menu that just disappeared.
+    this.host.nativeElement.querySelector<HTMLButtonElement>('.profile-trigger')?.focus();
   }
 
   protected selectProfile(): void {

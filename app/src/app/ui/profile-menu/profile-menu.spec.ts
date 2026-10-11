@@ -33,4 +33,32 @@ describe('ProfileMenu', () => {
     expect(navigateByUrl).toHaveBeenCalledWith('/profile');
     expect(fixture.nativeElement.querySelector('.profile-dropdown')).toBeNull();
   });
+
+  it('closes on a click outside and on Escape, and stays open for a click inside', async () => {
+    await TestBed.configureTestingModule({ imports: [ProfileMenu], providers: [provideRouter([])] }).compileComponents();
+    const fixture = TestBed.createComponent(ProfileMenu);
+    fixture.componentRef.setInput('displayName', 'Alex Storm');
+    fixture.componentRef.setInput('email', 'alex@example.com');
+    fixture.componentRef.setInput('roleLabel', 'Platform admin');
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    const trigger = host.querySelector<HTMLButtonElement>('.profile-trigger')!;
+    const open = () => host.querySelector('.profile-dropdown') !== null;
+    const click = (target: Element) => { target.dispatchEvent(new MouseEvent('click', { bubbles: true })); fixture.detectChanges(); };
+
+    click(trigger);
+    expect(open()).toBe(true);
+    click(host.querySelector('.profile-summary')!);
+    expect(open()).toBe(true);
+    click(document.body);
+    expect(open()).toBe(false);
+
+    click(trigger);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(open()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+    fixture.nativeElement.remove();
+  });
 });

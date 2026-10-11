@@ -3,6 +3,8 @@ import { ApiClientService } from './api-client.service';
 
 export type AdminUserRole = 'student' | 'teacher' | 'admin';
 export type AdminUser = { id: string; email: string; displayName: string; role: AdminUserRole; status: string; createdAt: string };
+export type AdminUserChange = { id: string; at: string; actor: { id: string; displayName: string };
+  target: { id: string; displayName: string; email: string }; field: 'role' | 'status'; from: string; to: string };
 export type AdminUsersResult<T> = { ok: true; body: T } | { ok: false; message: string };
 
 /** US-A001: admins search users, change a role and send a password reset link. */
@@ -17,6 +19,14 @@ export class AdminUsersService {
 
   changeRole(token: string, userId: string, role: AdminUserRole): Promise<AdminUsersResult<AdminUser>> {
     return this.request(token, `/admin/users/${encodeURIComponent(userId)}/role`, 'PATCH', { role });
+  }
+
+  changeStatus(token: string, userId: string, status: 'active' | 'disabled'): Promise<AdminUsersResult<AdminUser>> {
+    return this.request(token, `/admin/users/${encodeURIComponent(userId)}/status`, 'PATCH', { status });
+  }
+
+  listChanges(token: string): Promise<AdminUsersResult<{ changes: AdminUserChange[] }>> {
+    return this.request(token, '/admin/users/changes');
   }
 
   sendPasswordReset(token: string, userId: string): Promise<AdminUsersResult<{ message: string }>> {

@@ -209,7 +209,7 @@
   </section>
 
   } @else if (section() === 'users') {
-    <section class="admin-panel" aria-label="User management">
+    <section class="admin-panel admin-user-panel" aria-label="User management">
       <form class="admin-user-search" role="search" (submit)="searchUsers($event)">
         <label for="admin-user-search">Search by name or email</label>
         <div>
@@ -235,7 +235,7 @@
               <div class="admin-user-identity">
                 <strong>{{ user.displayName }}</strong>
                 <span>{{ user.email }}</span>
-                @if (user.status !== 'active') { <span class="admin-user-inactive">Not active</span> }
+                @if (user.status !== 'active') { <span class="admin-user-inactive">Deactivated</span> }
               </div>
               <label class="admin-user-role">
                 <span>Role</span>
@@ -259,9 +259,30 @@
               >
                 {{ userBusyId() === user.id ? 'Working…' : 'Send reset link' }}
               </app-button>
+              <app-button
+                variant="outline"
+                [ariaLabel]="(user.status === 'active' ? 'Deactivate ' : 'Reactivate ') + user.displayName"
+                [disabled]="userBusyId() === user.id || user.id === currentUserId()"
+                (buttonClicked)="changeUserStatus(user)"
+              >
+                {{ user.status === 'active' ? 'Deactivate' : 'Reactivate' }}
+              </app-button>
             </li>
           }
         </ul>
+      }
+      @if (userChanges().length > 0) {
+        <section class="admin-user-changes" aria-labelledby="admin-user-changes-title">
+          <h2 id="admin-user-changes-title">Recent changes</h2>
+          <ol>
+            @for (change of userChanges(); track change.id) {
+              <li>
+                <time [attr.datetime]="change.at">{{ change.at | date: 'd MMM y, HH:mm' }}</time>
+                <span>{{ userChangeText(change) }}</span>
+              </li>
+            }
+          </ol>
+        </section>
       }
     </section>
   } @else if (section() === 'instructors') {
