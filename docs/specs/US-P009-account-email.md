@@ -118,3 +118,11 @@ Local implementation commit: `9f87cb741d8942ffc4b98f97bddc01ec07a0e815` (2026-10
 This delivery-record commit preserves that hash and carries another aligned patch
 bump for the hook. The API increment is complete; frontend/hosted acceptance and
 the explicitly open limits remain with their owners. Codex stopped; no push.
+
+## Operator diagnostics (2026-10-11, lead)
+
+The first hosted request answered 503 and nothing said why, because the sender hid every
+provider detail. A refusal now writes one line to the API log, `Mail provider refused:
+status=<n> code=<brevo code>`, and an unreachable provider writes `Mail provider unreachable:
+<error kind>`. Only the status, a short lowercase code and the error kind are logged; the
+message, recipient, key and mail text never are (`mailSender.test.ts`, two AC03 cases).
