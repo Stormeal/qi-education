@@ -33,6 +33,17 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (10) — Alex: "push and start working on the next bit".**
+Branch: `main`. Base: `c03e602` (pushed and deployed, 0.1.150; the hosted API reports mode
+`hosted` with Google Sheets, MongoDB and Brevo, and answered the catalog and auth health
+checks). Picked by the lead: the rest of US-A001, first in backlog order. Decided by Alex:
+deactivate and reactivate accounts (not one's own) plus a change log for admins.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-A001-AC07/AC08 frontend: Deactivate and Reactivate in the User management tab; "Recent changes" list | Everything under `app/` except the version lines | In progress |
+| Codex | US-A001-AC07/AC08 API: status change, change log storage and read | See the [handoff](handoffs/US-A001-status-and-change-log-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 (9) — started by the user with "let's start working on these".**
 Branch: `main`. Base: `1d5eebe` (local, 0.1.145; seven commits not pushed). Selected by Alex:
 the three stories from the audit and the session question. Split with no file in common:
