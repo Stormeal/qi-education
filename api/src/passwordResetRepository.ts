@@ -1,0 +1,104 @@
+import { apiConfig, hasMongoConfig } from './config.js';
+import { getMongoDatabase } from './mongo.js';
+
+const lifetime = 60 * 60 * 1000;
+type ResetToken = { hash: string; createdAt: number; expiresAt: number; state: 'pending' | 'active' | 'used' };
+export type PasswordResetDocument = { _id: string; version: number; tokens: ResetToken[] };
+export interface PasswordResetRepository {
+  reserve(userId: string, hash: string, now: number): Promise<boolean>;
+  activate(userId: string, hash: string): Promise<boolean>;
+  findActive(hash: string, now: number): Promise<{ userId: string; hash: string } | null>;
+  consume(hash: string, now: number): Promise<string | null>;
+}
+// Exercise the real CAS adapter against a collection double without a live database.
+export type PasswordResetCollection = {
+  findOne(filter: { _id?: string; 'tokens.hash'?: string }): Promise<PasswordResetDocument | null>;
+  insertOne(document: PasswordResetDocument, options: { writeConcern: { w: 'majority' } }): Promise<unknown>;
+  replaceOne(filter: { _id: string; version: number }, document: PasswordResetDocument,
+    options: { upsert: false; writeConcern: { w: 'majority' } }): Promise<{ matchedCount: number }>;
+};
+
+export class MongoPasswordResetRepository implements PasswordResetRepository {
+  constructor(private readonly collectionLoader: () => Promise<PasswordResetCollection> = async () =>
+    (await getMongoDatabase()).collection<PasswordResetDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_password_resets`)) {}
+
+  async reserve(userId: string, hash: string, now: number): Promise<boolean> {
+    return this.change(userId, document => {
+      const recent = document.tokens.filter(token => token.createdAt > now - lifetime);
+      if (recent.length >= 3 || recent.some(token => token.hash === hash)) return { value: false };
+      document.tokens = [...recent, { hash, createdAt: now, expiresAt: now + lifetime, state: 'pending' }];
+      return { value: true, write: true };
+    });
+  }
+  async activate(userId: string, hash: string): Promise<boolean> {
+    return this.change(userId, document => {
+      const token = document.tokens.find(token => token.hash === hash && token.state === 'pending');
+      if (!token) return { value: false };
+      token.state = 'active'; return { value: true, write: true };
+    });
+  }
+  async findActive(hash: string, now: number) {
+    const document = await (await this.collectionLoader()).findOne({ 'tokens.hash': hash });
+    return document?.tokens.some(token => token.hash === hash && token.state === 'active' && token.expiresAt > now)
+      ? { userId: document._id, hash } : null;
+  }
+  async consume(hash: string, now: number): Promise<string | null> {
+    const document = await (await this.collectionLoader()).findOne({ 'tokens.hash': hash });
+    if (!document) return null;
+    return this.change<string | null>(document._id, current => {
+      const token = current.tokens.find(token => token.hash === hash && token.state === 'active' && token.expiresAt > now);
+      if (!token) return { value: null };
+      token.state = 'used'; return { value: current._id, write: true };
+    });
+  }
+  private async change<T>(userId: string, mutation: (document: PasswordResetDocument) => { value: T; write?: boolean }): Promise<T> {
+    const collection = await this.collectionLoader();
+    for (;;) {
+      const stored = await collection.findOne({ _id: userId });
+      const next = structuredClone(stored ?? { _id: userId, version: -1, tokens: [] });
+      const result = mutation(next);
+      if (!result.write) return result.value;
+      next.version++;
+      if (stored) {
+        const write = await collection.replaceOne({ _id: userId, version: stored.version }, next,
+          { upsert: false, writeConcern: { w: 'majority' } });
+        if (write.matchedCount === 1) return result.value;
+      } else {
+        try {
+          await collection.insertOne(next, { writeConcern: { w: 'majority' } }); return result.value;
+        } catch (error) {
+          // Only a competing first insert is retryable; never hide an uncertain write.
+          if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 11000) throw error;
+        }
+      }
+    }
+  }
+}
+
+export class InMemoryPasswordResetRepository extends MongoPasswordResetRepository {
+  constructor() {
+    const documents = new Map<string, PasswordResetDocument>();
+    super(async () => ({
+      async findOne(filter) {
+        return structuredClone(filter._id ? documents.get(filter._id) ?? null
+          : [...documents.values()].find(document => document.tokens.some(token => token.hash === filter['tokens.hash'])) ?? null);
+      },
+      async insertOne(document) {
+        if (documents.has(document._id)) throw { code: 11000 };
+        documents.set(document._id, structuredClone(document));
+      },
+      async replaceOne(filter, document) {
+        // Compare and replace without yielding, mirroring Mongo's conditional write.
+        if (documents.get(filter._id)?.version !== filter.version) return { matchedCount: 0 };
+        documents.set(document._id, structuredClone(document)); return { matchedCount: 1 };
+      },
+    }));
+  }
+}
+
+export function createPasswordResetRepository(): PasswordResetRepository {
+  if (process.env.NODE_ENV !== 'production') return new InMemoryPasswordResetRepository();
+  if (hasMongoConfig()) return new MongoPasswordResetRepository();
+  const unavailable = async (): Promise<never> => { throw new Error('Password reset storage is unavailable.'); };
+  return { reserve: unavailable, activate: unavailable, findActive: unavailable, consume: unavailable };
+}

@@ -207,6 +207,7 @@ describe('QI-Education API', () => {
         configured: true,
         storage: 'memory',
       },
+      mail: { configured: false, provider: 'local' },
       content: {
         storage: 'memory',
         configured: false,

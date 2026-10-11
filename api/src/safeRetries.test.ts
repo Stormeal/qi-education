@@ -30,7 +30,7 @@ vi.mock('./googleSheets.js', () => ({
     },
     update: async ({ range, requestBody }: { range: string; requestBody: { values: string[][] } }) => {
       await sheet.beforeWrite('update', range);
-      const match = /!([A-Z]+)(\d+):/.exec(range)!;
+      const match = /!([A-Z]+)(\d+)(?::|$)/.exec(range)!;
       const column = [...match[1]].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
       const row = sheet.rows.get(range.split('!')[0])![Number(match[2]) - 1];
       row.splice(column, requestBody.values[0].length, ...structuredClone(requestBody.values[0]));

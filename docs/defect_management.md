@@ -904,3 +904,38 @@ local memory rows/stores and GitHub stub only, no shared providers, frontend
 behavior edit, branch/worktree, push or deployment. Claude's 35b45c2 is preserved
 and his DEF-022 entry is untouched. No outside-scope file is needed. This delivery
 record also carries the hook-required aligned patch bump. Codex stopped.
+
+
+### DEF-026 - Enrollment can restore a password hash read before a reset
+
+| ID | State | Priority | Scenario | Reproduction |
+| --- | --- | --- | --- | --- |
+| DEF-026 | Confirmed, Codex, 2026-10-11 | P1 | US-L004-AC02 | Isolated Sheets double: enrollment reads old A:H row and pauses before update; reset writes new D hash; enrollment finishes its full-row write, restoring the old hash |
+
+Reproduced before fixing in api/src/passwordUpdate.test.ts, case "retains a reset
+password when an enrollment write read the old hash first". Its assertion failed:
+stored hash was the old hash instead of the new reset hash. No real spreadsheet,
+MongoDB, provider or mail was touched. This is a persistence interaction with the
+new reset flow, not a change to enrollment's public route or response.
+
+Smallest fix planned: enrollment updates H (enrolledCourseIds) only, while reset
+updates D (passwordHash) only. Preserve existing per-user enrollment sequencing,
+status codes and response shape. Distributed enrollment union remains the open
+US-P003 decision; this repair only prevents enrollment from overwriting other cells.
+Delivery/fixed disposition and verification follow in an append-only record.
+
+
+### DEF-026 - Implementation and isolated regression
+
+Implemented locally 2026-10-11; fixing commit follows in the delivery record.
+Enrollment writes only Users H; password reset writes only Users D. The paused
+old-row enrollment test now preserves the new password hash and enrollment.
+Existing signup/enrollment paths, public bodies, success/status behavior and
+instance-local enrollment sequencing remain unchanged. Distributed enrollment
+union is still an open US-P003 decision, not guaranteed by this repair.
+
+All five checks pass: 744 API tests, six journeys, API build, 248 frontend tests
+and Pages build. Read-only recheck is clear. Tests use isolated in-memory rows,
+Mongo collection CAS doubles and mail/fetch stubs. No shared spreadsheet/Mongo,
+Brevo or real mail; provider contention/durability and hosted/browser behavior
+remain unverified. Original non-UTF-8 bytes preserved by append-only writes.

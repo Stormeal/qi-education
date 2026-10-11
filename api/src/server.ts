@@ -19,6 +19,9 @@ import {
   type AuthenticatedUser,
 } from './auth.js';
 import { AuthUnavailableError, createAuthRepository, type AuthRepository } from './authRepository.js';
+import { createMailSender, hasMailConfig, type MailSender } from './mailSender.js';
+import { createPasswordResetRepository, type PasswordResetRepository } from './passwordResetRepository.js';
+import { registerPasswordResetRoutes, type PasswordResetOptions } from './passwordResetRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -83,6 +86,9 @@ import {
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
+  mailSender?: MailSender;
+  passwordResetRepository?: PasswordResetRepository;
+  passwordResetOptions?: PasswordResetOptions;
   careerPathRepository?: CareerPathRepository;
   instructorProfileRepository?: InstructorProfileRepository;
   learningProgressRepository?: LearningProgressRepository;
@@ -102,6 +108,8 @@ type AuthenticatedRequest = Request & {
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
+  const mailSender = dependencies.mailSender ?? createMailSender();
+  const passwordResetTokens = dependencies.passwordResetRepository ?? createPasswordResetRepository();
   const storedCourses = requestCachedCourses(dependencies.courseRepository ?? createCourseRepository());
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
@@ -381,6 +389,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
+  app.use(['/auth/password-reset', '/api/auth/password-reset'], (_request, response, next) => {
+    response.setHeader('Cache-Control', 'no-store'); next();
+  });
   app.use(withRequestBodyErrors(express.json()));
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
@@ -412,6 +423,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         configured: Boolean(apiConfig.AUTH_TOKEN_SECRET) && !auth.unavailableReason,
         storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
       },
+      mail: { configured: hasMailConfig(), provider: mailSender.provider },
       content: {
         storage: courseContent.storageType,
         configured: hasMongoConfig(),
@@ -469,6 +481,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
       });
     }
   });
+
+  registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
+    options: dependencies.passwordResetOptions });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {

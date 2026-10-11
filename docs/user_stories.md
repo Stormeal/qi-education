@@ -14,7 +14,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
-| US-L004 | Recover account access | Proposed | P2 | P009; P008-AC05 | None |
+| US-L004 | Recover account access | In progress | P2 | API/mail delivered; combined frontend/hosted verification | DEF-026 fixed; AC03 remains |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L013 | Change my password while signed in | Proposed | P2 | None | None |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
@@ -25,7 +25,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit repeated sign-in attempts and reset requests | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
-| US-P009 | Send account email | Proposed | P2 | Mail provider and sender address decision | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -145,48 +144,26 @@ Feature: Account profile persistence
 **As a user, I want a working recovery path when I forget my password, so that
 I can regain access without creating a duplicate account.**
 
-State: Proposed. Current recovery link is `mailto:support@qi-education.local`;
-there is no password-reset API. Decided by Alex, 2026-10-11: automated reset by email.
-Depends on US-P009 for delivery and on US-P008-AC05 before it is offered on the live site,
-because a reset form lets anyone trigger mail to any address.
-Proposed by the lead (confirm or change): the link is valid for 60 minutes and once; the
-token is stored hashed, in MongoDB, never in the users spreadsheet or a log; the new password
-follows the signup rules; the reset page is a route in the app.
-Known limit: sessions are signed tokens with an expiry, so a browser that is already signed
-in stays signed in after a reset until its token expires. Ending those sessions is a separate
-decision.
+State: In progress, remaining AC03 frontend/combined browser verification. The API
+AC01/02/04/05 and account-mail sender are delivered in the
+[reset spec](specs/US-L004-password-reset.md) and
+[mail spec](specs/US-P009-account-email.md), including DEF-026's regression.
+The account limit is three reset-mail slots per rolling hour, stored across API
+instances. Client-address and confirmation-mail limits remain open in US-P008.
+Alex owns production settings and the real delivery/spam check. A provider failure
+can answer 503 only for an active account; that rare existence signal is accepted.
+Known limit: already signed-in browsers retain their signed session until expiry.
+No session revocation is included. Claude owns AC03 and the request form; local API
+verification does not claim a combined browser or hosted acceptance check.
 
 ```gherkin
 Feature: Password recovery
-  Scenario: US-L004-AC01 Request a reset
-    Given I cannot remember my password
-    When I request recovery for an email address
-    Then the response does not reveal whether an account exists
-    And an existing active account receives the agreed recovery instructions
-
-  Scenario: US-L004-AC02 Use a reset token safely
-    Given I have a valid, unused reset token
-    When I choose a password meeting the account policy
-    Then I can sign in using it and cannot reuse the reset token
-    And expired or invalid tokens produce a useful recovery state
-
   Scenario: US-L004-AC03 Reset from the link in the mail
     Given I opened the reset link from my mail
     When the page loads
     Then I can enter and confirm a new password without signing in
     And an expired, used or malformed link tells me to request a new one
 
-  Scenario: US-L004-AC04 Hear about a changed password
-    Given my password was changed through a reset
-    When the change is saved
-    Then my address receives a notice that the password was changed
-    And the notice contains no password and no reset link
-
-  Scenario: US-L004-AC05 The mail cannot be delivered
-    Given the mail service is unavailable
-    When I request recovery
-    Then I am told to try again later without learning whether the account exists
-    And no usable reset token is left behind
 ```
 
 ### US-L007 — Present the primary recommendation first
@@ -405,7 +382,7 @@ browser caching only; public caching is outside the selected scope.
 missing setting, a guessing script, or an untested push cannot expose accounts or
 reach users unnoticed.**
 
-State: Proposed (remaining AC02). Checks on pushes to `main` are delivered and removed
+State: Proposed (remaining AC02 and the client/confirmation parts of AC05). Checks on pushes to `main` are delivered and removed
 from this story. AC01 and AC03 are implemented with isolated regressions; their
 delivery and release checks are in the [safe-operation spec](specs/US-P008-safe-operation.md).
 Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md), INV-014.
@@ -420,65 +397,19 @@ Feature: Safe operation of the live service
     Then further attempts are refused for the agreed period
     And other users can still sign in
 
-  Scenario: US-P008-AC05 Limit reset and confirmation mail
-    Given repeated requests for recovery or confirmation mail for one address or from one client
+  Scenario: US-P008-AC05 Limit client reset requests and confirmation mail
+    Given repeated recovery requests from one client or confirmation requests for one address or client
     When the agreed limit is exceeded
     Then no further mail is sent for the agreed period
     And the response still does not reveal whether the account exists
 ```
 
-AC05 was added on 2026-10-11 with the account email stories: a reset form lets anyone
-trigger mail to any address, and the free mail plan has a daily cap that one script could
-use up. It should be in place before US-L004 is offered on the live site.
-
-### US-P009 — Send account email
-
-**As a maintainer, I want one way to send account mail, so that recovery and
-confirmation messages reach users without each feature talking to a mail provider.**
-
-State: Proposed. Source: Alex, 2026-10-11: set up a mail sender so forgot password can be
-built; the project is a proof of concept, so the service should be free.
-Scope: one mail sender behind an interface, like the GitHub feedback service, with a real
-implementation called over HTTPS (no new dependency) and a local one that only records the
-mail, so tests and local runs never send real email. Plain-text mail with a link is enough.
-Proposed provider (confirm or change): Brevo's free plan, 300 mails a day, transactional
-mail included. Alex owns no domain. Reported consequences, from third-party pages and not
-yet confirmed on Brevo's own: the sender address is confirmed by a code instead of DNS
-records; for a free mailbox address Brevo replaces the visible sender with one of its own;
-such mail is more often filed as spam; free-plan mail carries Brevo branding.
-Decided by Alex, 2026-10-11: Brevo without a domain, sender `xqiacademy@gmail.com`; the
-alternatives below stay as fallbacks if the delivery test fails.
-Earlier open decisions: which address the mail comes from; whether that delivery quality is acceptable
-for the proof of concept, or a domain is bought (then Resend's free plan, 3,000 a month and
-100 a day, is an equal choice), or a Gmail account with an app password is used over SMTP
-(sends as the real address, but needs a mail library). A real delivery test to a Gmail and
-an Outlook address settles it.
-
-```gherkin
-Feature: Account email
-  Scenario: US-P009-AC01 Send a message
-    Given the mail service is configured
-    When a feature asks to send an account message to an address
-    Then the message is handed to the provider with the agreed sender, subject and text
-    And the feature learns whether the provider accepted it
-
-  Scenario: US-P009-AC02 Never send real mail from a test or a local run
-    Given no mail settings are present, or the run is a test
-    When a feature sends an account message
-    Then the message is recorded locally and nothing leaves the machine
-    And production without mail settings refuses instead of pretending to send
-
-  Scenario: US-P009-AC03 Fail honestly and privately
-    Given the provider refuses the message or cannot be reached
-    When a feature sends an account message
-    Then the feature receives a failure it can show as "try again later"
-    And no token, link or password appears in a log or an error response
-
-  Scenario: US-P009-AC04 Report the mail configuration
-    Given an operator opens the configuration health check
-    When mail settings are missing or incomplete
-    Then the check says so without revealing the key
-```
+The reset-account part of AC05 is delivered: at most three mail slots per account
+per rolling hour, including failed/uncertain sends, counted in shared token storage.
+Its contract/evidence is in the [reset spec](specs/US-L004-password-reset.md).
+Client-address limits and confirmation-mail limits remain open for Alex's decision;
+no sign-in attempt or other abuse controls were added. Account email US-P009's
+completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
 
 ## Adding a story
 

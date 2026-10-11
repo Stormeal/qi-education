@@ -17,6 +17,7 @@ export interface AuthRepository {
   findById(id: string): Promise<AuthUser | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
+  updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null>;
 }
 
 export class GoogleSheetsAuthRepository implements AuthRepository {
@@ -77,18 +78,36 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     };
     const sheetRowNumber = rowIndex + 2;
     const sheetTitle = authSheetRange().split('!')[0];
-    const rowColumn = toColumnName(authUserToSheetRow(updated).length);
 
     await this.write(() => sheets.spreadsheets.values.update({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
+      range: `${sheetTitle}!H${sheetRowNumber}`,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [authUserToSheetRow(updated)]
+        // Never rewrite a password, status or identity read before another mutation.
+        values: [[updated.enrolledCourseIds.join(', ')]]
       }
     }));
 
     return updated;
+  }
+
+  async updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null> {
+    const sheets = createSheetsClient();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: authSheetRange(),
+    });
+    const rows = response.data.values ?? [];
+    const index = rows.slice(1).findIndex(row => (row as string[])[0] === userId);
+    if (index < 0) return null;
+    const existing = authUserFromSheetRow(rows[index + 1] as string[]);
+    if (existing.status !== 'active') return null;
+    const sheetTitle = authSheetRange().split('!')[0];
+    await this.write(() => sheets.spreadsheets.values.update({
+      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: `${sheetTitle}!D${index + 2}`,
+      valueInputOption: 'RAW', requestBody: { values: [[passwordHash]] },
+    }));
+    return { ...existing, passwordHash };
   }
 
   private async listUsers(): Promise<AuthUser[]> {
@@ -144,6 +163,13 @@ export class InMemoryAuthRepository implements AuthRepository {
 
     return this.users[index];
   }
+
+  async updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null> {
+    const index = this.users.findIndex(user => user.id === userId && user.status === 'active');
+    if (index < 0) return null;
+    this.users[index] = { ...this.users[index], passwordHash };
+    return this.users[index];
+  }
 }
 
 export function createAuthRepository(): AuthRepository {
@@ -166,6 +192,7 @@ class UnavailableAuthRepository implements AuthRepository {
   async findById(_id: string): Promise<AuthUser | null> { return null; }
   async createUser(_user: AuthUser): Promise<AuthUser> { throw new AuthUnavailableError(); }
   async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
+  async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
 }
 
 function createDemoUser(role: AuthUser['role'], email: string, displayName: string): AuthUser {

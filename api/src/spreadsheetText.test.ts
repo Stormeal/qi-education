@@ -25,7 +25,7 @@ vi.mock('./googleSheets.js', () => {
       stub.rows.get(range.split('!')[0])!.push(...convert(requestBody.values, valueInputOption)); return {};
     },
     update: async ({ range, valueInputOption, requestBody }: { range: string; valueInputOption: string; requestBody: { values: unknown[][] } }) => {
-      const match = /!([A-Z]+)(\d+):/.exec(range)!;
+      const match = /!([A-Z]+)(\d+)(?::|$)/.exec(range)!;
       const col = [...match[1]].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0) - 1;
       const row = stub.rows.get(range.split('!')[0])![Number(match[2]) - 1];
       row.splice(col, requestBody.values[0].length, ...convert(requestBody.values, valueInputOption)[0]); return {};

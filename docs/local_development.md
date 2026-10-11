@@ -30,6 +30,7 @@ Never commit `.env` or log credentials.
 | Mux uploads | `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`; webhook secret for callback verification |
 | Mux policy | `MUX_DEFAULT_PLAYBACK_POLICY`; signed key configuration alone does not implement signed player access |
 | Feedback issues | `GITHUB_FEEDBACK_TOKEN`, `GITHUB_FEEDBACK_REPOSITORY`; optional project ID |
+| Account mail | `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`, `APP_PUBLIC_URL`; optional `MAIL_FROM_NAME` (default `QI-Education`) |
 | HTTP | `PORT`, comma-separated `CORS_ORIGIN` |
 
 Use the header order exported in `api/src/course.ts`, `auth.ts`, and `feedback.ts`.
@@ -40,6 +41,35 @@ memory content/assets will block some authoring operations by design.
 
 The legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and
 `SESSION_SECRET` aliases are accepted; use the preferred names for new setup.
+
+## Account mail and password recovery
+
+Brevo is selected only with `NODE_ENV=production`; development/tests always
+record locally even if real credentials are present. Local stdout displays the
+complete recipient, subject and plain-text message, including the fragment link.
+Tests inject a recorder/output stub and never call Brevo. Reset token storage
+also always uses memory outside production, independently of configured Mongo.
+Use isolated user repositories for local verification; other repository factories
+retain their existing configuration behavior.
+
+Production requires the Brevo key, sender address and frontend `APP_PUBLIC_URL`
+without a trailing slash. The agreed sender is `xqiacademy@gmail.com`; Alex
+confirms it in Brevo and supplies settings in Vercel. `MAIL_FROM_NAME` defaults
+to `QI-Education`. Use an HTTP/HTTPS frontend URL; local messages fall back to
+`http://localhost:4200` when omitted. Missing mail settings return 503 on reset
+requests and do not affect existing routes. `/health/config` adds only configured
+and provider under mail, without keys/addresses. Real acceptance, delivery and
+spam placement remain Alex's post-deployment check; no test sends real mail.
+
+Password writes require the production Sheets store; hashed reset tokens require
+configured production Mongo and use
+`<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. There is no spreadsheet
+migration and no raw token persisted. Links last 60 minutes and one use; checks
+do not consume them. The three-per-account rolling-hour limit includes pending
+or failed sends because a timeout can follow delivery. A failed password write
+after claiming a token leaves it consumed; request a fresh link. Existing signed
+sessions survive a reset. Client-address and confirmation-mail limits remain open.
+See the [reset spec](specs/US-L004-password-reset.md).
 
 ## Isolated local audit/demo walkthrough
 

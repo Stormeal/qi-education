@@ -81,7 +81,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
-| Account | Student signup, login, remembered session, role permissions | No reset flow; demo fallback only outside production; missing production user store disables auth |
+| Account | Student signup, login, remembered session, role permissions; account email and hashed single-use password reset API | Existing sessions survive a reset; real mail delivery remains a release check; missing production user store disables auth |
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
@@ -188,6 +188,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | --- | --- |
 | `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes |
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
+| `POST /auth/password-reset/request`, `/check`, `/confirm` | Public; both normal and /api prefixes; no-store; 202 privacy-preserving request (400 invalid email, 503 mail unavailable), 204 check/confirm, 410 reset-link-invalid, 400 signup password validation |
 | `GET /auth/me` (also `/me`) | Active bearer session |
 | `GET /users/me/instructor-profile`, `PUT /users/me/instructor-profile` | Active teacher/admin; own description only, trimmed string 0..280, empty clears; 200 `{ description }`; 400 invalid input, 401 invalid/missing session, 403 student |
 | `GET /instructors` | Public; ignores bearer token; only `{ description, courseIds }` for non-empty descriptions owning published live courses; private/no-store |
@@ -228,6 +229,43 @@ using their current stored role. Tokens are stored in browser storage by
 
 ## Persistence
 
+Account email uses injectable `MailSender`, with Brevo fetch in production and
+recorded complete stdout messages locally. Nonproduction never selects Brevo,
+even with credentials present. Optional `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`,
+`MAIL_FROM_NAME` (default QI-Education) and `APP_PUBLIC_URL` configure it. Missing
+production settings refuse reset requests with the safe 503. `/health/config`
+adds only `mail: { configured, provider }`, where configured checks the key,
+sender and public app URL. Existing diagnostic fields remain unchanged. Provider
+details, credentials and tokens never enter diagnostic logs or error responses;
+complete local mail display is deliberate, and unavailable in production.
+
+`passwordResetRoutes.ts` adds three routes without changing existing auth routes.
+Reset links carry at least 32 random bytes in `/reset-password#token=...`; only
+SHA-256 hashes are stored in per-user Mongo documents under
+`<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. Local/test factories always
+select memory, including with configured Mongo. Production without Mongo fails
+closed. Versioned compare-and-replace and unique first-insert retries await
+majority acknowledgment and enforce three stored mail slots per rolling hour
+across instances. Pending slots cannot be checked/used, and become active only
+after provider acceptance. Failed/uncertain sends retain their unusable slot until
+expiry so an accepted mail with a lost response cannot bypass the limit. Active
+and used tokens also count; tokens expire at exactly 60 minutes, and requesting a
+new link does not invalidate older ones. Checks never consume tokens.
+
+Confirmation uses signup validation and scrypt, atomically claims an active hash
+as used, then calls `AuthRepository.updatePasswordHash`. Mongo and Sheets cannot
+share a transaction: a failed/uncertain password write keeps the claim consumed;
+the user requests a fresh link. At most one password write occurs per token.
+Sheets updates only D (passwordHash); enrollment updates only H (enrolledCourseIds),
+repairing DEF-026 where a late full-row enrollment write restored the old hash.
+Memory preserves the other account fields; the unavailable user store refuses
+updates. Notices contain neither password nor link, and failed notices do not
+fail the change. Signed sessions remain valid until expiry. Provider failures
+can answer 503 only for real active accounts, an accepted rare existence signal.
+Storage failures return safe 500 messages. Client-address and confirmation-mail
+limits remain open. See [reset](specs/US-L004-password-reset.md) and
+[account mail](specs/US-P009-account-email.md) for tests and release limitations.
+
 US-T007 adds `instructorProfile.ts`, `instructorProfileRepository.ts` and
 `instructorProfileRoutes.ts`. Only new dependency/route registration is added to
 `server.ts`; existing routes and users spreadsheet fields are unchanged. Saving
@@ -257,6 +295,7 @@ combined browser acceptance remain release checks; see the
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
 | Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository locally/tests; new operations unavailable in unconfigured production |
+| Password reset token hashes and rolling-hour reservations | MongoPasswordResetRepository, per-user versioned token document in production | Always InMemoryPasswordResetRepository outside production; missing production Mongo refuses operations |
 
 Factories choose these independently. Mixed configuration is possible. Course
 creation is blocked when metadata uses Sheets but content uses memory; thumbnails
