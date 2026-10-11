@@ -205,7 +205,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; editable working draft only; required loaded revision; no direct status/price changes |
 | `POST /courses/:id/review` | Owner/admin start and submit revisions; admin return/publish/archive; loaded revision ID and version required |
 | `PUT /courses/:id/thumbnail` | Owner teacher/admin; JPEG/PNG/WebP, 2 MB |
-| `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 25 MB |
+| `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 4 MB; quiz accepts JPEG/PNG/WebP only, text/resources MIME rules unchanged, video upload unavailable |
 | `GET /courses/:id/content/attachments/:assetId` | Owner/admin or entitled learner; asset must belong to the requested course |
 | `DELETE /courses/:id/content/components/:componentId/attachments/:assetId` | Owner teacher/admin |
 | `POST .../components/:componentId/mux-upload`, `DELETE .../mux-video` | Owner teacher/admin |
@@ -281,7 +281,8 @@ one or more correctness flags, fixed one-point scoring and an optional question
 explanation (at most 1000 characters, default empty). Content saves ignore sent
 weights and store points 1; author reads normalize old weights/default explanations
 without a migration. Legacy answer descriptions remain supported.
-Learner question DTOs explicitly expose only ID, text, points 1, `multiple` and
+Learner question DTOs explicitly expose only ID, text, points 1, image assetId/alt
+or null, `multiple` and
 options with ID/text/empty description. Correct answer identities, question
 explanations and arbitrary stored question fields are withheld before an attempt.
 Both existing course and account quiz-attempt routes accept `answerIds` and legacy
@@ -297,9 +298,28 @@ questions/options, at least one correct answer, and a pass mark in 1..question c
 Account passing proof fingerprints the same stored quiz as Finish, so parser
 defaults and old weights cannot create mismatching proof; changed quiz data still
 invalidates it. [US-T013 spec](specs/US-T013-simple-quiz.md) records API verification;
-Claude owns the simple authoring and learner frontend. Question images are Proposed
-US-T014 and have no implementation. Replacement
+Claude owns the simple authoring and learner frontend. Replacement
 of a live course requires a private revision; submitted revisions cannot be edited.
+US-T014 adds optional question `image: { assetId, alt } | null`, default null on
+save when omitted, with trimmed alternative text 0..300. There is no new image
+or alternative-text readiness requirement. Images are ordinary quiz-lesson
+attachments using existing upload/download routes and binary storage. Content
+save validates membership in that lesson's attachments and the asset's actual
+course/component/MIME; invalid references and image field errors get message-only
+400 in the Question N style. A projected metadata lookup reads no binary and
+leaves the existing owner-only lookup unchanged.
+
+Learner question output whitelists image assetId/alt or null without answer keys;
+legacy author/learner reads normalize absent images without migration, and public
+outlines disclose no image. Both grading routes remain unchanged. Deletion clears
+all matching question image references together with their lesson attachment in
+one content/review write before asset cleanup. Frozen submissions keep their
+images; deleting from a working revision preserves bytes referenced by the live
+published snapshot. Existing owner/admin and learner download permission rules,
+including archived entitlement, remain unchanged. See the
+[question image spec](specs/US-T014-question-image.md); combined browser and real
+provider verification remain separate release checks.
+
 All content saves reject duplicate section/component/question/answer identities. Combined draft
 content/review saves persist the outline first, so validation sees the latest quiz.
 Assets have binary payload, type, filename, size, and course/component association.

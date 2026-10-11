@@ -31,6 +31,7 @@ export function learnerCourseContent(content: CourseContentDocument) {
       if (component.type !== 'quiz') return component;
       return { ...component, quiz: { ...component.quiz, questions: component.quiz.questions.map((question) => ({
         id: question.id, question: question.question, points: 1,
+        image: question.image ? { assetId: question.image.assetId, alt: question.image.alt } : null,
         multiple: question.answers.filter(answer => answer.isCorrect).length > 1,
         answers: question.answers.map((answer) => ({ id: answer.id, text: answer.text, description: '' })),
       })) } };

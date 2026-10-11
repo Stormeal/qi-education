@@ -59,6 +59,7 @@ import {
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { canAuthorCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
 import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment.js';
+import { isQuestionImageContentType, questionImageIssue } from './questionImage.js';
 import { AmbiguousCourseWriteError, CourseBusyError } from './courseMutationLock.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
 import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
@@ -310,20 +311,20 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         const component = findCourseComponent(content.sections, sectionId, componentId);
 
-        if (!component || (component.type !== 'text' && component.type !== 'resources')) {
+        if (!component || (component.type !== 'text' && component.type !== 'resources' && component.type !== 'quiz')) {
           response.status(404).json({ message: 'Attachment uploads are only available for text and resources components.' });
           return;
         }
 
         const contentType = normalizeAttachmentContentType(request.header('content-type'));
-        const allowed = component.type === 'text'
+        const allowed = component.type === 'quiz' ? isQuestionImageContentType(contentType) : component.type === 'text'
           ? isAllowedTextAttachmentContentType(contentType)
           : isAllowedResourcesAttachmentContentType(contentType);
 
         if (!allowed) {
           response.status(415).json({
             message:
-              component.type === 'text'
+              component.type === 'quiz' ? 'Question images support JPEG, PNG and WebP files.' : component.type === 'text'
                 ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'
                 : 'Resources supports ZIP, PDF, Word and PowerPoint files, and images.',
           });
@@ -780,7 +781,17 @@ export function createServer(dependencies: ServerDependencies = {}) {
     requireCourseAuthor(storedCourses),
     withCourseLock(async (request, response, next) => {
       try {
-        const input = updateCourseContentSchema.parse(request.body);
+        const parsed = updateCourseContentSchema.safeParse(request.body);
+        if (!parsed.success) {
+          const imageError = parsed.error.issues.find(issue => issue.path.includes('image'));
+          if (imageError) {
+            const index = imageError.path[imageError.path.indexOf('questions') + 1];
+            response.status(400).json({ message: `Question ${Number(index) + 1}: ${imageError.message}` });
+            return;
+          }
+          throw parsed.error;
+        }
+        const input = parsed.data;
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const matchingCourse = (await courses.listCourses()).find((course) => course.id === courseId);
 
@@ -794,6 +805,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
           response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
           return;
         }
+
+        const imageIssue = await questionImageIssue(input.sections, courseId, courseAssets);
+        if (imageIssue) { response.status(400).json({ message: imageIssue }); return; }
 
         const attachmentIds = new Set(input.sections.flatMap((section) =>
           section.components.flatMap((component) => component.attachments.map((attachment) => attachment.assetId)),
@@ -1157,6 +1171,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
                         attachments: (item.attachments ?? []).filter(
                           (attachment) => attachment.assetId !== assetId,
                         ),
+                        ...(item.type === 'quiz' ? { quiz: { ...item.quiz, questions: item.quiz.questions.map(question =>
+                          question.image?.assetId === assetId ? { ...question, image: null } : question) } } : {}),
                       }
                     : item,
                 ),

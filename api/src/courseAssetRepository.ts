@@ -27,6 +27,8 @@ export type CourseComponentAttachmentAsset = {
   createdAt: string;
 };
 
+export type CourseComponentAttachmentMetadata = Pick<CourseComponentAttachmentAsset, 'courseId' | 'componentId' | 'contentType'>;
+
 type CourseAssetCollection = Pick<
   Collection<CourseThumbnailAsset | CourseComponentAttachmentAsset>,
   'findOne' | 'insertOne' | 'deleteOne'
@@ -54,6 +56,7 @@ export interface CourseAssetRepository {
   }): Promise<CourseComponentAttachmentAsset>;
   getComponentAttachment(assetId: string): Promise<CourseComponentAttachmentAsset | null>;
   getComponentAttachmentOwner(assetId: string): Promise<{ courseId: string } | null>;
+  getComponentAttachmentMetadata(assetId: string): Promise<CourseComponentAttachmentMetadata | null>;
   deleteAsset(assetId: string, courseId: string): Promise<void>;
 }
 
@@ -134,6 +137,13 @@ export class MongoCourseAssetRepository implements CourseAssetRepository {
     const asset = await (await this.collection()).findOne({ _id: assetId, componentId: { $exists: true } },
       { projection: { _id: 0, courseId: 1 } });
     return asset ? { courseId: asset.courseId } : null;
+  }
+
+  async getComponentAttachmentMetadata(assetId: string): Promise<CourseComponentAttachmentMetadata | null> {
+    const asset = await (await this.collection()).findOne({ _id: assetId, componentId: { $exists: true } },
+      { projection: { _id: 0, courseId: 1, componentId: 1, contentType: 1 } });
+    return asset && 'componentId' in asset
+      ? { courseId: asset.courseId, componentId: asset.componentId, contentType: asset.contentType } : null;
   }
 
   async deleteAsset(assetId: string, courseId: string): Promise<void> {
@@ -222,6 +232,11 @@ export class InMemoryCourseAssetRepository implements CourseAssetRepository {
   async getComponentAttachmentOwner(assetId: string): Promise<{ courseId: string } | null> {
     const asset = this.componentAssets.get(assetId);
     return asset ? { courseId: asset.courseId } : null;
+  }
+
+  async getComponentAttachmentMetadata(assetId: string): Promise<CourseComponentAttachmentMetadata | null> {
+    const asset = this.componentAssets.get(assetId);
+    return asset ? { courseId: asset.courseId, componentId: asset.componentId, contentType: asset.contentType } : null;
   }
 
   async deleteAsset(assetId: string, courseId: string): Promise<void> {

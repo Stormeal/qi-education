@@ -76,7 +76,7 @@ export class CourseReviewService {
     const document = doc ?? { _id: id, sections: [], createdAt: base.createdAt, updatedAt: base.createdAt };
     const authorSections = selected.map(section => ({ ...section, components: section.components.map(component =>
       component.type === 'quiz' ? { ...component, quiz: { ...component.quiz, questions: component.quiz.questions.map(question =>
-        ({ ...question, points: 1, explanation: question.explanation ?? '' })) } } : component) }));
+        ({ ...question, points: 1, explanation: question.explanation ?? '', image: question.image ?? null })) } } : component) }));
     return { ...cleanContent(document, authorSections), view: 'author', review: reviewState(base, workflow) };
   }
   async assertEditable(id: string) {
@@ -197,6 +197,7 @@ export function reviewedRepositories(metadata: CourseRepository, content: Course
     saveThumbnail: input => assets.saveThumbnail(input), getThumbnail: id => assets.getThumbnail(id),
     saveComponentAttachment: input => assets.saveComponentAttachment(input), getComponentAttachment: id => assets.getComponentAttachment(id),
     getComponentAttachmentOwner: id => assets.getComponentAttachmentOwner(id),
+    getComponentAttachmentMetadata: id => assets.getComponentAttachmentMetadata(id),
     deleteAsset: async (id, courseId) => {
       const doc = await content.getCourseContent(courseId);
       const live = doc?.review?.live;

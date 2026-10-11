@@ -858,7 +858,7 @@ describe('QI-Education API', () => {
 
     expect(updateResponse.status).toBe(200);
     const normalizedSections = structuredClone(sections);
-    Object.assign(normalizedSections[0].components[0].quiz.questions[0], { points: 1, explanation: '' });
+    Object.assign(normalizedSections[0].components[0].quiz.questions[0], { points: 1, explanation: '', image: null });
     expect(updated).toMatchObject({
       _id: created.id,
       sections: normalizedSections,

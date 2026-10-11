@@ -10,7 +10,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-T014 | Add an image to a quiz question | Proposed | P3 | T013; image contract decisions | None |
+| US-T014 | Add an image to a quiz question | In progress | P3 | T013; combined frontend acceptance | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
@@ -42,9 +42,15 @@ numbering are delivered work. Their contracts and evidence remain in `specs/`,
 **As a teacher, I want an optional image on a question,
 so that I can assess understanding of visual material.**
 
-State: Proposed, not selected or implemented. Source: Alex's 2026-10-11 feedback.
-Depends on US-T013. Outstanding decisions: accepted formats/size, image storage
-and access, author removal, accessible alternative text and learner presentation.
+State: In progress, selected 2026-10-11. Source: Alex's 2026-10-11 feedback.
+Depends on US-T013. Lead decisions confirmed from existing attachment precedents:
+JPEG/PNG/WebP, 4 MB, one optional image attachment of the quiz lesson per question,
+trimmed alternative text 0..300, no new readiness requirement. The API increment
+adds image persistence/validation, quiz uploads, learner projection and atomic
+reference clearing on delete; lifecycle and download entitlement are unchanged.
+Contract and API scenario evidence: [spec](specs/US-T014-question-image.md).
+Claude owns frontend AC01/AC02 and combined browser/accessibility acceptance,
+which remains open; no hosted or real-provider verification is claimed.
 
 ```gherkin
 Feature: Question images
