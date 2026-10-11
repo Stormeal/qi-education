@@ -47,7 +47,7 @@ AC06 implementation checklist:
 - [x] Verify matching/unversioned/denied/error reads, both callers and route prefixes,
   pending author previews, replacement and unchanged other-route policies.
 - [x] Run all five requested checks, record evidence and remove delivered AC06.
-- [ ] Commit locally with the required aligned version bump; record delivery hash.
+- [x] Commit locally with the required aligned version bump; record delivery hash.
 
 ## API/storage and plan
 
@@ -147,8 +147,9 @@ loopback ephemeral ports, including the existing frontend URL shape. Actual
 browser network-cache hits, hosted API/header behavior and real provider
 durability are unverified. No shared Sheets, MongoDB, Mux or GitHub data was
 touched, no frontend behavior was edited, and no push/deployment was performed.
-No additional file outside the assigned scope is required. Local delivery
-commit is recorded below after committing. Read-only review found no Critical,
+No additional file outside the assigned scope is required. Local delivery:
+`f1aed614d24c653b083e2ca5399ade3c1387ab9b` (0.1.106); this delivery-record commit
+also carries the hook-required aligned patch bump. Read-only review found no Critical,
 Important or Minor issues within the explicit contract; additional 503/review
 errors exit before the override, while public caching and revocation changes
 remain outside this scope.

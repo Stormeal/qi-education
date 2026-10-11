@@ -46,7 +46,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Fixed | Resolved 2026-10-10 in a889155; mixed-client regression/full checks/review pass | US-A003-AC02 |
 | DEF-T012-CALLBACK | Video callbacks miss a lesson moved to another chapter | P2 | Fixed | Reproduced then fixed 2026-10-10 in a8595d6; seven isolated media regressions and 425 API tests pass; live provider checks pending | US-T012-AC05 |
 | DEF-020 | A published course looks impossible to edit: the form is locked without explanation and Start revision is hidden in a later step | P2 | Fixed | Reported by the first teacher 2026-10-10; reproduced and fixed in baf852c; `course-form-steps.spec.ts` and browser check pass | US-T010 |
-| DEF-021 | Versioned course thumbnails cannot use the browser cache | P2 | In progress | INV-018 reproduced 2026-10-11 on df556f0: four isolated HTTP regressions receive private, no-store for a matching asset version | US-P006-AC06 |
+| DEF-021 | Versioned course thumbnails cannot use the browser cache | P2 | Fixed | INV-018 reproduced first; resolved 2026-10-11 in f1aed61 (0.1.106); 42 isolated HTTP regressions and all five checks pass; hosted/browser cache-hit check pending | US-P006-AC06 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -747,7 +747,7 @@ Hosted verification pending. Details: [guided course form spec](specs/US-T010-gu
 
 ### DEF-021 - Versioned course thumbnails cannot use the browser cache
 
-Owner: Codex. Severity: P2. State: In progress. Source: INV-018,
+Owner: Codex. Severity: P2. State: Fixed in f1aed61 (0.1.106), 2026-10-11. Source: INV-018,
 [2026-10-09 code audit](audits/2026-10-09/code_audit.md).
 Contract: US-P006-AC06; [class-load spec](specs/US-P006-class-load.md).
 
@@ -760,3 +760,21 @@ the cache assertion fails: expected `private, max-age=31536000, immutable`,
 received `private, no-store`. The shared middleware sets no-store and the read
 handler does not override it after successful asset validation. No shared
 provider, production incident or browser transfer measurement is claimed.
+
+Resolution: the thumbnail handler overrides Cache-Control only on the existing
+successful path, after visibility and asset/course ownership checks, when the
+string v equals the actual returned asset ID. It keeps Vary: Authorization;
+unversioned and error/404 responses retain private, no-store. Existing author-only
+revision selection, response bodies and content headers remain unchanged. No
+other route policy changes and no public caching. AC06 removed from the open
+backlog; acceptance and scenario-to-test map remain in the class-load spec.
+
+Regression: 42/42 thumbnail HTTP tests pass on both prefixes; old versions return
+404/no-store for learners after publication of a replacement, pending versions
+remain author-only, and unchanged images keep type/length/bytes. All five checks
+pass: 500 API tests, six journeys, API build, 222 frontend tests and Pages build
+(existing stylesheet budget warnings and jsdom scrollTo notices). Read-only review
+found no issues. Hosted header behavior, actual browser cache-hit transfers and
+real provider durability remain release checks, so the state is Fixed, not
+Verified. Isolated memory stores/ephemeral ports only; no shared data touched,
+push or deployment. Claude's concurrent 9a4d032 commit preserved.
