@@ -33,6 +33,14 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**2026-10-11, after the push of `005552d` (0.1.155; CI and the Pages deployment succeeded; the
+hosted API reports its real stores).** Reported by Alex from the live site: Brevo's IP blocking
+is off and mail works; reset mails reach Gmail and Outlook outside spam; a student enrollment
+in a new course works (hosted check of DEF-026). Still to be seen on the live site: the reload
+without the restore screen, the profile menu closing on an outside click, deactivate and
+reactivate with the change log, and a password change from the profile page.
+Open backlog items all wait for a decision by Alex: US-P008-AC02, US-L014, US-A002.
+
 **Session 2026-10-11 (10) — Alex: "push and start working on the next bit".**
 Branch: `main`. Base: `c03e602` (pushed and deployed, 0.1.150; the hosted API reports mode
 `hosted` with Google Sheets, MongoDB and Brevo, and answered the catalog and auth health
@@ -136,7 +144,7 @@ US-L004 and US-P008-AC05 as one increment, because the sender has no other user 
 | --- | --- | --- | --- |
 | Claude Code | US-L004 frontend: "Forgot password?" form on the login page; reset page at `/reset-password` | Everything under `app/` except the version lines | Delivered locally in `1470b3a` (0.1.126) plus the pasted-link fix in the lead-check commit; acceptance in the [spec](specs/US-L004-password-reset.md) |
 | Codex | US-P009 mail sender (Brevo and local); US-L004 reset API and token storage; US-P008-AC05 limit on reset mail | See the [handoff](handoffs/account-email-password-reset-codex.md) | Delivered locally in `9f87cb7` (implementation, 0.1.127); this delivery-record commit carries another hook-aligned patch bump. Owner Codex, main/base be57a77 (ancestor confirmed), selected 2026-10-11; both specs written first. Delivered: injectable Brevo/local sender, three no-store reset routes, hashed 60-minute tokens, atomic shared three-mail reservation/single-use claim, Sheets/memory hash update and notice. DEF-026 reproduced then Fixed: enrollment writes only H to preserve the reset hash in D. Final read-only review clear. All five checks pass: 744 API tests (95 focused, 66 HTTP), six journeys, API build, 248 frontend tests and Pages build; existing jsdom/style warnings. Unverified: shared Mongo/Sheets durability, real Brevo acceptance/delivery/spam, hosted/combined browser/keyboard flow. Failed sends retain unusable slots for one hour; a failed password write leaves the claimed token consumed; signed sessions remain. Claude frontend commit 1470b3a preserved. Remaining: Claude's AC03/browser acceptance; Alex's real settings/delivery check and client-address/confirmation-mail limit decisions. No outside-owned file needed, real mail/shared mutations, branch/worktree, push or deployment. Codex stopped |
-| Alex | Brevo account and sender confirmation; four settings in Vercel; real delivery test | Brevo, Vercel, his mailbox | Four settings added in Vercel (seen by name, 2026-10-11). Delivery test passed on the live site 2026-10-11 after authorising an IP address in Brevo: reset mail received and password changed ([record](specs/US-L004-password-reset.md)). Login, inbox placement and the notice mail confirmed. Open: Brevo refused to turn off its IP blocking for API keys (retry or ask Brevo support); Gmail and Outlook delivery; one hosted enrollment |
+| Alex | Brevo account and sender confirmation; four settings in Vercel; real delivery test | Brevo, Vercel, his mailbox | Four settings added in Vercel (seen by name, 2026-10-11). Delivery test passed on the live site 2026-10-11 after authorising an IP address in Brevo: reset mail received and password changed ([record](specs/US-L004-password-reset.md)). Login, inbox placement and the notice mail confirmed. Closed 2026-10-11 by Alex's report: Brevo's IP blocking is off, Gmail and Outlook reset mails arrive outside spam, and a hosted enrollment works ([record](specs/US-L004-password-reset.md)) |
 
 Lead check 2026-10-11 on `2a54da9`: Codex stayed within its files and the version lines. New:
 a mail sender, three reset routes and a token store; `/health/config` gained a `mail` field.

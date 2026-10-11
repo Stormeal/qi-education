@@ -279,3 +279,14 @@ profile/browser/keyboard verification remain release checks. Local commit follow
 US-L013 local implementation: f8a3713244bf678461481d63ab512636619bd9f8
 (version 0.1.136), 2026-10-11. The delivery-record commit accompanies the queue
 and US-L013 spec. All five required checks passed as above; no push or deployment.
+
+## Hosted follow-up reported by Alex (2026-10-11, live site on 0.1.155)
+
+- Brevo's blocking of unauthorised IP addresses for API keys is now turned off; sending works
+  without authorising addresses one by one. The open risk recorded above is closed.
+- Reset mails to a Gmail and to an Outlook mailbox arrived and were not in the spam folder.
+  With the earlier Proton result, delivery is confirmed for three providers.
+- A learner enrolled in a new course on the live site and it worked. This is the hosted check
+  of DEF-026 (enrollment writes only the enrolled-courses cell of the users sheet).
+
+Nothing remains open from the delivery test.
