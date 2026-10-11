@@ -40,8 +40,19 @@ Codex takes the next independent open item with no file in common: US-P003 (API 
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | DEF-022: the lesson editor dialog and the component picker take focus, close on Escape, keep Tab inside and return focus | `app/src/app/ui/course-builder/**`, the DEF-022 entry in `docs/defect_management.md` | In progress |
+| Claude Code | DEF-022: the lesson editor dialog and the component picker take focus, close on Escape, keep Tab inside and return focus | `app/src/app/ui/course-builder/**`, the DEF-022 entry in `docs/defect_management.md` | Delivered locally in `35b45c2` (0.1.110); DEF-022 Fixed, record in the defect log |
 | Codex | US-P003 / INV-003, INV-004: reproduce, then make overlapping signup, enrollment and retried triage safe within one API instance | See the [handoff](handoffs/US-P003-safe-retries-codex.md) | Delivered locally: c13a800 (implementation, 0.1.111); this delivery-record commit also has the hook-required aligned patch bump. Owner Codex, main/base fc98679 (required ancestor confirmed), selected 2026-10-11. Spec written first; AC01/02/03 reproduced as DEF-023/024/025 before changing code (12 cases: 10 RED, 2 memory enrollment cases not reproduced), latest states Fixed appended. Instance-only email/user/feedback queues and pending-issue checkpoint; no repository/frontend or other-route wiring change. Verified: 34 focused HTTP cases, 534 API tests, six journeys, API build, 225 frontend tests, Pages build with existing stylesheet warnings/jsdom notices; read-only review clear. Claude's 35b45c2 preserved; defect records appended as bytes, DEF-022 untouched. Not verified: real Sheets/GitHub, hosted/browser, multiple instances/restart. AC01..03 removed; distributed/restart AC04 remains Proposed with Alex's shared coordination/durable issue recovery decision in the spec/backlog. No outside-scope file needed, branch/worktree, shared providers or push. Next: Alex's distributed/restart decision and separate release checks; Codex stopped |
+
+Lead check 2026-10-11 on `408fa05`: Codex stayed within its files and the version lines. The
+code change is one small queue helper and three routes in `api/src/server.ts` (signup,
+enrollment, feedback triage); paths, request shapes, responses and status codes are unchanged
+and no repository interface changed. 534 API and 225 frontend tests, six journeys and the API
+and Pages builds pass. DEF-023, DEF-024 and DEF-025 are Fixed for one API instance. Noted, not
+changed: after a failed save, a retry that no longer asks for work still gets the already
+created issue link. Open for Alex (US-P003-AC04): the hosted API can run several instances and
+restarts between requests, and neither is covered. Not verified: real Sheets and GitHub,
+hosted behavior, a screen reader on the DEF-022 dialogs.
+Next: Alex decides on the push and on AC04.
 
 **Session 2026-10-11 (2) — started by the user with "let's start working".** Branch: `main`.
 Base: `18ae097` (pushed, 0.1.103). Picked by Claude Code as lead: the open check of the last
