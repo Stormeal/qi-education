@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-09. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-11. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -14,15 +14,18 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
-| US-L004 | Recover account access | Proposed | P2 | None | None |
+| US-L004 | Recover account access | Proposed | P2 | P009; P008-AC05 | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
+| US-L013 | Change my password while signed in | Proposed | P2 | None | None |
+| US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | In progress | P2 | Distributed coordination decision | DEF-023/024/025; multi-instance/restart work remains |
 | US-P004 | Recover career guidance safely across failures and sessions | In progress | P2 | L006, L009; per-increment checks | DEF-016 fixed in this delivery |
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
-| US-P008 | Limit repeated sign-in attempts | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
+| US-P008 | Limit repeated sign-in attempts and reset requests | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
+| US-P009 | Send account email | Proposed | P2 | Mail provider and sender address decision | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -143,8 +146,15 @@ Feature: Account profile persistence
 I can regain access without creating a duplicate account.**
 
 State: Proposed. Current recovery link is `mailto:support@qi-education.local`;
-there is no password-reset API. Decision: real support contact versus automated
-reset delivery. The scenarios below propose automated reset, pending selection.
+there is no password-reset API. Decided by Alex, 2026-10-11: automated reset by email.
+Depends on US-P009 for delivery and on US-P008-AC05 before it is offered on the live site,
+because a reset form lets anyone trigger mail to any address.
+Proposed by the lead (confirm or change): the link is valid for 60 minutes and once; the
+token is stored hashed, in MongoDB, never in the users spreadsheet or a log; the new password
+follows the signup rules; the reset page is a route in the app.
+Known limit: sessions are signed tokens with an expiry, so a browser that is already signed
+in stays signed in after a reset until its token expires. Ending those sessions is a separate
+decision.
 
 ```gherkin
 Feature: Password recovery
@@ -159,6 +169,24 @@ Feature: Password recovery
     When I choose a password meeting the account policy
     Then I can sign in using it and cannot reuse the reset token
     And expired or invalid tokens produce a useful recovery state
+
+  Scenario: US-L004-AC03 Reset from the link in the mail
+    Given I opened the reset link from my mail
+    When the page loads
+    Then I can enter and confirm a new password without signing in
+    And an expired, used or malformed link tells me to request a new one
+
+  Scenario: US-L004-AC04 Hear about a changed password
+    Given my password was changed through a reset
+    When the change is saved
+    Then my address receives a notice that the password was changed
+    And the notice contains no password and no reset link
+
+  Scenario: US-L004-AC05 The mail cannot be delivered
+    Given the mail service is unavailable
+    When I request recovery
+    Then I am told to try again later without learning whether the account exists
+    And no usable reset token is left behind
 ```
 
 ### US-L007 — Present the primary recommendation first
@@ -182,6 +210,53 @@ Feature: Home recommendation emphasis
     Given my account has no recommendation
     When I view the home action list
     Then the page shows an honest starting state without a fabricated recommendation
+```
+
+### US-L013 — Change my password while signed in
+
+**As a signed-in user, I want to change my password from my profile, so that I can
+replace a weak or shared password without going through recovery.**
+
+State: Proposed. Source: Alex, 2026-10-11 brainstorm on account email. No dependency on
+mail; the notice in AC02 needs US-P009 and can follow later.
+Decisions: whether other signed-in browsers stay signed in (today they do, see US-L004).
+
+```gherkin
+Feature: Change password
+  Scenario: US-L013-AC01 Change with the current password
+    Given I am signed in and enter my current password correctly
+    When I choose a new password meeting the account policy
+    Then I can sign in with the new password and not with the old one
+    And a wrong current password changes nothing and says so
+
+  Scenario: US-L013-AC02 Hear about the change
+    Given account email is available
+    When my password is changed from the profile
+    Then my address receives a notice that the password was changed
+```
+
+### US-L014 — Confirm my email address at signup
+
+**As a new user, I want to confirm that my email address is mine, so that recovery
+mail reaches me and nobody can register with my address.**
+
+State: Proposed, for later. Source: Alex, 2026-10-11 brainstorm on account email.
+Depends on US-P009. Decisions: whether an unconfirmed account may sign in and enroll,
+how long the confirmation link is valid, and what happens to existing accounts.
+
+```gherkin
+Feature: Email confirmation
+  Scenario: US-L014-AC01 Confirm a new address
+    Given I signed up with an email address
+    When I open the confirmation link sent to it
+    Then the account is marked as confirmed
+    And an expired or used link offers to send a new one
+
+  Scenario: US-L014-AC02 An unconfirmed account
+    Given I have not confirmed my address
+    When I use the site
+    Then the agreed limits for unconfirmed accounts apply
+    And I can ask for the confirmation mail again
 ```
 
 ## Platform reliability
@@ -344,6 +419,63 @@ Feature: Safe operation of the live service
     When the agreed limit is exceeded
     Then further attempts are refused for the agreed period
     And other users can still sign in
+
+  Scenario: US-P008-AC05 Limit reset and confirmation mail
+    Given repeated requests for recovery or confirmation mail for one address or from one client
+    When the agreed limit is exceeded
+    Then no further mail is sent for the agreed period
+    And the response still does not reveal whether the account exists
+```
+
+AC05 was added on 2026-10-11 with the account email stories: a reset form lets anyone
+trigger mail to any address, and the free mail plan has a daily cap that one script could
+use up. It should be in place before US-L004 is offered on the live site.
+
+### US-P009 — Send account email
+
+**As a maintainer, I want one way to send account mail, so that recovery and
+confirmation messages reach users without each feature talking to a mail provider.**
+
+State: Proposed. Source: Alex, 2026-10-11: set up a mail sender so forgot password can be
+built; the project is a proof of concept, so the service should be free.
+Scope: one mail sender behind an interface, like the GitHub feedback service, with a real
+implementation called over HTTPS (no new dependency) and a local one that only records the
+mail, so tests and local runs never send real email. Plain-text mail with a link is enough.
+Proposed provider (confirm or change): Brevo's free plan, 300 mails a day, transactional
+mail included. Alex owns no domain. Reported consequences, from third-party pages and not
+yet confirmed on Brevo's own: the sender address is confirmed by a code instead of DNS
+records; for a free mailbox address Brevo replaces the visible sender with one of its own;
+such mail is more often filed as spam; free-plan mail carries Brevo branding.
+Decisions: which address the mail comes from; whether that delivery quality is acceptable
+for the proof of concept, or a domain is bought (then Resend's free plan, 3,000 a month and
+100 a day, is an equal choice), or a Gmail account with an app password is used over SMTP
+(sends as the real address, but needs a mail library). A real delivery test to a Gmail and
+an Outlook address settles it.
+
+```gherkin
+Feature: Account email
+  Scenario: US-P009-AC01 Send a message
+    Given the mail service is configured
+    When a feature asks to send an account message to an address
+    Then the message is handed to the provider with the agreed sender, subject and text
+    And the feature learns whether the provider accepted it
+
+  Scenario: US-P009-AC02 Never send real mail from a test or a local run
+    Given no mail settings are present, or the run is a test
+    When a feature sends an account message
+    Then the message is recorded locally and nothing leaves the machine
+    And production without mail settings refuses instead of pretending to send
+
+  Scenario: US-P009-AC03 Fail honestly and privately
+    Given the provider refuses the message or cannot be reached
+    When a feature sends an account message
+    Then the feature receives a failure it can show as "try again later"
+    And no token, link or password appears in a log or an error response
+
+  Scenario: US-P009-AC04 Report the mail configuration
+    Given an operator opens the configuration health check
+    When mail settings are missing or incomplete
+    Then the check says so without revealing the key
 ```
 
 ## Adding a story

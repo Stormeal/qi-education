@@ -33,6 +33,15 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**2026-10-11, after the push of `7675e98` (0.1.123; CI and the Pages deployment succeeded).**
+Alex brainstormed account email with the lead and asked for the stories to be recorded.
+Added as Proposed, nothing selected or implemented: US-P009 (send account email), US-L013
+(change password while signed in), US-L014 (confirm email at signup), US-P008-AC05 (limit reset
+and confirmation mail); US-L004 (forgot password) sharpened with AC03 to AC05. Decided by Alex:
+automated reset by email, a free mail service, and he owns no domain. Open before US-P009 can
+start: the sender address, and whether Brevo's delivery without a domain is good enough.
+Suggested order: US-P009, US-P008-AC05, US-L004, US-L013, US-L014.
+
 **Session 2026-10-11 (5) — started by the user with "let's work on the next task".**
 Branch: `main`. Base: `7b99ce6` (local, 0.1.118; 15 commits not pushed). No confirmed defect is
 open, so the lead picked the first open story in backlog order, US-T014 (question image), which
