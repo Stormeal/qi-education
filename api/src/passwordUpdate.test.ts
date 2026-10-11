@@ -2,13 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { authSheetHeaders, authUserToSheetRow, hashPassword, verifyPassword } from './auth.js';
 import { createAuthRepository, GoogleSheetsAuthRepository, InMemoryAuthRepository } from './authRepository.js';
 import * as config from './config.js';
-const sheet = vi.hoisted(() => ({ rows: [] as string[][], update: vi.fn() }));
+const sheet = vi.hoisted(() => ({ rows: [] as string[][], update: vi.fn(), beforeRead: async () => {} }));
 vi.mock('./googleSheets.js', () => ({ ensureWorksheetHeaders: async () => {}, createSheetsClient: () => ({ spreadsheets: { values: {
-  get: async () => ({ data: { values: structuredClone(sheet.rows) } }),
+  get: async () => { const values = structuredClone(sheet.rows); await sheet.beforeRead(); return { data: { values } }; },
   update: sheet.update,
 } } }) }));
 describe('Reset password AuthRepository update', () => {
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+  afterEach(() => { sheet.beforeRead = async () => {}; vi.restoreAllMocks(); vi.unstubAllEnvs(); });
   it.each(['memory', 'sheets'])('writes the new hash, preserving identity and enrollment in %s', async kind => {
     const memory = new InMemoryAuthRepository(); const user = (await memory.findByEmail('student@qi-education.local'))!;
     const before = structuredClone(user); sheet.rows = [[...authSheetHeaders], authUserToSheetRow(user)];
@@ -50,5 +50,20 @@ describe('Reset password AuthRepository update', () => {
   it('fails closed for an unavailable production store', async () => {
     vi.stubEnv('NODE_ENV', 'production'); vi.spyOn(config, 'hasGoogleSheetsConfig').mockReturnValue(false);
     await expect(createAuthRepository().updatePasswordHash('user', 'hash')).rejects.toThrow();
+  });
+  it('fresh credential reads do not join a lookup that captured the hash before another write', async () => {
+    const memory = new InMemoryAuthRepository(); const user = (await memory.findByEmail('student@qi-education.local'))!;
+    sheet.rows = [[...authSheetHeaders], authUserToSheetRow(user)];
+    let entered!: () => void; let release!: () => void;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const paused = new Promise<void>(resolve => { release = resolve; });
+    sheet.beforeRead = async () => { sheet.beforeRead = async () => {}; entered(); await paused; };
+    const repository = new GoogleSheetsAuthRepository(); const stale = repository.findById(user.id); await started;
+    try {
+      // Mimic another instance writing the password without invalidating this instance's read.
+      const newHash = hashPassword('Changed456!'); sheet.rows[1][3] = newHash;
+      const fresh = repository.findById(user.id, { fresh: true }); release();
+      expect((await fresh)!.passwordHash).toBe(newHash); expect((await stale)!.passwordHash).toBe(user.passwordHash);
+    } finally { release(); await stale; }
   });
 });

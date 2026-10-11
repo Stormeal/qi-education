@@ -6,6 +6,13 @@ export interface MailSender {
   readonly available: boolean;
   send(message: MailMessage): Promise<void>;
 }
+
+export async function sendPasswordChangedNotice(sender: MailSender, to: string): Promise<void> {
+  try {
+    await sender.send({ to, subject: 'Your QI-Education password was changed',
+      text: 'Your QI-Education password was changed. If you did not make this change, contact QI-Education support.' });
+  } catch { /* A failed notice never fails or undoes a completed password change. */ }
+}
 export type MailSettings = {
   BREVO_API_KEY?: string; MAIL_FROM_ADDRESS?: string; MAIL_FROM_NAME?: string; APP_PUBLIC_URL?: string;
 };

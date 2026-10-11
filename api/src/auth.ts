@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 
 const passwordHashPrefix = 'scrypt';
@@ -98,6 +98,11 @@ export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('base64url');
   const hash = scryptSync(password, salt, 64).toString('base64url');
   return [passwordHashPrefix, salt, hash].join('$');
+}
+
+// Bind recovery links to this salted credential without duplicating its hash.
+export function passwordCredentialVersion(passwordHash: string): string {
+  return createHash('sha256').update(passwordHash).digest('hex');
 }
 
 export function verifyPassword(password: string, passwordHash: string): boolean {

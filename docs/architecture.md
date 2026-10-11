@@ -81,7 +81,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
-| Account | Student signup, login, remembered session, role permissions; account email and hashed single-use password reset API | Existing sessions survive a reset; real mail delivery remains a release check; missing production user store disables auth |
+| Account | Student signup, login, remembered session, role permissions; account email, hashed single-use password reset and signed-in password change API | Existing sessions survive password changes; shared-store concurrency and new profile/browser flow remain release checks; missing production user store disables auth |
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
@@ -189,6 +189,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes |
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
 | `POST /auth/password-reset/request`, `/check`, `/confirm` | Public; both normal and /api prefixes; no-store; 202 privacy-preserving request (400 invalid email, 503 mail unavailable), 204 check/confirm, 410 reset-link-invalid, 400 signup password validation |
+| `POST /users/me/password` | Active session, every role; no-store; current proof first, wrong current 400 current-password-incorrect (never 401), signup policy/different password 400, changed 204, invalid session 401, unavailable storage 503; notice failure is harmless |
 | `GET /auth/me` (also `/me`) | Active bearer session |
 | `GET /users/me/instructor-profile`, `PUT /users/me/instructor-profile` | Active teacher/admin; own description only, trimmed string 0..280, empty clears; 200 `{ description }`; 400 invalid input, 401 invalid/missing session, 403 student |
 | `GET /instructors` | Public; ignores bearer token; only `{ description, courseIds }` for non-empty descriptions owning published live courses; private/no-store |
@@ -252,15 +253,33 @@ expiry so an accepted mail with a lost response cannot bypass the limit. Active
 and used tokens also count; tokens expire at exactly 60 minutes, and requesting a
 new link does not invalidate older ones. Checks never consume tokens.
 
-Confirmation uses signup validation and scrypt, atomically claims an active hash
-as used, then calls `AuthRepository.updatePasswordHash`. Mongo and Sheets cannot
-share a transaction: a failed/uncertain password write keeps the claim consumed;
-the user requests a fresh link. At most one password write occurs per token.
+US-L013 extends confirmation: signup validation and scrypt are unchanged, but
+claiming an active hash now cancels every pending/active sibling in the same CAS,
+then calls `AuthRepository.updatePasswordHash`. New reservations carry a SHA-256
+fingerprint of the salted credential (never the credential hash itself). Check and
+confirm reject a fingerprint that differs from the account's current credential.
+Confirmation rechecks status/credential after claiming and before writing, so a
+late old-credential link claimed after a profile change cannot overwrite it.
+Security reads request a fresh Sheets snapshot, bypassing older in-flight lookups;
+ordinary reads retain their existing coalescing. Legacy tokens without a fingerprint
+remain compatible until canceled, and postclaim comparison uses their preclaim
+credential. An already claimed write cannot be retroactively stopped across stores.
+Mongo and Sheets cannot share a transaction: a failed/uncertain password write
+keeps all these links consumed; request a fresh link. At most one password write
+occurs per token, and cancellation retains its rolling-hour mail slot.
 Sheets updates only D (passwordHash); enrollment updates only H (enrolledCourseIds),
 repairing DEF-026 where a late full-row enrollment write restored the old hash.
 Memory preserves the other account fields; the unavailable user store refuses
 updates. Notices contain neither password nor link, and failed notices do not
-fail the change. Signed sessions remain valid until expiry. Provider failures
+fail the change. The exact notice subject/text now live in a shared sender helper.
+The new `changePasswordRoutes.ts` uses existing authentication, checks the current
+password before new-password policy/equality, awaits cancellation before writing,
+then attempts that notice once. Cancellation failure prevents the password write;
+a failed or uncertain password write leaves canceled links canceled. Both change
+routes invalidate unused recovery links; already signed sessions remain valid
+until expiry. There are no current-password attempt limits (US-P008-AC02 remains
+open). Existing login/auth and other route contracts/cache headers are unchanged.
+See [signed-in password change](specs/US-L013-change-password.md). Provider failures
 can answer 503 only for real active accounts, an accepted rare existence signal.
 Storage failures return safe 500 messages. Client-address and confirmation-mail
 limits remain open. See [reset](specs/US-L004-password-reset.md) and

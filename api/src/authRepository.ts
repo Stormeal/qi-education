@@ -14,7 +14,7 @@ import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 export interface AuthRepository {
   readonly unavailableReason?: string;
   findByEmail(email: string): Promise<AuthUser | null>;
-  findById(id: string): Promise<AuthUser | null>;
+  findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null>;
@@ -32,7 +32,9 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     return users.find((user) => user.email === email) ?? null;
   }
 
-  async findById(id: string): Promise<AuthUser | null> {
+  async findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null> {
+    // Password proof/binding must not join an older in-flight credential snapshot.
+    if (options?.fresh) this.usersRead.invalidate();
     const users = await this.listUsers();
     return users.find((user) => user.id === id) ?? null;
   }

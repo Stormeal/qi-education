@@ -51,6 +51,25 @@ describe.each(['memory', 'mongo-cas'])('Reset token atomic storage (%s)', kind =
     expect(await repository.activate('user', 'one')).toBe(false);
     expect(await repository.reserve('user', 'retry', 1000 + 3600000)).toBe(true);
   });
+  it('invalidates active and pending links without clearing their rolling-hour slots or another user', async () => {
+    const { repository } = create();
+    for (const value of ['one', 'two', 'pending']) await repository.reserve('user', value, 1000);
+    await repository.activate('user', 'one'); await repository.activate('user', 'two');
+    await repository.reserve('other', 'other', 1000); await repository.activate('other', 'other');
+    await repository.invalidateAll('user'); await repository.invalidateAll('user'); await repository.invalidateAll('absent');
+    expect(await repository.findActive('one', 1000)).toBeNull(); expect(await repository.consume('two', 1000)).toBeNull();
+    expect(await repository.activate('user', 'pending')).toBe(false);
+    expect(await repository.findActive('other', 1000)).not.toBeNull();
+    expect(await repository.reserve('user', 'fourth', 1000)).toBe(false);
+  });
+  it('claims one of two overlapping different-token confirms and cancels the other plus pending activation atomically', async () => {
+    const store = create(); const { repository } = store;
+    for (const value of ['one', 'two', 'pending']) await repository.reserve('user', value, 1000);
+    await repository.activate('user', 'one'); await repository.activate('user', 'two');
+    const second = kind === 'memory' ? repository : new MongoPasswordResetRepository(async () => store.collection);
+    const outcomes = await Promise.all([repository.consume('one', 1000), second.consume('two', 1000)]);
+    expect(outcomes.filter(Boolean)).toEqual(['user']); expect(await second.activate('user', 'pending')).toBe(false);
+  });
 });
 describe('Reset Mongo failure, hash storage and factory', () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });

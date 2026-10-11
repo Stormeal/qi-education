@@ -226,3 +226,52 @@ answered "We could not deactivate the blocking of unauthorized IP addresses for 
 that works, a refused send shows the address under "Unauthorized IP addresses" in Brevo, where
 it can be authorised by hand. Blocking is already off for SMTP keys, so sending over SMTP is
 a fallback; it needs a mail library.
+
+
+## US-L013 API extension - cancel unused links after either password change
+
+Selected 2026-10-11, Codex, main/base 673fd59. This append-only extension supersedes
+only the earlier allowance for older unused links after a completed password
+change; requesting another link alone still does not invalidate older ones.
+This is a new lead decision, not a defect repair of the earlier accepted behavior.
+See [US-L013](US-L013-change-password.md) for the new route and complete evidence.
+
+Both POST /users/me/password and POST /auth/password-reset/confirm now cancel
+all pending/active unused links of this account. Profile change awaits CAS
+invalidation before writing the password; reset consume claims one link and
+cancels its siblings atomically. Used/canceled records retain the three-mail
+rolling-hour slots. Another account is unaffected; canceled pending sends cannot
+activate. No migration, real provider mutation, new dependency or session
+revocation. Existing paths/status/message shapes and the notice subject/text stay.
+
+New reset reservations also store a SHA-256 credential fingerprint; check/confirm
+reject stale fingerprints. A request that captured the old credential before a
+change cannot revive a usable link through a late reservation/activation. Legacy
+unfingerprinted links remain compatible until canceled. Confirmation rechecks
+credential/status after claiming and before writing, using fresh account reads
+that do not join an older in-flight Sheets lookup. This closes a late token that
+passed its first check but claimed only after the profile change completed.
+
+Mongo token claims/cancellation and Sheets password writes cannot share a
+transaction. Cancellation failure prevents profile writing; a failed/uncertain
+password write leaves links canceled. A claim already in flight before another
+change finishes cannot be retroactively stopped across stores. An invalid stale
+claim may also retire newer sibling links: fail-closed recovery requires a fresh
+link under the retained hourly limit. Signed sessions keep their existing expiry;
+wrong current-password attempt limits remain open under US-P008-AC02.
+
+Verification and local delivery hash follow after the required five checks. The
+prior hosted reset/delivery record above is preserved; it does not verify this
+new cancellation/profile increment. No real Sheets/Mongo/Brevo/mail or hosted
+profile/browser flow was used by Codex.
+
+### US-L013 verification evidence (2026-10-11)
+
+Final isolated checks pass: 151 focused API cases; full API suite 813 tests in
+39 files; six journeys; API build; 252 frontend tests in 32 files; Pages build.
+The frontend emitted jsdom scrollTo notices and three existing component
+style-budget warnings. Read-only review found no remaining important findings
+after reproducing and closing the late reset-claim overwrite (four memory/Sheets
+HTTP cases, both prefixes) and stale in-flight Sheets credential read.
+No shared stores, Brevo or real mail were used. Real-provider and combined hosted
+profile/browser/keyboard verification remain release checks. Local commit follows.

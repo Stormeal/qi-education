@@ -15,7 +15,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
-| US-L013 | Change my password while signed in | Proposed | P2 | None | None |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
@@ -159,29 +158,6 @@ Feature: Home recommendation emphasis
     Given my account has no recommendation
     When I view the home action list
     Then the page shows an honest starting state without a fabricated recommendation
-```
-
-### US-L013 — Change my password while signed in
-
-**As a signed-in user, I want to change my password from my profile, so that I can
-replace a weak or shared password without going through recovery.**
-
-State: Proposed. Source: Alex, 2026-10-11 brainstorm on account email. No dependency on
-mail; the notice in AC02 needs US-P009 and can follow later.
-Decisions: whether other signed-in browsers stay signed in (today they do, see US-L004).
-
-```gherkin
-Feature: Change password
-  Scenario: US-L013-AC01 Change with the current password
-    Given I am signed in and enter my current password correctly
-    When I choose a new password meeting the account policy
-    Then I can sign in with the new password and not with the old one
-    And a wrong current password changes nothing and says so
-
-  Scenario: US-L013-AC02 Hear about the change
-    Given account email is available
-    When my password is changed from the profile
-    Then my address receives a notice that the password was changed
 ```
 
 ### US-L014 — Confirm my email address at signup

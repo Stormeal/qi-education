@@ -22,6 +22,7 @@ import { AuthUnavailableError, createAuthRepository, type AuthRepository } from 
 import { createMailSender, hasMailConfig, type MailSender } from './mailSender.js';
 import { createPasswordResetRepository, type PasswordResetRepository } from './passwordResetRepository.js';
 import { registerPasswordResetRoutes, type PasswordResetOptions } from './passwordResetRoutes.js';
+import { registerChangePasswordRoute } from './changePasswordRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -389,7 +390,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
-  app.use(['/auth/password-reset', '/api/auth/password-reset'], (_request, response, next) => {
+  app.use(['/auth/password-reset', '/api/auth/password-reset', '/users/me/password', '/api/users/me/password'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'no-store'); next();
   });
   app.use(withRequestBodyErrors(express.json()));
@@ -484,6 +485,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
     options: dependencies.passwordResetOptions });
+  registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
