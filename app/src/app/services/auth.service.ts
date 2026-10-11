@@ -116,6 +116,22 @@ export class AuthService {
     return this.passwordResetOutcome('confirm', { token, password });
   }
 
+  /** US-L013. A wrong current password is a 400 from the API, never a 401, so the session survives it. */
+  async changePassword(token: string, currentPassword: string, newPassword: string): Promise<{ ok: true } | { ok: false; message: string }> {
+    try {
+      const response = await this.apiClient.fetch('/users/me/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (response.status === 204) return { ok: true };
+      const json = await response.json().catch(() => ({})) as { message?: string };
+      return { ok: false, message: json.message ?? 'Your password was not changed. Please try again.' };
+    } catch {
+      return { ok: false, message: 'Unable to reach the API. Please try again.' };
+    }
+  }
+
   private async passwordResetOutcome(step: string, body: unknown): Promise<PasswordResetResult> {
     const result = await this.passwordReset(step, body);
     if (result.status === 204) return { ok: true };

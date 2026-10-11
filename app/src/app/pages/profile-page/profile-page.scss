@@ -207,6 +207,23 @@ textarea.profile-input {
   font-weight: 700;
 }
 
+.profile-card + .profile-card {
+  margin-top: 18px;
+}
+
+h2.profile-label {
+  margin: 0;
+  font-size: 16px;
+}
+
+.profile-password-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c6558;
+  font-size: 13px;
+}
+
 .profile-save-error {
   color: #9a3412;
   font-weight: 700;

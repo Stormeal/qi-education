@@ -125,6 +125,79 @@
     </div>
   </form>
 
+  <form class="profile-card" aria-labelledby="profile-password-title" (submit)="changePassword($event)">
+    <div class="profile-section">
+      <h2 id="profile-password-title" class="profile-label">Password</h2>
+      <p id="profile-password-rules" class="profile-section-hint">
+        Enter your current password, then a new one: at least 8 characters, with a capital letter and a number.
+      </p>
+    </div>
+    <div class="profile-section">
+      <label class="profile-label" for="profile-password-current">Current password</label>
+      <input
+        id="profile-password-current"
+        class="profile-input"
+        [type]="passwordsVisible() ? 'text' : 'password'"
+        autocomplete="current-password"
+        required
+        [value]="currentPassword()"
+        [disabled]="passwordBusy()"
+        (input)="currentPassword.set(controlValue($event))"
+      />
+    </div>
+    <div class="profile-grid">
+      <div class="profile-section">
+        <label class="profile-label" for="profile-password-new">New password</label>
+        <input
+          id="profile-password-new"
+          class="profile-input"
+          [type]="passwordsVisible() ? 'text' : 'password'"
+          autocomplete="new-password"
+          required
+          aria-describedby="profile-password-rules"
+          [value]="newPassword()"
+          [disabled]="passwordBusy()"
+          (input)="newPassword.set(controlValue($event))"
+        />
+      </div>
+      <div class="profile-section">
+        <label class="profile-label" for="profile-password-repeat">Repeat the new password</label>
+        <input
+          id="profile-password-repeat"
+          class="profile-input"
+          [type]="passwordsVisible() ? 'text' : 'password'"
+          autocomplete="new-password"
+          required
+          [value]="newPasswordRepeat()"
+          [disabled]="passwordBusy()"
+          (input)="newPasswordRepeat.set(controlValue($event))"
+        />
+      </div>
+    </div>
+    <label class="profile-password-show">
+      <input type="checkbox" [checked]="passwordsVisible()" (change)="passwordsVisible.set(!passwordsVisible())" />
+      Show passwords
+    </label>
+    <div class="profile-actions">
+      <p class="profile-save-state" role="status" aria-live="polite">
+        @if (passwordError()) {
+          <span class="profile-save-error">{{ passwordError() }}</span>
+        } @else if (passwordChanged()) {
+          <span class="profile-saved">Your password is changed. We have sent a notice to your email address.</span>
+        } @else {
+          <span class="profile-save-hint">Other browsers where you are signed in stay signed in.</span>
+        }
+      </p>
+      <app-button
+        variant="primary"
+        type="submit"
+        [disabled]="passwordBusy() || !currentPassword() || !newPassword() || !newPasswordRepeat()"
+      >
+        {{ passwordBusy() ? 'Changing…' : 'Change password' }}
+      </app-button>
+    </div>
+  </form>
+
   <footer class="site-footer">
     <span class="footer-credit">
       Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S

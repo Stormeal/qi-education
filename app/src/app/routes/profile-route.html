@@ -17,6 +17,7 @@
     [company]="state.profileCompany()"
     [learningGoals]="state.profileLearningGoals()"
     [profileSaving]="state.profileSaving()"
+    [authToken]="state.loginState()?.token ?? ''"
     [bioPublic]="state.profileBioPublic()"
     [saveError]="state.profileError()"
     [profileSaved]="state.profileSaved()"

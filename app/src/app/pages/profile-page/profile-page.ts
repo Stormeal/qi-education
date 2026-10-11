@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { AuthService } from '../../services/auth.service';
 import { FeedbackOption } from '../../app.models';
 import { AppButton } from '../../ui/app-button/app-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -32,6 +33,7 @@ export class ProfilePage {
   readonly profileSaving = input.required<boolean>();
   readonly profileSaved = input.required<boolean>();
   readonly bioPublic = input(false);
+  readonly authToken = input('');
   readonly saveError = input('');
   readonly profileDirty = input.required<boolean>();
   readonly isFeedbackOpen = input.required<boolean>();
@@ -62,6 +64,30 @@ export class ProfilePage {
   readonly feedbackSubmittedClicked = output<void>();
 
   protected readonly bioMaxLength = BIO_MAX_LENGTH;
+
+  // US-L013: the password form is separate from the profile form and keeps its own state.
+  private readonly auth = inject(AuthService);
+  protected readonly currentPassword = signal('');
+  protected readonly newPassword = signal('');
+  protected readonly newPasswordRepeat = signal('');
+  protected readonly passwordsVisible = signal(false);
+  protected readonly passwordBusy = signal(false);
+  protected readonly passwordError = signal('');
+  protected readonly passwordChanged = signal(false);
+
+  protected async changePassword(event: Event): Promise<void> {
+    event.preventDefault();
+    if (this.passwordBusy()) return;
+    this.passwordChanged.set(false);
+    if (this.newPassword() !== this.newPasswordRepeat()) { this.passwordError.set('The two new passwords are not the same.'); return; }
+    this.passwordBusy.set(true);
+    this.passwordError.set('');
+    const result = await this.auth.changePassword(this.authToken(), this.currentPassword(), this.newPassword());
+    this.passwordBusy.set(false);
+    if (!result.ok) { this.passwordError.set(result.message); return; }
+    this.currentPassword.set(''); this.newPassword.set(''); this.newPasswordRepeat.set('');
+    this.passwordChanged.set(true);
+  }
   protected readonly goalsMaxLength = GOALS_MAX_LENGTH;
 
   protected readonly initials = computed(() =>
