@@ -1121,3 +1121,34 @@ findByEmail still shares the old listUsers read. No real providers or .env reads
 Planned repair: optional fresh findByEmail selection using the existing fresh-read
 coalescer, requested only by login; unrelated routes/read budgets stay as before.
 Fixing commit, regression and release limitations follow in append-only records.
+
+
+### DEF-031 / DEF-032 - Resolution, 2026-10-11
+
+| ID | Latest state | Fixing commit | Regression and remaining checks |
+| --- | --- | --- | --- |
+| DEF-031 | Fixed locally | d81933e (0.1.153), US-A001-AC07 | Disabled login now matches wrong-password generic 401/body on both aliases and prefixes; hosted login/UI remains a release check |
+| DEF-032 | Fixed locally | d81933e (0.1.153), US-A001-AC07 | Four held prior-snapshot/two-instance login cases pass after disable/reactivate; actual Sheets freshness/read quotas remain unverified |
+
+DEF-031 reproduced with correct disabled password returning 403/disclosing status;
+wrong password returned 401. The same login condition now treats inactive status
+as invalid credentials without changing active login or route paths. Protected
+requests retain their existing fresh session/user lookup and disabled-account 401;
+reactivation restores both login and a still-valid old session.
+
+DEF-032 reproduced before repair in both directions: a held users snapshot on one
+instance allowed 200 after another completed deactivation, and refused 401 after
+reactivation. Login now requests optional fresh findByEmail using the existing
+fresh-read coalescer. Other email lookups and unrelated routes keep their behavior.
+No new distributed compare-and-swap, session renewal or last-admin protection.
+
+All five checks pass: 1055 API tests/46 files, six HTTP journeys, API compilation,
+269 frontend tests/34 files and Pages build/fallback (existing warnings). Independent
+read-only review clear after stale-login and new audit-metadata corrections; 92 new
+cases exercise permissions/status/log/adapter behavior. Synthetic memory, Sheets/
+Mongo doubles and loopback HTTP only; no real .env inspection, providers or mail.
+Original invalid UTF-8 bytes and prior records are preserved. Local fixes are not
+deployment verification: hosted/UI/keyboard, real Sheets/Mongo durability, read quotas
+and operational logging remain unverified. Account/log writes are nontransactional;
+append failure/crash can leave an unlogged change. No push; Codex stopped after the
+delivery-record commit.

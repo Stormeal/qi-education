@@ -215,7 +215,8 @@ a real reset mail from this button, a screen reader, phone width.
 
 ## Account status and change log increment (AC07/AC08), 2026-10-11
 
-State: Verified locally, implementation commit pending. Codex API/storage;
+State: Done locally, implementation d81933e (0.1.153), 2026-10-11.
+Delivery record is this commit with the hook-required fresh aligned version. Codex API/storage;
 main/base 5bc4ed4 confirmed; concurrent Claude frontend commit 3306233 preserved.
 Spec appended before implementation. Claude owns the Admin page/frontend; preserve
 its concurrent files and commits. [Handoff](../handoffs/US-A001-status-and-change-log-codex.md).
@@ -312,7 +313,7 @@ Feature: Account status and permanent administrator change log
 - [x] Implement userChangeRepository.ts and status-cell method; integrate only admin routes
       and new dependency, plus generic disabled login. Pass focused/new and existing regressions.
 - [x] Update architecture/backlog, independent read-only review; run five required checks.
-- [ ] Fresh aligned version and scoped implementation commit, then record hash/evidence/limits
+- [x] Fresh aligned version and scoped implementation commit, then record hash/evidence/limits
       in this spec and own queue row with a hook-required version; stop without push.
 
 No live provider or shared data probes, real mail or ports 3001/4200. Use synthetic rows,
@@ -357,9 +358,12 @@ so exact concurrent audit linearization/last-admin preservation is not promised.
 Actor/target fields are explicit snapshots; repository return metadata never enters
 HTTP/log storage directly, and no password hash is stored or exposed there.
 
-DEF-031/032 are resolved in code, fixing commit to be recorded after committing.
+DEF-031/032 are Fixed locally in d81933e; append-only resolutions retain their
+original reproduction bytes and record regression and release limits.
 AC07/AC08 are removed from the open story list. No outside-owned file is needed.
 Real Sheets behavior, Mongo acknowledgment/durability, hosted/UI/keyboard acceptance
 and log-failure monitoring remain unverified. A successful change can be unlogged
 on append failure or crash; simultaneous mutual admin disable/demotion remains the
 agreed limitation. No shared provider, real mail, .env inspection, push or deployment.
+
+Codex stopped after the scoped delivery-record commit. No push or deployment.
