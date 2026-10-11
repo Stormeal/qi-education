@@ -29,6 +29,11 @@
   cursor: not-allowed;
 }
 
+/* A disabled button must look disabled; the login button has its own disabled colour. */
+.app-button:disabled:not(.app-button-login-submit) {
+  opacity: 0.55;
+}
+
 .app-button-outline {
   border-color: rgba(108, 101, 88, 0.28);
   border-radius: 6px;

@@ -367,3 +367,29 @@ on append failure or crash; simultaneous mutual admin disable/demotion remains t
 agreed limitation. No shared provider, real mail, .env inspection, push or deployment.
 
 Codex stopped after the scoped delivery-record commit. No push or deployment.
+
+## Frontend acceptance of status and change log (2026-10-11)
+
+Frontend delivered in `3306233` (0.1.152). US-A001 is Done locally and out of the open backlog.
+
+| Scenario | Check |
+| --- | --- |
+| US-A001-AC07 | `admin-page.spec.ts` (Deactivate and Reactivate after confirmation, the stored result shown, a refusal reported, a cancelled question sends nothing, the own account not offered). Browser, in-memory API, demo admin: the admin's own Deactivate button was disabled; deactivating Student Demo asked first, showed "Student Demo is now deactivated." and the label "Deactivated"; the learner's existing session then answered 401 and their login answered 401 "Invalid email or password", the same as a wrong password; reactivating asked first and the login answered 200 again |
+| US-A001-AC08 | Same spec (changes in plain words with their time, reloaded after a change, no section when there is nothing to show or the log cannot be read). Browser: "Recent changes" was absent at first and then listed, newest first, the deactivation, a role change of Teacher Demo and the reactivation, each with actor, target, old and new value and time |
+
+Decisions taken by the lead (confirm or change): a deactivated account is labelled
+"Deactivated"; the log sits under the user list and shows the 50 newest entries the API
+returns; no filter or export.
+
+Also delivered with this increment at Alex's request, outside the story:
+
+- The profile menu closes on a click outside it and on Escape, which returns focus to its
+  button (`profile-menu.ts`, case "closes on a click outside and on Escape"). Browser, real
+  clicks: opened, clicked an empty part of the page, closed; opened, Escape, closed.
+- A disabled shared button is dimmed (`app-button.scss`); before, it only changed the cursor,
+  so the admin's own Deactivate button looked usable. This applies to every disabled
+  `app-button` except the login button, which has its own disabled colour.
+
+Combined tree: 1055 API and 269 frontend tests, six journeys, API and Pages builds pass.
+Not verified: the real users sheet and MongoDB (status cell write, the log surviving a
+restart), hosted behavior, a screen reader, phone width.

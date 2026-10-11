@@ -41,8 +41,19 @@ deactivate and reactivate accounts (not one's own) plus a change log for admins.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-A001-AC07/AC08 frontend: Deactivate and Reactivate in the User management tab; "Recent changes" list | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-A001-AC07/AC08 frontend: Deactivate and Reactivate in the User management tab; "Recent changes" list | Everything under `app/` except the version lines | Delivered locally in `3306233` (0.1.152) and the lead-check commit; acceptance in the [spec](specs/US-A001-user-management.md) |
 | Codex | US-A001-AC07/AC08 API: status change, change log storage and read | See the [handoff](handoffs/US-A001-status-and-change-log-codex.md) and appended [spec](specs/US-A001-user-management.md) | Delivered locally 2026-10-11: implementation d81933e (0.1.153), delivery record in this commit with fresh aligned version/hook. Main/base 5bc4ed4 confirmed; Claude 3306233 preserved. Spec appended first; DEF-031 disabled-login disclosure and DEF-032 stale-login reads reproduced/append-logged before fixes, now Fixed. AC07/AC08 Done: F-only status, permanent snapshot log after actual change, harmless safe log failure, no-op without write/log, fresh login and adapter mutation metadata. All five checks pass: API 1055/46, journeys 6, API build, app 269/34, Pages build (existing style/test-setup/jsdom warnings); independent review clear, 92 new cases. No shared services, real mail, .env inspection, ports 3001/4200 or push. Real Sheets/Mongo durability, hosted/UI/keyboard and log-failure monitoring unverified; append failure/crash may leave unlogged changes; distributed CAS/last-admin protection absent. No outside-file change needed. Codex stopped |
+
+Lead check 2026-10-11 on `e4601f5`: Codex stayed within its files and the version lines. New:
+the status route and the change log. Changed on purpose at login: a disabled account is now
+refused with the same 401 as a wrong password instead of a 403 that named the status
+(DEF-031), and login reads the users sheet fresh (DEF-032). 1055 API and 269 frontend tests,
+six journeys and the API and Pages builds pass. Browser, in-memory API: deactivate, the
+learner locked out of session and login, reactivate, and the change log filling up.
+Added by the lead at Alex's request: the profile menu closes on an outside click and on
+Escape; a disabled shared button is dimmed. US-A001 is Done locally and out of the backlog.
+Not verified: the real users sheet and MongoDB; hosted behavior.
+Next: Alex decides on the push.
 
 **Session 2026-10-11 (9) — started by the user with "let's start working on these".**
 Branch: `main`. Base: `1d5eebe` (local, 0.1.145; seven commits not pushed). Selected by Alex:
