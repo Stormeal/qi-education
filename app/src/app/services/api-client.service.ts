@@ -53,7 +53,8 @@ export class ApiClientService {
 
         return response;
       } catch (error) {
-        if (localMutation) {
+        // US-P012: a local frontend never falls back to the hosted API, for reads either.
+        if (localMutation || isLoopbackHost(window.location.hostname)) {
           return localApiFailure('Local API is unavailable. Start the local API and retry. This request was not sent to the hosted API.');
         }
         lastError = error;
@@ -234,5 +235,5 @@ function candidateApiBaseUrls(location: ApiLocation, configuredApiBaseUrl?: stri
   }
 
   const protocol = location.protocol === 'https:' ? 'https:' : 'http:';
-  return [`${protocol}//${location.hostname}:3001`, hostedApiBaseUrl];
+  return [`${protocol}//${location.hostname}:3001`];
 }

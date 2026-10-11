@@ -47,6 +47,20 @@ export class SessionService {
     });
   }
 
+  /** True when the session stored in this browser had outlived its token (US-P010-AC03). */
+  expiredOnRestore = false;
+
+  // The token is header.payload.signature; the payload carries its own expiry in seconds.
+  // A token that cannot be read is left for the API to judge.
+  private tokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as { exp?: unknown };
+      return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
+    } catch {
+      return false;
+    }
+  }
+
   restoreLoginState(): LoginState | null {
     const rawSession =
       window.localStorage.getItem('qiEducationSession') ??
@@ -64,6 +78,12 @@ export class SessionService {
       };
 
       if (!session.token) {
+        this.clearStoredSession();
+        return null;
+      }
+
+      if (this.tokenExpired(session.token)) {
+        this.expiredOnRestore = true;
         this.clearStoredSession();
         return null;
       }

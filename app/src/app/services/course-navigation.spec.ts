@@ -306,7 +306,7 @@ describe('direct learning restoration (DEF-010)', () => {
       me.resolve(options.expired ? json({ message: 'Expired' }, 401) : json(restored));
       catalog.resolve(options.catalogError ? json({ message: 'Catalog unavailable' }, 503) : json(options.missing ? [] : [course]));
       lesson.resolve(options.contentError || options.unenrolled ? json({ message: 'Lesson unavailable' }, 403) : json({ ...content, view: 'learner' }));
-      await vi.waitFor(() => { expect(state.isSessionRestoring()).toBe(false); expect(state.coursesLoading()).toBe(false); expect(state.courseContentLoading()).toBe(false); });
+      await vi.waitFor(() => { expect(state.coursesLoading()).toBe(false); expect(state.courseContentLoading()).toBe(false); });
       harness.detectChanges();
     };
     if (!options.delayed) await finish();
@@ -316,15 +316,15 @@ describe('direct learning restoration (DEF-010)', () => {
   it('DL-01 loads an entitled direct URL through deferred restoration without false missing states', async () => {
     const { state, page, requests, me, catalog, lesson } = await open({ delayed: true });
     expect(page()).not.toContain('Course not found');
-    expect(state.isSessionRestoring()).toBe(true);
+    // US-P010: the page renders from the stored session while the check is still out.
+    expect(page()).not.toContain('Restoring your session');
     me.resolve(json(session('student')));
-    await vi.waitFor(() => expect(state.isSessionRestoring()).toBe(false));
     expect(page()).not.toContain('Course not found');
     catalog.resolve(json([course]));
     await vi.waitFor(() => expect(state.availableCourses()).toHaveLength(1));
     expect(page()).not.toContain('Course not found');
     lesson.resolve(json({ ...content, view: 'learner' }));
-    await vi.waitFor(() => expect(state.coursesLoading()).toBe(false));
+    await vi.waitFor(() => { expect(state.coursesLoading()).toBe(false); expect(state.courseContentLoading()).toBe(false); });
     expect(page()).toContain('Private lesson body');
     expect(requests.some(path => path.endsWith('/courses'))).toBe(true);
     expect(requests.filter(path => path.includes('/content')).every(path => !path.includes('author'))).toBe(true);

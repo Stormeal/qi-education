@@ -63,7 +63,7 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     TestBed.configureTestingModule({ providers: appConfig.providers });
     const state = TestBed.inject(AppStateService);
     const harness = await RouterTestingHarness.create(path);
-    await vi.waitFor(() => { expect(state.isSessionRestoring()).toBe(false); expect(state.coursesLoading()).toBe(false); expect(state.courseContentLoading()).toBe(false); });
+    await vi.waitFor(() => { expect(state.coursesLoading()).toBe(false); expect(state.courseContentLoading()).toBe(false); });
     const body = () => { harness.detectChanges(); return harness.routeNativeElement!; };
     const button = (label: string) => [...body().querySelectorAll<HTMLButtonElement>('button')].find(item => item.textContent?.trim() === label)!;
     return { state, harness, body, button, resolveOutline, retryOutline: () => { failOutline = false; failCatalog = false; } };

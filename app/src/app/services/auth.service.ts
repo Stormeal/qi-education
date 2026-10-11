@@ -93,9 +93,9 @@ export class AuthService {
       },
     });
 
-    if (!response.ok) {
-      return null;
-    }
+    // 401: the session is not valid. Any other failure says nothing about the session.
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error('The session could not be checked.');
 
     return (await response.json()) as Omit<LoginResponse, 'token'>;
   }
@@ -156,7 +156,7 @@ export class AuthService {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     if (response.status === 401 && isLocalhost && authStorage === 'memory') {
-      return `${message}. Local API is using demo users because api/.env is missing or incomplete. Run npm run env:pull for shared users, or use teacher@qi-education.local / Password123!.`;
+      return `${message}. The local API is running with demo users (isolated stores). Use teacher@qi-education.local / Password123!, or start it with USE_SHARED_SERVICES=1 to use the shared accounts.`;
     }
 
     return message;

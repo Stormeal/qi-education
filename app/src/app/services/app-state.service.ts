@@ -66,7 +66,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.146';
+  readonly appVersion = '0.1.147';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -78,7 +78,6 @@ export class AppStateService {
   readonly rememberMe = signal(true);
   readonly passwordVisible = signal(false);
   readonly isSubmitting = signal(false);
-  readonly isSessionRestoring = signal(false);
   readonly loginError = signal('');
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
   readonly currentPath = signal(this.normalizePath(this.router.url));
@@ -424,6 +423,9 @@ export class AppStateService {
     });
 
     this.syncCourseEditorDraftFromPath();
+    if (this.sessionService.expiredOnRestore) this.loginError.set('Your session has expired. Please log in again.');
+    // The profile was loaded after the check before; with no blocking check it loads at once.
+    if (this.loginState()) this.loadProfileForCurrentUser();
     this.restoreStoredSession();
   }
 
@@ -635,16 +637,20 @@ export class AppStateService {
       return;
     }
 
-    this.isSessionRestoring.set(true);
-
+    // US-P010: the pages already render and load from the stored session. This only checks it.
     try {
       const restored = await this.authService.restoreSession(restoredSession.token);
       if (this.loginState() !== restoredSession) return;
 
       if (!restored) {
         this.logout(true);
+        this.loginError.set('Please log in again.');
         return;
       }
+
+      // Nothing changed since the last visit: keep the session object, so loads already running stay valid.
+      const same = (state: Pick<LoginState, 'user' | 'permissions'>) => JSON.stringify([state.user, state.permissions]);
+      if (same(restored) === same(restoredSession)) return;
 
       this.resetCourseOperations();
       this.initializedCourseEditorPath = '';
@@ -658,13 +664,12 @@ export class AppStateService {
         user: restored.user,
         permissions: restored.permissions,
       });
+      this.sessionService.updateStoredLoginState(this.loginState()!);
       this.loadProfileForCurrentUser();
       this.loadCoursesWhenNeeded();
       this.loadAdminFeedbackWhenNeeded();
     } catch {
-      if (this.loginState() === restoredSession) this.logout(true);
-    } finally {
-      this.isSessionRestoring.set(false);
+      // The check could not be made (network, server error). That is not a reason to sign anyone out.
     }
   }
 

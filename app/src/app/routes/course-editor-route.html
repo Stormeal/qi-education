@@ -1,6 +1,4 @@
-@if (state.isSessionRestoring()) {
-  <app-session-restore-state />
-} @else if (state.loginState() && !state.canUseCourseEditor()) {
+@if (state.loginState() && !state.canUseCourseEditor()) {
   <main class="mx-auto max-w-3xl p-6">
     <h1 class="mb-4 text-xl font-semibold">Course editing unavailable</h1>
     <p role="status" class="mb-6">{{ state.courseEditorAccessMessage() }}</p>

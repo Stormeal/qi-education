@@ -24,14 +24,14 @@ describe('resolveApiBaseUrls', () => {
     ).toEqual(['https://qi-education.vercel.app/api']);
   });
 
-  it('tries the local API first during local development', () => {
+  it('US-P012 uses only the local API during local development', () => {
     expect(
       resolveApiBaseUrls({
         hostname: 'localhost',
         origin: 'http://localhost:4200',
         protocol: 'http:',
       }),
-    ).toEqual(['http://localhost:3001', 'https://qi-education.vercel.app/api']);
+    ).toEqual(['http://localhost:3001']);
   });
 
   it.each(['localhost', 'app.localhost', '127.0.0.1', '127.0.0.2', '[::1]'])(
@@ -158,12 +158,11 @@ describe('US-P008-AC03 local mutation safety (INV-015 / DEF-018)', () => {
     expect(requests[0]).not.toContain('qi-education.vercel.app');
   });
 
-  it.each(['GET', 'HEAD', undefined])('keeps the read fallback for %s', async (method) => {
+  it.each(['GET', 'HEAD', undefined])('US-P012-AC01 a failed local %s is not retried against the hosted API', async (method) => {
     const response = await service.fetch('/courses', { method });
-    expect(response.status).toBe(200);
-    expect(requests).toHaveLength(2);
-    expect(requests[1]).toBe('https://qi-education.vercel.app/api/courses');
-    expect(hostedWrites).toEqual([]);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ message: expect.stringMatching(/local API.*unavailable/i) });
+    expect(requests).toEqual(['http://localhost:3001/courses']);
   });
 
   it('rejects an explicit remote mutation override before sending', async () => {

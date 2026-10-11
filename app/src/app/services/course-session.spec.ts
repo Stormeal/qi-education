@@ -161,7 +161,7 @@ describe('course responses stay within their initiating session/view (DEF-003)',
     expect(state.loginError()).toBe('Please log in again.');
   });
 
-  it.each(['admin', 'student'] as const)('restarts catalog loading for a restored %s without reusing privileged data', async (role) => {
+  it.each(['admin', 'student'] as const)('after the session check for a restored %s: restarts the catalog only when the account changed, never reusing privileged data', async (role) => {
     const remembered = state.loginState()!;
     const authReply = deferred<{ user: LoginState['user']; permissions: LoginState['permissions'] }>();
     const catalogReply = deferred<CourseListItem[]>();
@@ -177,7 +177,9 @@ describe('course responses stay within their initiating session/view (DEF-003)',
     authReply.resolve({ user: refreshed.user, permissions: refreshed.permissions }); await restoring;
     catalogReply.resolve([course]); await initialLoad;
     await vi.waitFor(() => expect(state.coursesLoading()).toBe(false));
-    expect(listing).toHaveBeenCalledTimes(2);
+    // US-P010: the remembered session is an admin's. An unchanged account keeps its running load;
+    // a changed one (now a student) discards it and loads again.
+    expect(listing).toHaveBeenCalledTimes(role === 'admin' ? 1 : 2);
     expect(state.availableCourses()).toEqual(currentCourses);
     expect(state.canUseCourseEditor()).toBe(role === 'admin');
   });

@@ -1,6 +1,4 @@
-@if (state.isSessionRestoring()) {
-  <app-session-restore-state />
-} @else if (state.loginState()?.permissions?.hasAdminAccess) {
+@if (state.loginState()?.permissions?.hasAdminAccess) {
   <app-admin-page
     [authToken]="state.loginState()?.token ?? ''"
     [currentUserId]="state.loginState()?.user?.id ?? ''"

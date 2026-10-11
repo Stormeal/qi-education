@@ -1,6 +1,4 @@
-@if (state.isSessionRestoring()) {
-  <app-session-restore-state />
-} @else if (state.loginState()) {
+@if (state.loginState()) {
   <app-courses-page
     [appVersion]="state.appVersion"
     [currentYear]="state.currentYear"
