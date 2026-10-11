@@ -33,6 +33,16 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (8) — Alex asked for a "User management" tab on the Admin page.**
+Branch: `main`. Base: `d2c7a56` (pushed and deployed, 0.1.138). Selected by Alex: search users,
+change their role, reset their password. It is the open story US-A001. Decided by Alex: a
+reset sends the user a reset link; the admin never sees a password.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-A001 frontend: "User management" tab with search, role change and "Send reset link" | Everything under `app/` except the version lines | In progress |
+| Codex | US-A001 API: user search, role change, admin-triggered reset mail | See the [handoff](handoffs/US-A001-user-management-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 (7) — started by the user with "let's work on the next task".**
 Branch: `main`. Base: `cffae22` (pushed and deployed, 0.1.133). No confirmed defect is open.
 Picked by the lead: US-L013, the next item in the order recorded with Alex's account email
