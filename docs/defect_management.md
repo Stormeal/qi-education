@@ -878,3 +878,29 @@ Sheets/GitHub, hosted/browser behavior, multiple instances, cold starts and
 restart recovery are unverified. No shared providers, push or deployment.
 Fixing commit and final Fixed dispositions follow in an append-only delivery
 record after the local implementation commit; original records stay intact.
+
+### DEF-023 / DEF-024 / DEF-025 - Local delivery and latest disposition
+
+Resolved locally 2026-10-11 in c13a800e8a97843f4eb6d81c5d0d6bdb3cc8eab8
+(version 0.1.111). These latest dispositions supersede the In progress state in
+the preserved reproduction records above; append-only ownership is retained.
+
+| ID | Latest state | Fixing commit | Regression and remaining release check |
+| --- | --- | --- | --- |
+| DEF-023 | Fixed | c13a800 | Same normalized-email signup serializes check/create; one 201, one exact existing 409/message. Memory and Sheets-stub HTTP pass. Real-provider and distributed uniqueness unverified |
+| DEF-024 | Fixed | c13a800 | Per-user enrollment wraps the whole Sheets read/modify/write; both courses survive and repeated enrollment adds nothing. Memory implementation was not rewritten. Real-provider/multi-instance atomicity unverified |
+| DEF-025 | Fixed | c13a800 | Per-feedback queue and created-issue checkpoint survive failed saves in the same instance; retries reuse the original issue link, stored links win and successful saves clear pending state. Real GitHub/Sheets, restart, cold-instance and ambiguous creation recovery unverified |
+
+Acceptance and the RED-to-GREEN scenario map remain in
+[US-P003 safe retries](specs/US-P003-safe-retries.md); delivered AC01..03 are
+removed from the open backlog. US-P003 remains open for Proposed AC04 and Alex's
+shared uniqueness/update and durable issue recovery decision. Across several API
+instances nothing new is guaranteed. No attempt limits/auth abuse control.
+
+Final evidence: 34 focused HTTP cases, all 534 API tests, six journeys, API build,
+225 frontend tests and Pages build pass, with existing stylesheet budget warnings
+and jsdom scrollTo notices. Read-only review found no blocking issue. Isolated
+local memory rows/stores and GitHub stub only, no shared providers, frontend
+behavior edit, branch/worktree, push or deployment. Claude's 35b45c2 is preserved
+and his DEF-022 entry is untouched. No outside-scope file is needed. This delivery
+record also carries the hook-required aligned patch bump. Codex stopped.

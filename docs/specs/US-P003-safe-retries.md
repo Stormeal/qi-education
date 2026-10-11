@@ -3,7 +3,8 @@
 ## Record
 
 - Story: [US-P003](../user_stories.md), AC01, AC02, AC03.
-- State: In progress; selected 2026-10-11.
+- State: One-instance AC01..03 delivered locally; distributed/restart scope remains
+  open. Selected 2026-10-11.
 - Owner: Codex.
 - Related investigations: INV-003 (signup/enrollment), INV-004 (triage).
 - Related defects: DEF-023 (signup), DEF-024 (Sheets enrollment), DEF-025 (triage),
@@ -97,7 +98,7 @@ characterized, not independently rewritten to invent a reproduced defect.
 - [x] Fix only reproduced races using instance-owned queues/checkpoint.
 - [x] Verify failed operations release queues and unrelated keys remain independent.
 - [x] Run all five required checks; remove delivered scenarios, retain distributed work.
-- [ ] Record local delivery commits, limitations and queue status; no push.
+- [x] Record local delivery commits, limitations and queue status; no push.
 
 ## Verification and delivery
 
@@ -139,7 +140,10 @@ Final focused suite: 34/34 pass. Combined tree includes Claude's preserved
 No check was blocked by Claude's work. Read-only review found no Critical,
 Important or Minor issue within the explicit instance-only contract; creation
 with a lost GitHub response, distributed/restart recovery and abuse controls
-were explicitly outside scope. Local delivery hash is recorded after committing.
+were explicitly outside scope. Local implementation delivery:
+`c13a800e8a97843f4eb6d81c5d0d6bdb3cc8eab8` (0.1.111); this delivery-record commit
+also carries the hook-required aligned patch bump. DEF-023/024/025 latest Fixed
+dispositions are appended to the defect log without altering earlier records.
 No outside-scope file is needed. Delivered AC01,
 AC02 and AC03 are removed from the backlog; Proposed AC04 retains the existing
 distributed/restart gap and Alex's unresolved coordination/persistence decision.
