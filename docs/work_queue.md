@@ -33,6 +33,17 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (5) — started by the user with "let's work on the next task".**
+Branch: `main`. Base: `7b99ce6` (local, 0.1.118; 15 commits not pushed). No confirmed defect is
+open, so the lead picked the first open story in backlog order, US-T014 (question image), which
+Alex asked for on 2026-10-11. Its open decisions were taken from existing precedents and are
+listed in the handoff as "confirm or change".
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-T014 frontend: add, preview, describe and remove an image on a question in the quiz editor; show it to learners | Everything under `app/` except the version lines | In progress |
+| Codex | US-T014 API: `image` on a question, image uploads for quiz lessons, validation, learner read, clearing on delete | See the [handoff](handoffs/US-T014-question-image-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 (4) — started by the user with "let's work on the next task".**
 Branch: `main`. Base: `96b9071` (local, 0.1.113; ten commits not pushed). No confirmed defect
 is open, so the lead picked the first open story in backlog order, US-T007. Decided by Alex:
