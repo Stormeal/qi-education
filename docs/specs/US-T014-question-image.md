@@ -143,10 +143,15 @@ the plan lives here rather than outside the owned files.
   clearing in `server.ts`, preserving existing lifecycle/download/readiness paths.
 - [x] Focused GREEN, independent read-only review, all five required checks;
   update architecture/backlog/spec/own queue row while retaining frontend acceptance.
-- [ ] Fresh aligned version bump; path/hunk-only staging; local commit; record hash
+- [x] Fresh aligned version bump; path/hunk-only staging; local commit; record hash
   with verification limits in own queue row; stop without pushing.
 
 ## Verification and delivery
+
+Implementation: `5b67f16` (0.1.121), locally on main after Claude frontend
+`a7f66f7`. This delivery-record commit carries its own aligned hook-required
+patch bump; no push or deployment. Only the appVersion hunk was staged from
+the shared AppStateService; all other frontend edits belong to Claude.
 
 | Scenario | Evidence | Result |
 | --- | --- | --- |
