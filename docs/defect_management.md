@@ -801,3 +801,80 @@ on Edit put focus on Close editor; Shift+Tab went to Done; Tab went back to Clos
 then to the title field; Escape closed the dialog with focus back on Edit. The picker was
 checked the same way with scripted key events. 225 frontend tests and the Pages build pass.
 Not verified: Escape while a native select list is open, a screen reader, hosted behavior.
+
+## US-P003 confirmed findings, 2026-10-11 (INV-003 / INV-004)
+
+| ID | Finding | Severity | State | Evidence | Contract |
+| --- | --- | --- | --- | --- | --- |
+| DEF-023 | Overlapping normalized-email signup creates duplicate accounts | P2 | In progress | Isolated HTTP: both requests return 201 in memory and Sheets-stub cases | US-P003-AC01 / INV-003 |
+| DEF-024 | Overlapping Sheets enrollments lose one course | P2 | In progress | Isolated HTTP: two 200 responses, only course-a remains after paused first row write | US-P003-AC02 / INV-003 |
+| DEF-025 | Feedback retry creates a second issue after its link save fails | P2 | In progress | First triage 500 after issue 1; retry 200 links issue 2, memory and Sheets-stub cases | US-P003-AC03 / INV-004 |
+
+### DEF-023 - Overlapping signup creates duplicate accounts
+
+Owner: Codex. Severity: P2. State: In progress. Found 2026-10-11, main/base
+fc98679. Source: INV-003. Contract: US-P003-AC01; spec
+[US-P003 safe retries](specs/US-P003-safe-retries.md), written first.
+Reproduction: `npm --prefix api test -- src/safeRetries.test.ts`; pause the first
+createUser/Sheets append, submit an overlapping signup through the alias with
+case-different but equivalent normalized email, then release the first write.
+Both return 201; expected one 201 and the existing 409/message duplicate response.
+Both memory and real Sheets adapter against in-memory stub rows reproduce, on
+plain and /api routes (four RED cases). Root cause: existence check and append
+are not coordinated. No shared spreadsheet or live incident is claimed.
+
+### DEF-024 - Overlapping Sheets enrollments lose a course
+
+Owner: Codex. Severity: P2. State: In progress. Found 2026-10-11, main/base
+fc98679. Source: INV-003. Contract: US-P003-AC02; same safe-retries spec.
+Reproduction: same isolated HTTP command, real GoogleSheetsAuthRepository against
+in-memory stub rows, two published memory courses. Pause the first user's row
+update while the second request enrolls that user in another course, then release.
+Both respond 200 but persisted IDs contain only course-a, not course-a/course-b
+(two RED cases, both prefixes). Root cause: whole-row read/modify/write spans
+an await and is not serialized by user; course locks use different course IDs.
+The in-memory enrollment implementation did NOT reproduce: concurrent course-a,
+course-b and repeat course-a preserve both IDs without duplicates (two passing
+characterizations). It is not independently rewritten as a purported defect fix.
+
+### DEF-025 - Feedback retry duplicates an already-created issue
+
+Owner: Codex. Severity: P2. State: In progress. Found 2026-10-11, main/base
+fc98679. Source: INV-004. Contract: US-P003-AC03; same safe-retries spec.
+Reproduction: same HTTP command; inject a GitHub issue stub and fail feedback
+triage persistence after creation. First request returns the existing 500 and
+feedback has no link; retry returns 200 with issue 2 instead of issue 1. Memory
+and real Sheets feedback adapter against local stub rows reproduce, both prefixes
+(four RED cases). Root cause: the handler forgets the created issue on save
+failure and checks only the stored link. No GitHub request is sent.
+
+Combined pre-fix evidence: 12 tests, ten expected assertion failures and two
+passing in-memory enrollment characterizations. Only these reproduced defects
+will be fixed; multi-instance uniqueness/atomicity and cold-instance/restart
+triage recovery remain open product decisions, not promises of this increment.
+
+### US-P003 local fix verification (DEF-023 / DEF-024 / DEF-025)
+
+2026-10-11, combined tree with Claude's 35b45c2 preserved. The three handlers
+now coordinate per normalized email, user ID and feedback ID in createServer;
+all other route wiring and repository interfaces remain unchanged. Triage keeps
+an instance-owned issue checkpoint after successful creation until a save succeeds.
+The checkpoint survives thrown/null saves; retries reuse existing saved links
+first. No schema/migration or shared infrastructure was added. Scope is one API
+instance, not distributed coordination, restart recovery or ambiguous creation.
+
+Regression: `safeRetries.test.ts` has 34 passing HTTP cases on both prefixes.
+The initial 12-case run had ten intended assertion failures and two passing
+in-memory enrollment characterizations. Overlap signup now returns one 201 and
+one existing 409/message; both Sheets enrollments remain; failed triage save
+retries persist issue 1 rather than create issue 2. Additional cases cover failure
+release, independent emails/users, overlapping triage, repeated save failures,
+non-work retry, saved links, GitHub failures and denied/invalid/missing feedback.
+
+All five checks pass: 534 API tests, six journeys, API build, 225 frontend tests,
+Pages build (existing stylesheet warnings; frontend jsdom scrollTo notices).
+Read-only review found no Critical/Important/Minor issue within scope. Real
+Sheets/GitHub, hosted/browser behavior, multiple instances, cold starts and
+restart recovery are unverified. No shared providers, push or deployment.
+Fixing commit and final Fixed dispositions follow in an append-only delivery
+record after the local implementation commit; original records stay intact.

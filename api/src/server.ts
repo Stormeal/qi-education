@@ -4,6 +4,7 @@ import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } fro
 import { randomUUID } from 'node:crypto';
 import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { ZodError } from 'zod';
+import { KeyedSerialQueue } from './keyedSerialQueue.js';
 import {
   createSessionToken,
   getRolePermissions,
@@ -63,6 +64,7 @@ import {
   ConfiguredGitHubFeedbackService,
   GitHubFeedbackError,
   type GitHubFeedbackService,
+  type GitHubFeedbackIssue,
 } from './githubFeedback.js';
 import {
   createCourseContentRepository,
@@ -104,6 +106,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
+  const signupWrites = new KeyedSerialQueue();
+  const enrollmentWrites = new KeyedSerialQueue();
+  const triageWrites = new KeyedSerialQueue();
+  // Keep successfully created issues across failed saves in this API instance.
+  // Once persisted, the feedback row itself supplies the link on future retries.
+  const pendingFeedbackIssues = new Map<string, GitHubFeedbackIssue>();
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
@@ -495,25 +503,27 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
 
       const input = signupSchema.parse(request.body);
-      const existingUser = await auth.findByEmail(input.email);
+      await signupWrites.run(input.email, async () => {
+        const existingUser = await auth.findByEmail(input.email);
 
-      if (existingUser) {
-        response.status(409).json({ message: 'An account with this email already exists' });
-        return;
-      }
+        if (existingUser) {
+          response.status(409).json({ message: 'An account with this email already exists' });
+          return;
+        }
 
-      const user = await auth.createUser({
-        id: randomUUID(),
-        email: input.email,
-        displayName: input.displayName,
-        passwordHash: hashPassword(input.password),
-        role: 'student',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        enrolledCourseIds: [],
+        const user = await auth.createUser({
+          id: randomUUID(),
+          email: input.email,
+          displayName: input.displayName,
+          passwordHash: hashPassword(input.password),
+          role: 'student',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          enrolledCourseIds: [],
+        });
+
+        response.status(201).json(createAuthResponse(user, authTokenSecret));
       });
-
-      response.status(201).json(createAuthResponse(user, authTokenSecret));
     } catch (error) {
       next(error);
     }
@@ -544,7 +554,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
 
-      const updatedUser = await auth.enrollUserInCourse(authenticatedRequest.user.id, courseId);
+      const updatedUser = await enrollmentWrites.run(authenticatedRequest.user.id,
+        () => auth.enrollUserInCourse(authenticatedRequest.user.id, courseId));
 
       if (!updatedUser) {
         response.status(404).json({ message: 'User not found' });
@@ -1313,33 +1324,37 @@ export function createServer(dependencies: ServerDependencies = {}) {
       try {
         const input = updateFeedbackTriageSchema.parse(request.body);
         const feedbackId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
-        const existingFeedback = await feedback.findFeedbackById(feedbackId);
+        await triageWrites.run(feedbackId, async () => {
+          const existingFeedback = await feedback.findFeedbackById(feedbackId);
 
-        if (!existingFeedback) {
-          response.status(404).json({ message: 'Feedback not found' });
-          return;
-        }
+          if (!existingFeedback) {
+            response.status(404).json({ message: 'Feedback not found' });
+            return;
+          }
 
-        const githubIssue =
-          input.workStatus === 'work' && !existingFeedback.githubIssueUrl
-            ? await gitHubFeedback.createIssueFromFeedback({
-                ...existingFeedback,
-                workStatus: input.workStatus,
-                priority: input.priority ?? undefined,
-              })
-            : null;
-        const updatedFeedback = await feedback.updateFeedbackTriage(feedbackId, {
-          ...input,
-          githubIssueNumber: githubIssue?.number ?? existingFeedback.githubIssueNumber,
-          githubIssueUrl: githubIssue?.url ?? existingFeedback.githubIssueUrl,
+          let githubIssue = existingFeedback.githubIssueUrl ? undefined : pendingFeedbackIssues.get(feedbackId);
+          if (input.workStatus === 'work' && !existingFeedback.githubIssueUrl && !githubIssue) {
+            githubIssue = await gitHubFeedback.createIssueFromFeedback({
+              ...existingFeedback,
+              workStatus: input.workStatus,
+              priority: input.priority ?? undefined,
+            });
+            pendingFeedbackIssues.set(feedbackId, githubIssue);
+          }
+          const updatedFeedback = await feedback.updateFeedbackTriage(feedbackId, {
+            ...input,
+            githubIssueNumber: githubIssue?.number ?? existingFeedback.githubIssueNumber,
+            githubIssueUrl: githubIssue?.url ?? existingFeedback.githubIssueUrl,
+          });
+
+          if (!updatedFeedback) {
+            response.status(404).json({ message: 'Feedback not found' });
+            return;
+          }
+
+          pendingFeedbackIssues.delete(feedbackId);
+          response.json(updatedFeedback);
         });
-
-        if (!updatedFeedback) {
-          response.status(404).json({ message: 'Feedback not found' });
-          return;
-        }
-
-        response.json(updatedFeedback);
       } catch (error) {
         if (error instanceof GitHubFeedbackError) {
           response.status(503).json({ message: 'GitHub feedback integration is unavailable.' });

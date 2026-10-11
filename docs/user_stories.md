@@ -20,7 +20,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
-| US-P003 | Retry account/feedback operations safely | Proposed | P2 | None | Investigations INV-003, INV-004 |
+| US-P003 | Retry account/feedback operations safely | In progress | P2 | Distributed coordination decision | DEF-023/024/025; multi-instance/restart work remains |
 | US-P004 | Recover career guidance safely across failures and sessions | In progress | P2 | L006, L009; per-increment checks | DEF-016 fixed in this delivery |
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
@@ -289,25 +289,27 @@ Feature: API error feedback
 **As a maintainer, I want concurrent/retried operations to have one intended
 outcome, so that duplicate accounts, lost enrollment, or duplicate issues do not result.**
 
-State: Proposed. Investigations: INV-003, INV-004. Decisions: uniqueness strategy
-for Sheets, retry/idempotency contract, and auth abuse controls.
+State: In progress (remaining distributed/restart scope). Single-instance AC01,
+AC02 and AC03 are delivered and removed; reproduction, contract and acceptance
+are retained in the [safe-retries spec](specs/US-P003-safe-retries.md). INV-003/004
+were reproduced as DEF-023/024/025. In-memory enrollment did not reproduce a
+lost update and its repository behavior was preserved.
+
+Across several API instances nothing new is guaranteed. Decision for Alex:
+retain Sheets with shared uniqueness/atomic-update coordination, or move account
+writes to a store providing those guarantees; choose durable feedback issue
+lookup/idempotency for restart or cold-instance recovery. Auth abuse controls
+and attempt limits remain US-P008-AC02, outside this increment.
 
 ```gherkin
 Feature: Safe account and feedback writes
-  Scenario: US-P003-AC01 Concurrent signup
-    Given two requests use the same normalized email address
-    When signup requests overlap
-    Then at most one account is created and the other request receives a conflict
-
-  Scenario: US-P003-AC02 Concurrent enrollment
-    Given I enroll in two different courses concurrently
-    When both operations complete
-    Then both enrollments persist without duplicates or lost updates
-
-  Scenario: US-P003-AC03 Retried feedback triage
-    Given feedback is marked for work and issue creation succeeds before persistence fails
-    When triage is retried
-    Then it links the existing GitHub issue instead of creating a second one
+  Scenario: US-P003-AC04 Safe writes across API instances (Proposed)
+    Given several API instances or an instance restart
+    And a shared uniqueness, update and retry strategy has been agreed
+    When account operations overlap or a failed triage is retried on another instance
+    Then at most one account exists for a normalized email
+    And both requested enrollments persist without duplicates or lost updates
+    And triage links the already-created issue
 ```
 
 ### US-P004 — Recover career guidance safely across failures and sessions

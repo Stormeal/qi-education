@@ -106,6 +106,16 @@ Angular routes -> page/UI components -> AppStateService + focused services
 
 Video: browser -> Mux direct upload -> signed webhook -> course content repository
 Feedback: admin triage -> GitHub service -> feedback repository stores issue link
+
+US-P003 coordinates selected writes within each `createServer` instance using
+separate keyed serial queues: normalized email for signup's complete existence
+check/create, user ID for enrollment's complete repository read/modify/write,
+and feedback ID for triage's read/create/save. Queues release after success or
+failure and do not serialize unrelated keys; existing course locks still apply.
+The coordination covers both Sheets and memory repositories without changing
+their interfaces or other routes. No new uniqueness/update guarantee exists
+across instances. Distributed coordination and restart recovery remain open
+decisions in [safe retries](specs/US-P003-safe-retries.md).
 ```
 
 No current backend `routes/`, `repositories/`, `models/`, or `services/` subdirectories
@@ -345,7 +355,11 @@ token flow is not implemented in the current course player. Removing a Mux video
 removes its component reference; provider deletion is not exposed in the service.
 
 Admin feedback triage with `workStatus: work` can create a GitHub issue and optionally
-add it to a Project. The service is called before saving the resulting link. Local
+add it to a Project. An existing saved link is reused. The service is called
+before saving a new link, and an instance-owned per-feedback checkpoint retains
+the created issue number/URL when that save fails. Serialized retries reuse it
+and successful persistence clears the checkpoint; no cold-instance/restart or
+multi-instance issue guarantee is added. No shared migration is needed. Local
 audit mode must not trigger real issue creation. No issues were created in this audit.
 
 ## Verification and deployment
