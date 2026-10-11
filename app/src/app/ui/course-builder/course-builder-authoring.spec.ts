@@ -224,6 +224,25 @@ describe('US-T014 question image in the quiz editor', () => {
     expect(removed).toEqual([{ sectionIndex: 0, componentIndex: 0, questionIndex: 0 }]);
     expect(host.querySelectorAll('.quiz-question-body .quiz-answer-row')).toHaveLength(4);
   });
+
+  it('puts keyboard focus back in the image block once a removal has finished', async () => {
+    const { fixture, host, doc, open } = setup();
+    const quiz = doc.sections[0].components[0];
+    if (quiz.type !== 'quiz') throw new Error('Missing quiz');
+    const withoutImage = structuredClone(doc);
+    quiz.quiz.questions[0].image = { assetId: 'asset-1', alt: '' };
+    fixture.componentRef.setInput('courseContent', structuredClone(doc)); fixture.detectChanges(); open();
+    // Let the dialog take focus first, as it does for a user.
+    await vi.waitFor(() => expect(document.activeElement).toBe(host.querySelector('[aria-label="Close editor"]')));
+    // The state marks the lesson busy as soon as Remove is pressed, which disables the buttons.
+    fixture.componentInstance.courseComponentQuizImageRemoved.subscribe(() => fixture.componentRef.setInput('attachmentUploadComponentId', 'quiz'));
+    const remove = imageButton(host); remove.focus(); remove.click(); fixture.detectChanges();
+    fixture.componentRef.setInput('courseContent', withoutImage); fixture.detectChanges();
+    (document.activeElement as HTMLElement | null)?.blur();
+    fixture.componentRef.setInput('attachmentUploadComponentId', ''); fixture.detectChanges();
+    await vi.waitFor(() => expect(document.activeElement).toBe(imageButton(host)));
+    expect(imageButton(host).textContent).toContain('Add image');
+  });
 });
 
 describe('DEF-022 lesson editor dialog keyboard focus', () => {

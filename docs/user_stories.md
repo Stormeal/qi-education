@@ -10,7 +10,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-T014 | Add an image to a quiz question | In progress | P3 | T013; combined frontend acceptance | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
@@ -36,38 +35,6 @@ numbering are delivered work. Their contracts and evidence remain in `specs/`,
 [defect_management.md](defect_management.md).
 
 ## Teacher journey
-
-### US-T014 - Add an image to a quiz question
-
-**As a teacher, I want an optional image on a question,
-so that I can assess understanding of visual material.**
-
-State: In progress, selected 2026-10-11. Source: Alex's 2026-10-11 feedback.
-Depends on US-T013. Lead decisions confirmed from existing attachment precedents:
-JPEG/PNG/WebP, 4 MB, one optional image attachment of the quiz lesson per question,
-trimmed alternative text 0..300, no new readiness requirement. The API increment
-adds image persistence/validation, quiz uploads, learner projection and atomic
-reference clearing on delete; lifecycle and download entitlement are unchanged.
-Contract and API scenario evidence: [spec](specs/US-T014-question-image.md).
-Claude owns frontend AC01/AC02 and combined browser/accessibility acceptance,
-which remains open; no hosted or real-provider verification is claimed.
-
-```gherkin
-Feature: Question images
-  Scenario: US-T014-AC01 Author an optional image
-    Given an editable question and the agreed image limits
-    When I attach an allowed image with accessible alternative text
-    Then it is retained with the question after saving and reopening
-    And text-only questions keep working
-
-  Scenario: US-T014-AC02 Present and remove the image safely
-    Given an entitled learner and a question image
-    When the learner opens the quiz
-    Then the permitted image and alternative text are available
-    When the author removes the image under the agreed lifecycle
-    Then the question and its answers are retained without the removed image
-    And unauthorized users cannot retrieve private image data
-```
 
 ### US-A001 — Administer teaching access
 

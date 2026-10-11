@@ -184,3 +184,29 @@ Required checks: `npm run api:test`, `npm run verify:journeys`, `npm run api:bui
 collection doubles and ephemeral loopback ports; never 3001/4200. Real Mongo,
 Sheets, Mux, hosted download/deployment and browser/accessibility remain unverified.
 API deployment must precede dependent frontend deployment; no push is authorized.
+
+## Frontend acceptance by the lead (2026-10-11)
+
+Frontend delivered in `a7f66f7` (0.1.120) and a focus fix in the lead-check commit. Story Done
+locally; removed from the open backlog.
+
+| Scenario | Check |
+| --- | --- |
+| US-T014-AC01 | `course-quiz-image.spec.ts` (upload goes to the quiz lesson, the question points at the file and is saved at once; a non-image is refused before anything is sent; the description is edited; a question without an image ignores a description), `course-builder-authoring.spec.ts` (Add image passes the chosen file on; image, description field and Remove are shown). Browser, in-memory API, demo teacher: a PDF was refused with "A question image must be a JPEG, PNG or WebP file."; a PNG was uploaded and shown in the editor at its real size; the stored question had the image and the lesson one PNG attachment; after writing a description, Save and reopening, the image and description were still there |
+| US-T014-AC02 | Same specs (removal saves the question without the image first, then deletes the file; question text and answers stay), `course-view-page.spec.ts` (image with its description; no image element without one). Browser: Remove image left the question text and four answers, the stored image was null, the lesson had no attachment and the file answered 404. After publishing, the demo learner saw the image (320 by 180, alternative text "A green test pyramid") under the question with four answers; the learner read carried only id, question, points, image, multiple and answers; the image answered 401 without a session and 200 for the enrolled learner |
+
+Decisions taken by the lead (confirm or change): the image sits between the question text and
+the answers in the editor and under the question for learners; uploading saves the question at
+once so no unused file is left; a failed image download just hides the image.
+
+Found in the combined check and fixed: after Remove image, keyboard focus was lost, because
+the buttons are disabled while the removal runs. Focus now returns to the image block when the
+editor is idle again (regression case "puts keyboard focus back in the image block once a
+removal has finished"); in the browser it landed on "+ Add image" after a removal and on the
+description field after an upload.
+
+Combined tree: 649 API and 242 frontend tests, six journeys, API and Pages builds pass.
+Not verified: how the image looks (the browser pane did not draw, so sizes and text were read
+from the page, not seen); a file near the 4 MB limit; real MongoDB; hosted behavior; a screen
+reader; phone width. The editor styles for the image live in `app/src/styles.scss` because
+`course-builder.scss` is at 15.95 of its 16 kB build limit.

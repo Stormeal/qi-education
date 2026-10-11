@@ -1346,7 +1346,9 @@ export class CourseBuilder {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
-    if (file) this.courseComponentQuizImageSelected.emit({ sectionIndex, componentIndex, questionId, file });
+    if (!file) return;
+    this.quizImageFocusPending = true;
+    this.courseComponentQuizImageSelected.emit({ sectionIndex, componentIndex, questionId, file });
   }
 
   protected updateQuizImageAlt(sectionIndex: number, componentIndex: number, questionIndex: number, value: string): void {
@@ -1354,17 +1356,17 @@ export class CourseBuilder {
   }
 
   protected removeQuizImage(sectionIndex: number, componentIndex: number, questionIndex: number): void {
+    this.quizImageFocusPending = true;
     this.courseComponentQuizImageRemoved.emit({ sectionIndex, componentIndex, questionIndex });
   }
 
-  // The Add and Remove image buttons replace each other, also after an upload that takes seconds; keep focus in the block.
-  private quizImageKey: string | null = null;
+  // The Add and Remove image buttons replace each other, and both are disabled while the upload or removal runs
+  // (seconds), so focus is lost. Put it back in the block once the editor is idle again.
+  private quizImageFocusPending = false;
   private readonly quizImageFocus = effect(() => {
-    const component = this.editingComponent();
-    const key = component?.type === 'quiz' ? component.quiz.questions.map((question) => question.image?.assetId ?? '').join('|') : null;
-    const changed = this.quizImageKey !== null && key !== null && key !== this.quizImageKey;
-    this.quizImageKey = key;
-    if (!changed) return;
+    const busy = !!this.attachmentUploadComponentId() || this.courseContentSaving();
+    if (busy || !this.quizImageFocusPending) return;
+    this.quizImageFocusPending = false;
     setTimeout(() => {
       if (this.document.activeElement !== this.document.body) return;
       this.host.nativeElement.querySelector<HTMLElement>('.quiz-question-card:not(.is-collapsed) .quiz-question-image :is(input[type="text"], button)')?.focus();

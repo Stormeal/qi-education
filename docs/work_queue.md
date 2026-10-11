@@ -41,8 +41,18 @@ listed in the handoff as "confirm or change".
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-T014 frontend: add, preview, describe and remove an image on a question in the quiz editor; show it to learners | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-T014 frontend: add, preview, describe and remove an image on a question in the quiz editor; show it to learners | Everything under `app/` except the version lines | Delivered locally in `a7f66f7` (0.1.120) plus the focus fix in the lead-check commit; acceptance in the [spec](specs/US-T014-question-image.md) |
 | Codex | US-T014 API: `image` on a question, image uploads for quiz lessons, validation, learner read, clearing on delete | See the [handoff](handoffs/US-T014-question-image-codex.md) | Delivered locally: 5b67f16 (implementation, 0.1.121); this delivery-record commit carries the hook-required aligned patch bump. Owner Codex, main/base 0648742 (required ancestor confirmed), selected 2026-10-11. Spec docs/specs/US-T014-question-image.md written first with lead decisions as confirm or change and AC01..07. Optional image/null/alt validation, quiz JPEG/PNG/WebP uploads, actual same-course/lesson/MIME attachment checks, whitelisted learner image, atomic delete reference clearing; existing download/readiness/review/other lesson behavior retained. RED 44 expected feature failures/3 passes; GREEN 55 focused cases and all five checks: 649 API/241 frontend tests, six journeys, API/Pages builds (stylesheet warnings/jsdom notices). One old API exact-shape assertion updated to required image:null; final independent read-only review clear. Claude frontend a7f66f7 preserved. Not verified: real Mongo/Sheets/Mux, hosted bytes/API, combined browser/accessibility AC01/02; Claude owns acceptance, story stays open. No existing defect reproduced or outside-scope change needed, branch/worktree, shared-service mutation, push or deployment. Next: separate combined browser/release checks; Codex stopped |
+
+Lead check 2026-10-11 on `43f1f51`: Codex stayed within its files and the version lines; no
+route path, request or response shape changed, and one existing API test's exact-shape
+assertion gained `image: null`. 649 API and 242 frontend tests, six journeys and the API and
+Pages builds pass. Browser, in-memory API: a teacher added, described, saved, reopened and
+removed a question image; after publishing, an enrolled learner saw it and nobody without a
+session could fetch it. The check found and fixed a focus loss after Remove image in the lead's
+frontend. US-T014 is Done locally and out of the open backlog.
+Not verified: the visual result (the browser pane did not draw), real MongoDB, hosted behavior.
+Next: Alex decides on the push.
 
 **Session 2026-10-11 (4) — started by the user with "let's work on the next task".**
 Branch: `main`. Base: `96b9071` (local, 0.1.113; ten commits not pushed). No confirmed defect
