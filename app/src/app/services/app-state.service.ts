@@ -64,7 +64,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.117';
+  readonly appVersion = '0.1.118';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -783,6 +783,8 @@ export class AppStateService {
     this.profileError.set('');
     if (!this.profileBioPublic()) return;
     const userId = this.loginState()?.user.id;
+    // The effect that mirrors the token runs later; a read without it would be a 401 and end the session.
+    this.instructorProfiles.token.set(this.loginState()?.token ?? '');
     // The account's description wins over the device copy, unless the user is already typing.
     void this.instructorProfiles.loadOwn().then((result) => {
       if (!result.ok || this.loginState()?.user.id !== userId || this.profileDirty()) return;

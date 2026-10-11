@@ -40,8 +40,18 @@ a teacher's description is public as soon as it is saved; an admin can clear it.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-T007 frontend: the profile's "About you" saved to the account for teachers and admins; description on the catalog and course instructor cards with a fallback; clear on the Admin page | Everything under `app/` except the version lines | In progress |
+| Claude Code | US-T007 frontend: the profile's "About you" saved to the account for teachers and admins; description on the catalog and course instructor cards with a fallback; clear on the Admin page | Everything under `app/` except the version lines | Delivered locally in `67079db` (0.1.115) plus the sign-in fix in the lead-check commit; acceptance in the [spec](specs/US-T007-instructor-description.md) |
 | Codex | US-T007 API and storage: own description read/save, public list by published course, admin list and clear | See the [handoff](handoffs/US-T007-instructor-description-codex.md) | Delivered locally: 7b890df (implementation, 0.1.116); this delivery-record commit has the hook-required aligned patch bump. Owner Codex, main/base a482800 (required ancestor confirmed), selected 2026-10-11. Spec docs/specs/US-T007-instructor-description.md written first with lead decisions and AC01..08. Five new routes, trim/string/280 validation, per-user Mongo/memory storage, exact public description/published-owned-course IDs, admin list/idempotent clear; existing routes/users sheet unchanged. RED: initial six HTTP cases 404; expanded 40 expected failures/2 parser passes, absent repository module. GREEN: 60 focused cases; all five checks pass, 594 API/230 frontend tests, six journeys, API/Pages builds (existing stylesheet warnings/jsdom notices). Read-only review clear after moderation test strengthened. Claude frontend 67079db preserved. Not verified: actual Mongo durability/contention, real providers, hosted API, combined browser/accessibility AC01/02; Claude owns frontend acceptance, story stays open. No outside-scope change needed, branch/worktree, shared-service mutations, push or deployment. Next: separate combined/browser release check; Codex stopped |
+
+Lead check 2026-10-11 on `6f612ba`: Codex stayed within its files and the version lines; five
+new routes in their own module, seven lines of wiring in `api/src/server.ts`, no existing route
+changed. 594 API and 233 frontend tests, six journeys and the API and Pages builds pass.
+Browser, in-memory API: teacher saved a description, it showed on the catalog and course
+instructor cards, an admin cleared it and the cards fell back. The check found a defect in the
+lead's own frontend (signing in as a teacher ended the session); fixed with a regression test
+before any push. US-T007 is Done locally and out of the open backlog.
+Not verified: real MongoDB, hosted behavior, a screen reader.
+Next: Alex decides on the push.
 
 **Session 2026-10-11 (3) — started by the user with "let's start working on the next".**
 Branch: `main`. Base: `28cf2fa` (local, 0.1.108; five commits not pushed). Picked by Claude

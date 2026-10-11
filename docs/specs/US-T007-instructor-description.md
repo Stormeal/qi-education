@@ -185,3 +185,27 @@ Required: `npm run api:test`, `npm run verify:journeys`, `npm run api:build`,
 loopback ephemeral ports, never 3001/4200. Real Mongo durability, hosted API and
 frontend/browser behavior remain unverified. API deployment must precede any
 dependent frontend deployment; no deployment or push is authorized here.
+
+## Frontend acceptance by the lead (2026-10-11)
+
+Frontend delivered in `67079db` (0.1.115) and a fix in the lead-check commit. Story Done
+locally; removed from the open backlog.
+
+| Scenario | Check |
+| --- | --- |
+| US-T007-AC01 | `instructor-profile.service.spec.ts` (a card gets the description of whoever owns one of its courses; the public list is read without a token, once per visit and again after a save; profile state: read with the new token after sign-in, failed save stays unsaved and says why, retry saves). Browser, in-memory API: the demo teacher saved "About you" on the profile page (the text was trimmed, the page said it is on the account); with a published course owned by that teacher, the catalog's Popular instructors card and the course page's instructor card both showed the description instead of topics |
+| US-T007-AC02 | Same spec (no description for other courses, for no courses, or when the list cannot be loaded). Browser: the demo course without an owner kept its topics; after an admin cleared the teacher's description the card showed "Course instructor"; `GET /instructors` returned only description and course ids |
+| Admin clear | Browser as the demo admin: Admin, Instructor descriptions listed the teacher's name and text; Clear asked for confirmation, then showed "Cleared the description of Teacher Demo.", the list was empty and the public list was `[]` |
+
+Decisions taken by the lead (confirm or change): the description is the profile's existing
+"About you" field; a card without a description shows the course topics, or "Course
+instructor" when there are none; job title, company, goals and avatar color stay on the device.
+
+Found in the combined check and fixed: signing in as a teacher or admin ended the session at
+once. The first description read went out before the new token reached the service, the API
+answered 401, and the client treats a 401 as an expired session. The token is now set before
+that read; the spec case "reads the account description with the new session token right
+after sign-in" covers it. It never reached a pushed commit.
+
+Combined tree: 594 API and 233 frontend tests, six journeys, API and Pages builds pass.
+Not verified: real MongoDB, hosted behavior, a screen reader, the Admin section at phone width.
