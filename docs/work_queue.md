@@ -33,6 +33,17 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**2026-10-11, audit of outside calls and the session screen (asked for by Alex).**
+The lead ran both test suites with a spy that records and blocks real network calls. Two
+leaks were found and fixed in `f38f321` (0.1.144): DEF-028 (frontend specs made 21 requests to
+the hosted API per run) and DEF-029 (API tests loaded `api/.env` when the shell set
+`NODE_ENV`). Afterwards: 258 frontend tests with no real request; 912 API tests whose 2,743
+requests all stayed on `127.0.0.1`. Added as Proposed at Alex's request: US-P010 (open the app
+at once instead of "Restoring your session"), US-P011 (local runs isolated by default) and
+US-P012 (no silent hosted fallback on localhost). The deploy workflow's one health request
+per push was judged fine and gets no story. Not checked: the MongoDB, Mux and Vercel plans.
+Suggested order: US-P011, US-P010, US-P012.
+
 **Session 2026-10-11 (8) — Alex asked for a "User management" tab on the Admin page.**
 Branch: `main`. Base: `d2c7a56` (pushed and deployed, 0.1.138). Selected by Alex: search users,
 change their role, reset their password. It is the open story US-A001. Decided by Alex: a

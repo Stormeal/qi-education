@@ -1013,3 +1013,38 @@ providers, real mail, push or deployment. The queue's outside-file follow-up is 
 append to US-P006-class-load.md documenting fresh auth and the 22-read measured
 20-reader burst while retaining its historic budget evidence. Original invalid
 UTF-8 bytes are preserved. Delivery record carries the required fresh patch bump.
+
+### DEF-028 - Frontend tests send requests to the hosted API
+
+Owner: Claude Code. Severity: P2 (real traffic to the live service from every test run,
+locally and on CI). State: Fixed in f38f321 (0.1.144), 2026-10-11. Found in the audit of
+outside calls Alex asked for. Introduced the same day with US-T007 (commit 67079db).
+
+Reproduction: run `npm run app:test` with no local API, with a preload that records every
+real `fetch`. Result before the fix: 20 x `GET https://qi-education.vercel.app/api/instructors`
+and 1 x `GET .../api/users/me/instructor-profile`, after the same requests failed against
+`localhost:3001`. Cause: the catalog and course pages load instructor descriptions when they
+are created, the specs did not stub that request, and on a local host a failed read falls
+back to the hosted API.
+
+Fix: `app/src/test-setup.ts`, registered as a setup file of the test target in
+`app/angular.json`, replaces `fetch` with one that rejects, so a spec must stub what it
+needs. Evidence: the same recorded run shows no real request; 258 frontend tests pass.
+The fallback itself is US-P012.
+
+### DEF-029 - API tests load real credentials when the shell sets NODE_ENV
+
+Owner: Claude Code. Severity: P1 (tests could read and write the shared spreadsheet and
+database). State: Fixed in f38f321 (0.1.144), 2026-10-11. Found in the same audit. No
+shared data was touched while reproducing it: the reproduction only inspected the loaded
+settings.
+
+Reproduction: `api/src/config.ts` skips `api/.env` only when `NODE_ENV` is `test`, and the
+test runner sets that value only when the shell has not set it. With
+`NODE_ENV=development` in the shell and a config without the fix, `config.test.ts` ran with
+the real settings loaded: the new case "runs without the credentials in api/.env" failed,
+and the CORS default case failed because the real `CORS_ORIGIN` was in effect.
+
+Fix: `api/vitest.config.ts` pins `NODE_ENV` to `test` for every test. Regression:
+`config.test.ts`, "tests never see real service settings". Evidence: with
+`NODE_ENV=development` in the shell all 912 API tests pass and no credential is visible.
