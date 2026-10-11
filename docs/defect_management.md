@@ -778,3 +778,14 @@ found no issues. Hosted header behavior, actual browser cache-hit transfers and
 real provider durability remain release checks, so the state is Fixed, not
 Verified. Isolated memory stores/ephemeral ports only; no shared data touched,
 push or deployment. Claude's concurrent 9a4d032 commit preserved.
+
+### DEF-022 - The lesson editor dialog does not manage keyboard focus
+
+Owner: Claude Code. Severity: P2 (keyboard and screen-reader users). State: Open.
+Found 2026-10-11 in the keyboard check of US-T013; the dialog is older than that story and
+serves every lesson type. Reproduction, in-memory API, demo teacher: in the course editor,
+step 4, focus Edit on a lesson and activate it. The dialog opens but focus stays on the Edit
+button behind it; Escape does not close it; Tab is not kept inside it. Expected: focus moves
+into the dialog, Escape closes it, Tab stays inside, and focus returns to Edit on close.
+The component picker dialog was not checked. Evidence:
+[simple quiz spec](specs/US-T013-simple-quiz.md), keyboard-only check.

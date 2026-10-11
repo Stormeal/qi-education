@@ -229,5 +229,5 @@ rule, not seen on a quiz; a screen reader; hosted behavior.
 
 Observed outside this story, not fixed: the lesson editor dialog (all lesson types, older
 than US-T013) does not take focus when it opens, has no Escape to close and does not keep
-Tab inside it. After pressing Edit, focus stays on the Edit button behind the dialog. To be
-logged in the defect log once Codex has released that file.
+Tab inside it. After pressing Edit, focus stays on the Edit button behind the dialog. Logged as DEF-022.
+
