@@ -1249,6 +1249,8 @@ export class CourseBuilder {
       this.expandedQuizQuestionIndex.set(Math.max(0, activeIndex - 1));
     }
     this.courseComponentQuizQuestionRemoved.emit({ sectionIndex, componentIndex, questionIndex });
+    // The removed question's button is gone; keep keyboard focus in the quiz.
+    setTimeout(() => this.host.nativeElement.querySelectorAll<HTMLButtonElement>('.quiz-question-trigger').item(this.expandedQuizQuestionIndex() ?? 0)?.focus());
   }
 
   protected isQuizQuestionExpanded(questionIndex: number): boolean {
@@ -1286,6 +1288,11 @@ export class CourseBuilder {
 
   protected removeQuizAnswer(sectionIndex: number, componentIndex: number, questionIndex: number, answerIndex: number): void {
     this.courseComponentQuizQuestionEdited.emit({ sectionIndex, componentIndex, questionIndex, edit: { kind: 'remove-answer', answerIndex } });
+    // The deleted row's button is gone (or disabled at two answers); move focus to the answer that took its place.
+    setTimeout(() => {
+      const inputs = this.host.nativeElement.querySelectorAll<HTMLInputElement>('.quiz-question-card:not(.is-collapsed) .quiz-answer-input');
+      inputs.item(Math.min(answerIndex, inputs.length - 1))?.focus();
+    });
   }
 
   protected updateQuizExplanation(sectionIndex: number, componentIndex: number, questionIndex: number, value: string): void {

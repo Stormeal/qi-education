@@ -213,6 +213,28 @@ describe('US-T013 simple quiz questions', () => {
     expect(button(host, '+ Add answer')).toBeUndefined();
   });
 
+  it('keeps keyboard focus in the quiz after an answer or a question is deleted', async () => {
+    const { fixture, host, doc, open } = setup(); open();
+    const quizOf = (content: typeof doc) => { const item = content.sections[0].components[0]; if (item.type !== 'quiz') throw new Error('Missing quiz'); return item.quiz; };
+    fixture.componentInstance.courseComponentQuizQuestionEdited.subscribe(event => {
+      if (event.edit.kind !== 'remove-answer') return;
+      const next = structuredClone(doc); quizOf(next).questions[0].answers.splice(event.edit.answerIndex, 1);
+      fixture.componentRef.setInput('courseContent', next); fixture.detectChanges();
+    });
+    const remove = host.querySelector<HTMLButtonElement>('[aria-label="Delete answer 4"]')!;
+    remove.focus(); remove.click();
+    // The last row is gone, so focus lands on the new last answer.
+    await vi.waitFor(() => expect(document.activeElement).toBe(host.querySelectorAll('.quiz-answer-input')[2]));
+
+    fixture.componentInstance.courseComponentQuizQuestionRemoved.subscribe(event => {
+      const next = structuredClone(doc); quizOf(next).questions.splice(event.questionIndex, 1);
+      fixture.componentRef.setInput('courseContent', next); fixture.detectChanges();
+    });
+    const removeQuestion = host.querySelector<HTMLButtonElement>('.quiz-question-remove')!;
+    removeQuestion.focus(); removeQuestion.click(); fixture.detectChanges();
+    await vi.waitFor(() => expect(document.activeElement).toBe(host.querySelector('.quiz-question-trigger[aria-expanded="true"]')));
+  });
+
   it('opens the optional explanation only when asked, or when one is already written', () => {
     const { fixture, host, doc, open } = setup(); open();
     const edits: unknown[] = [];

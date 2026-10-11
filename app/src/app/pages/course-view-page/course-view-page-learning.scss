@@ -199,6 +199,12 @@
   pointer-events: none;
 }
 
+/* The real box is invisible, so the row shows keyboard focus. */
+.learning-quiz-answer:has(input:focus-visible) {
+  outline: 2px solid #2f4f43;
+  outline-offset: 2px;
+}
+
 .learning-quiz-answer:has(input:checked) {
   border-color: rgba(47, 79, 67, 0.38);
   background: #f3fbf6;

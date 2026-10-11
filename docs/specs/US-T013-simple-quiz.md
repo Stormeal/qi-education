@@ -197,3 +197,37 @@ explanations did before; the editor edits only the per-question explanation, and
 per-answer explanations stay stored and are still shown to learners when a question has no
 explanation of its own. Not verified: keyboard-only walk of the new editor rows, a screen
 reader, hosted behavior. The lesson builder stylesheet is at 15.95 of its 16 kB limit.
+
+## Keyboard-only check of the editor rows and the learner's tick boxes (2026-10-11)
+
+Closes "Not verified: keyboard-only walk of the new editor rows" above. Isolated servers,
+in-memory API, demo teacher, a new draft course with one quiz lesson.
+
+Found and fixed:
+
+- Deleting an answer left focus on nothing (the row's button is removed, or disabled at two
+  answers). Focus now moves to the answer that took its place, or to the new last answer.
+- Removing a question left focus on nothing. Focus now moves to the header of the question
+  that is open afterwards.
+- Learner view: the tick box is invisible and the answer row showed no focus. The row now has
+  a focus outline (`:has(input:focus-visible)`).
+
+Already working: tab order runs question, then per answer text, correct box, delete, then Add
+answer, Add explanation, New question, Done; Add answer focuses the new answer (the sixth
+too, when the button disappears); Add explanation focuses the text area; New question
+focuses its question field; collapsing and reopening a question keeps focus on its header;
+every control has a name and the editor controls have a focus outline.
+
+Evidence: `course-builder-authoring.spec.ts` "keeps keyboard focus in the quiz after an
+answer or a question is deleted". Browser: each control was focused and activated by script
+and the focused element read back after every step, before and after the fix. 222 frontend
+tests and the Pages build pass (the three known stylesheet budget warnings).
+
+Not verified: real key presses and the visible focus ring (the browser pane did not draw in
+this session, so the walk was scripted); the learner outline was confirmed as a loaded style
+rule, not seen on a quiz; a screen reader; hosted behavior.
+
+Observed outside this story, not fixed: the lesson editor dialog (all lesson types, older
+than US-T013) does not take focus when it opens, has no Escape to close and does not keep
+Tab inside it. After pressing Edit, focus stays on the Edit button behind the dialog. To be
+logged in the defect log once Codex has released that file.
