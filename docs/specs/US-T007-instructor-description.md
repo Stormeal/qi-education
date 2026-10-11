@@ -150,9 +150,13 @@ branch or worktree. Apply test-first steps to each deliverable:
   teacher/admin and admin guards. Add only new dependency/registration in server.ts.
 - [x] Run focused GREEN and all five checks; read-only review; update architecture,
   backlog and only Codex's queue row. Retain Claude's frontend acceptance.
-- [ ] Fresh aligned version bump, scoped staging, local commit, record hash and stop.
+- [x] Fresh aligned version bump, scoped staging, local commit, record hash and stop.
 
 ## Verification and delivery
+
+Implementation: `7b890df` (0.1.116), locally on main after Claude frontend
+`67079db`. This delivery-record commit carries its own hook-required aligned
+patch bump and records the verified implementation; nothing is pushed.
 
 | Scenario | Evidence | Result |
 | --- | --- | --- |
