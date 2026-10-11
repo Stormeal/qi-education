@@ -1048,3 +1048,21 @@ and the CORS default case failed because the real `CORS_ORIGIN` was in effect.
 Fix: `api/vitest.config.ts` pins `NODE_ENV` to `test` for every test. Regression:
 `config.test.ts`, "tests never see real service settings". Evidence: with
 `NODE_ENV=development` in the shell all 912 API tests pass and no credential is visible.
+
+### DEF-030 - Ambient credentials bypass test isolation for assets, webhooks and GitHub
+
+| ID | State | Priority | Scenario | Reproduction |
+| --- | --- | --- | --- | --- |
+| DEF-030 | Confirmed, Codex, 2026-10-11 | P1 | US-P011-AC03 | NODE_ENV=test with synthetic shared values, opt-in and VERCEL selects Mongo assets, configured Mux webhooks and enabled GitHub rather than local/absent implementations |
+
+Reproduced before fixing in api/src/isolatedServices.test.ts, case DEF-030 ambient
+credentials cannot select assets, webhook or GitHub in tests. Assertion failure:
+MongoCourseAssetRepository / ConfiguredMuxWebhookService / github=true instead of
+InMemoryCourseAssetRepository / null / false. Shared SDKs were stubbed; no network,
+real credentials, .env contents or shared data were read. This is distinct from
+DEF-029's dotenv import fix: pinning NODE_ENV=test still permits inherited shell
+credentials through the direct asset/webhook settings and GitHub presence check.
+
+Planned smallest repair: central isolated/test config filtering and common gated
+asset/webhook/GitHub helpers. Existing API and local mail contracts are retained.
+Regression and local delivery/fixed disposition follow in append-only records.

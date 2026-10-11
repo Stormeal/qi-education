@@ -24,7 +24,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit repeated sign-in attempts and reset requests | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
 | US-P010 | Open the app at once when I return | Proposed | P2 | None | None |
-| US-P011 | Develop locally without touching live services | Proposed | P1 | Setting name decision | Audit 2026-10-11, finding 3 |
 | US-P012 | A local frontend never reads the live API silently | Proposed | P3 | None | Audit 2026-10-11, finding 4; DEF-028 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
@@ -408,39 +407,6 @@ Feature: Returning to the app
     When I open the app
     Then I stay signed in and see which content could not be loaded
     And I am not signed out by a temporary failure
-```
-
-### US-P011 — Develop locally without touching live services
-
-**As a maintainer, I want a local run to use isolated stores unless I ask otherwise, so
-that development never changes real data or causes a charge.**
-
-State: Proposed. Source: 2026-10-11 audit of outside calls, finding 3. `npm run app:dev` and
-`npm run api:dev` load `api/.env`, which holds the real keys for Google Sheets, MongoDB, Mux
-and GitHub, so a course saved, a video uploaded or feedback triaged while developing lands in
-the shared spreadsheet, the shared database, real Mux storage and a real GitHub issue. Mail
-is already safe: outside production it is only printed.
-Decision: the name of the explicit setting that opts a local run into the shared services
-(the lead suggests `USE_SHARED_SERVICES=1`), and whether `npm run doctor` should report which
-mode is active.
-
-```gherkin
-Feature: Safe local development
-  Scenario: US-P011-AC01 Local runs are isolated by default
-    Given api/.env holds real service settings
-    When I start the API locally without the explicit setting
-    Then users, courses, content, assets, feedback and video use isolated local stores
-    And nothing is read from or written to the shared services
-
-  Scenario: US-P011-AC02 Shared services are an explicit choice
-    Given I set the explicit setting for a local run
-    When I start the API
-    Then it uses the shared services and says so at startup and in the configuration check
-
-  Scenario: US-P011-AC03 Production is unchanged
-    Given the API runs in production
-    When it starts
-    Then it uses the configured services exactly as before, without the new setting
 ```
 
 ### US-P012 — A local frontend never reads the live API silently

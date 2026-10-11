@@ -1,7 +1,7 @@
 import { protectCourseWrite } from './courseMutationLock.js';
 import { randomUUID } from 'node:crypto';
 import { Binary, type Collection } from 'mongodb';
-import { apiConfig } from './config.js';
+import { apiConfig, hasMongoAssetConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 
 export type CourseAssetStorageType = 'memory' | 'mongodb';
@@ -246,7 +246,7 @@ export class InMemoryCourseAssetRepository implements CourseAssetRepository {
 }
 
 export function createCourseAssetRepository(): CourseAssetRepository {
-  if (!apiConfig.MONGODB_URI || !apiConfig.MONGODB_DB_NAME || !apiConfig.MONGODB_COURSE_ASSET_COLLECTION) {
+  if (!hasMongoAssetConfig()) {
     return new InMemoryCourseAssetRepository();
   }
 

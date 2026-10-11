@@ -1,4 +1,4 @@
-import { apiConfig, hasMongoConfig } from './config.js';
+import { apiConfig, hasMongoConfig, getServicesMode, isHostedApi } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 
 const lifetime = 60 * 60 * 1000;
@@ -109,8 +109,9 @@ export class InMemoryPasswordResetRepository extends MongoPasswordResetRepositor
 }
 
 export function createPasswordResetRepository(): PasswordResetRepository {
-  if (process.env.NODE_ENV !== 'production') return new InMemoryPasswordResetRepository();
+  if (getServicesMode() === 'isolated') return new InMemoryPasswordResetRepository();
   if (hasMongoConfig()) return new MongoPasswordResetRepository();
+  if (!isHostedApi()) return new InMemoryPasswordResetRepository();
   const unavailable = async (): Promise<never> => { throw new Error('Password reset storage is unavailable.'); };
   return { reserve: unavailable, activate: unavailable, findActive: unavailable, consume: unavailable, invalidateAll: unavailable };
 }

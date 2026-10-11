@@ -1,7 +1,7 @@
 import { protectCourseWrite } from './courseMutationLock.js';
 import { InFlightRead } from './inFlightRead.js';
 import { randomUUID } from 'node:crypto';
-import { apiConfig, hasGoogleSheetsConfig } from './config.js';
+import { apiConfig, hasGoogleSheetsConfig, isHostedApi } from './config.js';
 import {
   type AuthUser,
   type UserRole,
@@ -210,7 +210,7 @@ export class InMemoryAuthRepository implements AuthRepository {
 
 export function createAuthRepository(): AuthRepository {
   if (hasGoogleSheetsConfig()) return new GoogleSheetsAuthRepository();
-  if (process.env.NODE_ENV === 'production') return new UnavailableAuthRepository();
+  if (isHostedApi()) return new UnavailableAuthRepository();
   return new InMemoryAuthRepository();
 }
 

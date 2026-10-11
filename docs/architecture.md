@@ -81,7 +81,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
-| Account | Student signup, login, remembered session, role permissions; account email, hashed single-use password reset and signed-in password change API | Existing sessions survive password changes; shared-store concurrency and new profile/browser flow remain release checks; missing production user store disables auth |
+| Account | Student signup, login, remembered session, role permissions; account email, hashed single-use password reset and signed-in password change API | Existing sessions survive password changes; shared-store concurrency and new profile/browser flow remain release checks; missing hosted user store disables auth |
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
@@ -231,6 +231,34 @@ a default 12-hour lifetime. Protected requests look up the active user again,
 using their current stored role. Tokens are stored in browser storage by
 `SessionService`; do not expose or commit them in audit evidence.
 
+## Store mode boundary (US-P011)
+
+`config.ts` resolves one API policy: tests are always isolated; otherwise production
+or any defined VERCEL marker is hosted; other runs are shared only with exact
+USE_SHARED_SERVICES=1 and isolated by default. Hosted ignores the opt-in. Isolated
+configuration removes Google/Sheets, Mongo, Mux and GitHub settings before validation,
+including aliases and invalid unused values. Auth secret, HTTP/CORS and mail remain.
+Common presence helpers guard factories, including assets and webhook verification.
+Tests also suppress the Brevo key and skip dotenv; provider doubles are injected.
+No setting or process environment is rewritten.
+
+All nine store factories select memory in isolated mode. Video/webhook services are
+absent and GitHub feedback remains an unconfigured service which refuses issue creation.
+Existing demo users/course and failed-login memory-storage header are unchanged. Shared
+local mode selects configured existing adapters, including Mongo reset tokens. Missing
+shared settings retain local fallbacks. Hosted auth, instructor profiles and reset
+storage fail closed without required settings, including VERCEL without production;
+other existing missing-setting fallbacks and signed-Mux rejection remain.
+
+Startup prints one mode-only `Stores:` line. `/health/config` adds `mode` and retains
+its other fields, routes and statuses. Doctor mirrors the small mode predicate without
+requiring a TypeScript build, uses dotenv parsing and shell precedence, accepts missing
+shared settings when isolated, and detects runtime mode mismatch. App-dev forwards an
+explicit opt-in value unchanged. Mail still selects Brevo only for NODE_ENV=production;
+a VERCEL marker alone does not change mail. See [local setup](local_development.md) and
+[the verified contract](specs/US-P011-isolated-local-runs.md). Real hosted/shared readiness
+remains a release check, separate from synthetic factory and HTTP verification.
+
 ## Persistence
 
 Account email uses injectable `MailSender`, with Brevo fetch in production and
@@ -246,9 +274,10 @@ complete local mail display is deliberate, and unavailable in production.
 `passwordResetRoutes.ts` adds three routes without changing existing auth routes.
 Reset links carry at least 32 random bytes in `/reset-password#token=...`; only
 SHA-256 hashes are stored in per-user Mongo documents under
-`<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. Local/test factories always
-select memory, including with configured Mongo. Production without Mongo fails
-closed. Versioned compare-and-replace and unique first-insert retries await
+`<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. Isolated/test factories
+select memory despite configured Mongo; shared/hosted factories select configured
+Mongo. Hosted without Mongo fails closed. Versioned compare-and-replace and unique
+first-insert retries await
 majority acknowledgment and enforce three stored mail slots per rolling hour
 across instances. Pending slots cannot be checked/used, and become active only
 after provider acceptance. Failed/uncertain sends retain their unusable slot until
@@ -337,23 +366,24 @@ Mongo documents are `{ _id: userId, description }` in
 selection storage. Per-user atomic upserts and idempotent deletes await majority
 acknowledgment; concurrent saves are last-committed-write wins. First-upsert `_id`
 collisions get one replacement retry, with honest failure if its row vanished.
-Production without Mongo configuration refuses new storage operations with 503.
+Hosted without Mongo configuration refuses new storage operations with 503.
 Local/test memory stores return isolated snapshots. Real Mongo durability and
 combined browser acceptance remain release checks; see the
 [instructor description spec](specs/US-T007-instructor-description.md).
 
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
-| Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts outside production; empty unavailable repository in production |
+| Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts in isolated/test or unconfigured shared mode; unavailable in unconfigured hosted mode |
 | Identity, owner, admin catalog/price | GoogleSheetsCourseRepository | InMemoryCourseRepository with one published demo course |
 | Reviewed author metadata, live/working snapshots, review history | Mongo course-content document | InMemoryCourseContentRepository |
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
-| Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository locally/tests; new operations unavailable in unconfigured production |
-| Password reset token hashes and rolling-hour reservations | MongoPasswordResetRepository, per-user versioned token document in production | Always InMemoryPasswordResetRepository outside production; missing production Mongo refuses operations |
+| Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository in isolated/test or unconfigured shared mode; operations unavailable in unconfigured hosted mode |
+| Password reset token hashes and rolling-hour reservations | MongoPasswordResetRepository, per-user versioned token document in shared/hosted mode | InMemoryPasswordResetRepository in isolated/test or unconfigured shared mode; missing hosted Mongo refuses operations |
 
-Factories choose these independently. Mixed configuration is possible. Course
+Within shared/hosted mode, factories choose these independently. Mixed configuration
+is possible. Course
 creation is blocked when metadata uses Sheets but content uses memory; thumbnails
 are blocked for Sheets metadata with memory assets; attachments are blocked for
 Mongo content with memory assets. These guards reduce references that would be
@@ -516,11 +546,13 @@ checks. The workflow publishes `app/dist/qi-education-app/browser`, with a gener
 `404.html` SPA fallback. Vercel serves the API via `api/[...path].ts` and can also
 serve the frontend using `vercel.json` routing.
 
-Production is exactly NODE_ENV=production, matching the existing session-secret
-policy. Complete resolved Sheets settings select the configured user repository;
-otherwise no demo store is constructed and login/signup/protected routes answer
-503 with the existing message shape. Local development and NODE_ENV=test retain
-demo users. `/health/auth` checks the session secret and the selected user store's
+Hosted is NODE_ENV=production or a defined VERCEL marker, with NODE_ENV=test
+always isolated. Hosted mode ignores USE_SHARED_SERVICES. Complete resolved Sheets
+settings select the configured user repository; otherwise no demo store is constructed
+and login/signup/protected routes answer 503 with the existing message shape. Isolated
+local development and NODE_ENV=test retain demo users; only exact opt-in selects
+configured shared users in a nonhosted local run. `/health/auth` checks the session
+secret and the selected user store's
 configuration availability; `/health/config` marks auth unconfigured when either
 is absent. Existing health fields/storage labels are retained for compatibility.
 Hosted health checks do not prove Google Sheets reads/writes or an entire login

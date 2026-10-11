@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { parse as parseDotenv } from 'dotenv';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,39 +26,7 @@ function warn(label) {
 }
 
 function parseEnvFile(path) {
-  const env = new Map();
-
-  if (!existsSync(path)) {
-    return env;
-  }
-
-  for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
-    const trimmed = line.trim();
-
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
-    }
-
-    const separatorIndex = trimmed.indexOf('=');
-
-    if (separatorIndex === -1) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, separatorIndex).trim();
-    let value = trimmed.slice(separatorIndex + 1).trim();
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    env.set(key, value);
-  }
-
-  return env;
+  return existsSync(path) ? new Map(Object.entries(parseDotenv(readFileSync(path, 'utf8')))) : new Map();
 }
 
 function hasValue(env, key) {
@@ -72,21 +41,24 @@ function hasAllValues(env, keys) {
   return keys.every((key) => hasValue(env, key));
 }
 
-function checkEnv(env) {
-  if (!existsSync(envPath)) {
-    if (allowDemo) {
-      warn('api/.env is missing; demo mode allows the in-memory users only.');
-    } else {
-      fail('api/.env is missing. Run npm run env:pull or create it from api/.env.example.');
-    }
-    return;
-  }
+// Mirror config.ts's small mode predicate; this CLI runs without a TypeScript build.
+function servicesMode(env) {
+  if (env.get('NODE_ENV') === 'test') return 'isolated';
+  if (env.get('NODE_ENV') === 'production' || env.has('VERCEL')) return 'hosted';
+  return env.get('USE_SHARED_SERVICES') === '1' ? 'shared' : 'isolated';
+}
 
-  pass('api/.env exists.');
+function checkEnv(env) {
+  pass(`Stores: ${mode}`);
+  if (!existsSync(envPath)) {
+    if (mode === 'isolated') warn('api/.env is missing; isolated local defaults will be used.');
+    else if (allowDemo) warn('api/.env is missing; --allow-demo permits demo auth checks.');
+    else { fail('api/.env is missing. Run npm run env:pull or create it from api/.env.example.'); return; }
+  } else pass('api/.env exists.');
 
   if (hasValue(env, 'AUTH_TOKEN_SECRET') || hasValue(env, 'SESSION_SECRET')) {
     pass('Auth token secret is configured.');
-  } else if (allowDemo) {
+  } else if (mode === 'isolated' || allowDemo) {
     warn('Auth token secret is missing; local development will use the built-in fallback.');
   } else {
     fail('AUTH_TOKEN_SECRET is missing from api/.env.');
@@ -99,7 +71,9 @@ function checkEnv(env) {
     hasValue(env, 'GOOGLE_SERVICE_ACCOUNT_EMAIL') &&
     hasValue(env, 'GOOGLE_PRIVATE_KEY');
 
-  if (googleSheetsConfigured) {
+  if (mode === 'isolated') {
+    pass('Shared service settings are ignored; stores use local memory and video/issues are disabled.');
+  } else if (googleSheetsConfigured) {
     pass('Google Sheets auth storage is configured.');
   } else if (allowDemo) {
     warn('Google Sheets auth storage is incomplete; local API will use demo users.');
@@ -116,6 +90,8 @@ function checkEnv(env) {
   } else {
     fail('CORS_ORIGIN does not include http://localhost:4200.');
   }
+
+  if (mode === 'isolated') return;
 
   const mongoContentKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
   const mongoAssetKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_ASSET_COLLECTION'];
@@ -166,11 +142,15 @@ async function checkServer(env) {
     return;
   }
 
+  if (configResponse.body?.mode !== mode) {
+    fail('Running API mode differs from the selected mode; restart it with the intended settings.');
+  } else pass(`Running API mode: ${mode}`);
+
   const authStorage = configResponse.body?.auth?.storage;
 
   if (authStorage === 'google-sheets') {
     pass('Local API is using Google Sheets users.');
-  } else if (allowDemo) {
+  } else if (mode === 'isolated' || allowDemo) {
     warn('Local API is using in-memory demo users.');
   } else {
     fail('Local API is using in-memory demo users, so shared/prod accounts will not work locally.');
@@ -192,8 +172,8 @@ async function checkServer(env) {
 
   const mongoContentKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
   const mongoAssetKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_ASSET_COLLECTION'];
-  const expectsMongoContent = hasAllValues(env, mongoContentKeys);
-  const expectsMongoAssets = hasAllValues(env, mongoAssetKeys);
+  const expectsMongoContent = mode !== 'isolated' && hasAllValues(env, mongoContentKeys);
+  const expectsMongoAssets = mode !== 'isolated' && hasAllValues(env, mongoAssetKeys);
 
   if (expectsMongoContent && configResponse.body?.content?.configured) {
     pass('Local API content storage is configured.');
@@ -263,7 +243,10 @@ function printResults() {
   console.log('Result: passed');
 }
 
-const env = parseEnvFile(envPath);
+// Tests do not inspect api/.env. Shell values override dotenv, including empty values.
+const env = process.env.NODE_ENV === 'test' ? new Map() : parseEnvFile(envPath);
+for (const [key, value] of Object.entries(process.env)) if (value !== undefined) env.set(key, value);
+const mode = servicesMode(env);
 
 checkEnv(env);
 await checkServer(env);

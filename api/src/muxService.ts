@@ -1,6 +1,6 @@
 import Mux from '@mux/mux-node';
 import type { Request } from 'express';
-import { apiConfig, hasMuxConfig } from './config.js';
+import { apiConfig, hasMuxConfig, hasMuxWebhookConfig } from './config.js';
 
 export type MuxPlaybackPolicy = 'public' | 'signed';
 
@@ -164,7 +164,7 @@ export function createMuxVideoService(): MuxVideoService | null {
 }
 
 export function createMuxWebhookService(): MuxWebhookService | null {
-  if (!apiConfig.MUX_WEBHOOK_SECRET) {
+  if (!hasMuxWebhookConfig()) {
     return null;
   }
 

@@ -40,7 +40,7 @@ the three stories from the audit and the session question. Split with no file in
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | US-P010: open the app from the stored session and check it in the background. US-P012: no hosted fallback on local hosts | Everything under `app/` except the version lines | In progress |
-| Codex | US-P011: local runs use isolated stores unless `USE_SHARED_SERVICES=1` | See the [handoff](handoffs/US-P011-isolated-local-runs-codex.md) | Handed over; not started |
+| Codex | US-P011: local runs use isolated stores unless `USE_SHARED_SERVICES=1` | See the [spec](specs/US-P011-isolated-local-runs.md) and [handoff](handoffs/US-P011-isolated-local-runs-codex.md) | Verified locally 2026-10-11, implementation commit pending. Main/base dba0646 confirmed; Claude 373cf6f preserved. Spec first; RED for API/scripts and DEF-030 ambient credential leak, then central filtering/factory guards. All five checks pass: API 963/43, journeys 6, API build, app 265/34, Pages build (existing warnings). Independent read-only review clear after injected-builder fix, no hosted-detection doubt; 50 focused cases. No .env inspection/change, shared services, mail, fixed-port servers or push. Real hosted/shared readiness and combined browser acceptance unverified. No outside-file change needed. Next: fresh versions/scoped local commits, record implementation hash and stop |
 
 **2026-10-11, audit of outside calls and the session screen (asked for by Alex).**
 The lead ran both test suites with a spy that records and blocks real network calls. Two

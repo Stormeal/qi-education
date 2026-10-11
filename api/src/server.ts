@@ -421,6 +421,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.get('/health/config', (_request, response) => {
     response.json({
       status: 'ok',
+      mode: apiConfig.mode,
       auth: {
         configured: Boolean(apiConfig.AUTH_TOKEN_SECRET) && !auth.unavailableReason,
         storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',

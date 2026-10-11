@@ -13,11 +13,38 @@ npm run app:dev
 This starts Angular on port 4200 and the API on port 3001. Alternatives:
 `npm run app:dev:frontend` and `npm run api:dev`.
 
-For configured integrations, use the existing Vercel development environment:
+Local runs default to **isolated** stores, even when `api/.env` contains shared keys.
+Users, courses, content, assets, feedback, career paths, learning progress, instructor
+profiles and reset tokens use disposable memory. Mux uploads/webhooks are absent and
+GitHub feedback is unconfigured. The three demo accounts and demo course are unchanged.
+Restarting discards this data. `AUTH_TOKEN_SECRET`, `PORT` and `CORS_ORIGIN` still load
+from the file; mail keeps its existing local recorder outside production.
+
+To opt a nonhosted local run into configured shared services, set exactly `1` and restart:
+
+```powershell
+$env:USE_SHARED_SERVICES = '1'
+npm run app:dev
+```
+
+To return to isolated mode, set `$env:USE_SHARED_SERVICES = '0'` and restart. The setting
+can also live in ignored `api/.env`; a defined shell value overrides the file, including
+an empty value. `true`, `01` and whitespace around `1` do not opt in. The app-dev script
+passes an explicitly set value unchanged to the API child.
+
+Hosted means `NODE_ENV=production` or **any defined** `VERCEL` value, even empty. Hosted
+runs ignore the opt-in and retain configured services and unavailable-store protections.
+`NODE_ENV=test` takes priority and always isolates stores/integrations, whatever other
+settings say. Startup prints `Stores: isolated`, `Stores: shared` or `Stores: hosted`;
+`GET /health/config` reports the same `mode` alongside its existing fields.
+See [the isolation spec](specs/US-P011-isolated-local-runs.md).
+
+For opted-in integrations, use the existing Vercel development environment:
 `npm run env:pull`. This writes ignored `api/.env` and requires Vercel access.
 Inspect `api/.env.example` for variable names, but do not copy its empty optional
-values unchanged: the Zod env schema rejects empty strings for several optional
-credentials. Either supply real values or omit unused optional variables.
+values unchanged in shared/hosted mode: the Zod env schema rejects empty strings
+for several optional credentials. Isolated mode removes shared settings before validation.
+Either supply real values or omit unused optional variables.
 Never commit `.env` or log credentials.
 
 | Area | Configuration |
@@ -47,22 +74,23 @@ The legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, an
 Brevo is selected only with `NODE_ENV=production`; development/tests always
 record locally even if real credentials are present. Local stdout displays the
 complete recipient, subject and plain-text message, including the fragment link.
-Tests inject a recorder/output stub and never call Brevo. Reset token storage
-also always uses memory outside production, independently of configured Mongo.
-Use isolated user repositories for local verification; other repository factories
-retain their existing configuration behavior.
+Tests inject a recorder/output stub and never call Brevo. Reset tokens use memory
+in isolated/test mode, and configured Mongo in shared/hosted mode. The opt-in does
+not change mail selection: only NODE_ENV=production selects Brevo, including when
+a VERCEL marker alone makes the stores hosted.
 
 Production requires the Brevo key, sender address and frontend `APP_PUBLIC_URL`
 without a trailing slash. The agreed sender is `xqiacademy@gmail.com`; Alex
 confirms it in Brevo and supplies settings in Vercel. `MAIL_FROM_NAME` defaults
 to `QI-Education`. Use an HTTP/HTTPS frontend URL; local messages fall back to
 `http://localhost:4200` when omitted. Missing mail settings return 503 on reset
-requests and do not affect existing routes. `/health/config` adds only configured
-and provider under mail, without keys/addresses. Real acceptance, delivery and
+requests and do not affect existing routes. `/health/config` retains configured
+and provider under mail, without keys/addresses, alongside its new store mode.
+Real acceptance, delivery and
 spam placement remain Alex's post-deployment check; no test sends real mail.
 
-Password writes require the production Sheets store; hashed reset tokens require
-configured production Mongo and use
+Shared/hosted password writes use the configured Sheets store; hashed reset tokens
+use configured Mongo and
 `<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. There is no spreadsheet
 migration and no raw token persisted. Links last 60 minutes and one use; checks
 do not consume them. The three-per-account rolling-hour limit includes pending
@@ -73,7 +101,9 @@ See the [reset spec](specs/US-L004-password-reset.md).
 
 ## Isolated local audit/demo walkthrough
 
-This mode skips `api/.env` and selects in-memory repositories. It is for disposable
+Normal local startup loads auth/HTTP/mail settings from `api/.env` but ignores shared
+service settings. The test-mode walkthrough below also skips the file entirely and
+selects in-memory repositories. It is for disposable
 testing, not production configuration. Data disappears when the API restarts.
 Stop any previous local listener before starting; do not replace another task's server.
 
@@ -100,13 +130,13 @@ Open `http://127.0.0.1:4200/`. Demo accounts:
 | Teacher | `teacher@qi-education.local` | `Password123!` |
 | Admin | `admin@qi-education.local` | `Password123!` |
 
-Keep GitHub integration credentials out of the shell environment for this mode.
-`NODE_ENV=test` disables Sheets/Mongo/Mux factories, but the GitHub factory has no
-equivalent test-mode guard. Do not mark feedback for work with a real token present.
-The saved API audit probe injects isolated repositories and a GitHub stub explicitly.
+`NODE_ENV=test` disables shared store, Mux and GitHub configuration even with shell
+credentials or USE_SHARED_SERVICES=1. The API audit probe injects isolated repositories
+and a GitHub stub explicitly; automatic tests never call shared services.
 
-Keep the local API running before browser mutations: the frontend has a hosted
-API fallback on network failure. For stricter isolation, set
+Keep the local API running before browser mutations. The local frontend now reports
+a local API failure instead of falling back to the hosted API (US-P012). To select
+an explicit test API, set
 `window.qiEducationConfig = { apiBaseUrl: 'http://127.0.0.1:3001' }` in the local
 browser before interacting. Browser tests should set that override before app startup.
 Do not use production users to create/delete audit courses or trigger issue creation.
@@ -128,10 +158,12 @@ forwarded frontend test command is `npm.cmd --prefix app test -- --watch=false`.
 Single API file: `npm.cmd --prefix api test -- src/server.test.ts`.
 Single frontend file: `npm.cmd --prefix app test -- --watch=false --include=src/app/app.spec.ts`.
 
-The doctor inspects `api/.env`; it can disagree with an intentionally isolated
-`NODE_ENV=test` server while shared credentials exist in that file. That is not
-production readiness evidence. Use it with the actual intended integration config.
-`--allow-demo` permits demo auth; `--skip-server` limits checks to configuration.
+Doctor reports the selected mode using shell-over-dotenv precedence; in test mode
+it skips the file. Isolated mode permits missing shared settings and the local auth
+fallback. Shared/hosted mode retains configuration checks. A running API in another
+mode fails the check: restart it with the intended settings. `--allow-demo` remains
+a legacy option; `--skip-server` limits checks to configuration. Doctor does not
+prove live provider readiness.
 
 Reproduce the historical API findings safely:
 

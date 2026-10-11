@@ -1,4 +1,4 @@
-import { apiConfig, hasMongoConfig } from './config.js';
+import { apiConfig, hasMongoConfig, isHostedApi } from './config.js';
 import type { InstructorProfileDocument } from './instructorProfile.js';
 import { getMongoDatabase } from './mongo.js';
 
@@ -71,7 +71,7 @@ export class InstructorProfileUnavailableError extends Error {
 
 export function createInstructorProfileRepository(): InstructorProfileRepository {
   if (hasMongoConfig()) return new MongoInstructorProfileRepository();
-  if (process.env.NODE_ENV === 'production') {
+  if (isHostedApi()) {
     const unavailable = async (): Promise<never> => { throw new InstructorProfileUnavailableError(); };
     return { get: unavailable, save: unavailable, list: unavailable, clear: unavailable };
   }
