@@ -1,7 +1,7 @@
 # US-P006: API availability under class load
 
-State: In progress (selected API increment delivered; hosted AC02 budget and
-optional AC06 remain). Owner: Codex. Branch/base: main / f8d4c2f. Selected 2026-10-09.
+State: In progress (selected API increments, including AC06, delivered locally;
+hosted AC02 budget remains). Owner: Codex. Branch/base: main / f8d4c2f. Selected 2026-10-09.
 Delivery: `67ec9f2a8da47c31a835ff1ffc430087520ab7a2` (version 0.1.62).
 Related investigations: INV-005, INV-007, INV-011, INV-012 (reproduce before promotion).
 
@@ -20,11 +20,34 @@ AC04: saving attachment references checks ownership with a projection excluding
 binaries; preserve the existing missing-reference behavior and foreign-course denial.
 AC05: catalog uses a batched projection of review metadata/status, excluding lesson
 sections and history, including existing documents without a migration.
-AC06 is optional after this scope; private caching policy is unchanged until tested.
-AC06 selected 2026-10-11 ([handoff](../handoffs/US-P006-thumbnail-cache-codex.md)). Decision
-taken by the lead (confirm or change): a thumbnail requested with its asset id as `v` is
-cached by the browser only (`private, max-age=31536000, immutable`); nothing is cached
-publicly until Alex decides that published thumbnails may be.
+AC06 selected 2026-10-11 ([handoff](../handoffs/US-P006-thumbnail-cache-codex.md)),
+main/base df556f0. User-confirmed contract: only a successful 200 thumbnail read
+whose string `v` equals the ID of the asset actually served receives
+`Cache-Control: private, max-age=31536000, immutable`. `Vary: Authorization` stays.
+Unversioned reads, all 404s and errors retain `private, no-store`. Wrong/stale
+versions, inaccessible courses, missing assets and foreign-course assets retain
+their existing status and body. Working-revision thumbnails still require author
+access and the exact working pointer. Content-Type, Content-Length and image bytes
+are unchanged. Both `/courses/:id/thumbnail` and its `/api` alias follow this
+contract; no other route changes. No response is marked public. No frontend,
+storage format or migration change is needed; the frontend already requests `v`.
+
+AC06 acceptance:
+```gherkin
+Scenario: US-P006-AC06 Unchanged thumbnails are not downloaded again
+  Given I loaded a published course thumbnail
+  When I revisit the catalog and the thumbnail has not changed
+  Then the image is served from cache
+  And a draft or replaced thumbnail is never served from a shared cache
+```
+
+AC06 implementation checklist:
+- [x] Reproduce INV-018 with isolated HTTP before implementation; promote to DEF-021.
+- [x] Override the cache header only after existing access and asset checks succeed.
+- [x] Verify matching/unversioned/denied/error reads, both callers and route prefixes,
+  pending author previews, replacement and unchanged other-route policies.
+- [x] Run all five requested checks, record evidence and remove delivered AC06.
+- [ ] Commit locally with the required aligned version bump; record delivery hash.
 
 ## API/storage and plan
 
@@ -91,3 +114,41 @@ The 20-request burst figure is timing dependent: 4 Sheets reads on the developme
 6 on the CI runner, against 40 with no sharing. The test now asserts fewer than 20 rather than
 at most 4. Treat the burst number as evidence that concurrent reads share a fetch, not as a
 quota guarantee; the per-route counts above are exact and unchanged.
+
+## AC06 / DEF-021 verification, 2026-10-11
+
+Reproduction on df556f0: the first four HTTP tests failed only on Cache-Control
+(`private, no-store` instead of the required versioned private-cache header).
+Expanded suite before the fix: six RED header assertions, 36 existing-behavior
+cases passing. Implementation changes only the successful thumbnail response
+after course access and asset ownership checks, comparing `v` to `asset._id`.
+
+| Scenario / boundary | Evidence in `api/src/thumbnailCache.test.ts` (both route prefixes) |
+| --- | --- |
+| US-P006-AC06 unchanged published thumbnail | Anonymous and signed-in matching `v`: 200, immutable private caching, Vary Authorization, identical type/length/bytes |
+| No version / malformed version | Anonymous and signed-in unversioned reads and empty/array/repeated versions preserve 200/no-store and bytes |
+| Wrong version / inaccessible draft | Anonymous, learner and author wrong versions; non-author draft reads: existing 404/body, no-store |
+| Missing / foreign asset | Missing course, pointer or binary; foreign-course pointer: 404/no-store |
+| Asset returned under a different ID | Existing 200/bytes retained but no-store, regardless of matching course pointer |
+| Error responses | Invalid Bearer token: 401/no-store; course/asset store failures: 500, existing safe body, no-store |
+| Revision and replacement | Real start-revision/upload/submit/publish workflow: pending version only readable by author; old version readable while live, then 404/no-store for anonymous/learner after publication; new version immutable/private |
+| Other route policies | Catalog, outline and author content retain private/no-store with matching `v` |
+
+Final focused suite: 42/42 pass. Combined tree includes Claude's preserved
+9a4d032 quiz keyboard fix. `npm run api:test`: 500 tests pass;
+`npm run verify:journeys`: six scenarios pass (prints HEAD 9a4d032 with these
+working API changes); `npm run api:build`: pass; `npm run app:test`: 222 tests
+pass; `npm run app:build:pages`: pass with three existing stylesheet budget
+warnings (course-view learning, course-builder, career-path). Frontend tests
+also emit existing jsdom scrollTo notices. No check was blocked by Claude's work.
+
+This verifies the HTTP cache contract with isolated memory repositories and
+loopback ephemeral ports, including the existing frontend URL shape. Actual
+browser network-cache hits, hosted API/header behavior and real provider
+durability are unverified. No shared Sheets, MongoDB, Mux or GitHub data was
+touched, no frontend behavior was edited, and no push/deployment was performed.
+No additional file outside the assigned scope is required. Local delivery
+commit is recorded below after committing. Read-only review found no Critical,
+Important or Minor issues within the explicit contract; additional 503/review
+errors exit before the override, while public caching and revocation changes
+remain outside this scope.

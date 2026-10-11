@@ -41,7 +41,7 @@ the next independent open item, US-P006-AC06 (P1 story, API only).
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | US-T013 leftover: keyboard-only walk of the new quiz editor rows and the learner's tick boxes; fix what it finds | Everything under `app/` except the version lines, `docs/specs/US-T013-simple-quiz.md` | In progress |
-| Codex | US-P006-AC06 / INV-018: unchanged thumbnails are served from the browser cache | See the [handoff](handoffs/US-P006-thumbnail-cache-codex.md) | Handed over; not started |
+| Codex | US-P006-AC06 / INV-018: unchanged thumbnails are served from the browser cache | See the [handoff](handoffs/US-P006-thumbnail-cache-codex.md) | Implementation and verification complete; local commit next. Owner Codex, main/base df556f0 (required ancestor confirmed), selected 2026-10-11. INV-018 reproduced first and promoted to DEF-021; exact asset-version 200s now private/immutable, access and all other responses unchanged. Verified: 42 focused HTTP cases, 500 API tests, six journeys, API build, 222 frontend tests, Pages build (existing stylesheet warnings/jsdom notices); read-only review clear. Claude's 9a4d032 preserved. Not verified: actual browser cache-hit transfers, hosted API and real providers; hosted AC02 budget remains open. No outside-scope change needed. Shared working tree preserved; no branch/worktree, shared-service mutations or push. Next: record local delivery hash and stop |
 
 **Session 2026-10-11 — started by the user with a reference design for a simpler quiz editor.**
 Branch: `main`. Base: `a79828f` (pushed and deployed, 0.1.98). Decided by Alex: 1 point per

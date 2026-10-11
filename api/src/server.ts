@@ -601,6 +601,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       response.setHeader('Content-Type', asset.contentType);
       response.setHeader('Content-Length', String(asset.sizeBytes));
+      if (selectedId && selectedId === asset._id) {
+        response.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+      }
       response.end(asset.binary);
     } catch (error) {
       next(error);

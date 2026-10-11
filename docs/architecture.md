@@ -167,7 +167,7 @@ returns a client-generated 503 JSON message through existing caller error paths,
 so signup/save/enrollment display local API guidance and retain unsaved work.
 Deployed hosts and GET/HEAD fallback retain their previous behavior. See
 [safe operation](specs/US-P008-safe-operation.md).
-Course responses use private/no-store and Vary: Authorization. The client honors no-store. Private thumbnails use authenticated blobs revoked on logout. Course response guards use session identity, route, and operation generation; stale 401s cannot end a newer session. Session restoration/enrollment reset pending loaders before applying the updated session. Other successful JSON responses retain explicit invalidation and no TTL.
+Course responses use private/no-store and Vary: Authorization. Successful thumbnail reads whose string `v` equals the ID of the asset actually served use `private, max-age=31536000, immutable` for browser caching; unversioned reads, 404s and errors retain private/no-store. The `/api` alias follows the same policy; access checks and other routes are unchanged, and nothing is public-cacheable. The client honors no-store. Private thumbnails use authenticated blobs revoked on logout. Course response guards use session identity, route, and operation generation; stale 401s cannot end a newer session. Session restoration/enrollment reset pending loaders before applying the updated session. Other successful JSON responses retain explicit invalidation and no TTL.
 
 ## API map and current access
 

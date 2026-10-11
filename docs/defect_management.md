@@ -46,6 +46,7 @@ date, fixing commit, passing regression checks, and any remaining release checks
 | DEF-019 | Overlapping legacy path writes conceal an intervening change from a versioned editor | P2 | Fixed | Resolved 2026-10-10 in a889155; mixed-client regression/full checks/review pass | US-A003-AC02 |
 | DEF-T012-CALLBACK | Video callbacks miss a lesson moved to another chapter | P2 | Fixed | Reproduced then fixed 2026-10-10 in a8595d6; seven isolated media regressions and 425 API tests pass; live provider checks pending | US-T012-AC05 |
 | DEF-020 | A published course looks impossible to edit: the form is locked without explanation and Start revision is hidden in a later step | P2 | Fixed | Reported by the first teacher 2026-10-10; reproduced and fixed in baf852c; `course-form-steps.spec.ts` and browser check pass | US-T010 |
+| DEF-021 | Versioned course thumbnails cannot use the browser cache | P2 | In progress | INV-018 reproduced 2026-10-11 on df556f0: four isolated HTTP regressions receive private, no-store for a matching asset version | US-P006-AC06 |
 
 Most findings were reproduced in isolated local/code checks. DEF-012 was
 confirmed by read-only inspection of shared course metadata and corrected only
@@ -551,10 +552,10 @@ Hosted clocks, durability and uncertain provider outcomes require release checks
 | INV-015 | Reproduced with isolated fetch stubs as DEF-018 on 2026-10-10. On localhost the API client retries a failed request against the hosted API, including mutations | Stop the local API, submit signup from the local frontend with the network inspector open; do not complete it against shared data | US-P008 |
 | INV-016 | CI event configuration reproduced locally: pull requests only, no push trigger | Main push trigger added under US-P008-AC04; actual GitHub run/host gating unverified (no push authorized) | US-P008 |
 | INV-017 | US-T002 code (`86196cf`): status branches in `PATCH /courses/:id` are unreachable because the review service rejects status changes; reviewed title/status live only in MongoDB so the Courses sheet goes stale | Route tests for each legacy status transition; publish a revision and compare the sheet row | US-T002 |
-| INV-018 | Course thumbnails are served `Cache-Control: private, no-store` even when the URL carries the asset id as a version | Reload the catalog and count thumbnail transfers | US-P006 |
+| INV-018 | Reproduced in isolated memory stores as DEF-021 on 2026-10-11: course thumbnails are served `Cache-Control: private, no-store` even when the URL carries the asset id as a version | Matching-version HTTP requests, anonymous and authenticated, both route prefixes: four RED header assertions | US-P006-AC06 |
 
 INV-005–INV-018 come from the [2026-10-09 code audit](audits/2026-10-09/code_audit.md).
-They are code readings; none was reproduced. That audit also re-observed INV-002,
+They began as code readings; reproduced entries above link their confirmed defects. That audit also re-observed INV-002,
 INV-003 and INV-004.
 
 Do not describe these as reproduced live-service incidents. If reproduced, create
@@ -743,3 +744,19 @@ inside the third section. Fix: a notice at the top of the form states that the c
 published, archived or in review, and offers "Start revision" when that is the way forward.
 Regression: `course-form-steps.spec.ts`; browser check that the button unlocks the form.
 Hosted verification pending. Details: [guided course form spec](specs/US-T010-guided-course-form.md).
+
+### DEF-021 - Versioned course thumbnails cannot use the browser cache
+
+Owner: Codex. Severity: P2. State: In progress. Source: INV-018,
+[2026-10-09 code audit](audits/2026-10-09/code_audit.md).
+Contract: US-P006-AC06; [class-load spec](specs/US-P006-class-load.md).
+
+Reproduction, 2026-10-11 on main/base df556f0: `npm --prefix api test --
+src/thumbnailCache.test.ts` creates a published course and PNG asset in isolated
+in-memory stores, then requests its exact `?v=<asset id>` anonymously and with a
+learner's Bearer token, on `/courses` and `/api/courses`. All four return 200,
+`image/png`, length 14, the original image bytes and `Vary: Authorization`, but
+the cache assertion fails: expected `private, max-age=31536000, immutable`,
+received `private, no-store`. The shared middleware sets no-store and the read
+handler does not override it after successful asset validation. No shared
+provider, production incident or browser transfer measurement is claimed.

@@ -367,18 +367,11 @@ so that a busy moment does not show errors or an "updating" message.**
 
 State: In progress. Fewer Sheets reads per request, lock-free reads, a light course list and
 ownership checks without file transfer are delivered and removed from this story. Spec:
-[API class load](specs/US-P006-class-load.md). Remaining: thumbnail caching (INV-018) and a
-hosted check of the per-minute Sheets budget. Decision: whether versioned thumbnails of
-published courses may be cached publicly.
-
-```gherkin
-Feature: Course availability under class load
-  Scenario: US-P006-AC06 Unchanged thumbnails are not downloaded again
-    Given I loaded a published course thumbnail
-    When I revisit the catalog and the thumbnail has not changed
-    Then the image is served from cache
-    And a draft or replaced thumbnail is never served from a shared cache
-```
+[API class load](specs/US-P006-class-load.md). AC06 browser thumbnail caching (INV-018 /
+DEF-021) is delivered locally with isolated HTTP regressions and removed from this
+story; its contract and acceptance record remain in the spec. Remaining: hosted
+AC02 check of the per-minute Sheets budget. Versioned thumbnails use private
+browser caching only; public caching is outside the selected scope.
 
 ### US-P008 — Fail safely on misconfiguration, abuse, and unchecked releases
 
