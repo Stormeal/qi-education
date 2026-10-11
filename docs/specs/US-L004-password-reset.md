@@ -275,3 +275,7 @@ after reproducing and closing the late reset-claim overwrite (four memory/Sheets
 HTTP cases, both prefixes) and stale in-flight Sheets credential read.
 No shared stores, Brevo or real mail were used. Real-provider and combined hosted
 profile/browser/keyboard verification remain release checks. Local commit follows.
+
+US-L013 local implementation: f8a3713244bf678461481d63ab512636619bd9f8
+(version 0.1.136), 2026-10-11. The delivery-record commit accompanies the queue
+and US-L013 spec. All five required checks passed as above; no push or deployment.

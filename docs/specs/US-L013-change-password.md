@@ -3,8 +3,9 @@
 ## Record and outcome
 
 - Story: US-L013-AC01/02; API owner Codex, frontend owner Claude Code.
-- State: Implemented and verified locally 2026-10-11; main/base 673fd59, ancestor confirmed.
-- Local delivery commit: pending the scoped implementation commit; recorded below afterwards.
+- State: Delivered locally 2026-10-11; main/base 673fd59, ancestor confirmed.
+- Local implementation commit: f8a3713244bf678461481d63ab512636619bd9f8 (0.1.136).
+- Delivery record accompanies this spec, reset extension and queue row; local only, no push.
 - Spec first; [handoff](../handoffs/US-L013-change-password-codex.md).
 - Related defects: none reproduced. Older reset links surviving a reset were an
   explicitly accepted US-L004 gap; this increment closes it as new behavior.
@@ -114,8 +115,8 @@ to the existing session-expiry path. Actual provider writes/mail are release che
 - [x] Repository RED for memory/Mongo CAS cancellation, pending activation and limits.
 - [x] Implement route/shared notice/cancellation; retain Sheets/memory hash writer.
 - [x] Run all five checks, read-only review, docs/backlog.
-- [ ] Fresh version, scoped implementation commit and delivery record.
-- [ ] Record commit/evidence in own queue row and append-only reset spec; stop, no push.
+- [x] Fresh version, scoped implementation commit and delivery record.
+- [x] Record commit/evidence in own queue row and append-only reset spec; stop, no push.
 
 | Scenario | Evidence | Result |
 | --- | --- | --- |
