@@ -939,3 +939,20 @@ and Pages build. Read-only recheck is clear. Tests use isolated in-memory rows,
 Mongo collection CAS doubles and mail/fetch stubs. No shared spreadsheet/Mongo,
 Brevo or real mail; provider contention/durability and hosted/browser behavior
 remain unverified. Original non-UTF-8 bytes preserved by append-only writes.
+
+
+### DEF-026 - Local delivery and latest disposition
+
+Fixed locally 2026-10-11 in 9f87cb741d8942ffc4b98f97bddc01ec07a0e815 (0.1.127).
+This disposition supersedes Confirmed in the preserved reproduction above.
+
+| ID | Latest state | Fixing commit | Regression and remaining release check |
+| --- | --- | --- | --- |
+| DEF-026 | Fixed | 9f87cb7 | Paused old-row enrollment cannot overwrite a new reset password: enrollment H-only, reset D-only. Isolated Sheets and memory password-update tests pass. Real Sheets concurrency/durability and hosted login remain unverified |
+
+All five checks pass: 744 API tests, six journeys, API build, 248 frontend tests,
+Pages build. Read-only review clear; no real providers/mail/shared mutations.
+The full route, hash/single-use/limit and failure contract remains in the two
+account-email/password-reset specs. No public enrollment route contract changes.
+This append-only delivery record also carries the hook-required aligned patch bump.
+Codex stopped; no push/deployment. Original invalid-UTF-8 bytes remain intact.

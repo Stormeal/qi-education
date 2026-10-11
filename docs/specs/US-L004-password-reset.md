@@ -2,7 +2,7 @@
 
 ## Record and outcome
 
-- Selected 2026-10-11; API increment implemented locally, delivery hash pending, Codex, main/base be57a77.
+- Selected 2026-10-11; API increment Done locally in `9f87cb7` (0.1.127), Codex, main/base be57a77.
 - API AC01/02/04/05 and US-P008-AC05 reset-account limit; Claude frontend AC03/form.
 - Spec first; [handoff](../handoffs/account-email-password-reset-codex.md).
 - Related defect: DEF-026, enrollment restoring the old password hash;
@@ -164,3 +164,8 @@ frontend/API, combined browser/keyboard flow or session revocation was verified.
 Alex owns the real sender/settings/delivery checks; Claude owns frontend AC03.
 The account reset-mail limit is delivered; client-address and confirmation-mail
 limits remain open. No outside-owned file is required. Nothing was pushed.
+
+Local implementation commit: `9f87cb741d8942ffc4b98f97bddc01ec07a0e815` (2026-10-11, 0.1.127).
+This delivery-record commit preserves that hash and carries another aligned patch
+bump for the hook. The API increment is complete; frontend/hosted acceptance and
+the explicitly open limits remain with their owners. Codex stopped; no push.
