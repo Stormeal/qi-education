@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import {
   FeedbackEntry,
   FeedbackOption,
   FeedbackTriageUpdate,
   StudentSummary,
 } from '../../app.models';
+import { AdminUser, AdminUserRole, AdminUsersService } from '../../services/admin-users.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
 import { AppButton } from '../../ui/app-button/app-button';
@@ -16,13 +17,13 @@ import { PageHeader } from '../../ui/page-header/page-header';
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 type FeedbackTab = 'current' | 'archived';
-type AdminSection = 'feedback' | 'career-paths' | 'instructors';
+type AdminSection = 'feedback' | 'career-paths' | 'instructors' | 'users';
 const SECTION_KEY = 'qi-education:admin-section';
 
 function storedSection(): AdminSection {
   try {
     const stored = window.sessionStorage.getItem(SECTION_KEY);
-    return stored === 'career-paths' || stored === 'instructors' ? stored : 'feedback';
+    return stored === 'career-paths' || stored === 'instructors' || stored === 'users' ? stored : 'feedback';
   }
   catch { return 'feedback'; }
 }
@@ -39,6 +40,8 @@ export class AdminPage {
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();
   readonly userEmail = input.required<string>();
+  readonly authToken = input('');
+  readonly currentUserId = input('');
   readonly userRoleLabel = input.required<string>();
   readonly feedback = input.required<FeedbackEntry[]>();
   readonly feedbackLoading = input.required<boolean>();
@@ -132,6 +135,68 @@ export class AdminPage {
 
   protected selectedPriority(item: FeedbackEntry): FeedbackPriority {
     return item.priority ?? 'medium';
+  }
+
+  // US-A001 user management.
+  private readonly adminUsers = inject(AdminUsersService);
+  protected readonly userRoles: { value: AdminUserRole; label: string }[] = [
+    { value: 'student', label: 'Student' }, { value: 'teacher', label: 'Teacher' }, { value: 'admin', label: 'Admin' },
+  ];
+  protected readonly userSearch = signal('');
+  protected readonly users = signal<AdminUser[]>([]);
+  protected readonly usersTotal = signal(0);
+  protected readonly usersState = signal<'loading' | 'ready' | 'error'>('loading');
+  protected readonly usersMessage = signal('');
+  protected readonly usersError = signal('');
+  // The one user a role change or reset is running for; its controls are disabled meanwhile.
+  protected readonly userBusyId = signal('');
+  private usersRequest = 0;
+  private readonly usersLoader = effect(() => {
+    if (this.section() === 'users' && this.authToken()) untracked(() => void this.searchUsers());
+  });
+
+  protected async searchUsers(event?: Event): Promise<void> {
+    event?.preventDefault();
+    const request = ++this.usersRequest;
+    this.usersState.set('loading');
+    const result = await this.adminUsers.search(this.authToken(), this.userSearch());
+    // A slower earlier search must not replace the result of a later one.
+    if (request !== this.usersRequest) return;
+    if (result.ok) { this.users.set(result.body.users); this.usersTotal.set(result.body.total); this.usersError.set(''); }
+    else this.usersError.set(result.message);
+    this.usersState.set(result.ok ? 'ready' : 'error');
+  }
+
+  protected async changeUserRole(user: AdminUser, event: Event): Promise<void> {
+    const select = event.target as HTMLSelectElement;
+    const role = select.value as AdminUserRole;
+    const label = (value: string) => this.userRoles.find((item) => item.value === value)?.label ?? value;
+    if (role === user.role) return;
+    if (!window.confirm(`Change ${user.displayName} from ${label(user.role)} to ${label(role)}? It applies the next time they do something on the site.`)) {
+      select.value = user.role;
+      return;
+    }
+    this.userBusyId.set(user.id);
+    const result = await this.adminUsers.changeRole(this.authToken(), user.id, role);
+    this.userBusyId.set('');
+    if (result.ok) {
+      this.users.update((items) => items.map((item) => item.id === user.id ? result.body : item));
+      this.usersError.set('');
+      this.usersMessage.set(`${result.body.displayName} is now ${label(result.body.role)}.`);
+    } else {
+      select.value = user.role;
+      this.usersMessage.set('');
+      this.usersError.set(`The role of ${user.displayName} was not changed. ${result.message}`);
+    }
+  }
+
+  protected async sendUserPasswordReset(user: AdminUser): Promise<void> {
+    if (!window.confirm(`Send a password reset link to ${user.email}? Their current password keeps working until they use the link.`)) return;
+    this.userBusyId.set(user.id);
+    const result = await this.adminUsers.sendPasswordReset(this.authToken(), user.id);
+    this.userBusyId.set('');
+    this.usersMessage.set(result.ok ? result.body.message : '');
+    this.usersError.set(result.ok ? '' : `No reset link was sent to ${user.email}. ${result.message}`);
   }
 
   protected async loadInstructors(): Promise<void> {

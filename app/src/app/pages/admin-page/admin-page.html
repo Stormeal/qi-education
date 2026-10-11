@@ -19,10 +19,12 @@
   <header class="admin-hero">
     <div class="admin-hero-copy">
       <p class="eyebrow">Admin</p>
-      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : 'Career paths' }}</h1>
+      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : section() === 'users' ? 'User management' : 'Career paths' }}</h1>
       <p>
         {{ section() === 'feedback'
           ? 'Review user feedback, spot friction, and prioritize follow-up work.'
+          : section() === 'users'
+            ? 'Find a user, change their role, or send them a link for choosing a new password.'
           : section() === 'instructors'
             ? 'Teachers write these in their profile. They are public as soon as they are saved; clear one that is unsuitable.'
             : 'Curate the paths learners can follow. Nothing reaches learners until you publish.' }}
@@ -51,6 +53,9 @@
     </button>
     <button type="button" [attr.aria-current]="section() === 'instructors' ? 'page' : null" (click)="selectSection('instructors')">
       Instructor descriptions
+    </button>
+    <button type="button" [attr.aria-current]="section() === 'users' ? 'page' : null" (click)="selectSection('users')">
+      User management
     </button>
   </nav>
 
@@ -203,6 +208,62 @@
     </div>
   </section>
 
+  } @else if (section() === 'users') {
+    <section class="admin-panel" aria-label="User management">
+      <form class="admin-user-search" role="search" (submit)="searchUsers($event)">
+        <label for="admin-user-search">Search by name or email</label>
+        <div>
+          <input id="admin-user-search" type="search" maxlength="100" [value]="userSearch()" (input)="userSearch.set($any($event.target).value)" />
+          <app-button variant="primary" type="submit">Search</app-button>
+        </div>
+      </form>
+      <p class="admin-user-status" role="status">
+        @if (usersMessage()) { <span class="admin-user-ok">{{ usersMessage() }}</span> }
+        @if (usersState() === 'ready') {
+          <span>{{ usersTotal() === 0 ? 'No user matches.' : users().length < usersTotal() ? 'Showing ' + users().length + ' of ' + usersTotal() + ' users. Search to narrow it down.' : usersTotal() === 1 ? '1 user.' : usersTotal() + ' users.' }}</span>
+        }
+      </p>
+      @if (usersError()) { <p class="admin-user-error" role="alert">{{ usersError() }}</p> }
+      @if (usersState() === 'loading') {
+        <app-loading-skeleton variant="stat-card" [count]="2" />
+      } @else if (usersState() === 'error') {
+        <app-button variant="outline" (buttonClicked)="searchUsers()">Try again</app-button>
+      } @else if (users().length > 0) {
+        <ul class="admin-user-list">
+          @for (user of users(); track user.id) {
+            <li>
+              <div class="admin-user-identity">
+                <strong>{{ user.displayName }}</strong>
+                <span>{{ user.email }}</span>
+                @if (user.status !== 'active') { <span class="admin-user-inactive">Not active</span> }
+              </div>
+              <label class="admin-user-role">
+                <span>Role</span>
+                <select
+                  [attr.aria-label]="'Role of ' + user.displayName"
+                  [disabled]="user.id === currentUserId() || userBusyId() === user.id"
+                  [title]="user.id === currentUserId() ? 'You cannot change your own role' : ''"
+                  (change)="changeUserRole(user, $event)"
+                >
+                  @for (role of userRoles; track role.value) {
+                    <option [value]="role.value" [selected]="role.value === user.role">{{ role.label }}</option>
+                  }
+                </select>
+                @if (user.id === currentUserId()) { <small>Your own role cannot be changed here.</small> }
+              </label>
+              <app-button
+                variant="outline"
+                [ariaLabel]="'Send a password reset link to ' + user.displayName"
+                [disabled]="userBusyId() === user.id || user.status !== 'active'"
+                (buttonClicked)="sendUserPasswordReset(user)"
+              >
+                {{ userBusyId() === user.id ? 'Working…' : 'Send reset link' }}
+              </app-button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
   } @else if (section() === 'instructors') {
     <section class="admin-panel" aria-label="Instructor descriptions">
       @if (instructorsMessage()) { <p class="admin-instructor-message" role="status">{{ instructorsMessage() }}</p> }
