@@ -33,6 +33,16 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (7) — started by the user with "let's work on the next task".**
+Branch: `main`. Base: `cffae22` (pushed and deployed, 0.1.133). No confirmed defect is open.
+Picked by the lead: US-L013, the next item in the order recorded with Alex's account email
+stories (US-P009, US-P008-AC05 and US-L004 are live).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-L013 frontend: a password section on the profile page | Everything under `app/` except the version lines | In progress |
+| Codex | US-L013 API: change the password with the current one; notice mail; a password change cancels unused reset links | See the [handoff](handoffs/US-L013-change-password-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 (6) — Alex chose Brevo without a domain and the sender `xqiacademy@gmail.com`.**
 Branch: `main`. Base: `80aef51` (local, 0.1.124; one commit not pushed). Selected by Alex in the
 brainstorm: the mail sender, so that forgot password can be built. The lead runs US-P009,
