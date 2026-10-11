@@ -215,8 +215,14 @@ Seen in Alex's screenshots, account `stormlex@pm.me`:
   the reset page.
 
 Reported by Alex afterwards: logging in on the live site with the new password works.
+The reset mail was in the Proton inbox, not in spam, and the "password was changed" notice
+arrived too.
 
-Not confirmed yet: whether the mail was in the inbox or the spam folder; arrival of the "password was changed" notice; delivery to Gmail and Outlook
-mailboxes; one hosted enrollment after DEF-026.
-Open risk: only one IP address was authorised in Brevo. Vercel calls from changing addresses,
-so sends can be refused again until IP blocking for API keys is turned off there.
+Not confirmed yet: delivery to Gmail and Outlook mailboxes; one hosted enrollment after DEF-026.
+Open risk: Brevo blocks API calls from IP addresses it has not authorised, and only one
+(`3.80.207.65`, Amazon) is authorised. Vercel calls from changing addresses, so sends will be
+refused again. Alex tried to turn the blocking off for API keys on 2026-10-11 and Brevo
+answered "We could not deactivate the blocking of unauthorized IP addresses for API". Until
+that works, a refused send shows the address under "Unauthorized IP addresses" in Brevo, where
+it can be authorised by hand. Blocking is already off for SMTP keys, so sending over SMTP is
+a fallback; it needs a mail library.
