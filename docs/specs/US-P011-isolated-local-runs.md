@@ -3,7 +3,9 @@
 ## Record and outcome
 
 - Story: US-P011-AC01/02/03; owner Codex, selected 2026-10-11.
-- State: Verified locally; implementation commit pending. Main/base dba0646 confirmed;
+- State: Done locally, implementation 2010bfa (0.1.148), 2026-10-11.
+  Delivery record is this commit with the hook-required fresh aligned version.
+  Main/base dba0646 confirmed;
   concurrent Claude frontend commit 373cf6f preserved.
 - Spec first; [handoff](../handoffs/US-P011-isolated-local-runs-codex.md).
 - Related defects: DEF-030 reproduced ambient test credentials selecting assets,
@@ -108,8 +110,8 @@ Feature: Safe local development
 - [x] Implement centralized API filtering, hosted predicates, mode line/health and scripts.
 - [x] Pass local/shared/hosted/test selection and no-provider regressions.
 - [x] Update example/local/architecture docs, remove delivered story and read-only review.
-- [ ] Run all five checks; fresh version and scoped local implementation commit.
-- [ ] Record commits/evidence in queue/spec with fresh delivery-record version; stop, no push.
+- [x] Run all five checks; fresh version and scoped local implementation commit.
+- [x] Record implementation commit/evidence in queue/spec with fresh delivery-record version; stop, no push.
 
 ## Verification and delivery
 
@@ -147,3 +149,7 @@ outside-owned file change is needed. api/.env was not inspected or changed; prob
 stubbed dotenv/FS. Constructor selection is not a live integration or deployment
 check. Real shared service readiness, hosted startup/login and combined browser
 acceptance remain unverified; Alex handles them after deployment authorization.
+
+DEF-030 is Fixed locally in 2010bfa; its original reproduction bytes and append-only
+resolution remain in the defect log. US-P011-AC01/02/03 are removed from the backlog.
+Codex stopped after the scoped delivery-record commit; no push or deployment.

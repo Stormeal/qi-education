@@ -1066,3 +1066,26 @@ credentials through the direct asset/webhook settings and GitHub presence check.
 Planned smallest repair: central isolated/test config filtering and common gated
 asset/webhook/GitHub helpers. Existing API and local mail contracts are retained.
 Regression and local delivery/fixed disposition follow in append-only records.
+
+
+### DEF-030 - Resolution, 2026-10-11
+
+| ID | Latest state | Fixing commit | Regression and remaining checks |
+| --- | --- | --- | --- |
+| DEF-030 | Fixed locally | 2010bfa (0.1.148), US-P011 | Ambient credentials now yield memory assets, absent Mux webhook/video and unconfigured GitHub under NODE_ENV=test, even with VERCEL and exact opt-in; live hosted/shared readiness remains a release check |
+
+The pre-fix isolated assertion failed with MongoCourseAssetRepository,
+ConfiguredMuxWebhookService and github=true. The same case now passes with
+InMemoryCourseAssetRepository / null / false and no provider calls. Config removes
+ignored service settings before validation; common presence helpers gate the
+asset, webhook and GitHub paths. Test mode takes priority over hosted markers and
+opt-in, keeping DEF-029's pinned environment and dotenv protection intact.
+
+All five checks pass: 963 API tests/43 files, six HTTP journeys, API compilation,
+265 frontend tests/34 files and Pages build/fallback (existing warnings). Independent
+read-only review clear after a new injected-builder regression was fixed; no hosted
+detection doubt remains in reviewed code. Synthetic SDK/FS/mail doubles and loopback
+HTTP only; no actual .env inspection/change, shared providers or real mail. Existing
+invalid UTF-8 bytes and all earlier defect entries are preserved. Local delivery is
+not deployment; hosted login/startup, shared provider readiness and combined browser
+acceptance remain unverified. No push. Codex stopped after the delivery-record commit.
