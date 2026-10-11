@@ -996,3 +996,20 @@ and its separate 95-case admin run passes. Isolated Sheets rows/memory stores an
 mail recorder only. Real Sheets/Mongo/Brevo and hosted/browser flows unverified.
 US-P006 historic budget spec is outside ownership; own queue row requests its
 append-only budget/freshness clarification. No push or deployment.
+
+### DEF-027 - Local delivery and latest disposition
+
+Fixed locally 2026-10-11 in 54a9427b64425fd82c2d839ad2825db0aa399803 (0.1.141).
+This latest disposition supersedes Confirmed in the preserved reproduction.
+
+| ID | Latest state | Fixing commit | Regression and remaining release check |
+| --- | --- | --- | --- |
+| DEF-027 | Fixed | 54a9427 | Six held-snapshot, two-instance HTTP cases now deny demoted teachers/admins and disabled accounts with current 403/401. Fresh authentication uses one Users read per request; catalog/content coalescing retained. Real Sheets behavior and hosted quota impact unverified |
+
+All five checks pass: 908 API tests, six journeys, API build, 258 frontend tests,
+Pages build (existing stylesheet warnings and jsdom notices). Read-only review
+clear; 253 focused cases and independent 95-case admin run pass. No shared
+providers, real mail, push or deployment. The queue's outside-file follow-up is an
+append to US-P006-class-load.md documenting fresh auth and the 22-read measured
+20-reader burst while retaining its historic budget evidence. Original invalid
+UTF-8 bytes are preserved. Delivery record carries the required fresh patch bump.

@@ -3,8 +3,9 @@
 ## Record and outcome
 
 - Story: US-A001-AC01/02; API owner Codex, frontend owner Claude Code.
-- State: Implemented and verified locally 2026-10-11; main/base 9209e22, ancestor confirmed.
-- Local implementation commit: pending the scoped commit; final hash is recorded afterwards.
+- State: API delivered locally 2026-10-11; main/base 9209e22, ancestor confirmed.
+- Local implementation commit: 54a9427b64425fd82c2d839ad2825db0aa399803 (0.1.141).
+- Delivery record accompanies this spec, DEF-027 and own queue row; local only, no push.
 - Spec first; [handoff](../handoffs/US-A001-user-management-codex.md).
 - Related defects: DEF-026's cell-only mutation rule and reproduced DEF-027 stale authorization reads.
 
@@ -127,8 +128,8 @@ assignment. Combined hosted/browser acceptance remains a release check.
 - [x] Pass focused HTTP/Sheets overlap and existing reset/change-password regressions.
 - [x] Update architecture, retain status/audit scenarios in backlog and obtain read-only review.
 - [x] Run five required checks.
-- [ ] Fresh version, scoped local implementation commit.
-- [ ] Record commit/evidence in queue/spec with fresh delivery-record version; stop, no push.
+- [x] Fresh version, scoped local implementation commit.
+- [x] Record commit/evidence in queue/spec with fresh delivery-record version; stop, no push.
 
 ## Verification and delivery
 
