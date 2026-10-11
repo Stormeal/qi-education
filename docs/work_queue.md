@@ -33,6 +33,16 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**Session 2026-10-11 (3) — started by the user with "let's start working on the next".**
+Branch: `main`. Base: `28cf2fa` (local, 0.1.108; five commits not pushed). Picked by Claude
+Code as lead: DEF-022, the only open confirmed defect, for Claude. It is one component, so
+Codex takes the next independent open item with no file in common: US-P003 (API only).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | DEF-022: the lesson editor dialog and the component picker take focus, close on Escape, keep Tab inside and return focus | `app/src/app/ui/course-builder/**`, the DEF-022 entry in `docs/defect_management.md` | In progress |
+| Codex | US-P003 / INV-003, INV-004: reproduce, then make overlapping signup, enrollment and retried triage safe within one API instance | See the [handoff](handoffs/US-P003-safe-retries-codex.md) | Handed over; not started |
+
 **Session 2026-10-11 (2) — started by the user with "let's start working".** Branch: `main`.
 Base: `18ae097` (pushed, 0.1.103). Picked by Claude Code as lead: the open check of the last
 increment (US-T013 keyboard-only walk) for Claude; it is too small to split, so Codex takes
