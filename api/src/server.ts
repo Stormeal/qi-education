@@ -30,6 +30,8 @@ import {
 } from './careerPath.js';
 import { CareerPathConflictError, createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
 import { registerLearningProgressRoutes } from './learningProgress.js';
+import { registerInstructorProfileRoutes } from './instructorProfileRoutes.js';
+import { createInstructorProfileRepository, type InstructorProfileRepository } from './instructorProfileRepository.js';
 import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
   apiConfig,
@@ -81,6 +83,7 @@ import {
 type ServerDependencies = {
   authRepository?: AuthRepository;
   careerPathRepository?: CareerPathRepository;
+  instructorProfileRepository?: InstructorProfileRepository;
   learningProgressRepository?: LearningProgressRepository;
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
@@ -102,6 +105,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
+  const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
@@ -537,6 +541,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
       permissions: getRolePermissions(authenticatedRequest.user.role),
     });
   });
+
+  registerInstructorProfileRoutes(app, { authenticate: authenticateRequest(auth), requireCreator: requireCourseCreator,
+    requireAdmin, profiles: instructorProfiles, auth, courses });
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
     try {

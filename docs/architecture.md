@@ -85,7 +85,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price and catalog fields, feedback inbox/triage | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
-| Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance | Legacy quizzes need fresh passing evidence; profile remains local; hosted Mongo checks pending |
+| Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance; per-account public instructor description API | Legacy quizzes need fresh passing evidence; other profile details remain local; hosted Mongo checks pending |
 
 Statuses are `draft`, `ready-for-review`, `published`, and `archived`. Explicit
 review actions enforce transitions. One private working revision may coexist with
@@ -136,7 +136,7 @@ future organization, not paths a fresh contributor can navigate today.
 | `services/course.service.ts` | Course requests, thumbnail warmup, attachment XMLHttpRequest |
 | `services/learning-progress.service.ts` | Account completion union/retry, local cache, synchronous current-outline summaries and session boundaries |
 | `services/auth.service.ts`, `session.service.ts` | Auth requests and stored token/session restoration |
-| `services/profile.service.ts` | Profile data keyed by user ID in localStorage |
+| `services/profile.service.ts` | Other profile data keyed by user ID in localStorage; instructor description has separate account API storage |
 
 Routes: `/`, `/courses`, `/courses/new`, `/courses/:id`, `/courses/:id/edit`,
 `/library`, `/library/:id`, `/profile`, `/admin`, `/terms`. Unknown routes redirect
@@ -189,6 +189,9 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes |
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
 | `GET /auth/me` (also `/me`) | Active bearer session |
+| `GET /users/me/instructor-profile`, `PUT /users/me/instructor-profile` | Active teacher/admin; own description only, trimmed string 0..280, empty clears; 200 `{ description }`; 400 invalid input, 401 invalid/missing session, 403 student |
+| `GET /instructors` | Public; ignores bearer token; only `{ description, courseIds }` for non-empty descriptions owning published live courses; private/no-store |
+| `GET /admin/instructor-profiles`, `DELETE /admin/instructor-profiles/:userId` | Admin; list only `{ userId, displayName, description }` for every non-empty stored profile; clear returns 204 even when absent; 401/403 otherwise |
 | `GET /career-paths`, `/career-paths/:id` | Public published paths only; withdrawn detail is 404 |
 | `GET /admin/career-paths`, `PUT /admin/career-paths/:id`, `POST .../publish`, `POST .../unpublish` | Admin; writes optionally reject stale updatedAt with 409 CAREER_PATH_CONFLICT |
 | `GET /users/me/career-path`, `PUT /users/me/career-path` | Own goal selection; withdrawal retains selections without granting course access |
@@ -225,6 +228,26 @@ using their current stored role. Tokens are stored in browser storage by
 
 ## Persistence
 
+US-T007 adds `instructorProfile.ts`, `instructorProfileRepository.ts` and
+`instructorProfileRoutes.ts`. Only new dependency/route registration is added to
+`server.ts`; existing routes and users spreadsheet fields are unchanged. Saving
+publishes immediately without approval. Public output joins profile user IDs to
+the reviewed live course catalog, excludes drafts/in-review/archived/unowned
+courses, and never returns account fields or selects an author view. Admin output
+resolves displayName through the account repository; orphan profiles retain an
+empty displayName so they can be cleared. New routes have message-only errors and
+private/no-store responses; authenticated operations vary on Authorization.
+
+Mongo documents are `{ _id: userId, description }` in
+`<MONGODB_COURSE_CONTENT_COLLECTION>_instructor_profiles`, following career-path
+selection storage. Per-user atomic upserts and idempotent deletes await majority
+acknowledgment; concurrent saves are last-committed-write wins. First-upsert `_id`
+collisions get one replacement retry, with honest failure if its row vanished.
+Production without Mongo configuration refuses new storage operations with 503.
+Local/test memory stores return isolated snapshots. Real Mongo durability and
+combined browser acceptance remain release checks; see the
+[instructor description spec](specs/US-T007-instructor-description.md).
+
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
 | Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts outside production; empty unavailable repository in production |
@@ -233,6 +256,7 @@ using their current stored role. Tokens are stored in browser storage by
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
+| Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository locally/tests; new operations unavailable in unconfigured production |
 
 Factories choose these independently. Mixed configuration is possible. Course
 creation is blocked when metadata uses Sheets but content uses memory; thumbnails

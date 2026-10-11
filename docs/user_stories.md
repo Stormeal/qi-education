@@ -10,7 +10,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-T007 | Publish an authored instructor description | Proposed | P2 | T001 | GitHub #41 |
+| US-T007 | Publish an authored instructor description | In progress | P2 | T001; combined frontend acceptance | GitHub #41 |
 | US-T014 | Add an image to a quiz question | Proposed | P3 | T013; image contract decisions | None |
 | US-A001 | Administer teaching access | Proposed | P2 | None | GitHub #20 |
 | US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
@@ -43,14 +43,19 @@ numbering are delivered work. Their contracts and evidence remain in `specs/`,
 **As a teacher, I want to write my public instructor description in my profile,
 so that catalog visitors see an accurate introduction rather than course tags.**
 
-State: Proposed. Dependency: US-T001 for stable instructor association.
+State: In progress. Dependency: US-T001 for stable instructor association.
 Source: [GitHub #41](https://github.com/Stormeal/qi-education/issues/41).
-Decisions: public profile fields, persistence, and approval rules for public changes.
+Decided by Alex, 2026-10-11: saving publishes immediately without approval; an admin
+can clear unsuitable text. API/storage delivered locally: one trimmed plain-text
+description (0..280 characters), separate per-user Mongo/memory storage, exact public
+description/published-owned-course IDs, and own/admin routes. Contract and API
+scenario evidence: [spec](specs/US-T007-instructor-description.md). Claude owns
+frontend AC01/AC02 acceptance, which remains open until the combined browser check.
 
 ```gherkin
 Feature: Instructor introduction
   Scenario: US-T007-AC01 Display an authored description
-    Given I have saved an approved public instructor description
+    Given I have saved my public instructor description and own a published course
     When a learner sees my instructor card in the catalog
     Then the card uses that description rather than career goal tags
 
