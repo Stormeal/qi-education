@@ -1,0 +1,20 @@
+@if (confirm.open(); as question) {
+  <div class="confirm-overlay" role="presentation" (click)="confirm.answer(false)">
+    <section
+      class="confirm-dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-message"
+      (click)="$event.stopPropagation()"
+      (keydown)="keydown($event)"
+    >
+      <h2 id="confirm-dialog-title">{{ question.title }}</h2>
+      <p id="confirm-dialog-message">{{ question.message }}</p>
+      <div class="confirm-actions">
+        <app-button variant="outline" (buttonClicked)="confirm.answer(false)">Cancel</app-button>
+        <app-button variant="primary" (buttonClicked)="confirm.answer(true)">{{ question.confirmLabel }}</app-button>
+      </div>
+    </section>
+  </div>
+}

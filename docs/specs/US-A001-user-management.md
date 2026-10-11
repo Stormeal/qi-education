@@ -393,3 +393,31 @@ Also delivered with this increment at Alex's request, outside the story:
 Combined tree: 1055 API and 269 frontend tests, six journeys, API and Pages builds pass.
 Not verified: the real users sheet and MongoDB (status cell write, the log surviving a
 restart), hosted behavior, a screen reader, phone width.
+
+## Hosted check by Alex and the in-app confirmation (2026-10-11)
+
+Reported by Alex from the live site on 0.1.155: deactivating a user works (seen: a row
+labelled "Deactivated" with Reactivate offered and "Send reset link" disabled). His one
+remark: the confirmation was the browser's own dialog and should be part of the interface.
+
+Delivered by the lead in the following commit:
+
+- `ConfirmService.ask({ title, message, confirmLabel })` and one `<app-confirm-dialog>` at the
+  app root (`app/src/app/services/confirm.service.ts`, `app/src/app/ui/confirm-dialog/`). It
+  follows the feedback dialog's keyboard contract: focus starts on Cancel, Tab stays between
+  the two buttons, Escape and a click outside decline, and focus returns to the control that
+  asked.
+- The four confirmations of the Admin page use it: deactivate and reactivate, role change,
+  send reset link, and clear an instructor description.
+
+Evidence: `confirm-dialog.spec.ts` (three cases) and `admin-page.spec.ts` (the questions and
+both answers). Browser, in-memory API, demo admin: Deactivate opened the dialog with focus on
+Cancel; Cancel and Escape left the account unchanged and returned focus to the button;
+Deactivate in the dialog deactivated it; the role question, cancelled, put the old role back;
+the reset question sent the link; Reactivate reactivated. The browser's own dialog was never
+called. 272 frontend tests and the Pages build pass.
+
+Still using the browser's own dialog, not changed here: the three questions of the career
+path editor (withdraw, load latest, discard) and the two of the course editor (discard
+unsaved changes, use the latest saved version). The page-leave warning of the browser tab
+cannot be replaced by a page.

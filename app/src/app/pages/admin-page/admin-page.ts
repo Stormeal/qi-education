@@ -7,6 +7,7 @@ import {
   StudentSummary,
 } from '../../app.models';
 import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService } from '../../services/admin-users.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
 import { AppButton } from '../../ui/app-button/app-button';
@@ -139,6 +140,7 @@ export class AdminPage {
 
   // US-A001 user management.
   private readonly adminUsers = inject(AdminUsersService);
+  private readonly confirm = inject(ConfirmService);
   protected readonly userRoles: { value: AdminUserRole; label: string }[] = [
     { value: 'student', label: 'Student' }, { value: 'teacher', label: 'Teacher' }, { value: 'admin', label: 'Admin' },
   ];
@@ -184,9 +186,11 @@ export class AdminPage {
   protected async changeUserStatus(user: AdminUser): Promise<void> {
     const deactivate = user.status === 'active';
     const question = deactivate
-      ? `Deactivate ${user.displayName}? They are logged out and cannot log in until the account is reactivated. Their courses and progress are kept.`
-      : `Reactivate ${user.displayName}? They can log in again with their existing password.`;
-    if (!window.confirm(question)) return;
+      ? { title: `Deactivate ${user.displayName}?`, confirmLabel: 'Deactivate',
+          message: 'They are logged out and cannot log in until the account is reactivated. Their courses and progress are kept.' }
+      : { title: `Reactivate ${user.displayName}?`, confirmLabel: 'Reactivate',
+          message: 'They can log in again with their existing password.' };
+    if (!await this.confirm.ask(question)) return;
     this.userBusyId.set(user.id);
     const result = await this.adminUsers.changeStatus(this.authToken(), user.id, deactivate ? 'disabled' : 'active');
     this.userBusyId.set('');
@@ -206,7 +210,8 @@ export class AdminPage {
     const role = select.value as AdminUserRole;
     const label = (value: string) => this.userRoles.find((item) => item.value === value)?.label ?? value;
     if (role === user.role) return;
-    if (!window.confirm(`Change ${user.displayName} from ${label(user.role)} to ${label(role)}? It applies the next time they do something on the site.`)) {
+    if (!await this.confirm.ask({ title: `Change ${user.displayName} from ${label(user.role)} to ${label(role)}?`,
+      message: 'It applies the next time they do something on the site.', confirmLabel: 'Change role' })) {
       select.value = user.role;
       return;
     }
@@ -226,7 +231,8 @@ export class AdminPage {
   }
 
   protected async sendUserPasswordReset(user: AdminUser): Promise<void> {
-    if (!window.confirm(`Send a password reset link to ${user.email}? Their current password keeps working until they use the link.`)) return;
+    if (!await this.confirm.ask({ title: `Send a password reset link to ${user.email}?`,
+      message: 'Their current password keeps working until they use the link.', confirmLabel: 'Send link' })) return;
     this.userBusyId.set(user.id);
     const result = await this.adminUsers.sendPasswordReset(this.authToken(), user.id);
     this.userBusyId.set('');
@@ -243,7 +249,8 @@ export class AdminPage {
   }
 
   protected async clearInstructor(profile: AdminInstructorProfile): Promise<void> {
-    if (!window.confirm(`Clear the public description of ${profile.displayName}? It disappears from their instructor card at once. They can write a new one.`)) return;
+    if (!await this.confirm.ask({ title: `Clear the public description of ${profile.displayName}?`,
+      message: 'It disappears from their instructor card at once. They can write a new one.', confirmLabel: 'Clear' })) return;
     const result = await this.instructorProfiles.adminClear(profile.userId);
     this.instructorsMessage.set(result.ok ? `Cleared the description of ${profile.displayName}.` : `Not cleared. ${result.message}`);
     if (result.ok) this.instructors.update((items) => items.filter((item) => item.userId !== profile.userId));

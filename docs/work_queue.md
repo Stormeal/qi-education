@@ -33,6 +33,14 @@ no page yet, so a quiz passed before this change counts only in the browser that
 until it is passed again, without telling the learner. Not checked: keyboard-only walk.
 Next: Alex decides on the push; then the hosted MongoDB check and publishing real paths.
 
+**2026-10-11, hosted check of 0.1.155 by Alex, and his one remark.** Confirmed on the live
+site: reload without the restore screen, the profile menu closing on an outside click,
+deactivating a user, and a password change from the profile with its notice mail. Remark: the
+confirmation should be part of the interface, not the browser's dialog. Delivered locally by
+the lead (frontend only, no Codex part): a shared confirm dialog, used by the four questions
+of the Admin page ([record](specs/US-A001-user-management.md)). Five other questions in the
+career path editor and the course editor still use the browser's dialog; offered to Alex.
+
 **2026-10-11, after the push of `005552d` (0.1.155; CI and the Pages deployment succeeded; the
 hosted API reports its real stores).** Reported by Alex from the live site: Brevo's IP blocking
 is off and mail works; reset mails reach Gmail and Outlook outside spam; a student enrollment

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { ApiClientService } from '../../services/api-client.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { AdminPage } from './admin-page';
 
 const user = (id: string, role: string, status = 'active') =>
@@ -39,11 +40,17 @@ describe('US-A001 user management on the Admin page', () => {
       feedbackOptions: [], authToken: 'admin-token', currentUserId: 'admin' };
     Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
     const host = fixture.nativeElement as HTMLElement;
-    const settle = (): Promise<void> => vi.waitFor(() => {
+    // The confirmation answers asynchronously, so give the action a turn to start before waiting for it to end.
+    const settle = async (): Promise<void> => {
+      await new Promise((resolve) => setTimeout(resolve));
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(host.querySelector('.admin-user-list, .admin-user-error, .admin-user-status span')).not.toBeNull();
+        expect(host.textContent).not.toContain('Working…');
+      });
+      await new Promise((resolve) => setTimeout(resolve));
       fixture.detectChanges();
-      expect(host.querySelector('.admin-user-list, .admin-user-error, .admin-user-status span')).not.toBeNull();
-      expect(host.textContent).not.toContain('Working…');
-    });
+    };
     await settle();
     const rows = () => [...host.querySelectorAll<HTMLElement>('.admin-user-list li')];
     return { fixture, host, settle, rows, status: () => host.querySelector('.admin-user-status')!.textContent!.replace(/\s+/g, ' ').trim(),
@@ -72,25 +79,25 @@ describe('US-A001 user management on the Admin page', () => {
 
   it('AC01 changes a role after confirmation and shows the stored result', async () => {
     replies['PATCH /admin/users/ann/role'] = () => json(200, user('ann', 'teacher'));
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     const page = await setup();
     const select = page.rows()[1].querySelector('select')!;
     select.value = 'teacher'; select.dispatchEvent(new Event('change'));
     await page.settle();
-    expect(confirm.mock.calls[0][0]).toContain('Change User ann from Student to Teacher?');
+    expect(confirm.mock.calls[0][0].title).toContain('Change User ann from Student to Teacher?');
     expect(sent('PATCH').at(-1)).toMatchObject({ url: '/admin/users/ann/role', body: { role: 'teacher' } });
     expect(page.status()).toContain('User ann is now Teacher.');
     expect(page.rows()[1].querySelector('select')!.value).toBe('teacher');
   });
 
   it('AC01 puts the old role back when the change is cancelled or refused', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
     const page = await setup();
     const select = page.rows()[1].querySelector('select')!;
     select.value = 'admin'; select.dispatchEvent(new Event('change'));
-    expect(select.value).toBe('student');
+    await vi.waitFor(() => expect(select.value).toBe('student'));
     expect(sent('PATCH')).toHaveLength(0);
-    confirm.mockReturnValue(true);
+    confirm.mockResolvedValue(true);
     replies['PATCH /admin/users/ann/role'] = () => json(503, { message: 'The user store is unavailable.' });
     select.value = 'admin'; select.dispatchEvent(new Event('change'));
     await page.settle();
@@ -109,12 +116,12 @@ describe('US-A001 user management on the Admin page', () => {
 
   it('sends a reset link after confirmation and reports a failure in plain words', async () => {
     replies['POST /admin/users/ann/password-reset'] = () => json(202, { message: 'A reset link was sent to ann@example.test.' });
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     const page = await setup();
     const button = () => page.rows()[1].querySelector<HTMLButtonElement>('app-button button')!;
     button().click();
     await page.settle();
-    expect(confirm.mock.calls[0][0]).toContain('Send a password reset link to ann@example.test?');
+    expect(confirm.mock.calls[0][0].title).toContain('Send a password reset link to ann@example.test?');
     expect(sent('POST').at(-1)).toMatchObject({ url: '/admin/users/ann/password-reset', authorization: 'Bearer admin-token' });
     expect(page.status()).toContain('A reset link was sent to ann@example.test.');
     replies['POST /admin/users/ann/password-reset'] = () => json(503, { message: 'We could not send email right now. Please try again later.' });
@@ -126,7 +133,7 @@ describe('US-A001 user management on the Admin page', () => {
 
   it('AC07 deactivates and reactivates an account after confirmation, but not the own account', async () => {
     replies['PATCH /admin/users/ann/status'] = () => json(200, user('ann', 'student', 'disabled'));
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     const page = await setup();
     const statusButton = (row: number) => [...page.rows()[row].querySelectorAll<HTMLButtonElement>('app-button button')].at(-1)!;
     expect(statusButton(0).disabled).toBe(true);
@@ -134,7 +141,7 @@ describe('US-A001 user management on the Admin page', () => {
     expect(statusButton(2).textContent).toContain('Reactivate');
     statusButton(1).click();
     await page.settle();
-    expect(confirm.mock.calls[0][0]).toContain('Deactivate User ann?');
+    expect(confirm.mock.calls[0][0].title).toContain('Deactivate User ann?');
     expect(sent('PATCH').at(-1)).toMatchObject({ url: '/admin/users/ann/status', body: { status: 'disabled' } });
     expect(page.status()).toContain('User ann is now deactivated.');
     expect(page.rows()[1].textContent).toContain('Deactivated');
@@ -145,9 +152,10 @@ describe('US-A001 user management on the Admin page', () => {
     await page.settle();
     expect(sent('PATCH').at(-1)!.body).toEqual({ status: 'active' });
     expect(page.error()).toBe('User ann was not reactivated. Nope.');
-    confirm.mockReturnValue(false);
+    confirm.mockResolvedValue(false);
     const before = sent('PATCH').length;
     statusButton(1).click();
+    await new Promise((resolve) => setTimeout(resolve));
     expect(sent('PATCH')).toHaveLength(before);
   });
 
@@ -156,7 +164,7 @@ describe('US-A001 user management on the Admin page', () => {
       actor: { id: 'admin', displayName: 'User admin' }, target: { id: 'ann', displayName: 'User ann', email: 'ann@example.test' }, field, from, to });
     replies['GET /admin/users/changes'] = () => json(200, { changes: [change('c1', 'role', 'student', 'teacher')] });
     replies['PATCH /admin/users/ann/status'] = () => json(200, user('ann', 'student', 'disabled'));
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     const page = await setup();
     const log = () => [...page.host.querySelectorAll('.admin-user-changes li span')].map((item) => item.textContent);
     await vi.waitFor(() => { page.fixture.detectChanges(); expect(log()).toEqual(['User admin changed the role of User ann from Student to Teacher']); });

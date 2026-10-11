@@ -60,3 +60,9 @@ names `USE_SHARED_SERVICES=1` (US-P011).
 
 Not verified: the hosted site (where the check takes seconds, which is the case this was
 built for); a role change seen through a reload on the hosted site; a screen reader.
+
+## Hosted check by Alex (2026-10-11, live site on 0.1.155)
+
+A page reloads without the "Restoring your session" screen. The profile menu closes on a
+click outside it. Changing the password from the profile page works: the notice mail
+arrived and the new password logs in (US-L013).
