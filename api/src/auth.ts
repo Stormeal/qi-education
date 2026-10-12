@@ -11,7 +11,7 @@ export const userRoleSchema = z.enum(['student', 'teacher', 'admin']);
 export const userStatusSchema = z.enum(['active', 'disabled']);
 
 export const loginSchema = z.object({
-  email: z.email().transform((value) => value.trim().toLowerCase()),
+  email: z.string().trim().toLowerCase().pipe(z.email()),
   password: z.string().min(1).max(200)
 });
 

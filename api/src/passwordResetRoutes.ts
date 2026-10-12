@@ -4,6 +4,7 @@ import { hashPassword, passwordCredentialVersion, signupSchema } from './auth.js
 import type { AuthRepository } from './authRepository.js';
 import { sendPasswordChangedNotice, type MailSender } from './mailSender.js';
 import type { PasswordResetRepository } from './passwordResetRepository.js';
+import type { SignInLimit } from './signInLimit.js';
 import { resetMailUnavailable as mailUnavailable, resetTokenHash as tokenHash, sendPasswordResetLink, type PasswordResetOptions } from './passwordResetDelivery.js';
 export type { PasswordResetOptions } from './passwordResetDelivery.js';
 const accepted = { message: 'If an account exists for this address, we have sent a reset link.' };
@@ -12,6 +13,7 @@ const storageUnavailable = { message: 'Password reset is temporarily unavailable
 
 export function registerPasswordResetRoutes(app: Express, dependencies: {
   auth: AuthRepository; tokens: PasswordResetRepository; sender: MailSender; options?: PasswordResetOptions;
+  signInLimit?: SignInLimit;
 }) {
   const { auth, tokens, sender, options = {} } = dependencies;
   const now = options.now ?? Date.now;
@@ -66,6 +68,7 @@ export function registerPasswordResetRoutes(app: Express, dependencies: {
     // Never reactivate a claim if the Sheets write failed or its outcome is uncertain.
     const updated = await auth.updatePasswordHash(claimedUserId, hashPassword(password.data));
     if (!updated) { response.status(410).json(invalid); return; }
+    await dependencies.signInLimit?.clear(updated.email);
     await sendPasswordChangedNotice(sender, updated.email);
     response.status(204).end();
   }));

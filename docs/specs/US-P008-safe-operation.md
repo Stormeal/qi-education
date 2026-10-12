@@ -134,4 +134,148 @@ through a reset link lifts the lock; stored in MongoDB when hosted and in memory
 the store fails, sign-in is not limited. Refusal: 429 with `code: "too-many-attempts"`. The
 full list and the contract are in the
 [handoff](../handoffs/US-P008-sign-in-limit-codex.md). Owner: Codex. Scenarios and evidence
-follow below once written.
+follow below.
+
+## AC02 contract and implementation plan — 2026-10-12
+
+Owner Codex, main/base b646366; DEF-033 reproduces INV-014 for login only.
+The handoff's lead decisions are adopted for this increment. Every existing 401
+(unknown address, wrong password, disabled account) counts. Invalid input (400),
+unavailable authentication (503), and other operational errors do not count.
+Normalization trims surrounding spaces and lowercases email before validation.
+The rolling window is `(now - 15 minutes, now]`; the tenth completed failure
+starts a fixed 15-minute lock. The tenth response stays the generic 401.
+Locked requests return 429 before user reads/password checks, never extend the
+lock, and carry `{ message: "Too many sign-in attempts. Try again in 15 minutes.",
+code: "too-many-attempts" }`, `Retry-After` seconds rounded up and
+`Cache-Control: no-store`. Remaining minutes round up; one uses `1 minute`.
+All four routes (`/auth/login`, `/login`, `/api/auth/login`, `/api/login`) share
+the same per-normalized-address state and preserve existing request, 200 DTO,
+400, 503 and generic 401 contracts. The deployed AuthService displays the message.
+
+Storage uses a SHA-256 email key, failure timestamps, expiring attempt tickets,
+lock deadline, unique CAS revision and TTL expiry; never email/password/user data.
+Atomic reservations bound failures plus outstanding checks to ten across API
+instances. Capacity occupied by outstanding requests waits for their outcomes
+instead of counting those requests as failures. Expiring tickets reclaim capacity
+after a crashed worker; cleared tickets cannot later relock a reset account.
+Mongo uses the existing collection prefix and acknowledged conditional writes,
+with a TTL index. Memory implements the same transitions with lazy expiry.
+Limit/window/lock duration/clock are injected. No new configuration or dependencies.
+Store failures or a five-second storage deadline allow ordinary login and emit one fixed, personal-data-free
+warning for the failed operation; no silent memory fallback for hosted instances.
+This fail-open policy is a known protection limitation. Password-reset confirmation
+clears attempts after a successful credential write; failure to clear is harmless
+to the password write and logged safely. No cross-store transaction is possible.
+Storage-call deadlines are injectable for tests. Mongo operations carry a five-second
+driver timeout and cancellation signal checked between read/write/CAS stages;
+already-issued write outcomes can be uncertain. Late successful reservations are
+cancelled, and aborted clears cannot start a new write or retry over newer state.
+Waiting for outstanding capacity polls at 100 ms and stops on HTTP disconnect.
+Retry-After uses the clock after the storage read; a lock expired during that read
+retries admission.
+
+```gherkin
+Feature: Per-account sign-in attempt limit
+  Scenario: US-P008-AC02-01 Ten failures then refusal
+    Given one address has no failures
+    When ten failed sign-ins complete within 15 minutes
+    Then each responds 401 with Invalid email or password
+    And the next sign-in responds 429 with too-many-attempts, Retry-After and no-store
+  Scenario: US-P008-AC02-02 Fixed lock and exact expiry
+    Given the tenth failure has started a 15-minute lock
+    When a correct or wrong password is submitted during the lock
+    Then no user is read and no password is checked and the deadline stays unchanged
+    And remaining seconds and minutes round up, including 1 minute
+    When exactly 15 minutes have passed since the tenth failure
+    Then a correct password works and the count begins from zero
+  Scenario: US-P008-AC02-03 Address privacy and isolation
+    Given known, unknown and disabled addresses each receive ten failed sign-ins
+    Then their 401 and locked 429 bodies and headers are identical
+    And an unrelated account on the same client can still sign in
+  Scenario: US-P008-AC02-04 Normalize address across aliases
+    Given sign-ins vary email case and surrounding spaces
+    When requests use all four login routes
+    Then they share one count and lock
+    And invalid input still responds 400 without consuming an attempt
+  Scenario: US-P008-AC02-05 Successful login clears failures
+    Given nine failures for an address
+    When a correct password signs in successfully
+    Then ten subsequent failures are needed to start a new lock
+  Scenario: US-P008-AC02-06 Recovery lifts lock
+    Given an account is locked
+    When a valid reset link successfully writes a new password
+    Then the lock and failures are cleared and the new password can sign in
+    And invalid links and unsuccessful writes do not clear the lock
+  Scenario: US-P008-AC02-07 Rolling window
+    Given failures become exactly 15 minutes old before the tenth failure
+    When another failed sign-in completes
+    Then expired failures do not contribute toward the limit
+  Scenario: US-P008-AC02-08 Overlapping requests and stale outcomes
+    Given API instances share an atomic attempt store
+    When many wrong-password requests overlap for one address
+    Then at most ten user/password checks occur and the rest receive 429
+    And crashed checks expire and cleared checks cannot recreate old failures
+  Scenario: US-P008-AC02-09 Store failure preserves authentication
+    Given attempt storage cannot read or write
+    When someone signs in or completes recovery
+    Then ordinary authentication/recovery still works and a fixed safe warning is logged
+    And unavailable authentication still returns its existing 503 without counting
+  Scenario: US-P008-AC02-10 Storage privacy and expiry
+    When attempts are reserved and completed in memory or the Mongo adapter
+    Then only hash keys, opaque tickets and timing/revision data are stored
+    And expired records are reclaimed without requiring live provider probes
+```
+
+Implementation order (native execution authorized by the handoff): reproduce and
+append DEF-033; write scenarios and failing HTTP/storage tests; implement
+`signInAttemptRepository.ts` (atomic CAS/TTL/factory), `signInLimit.ts` (safe
+fail-open coordination), integrate server login and successful reset; run focused
+and all five required checks; review scope/contracts; update documentation and
+commit locally with aligned versions. No shared provider, push or fixed-port server.
+
+### AC02 verification and release limits — 2026-10-12
+
+| Scenarios | Local regression evidence |
+| --- | --- |
+| 01, 02, 04 and deployed contract | `signInLimit.test.ts`: DEF-033 first failed with twelve 401s/twelve reads; now ten 401s then 429; all four routes, exact lock expiry, rounded seconds/singular minutes, normalized aliases, unchanged 200/400/401 |
+| 03, 05, 06, 07 | Same HTTP suite: unknown/disabled/known equality, other-account success, success reset, invalid/failed reset does not unlock, successful recovery unlocks, rolling-window boundary |
+| 08 | HTTP: 24 overlapping requests/two servers/shared memory yield ten 401s, fourteen 429s and ten user reads; disconnected capacity wait makes no subsequent user read. `signInAttemptRepository.test.ts`: memory and Mongo CAS doubles reserve ten out of thirty; crash expiry, cancellation, stale/duplicate completion and TTL delete/recreate protection |
+| 09, 10 | HTTP and adapter tests: unavailable auth remains 503 without counting; reserve/complete/clear rejections and hangs plus collection read/insert/replace/index failures fail open with fixed safe logs; completed recovery still returns 204 if clear stalls; late reservation cleanup and aborted clear preserve newer state; hashed records, majority CAS, Date TTL, retry after initialization failure, isolated/shared/hosted factory selection |
+
+Required checks pass locally: `npm run api:test` (1,097 tests / 48 files),
+`npm run verify:journeys` (6), `npm run api:build`, `npm run app:test`
+(273 tests / 35 files), `npm run app:build:pages`. New focused coverage: 42 cases.
+An initial API compile found generic union inference; the explicit reservation
+result type fixed it and the required build passed. Three focused test fixture
+errors (a probe retained its pending slot; a hashed address used a different
+document) were corrected without changing production transitions. Existing
+frontend stylesheet budgets, test-setup compilation and jsdom scrollTo warnings
+remain. The concurrent lead commit ff23981 and its frontend work are preserved.
+
+Independent review identified disconnect polling, stalled store calls, stale-clock
+Retry-After and post-timeout operation races. Each received a failing regression
+before correction: capacity waits now cancel, deadlines abort repository stages,
+late reservation tickets are released and clears cannot retry after cancellation,
+and lock timing is computed after reading storage. Final review and verification
+are recorded with the delivery commit below.
+
+No shared Sheets/Mongo/Mux/GitHub/Brevo probes, mail sends, deployment or push.
+Real Mongo majority durability/TTL permissions/concurrency, hosted user-store
+quotas, distributed clock skew and deployed browser messages remain release
+checks. Store outage bypasses protection by the selected policy; a failed or
+crashed clear after a committed Sheets password reset can leave the old lock
+until expiry. Outstanding requests on crashed workers occupy capacity until
+their 15-minute tickets expire. Account lockout by someone who knows an email
+is the accepted cost. INV-014 signup and AC05 per-client/confirmation limits
+remain open. No outside-file change is needed.
+
+Mongo design references: [single-document atomicity and expected-value filters](https://www.mongodb.com/docs/manual/core/write-operations-atomicity/)
+and [absolute Date TTL and asynchronous cleanup](https://www.mongodb.com/docs/manual/core/index-ttl/).
+The installed Node driver supports [operation timeouts](https://www.mongodb.com/docs/drivers/node/current/connect/connection-options/csot/).
+
+Final independent review: no Important findings remain; 42 focused cases pass,
+including delayed reservation and delayed clear after a storage timeout. AC02 is
+Done locally in the implementation commit; its exact ID is appended in the
+following delivery-record commit. DEF-033 is Fixed locally. AC05 and hosted
+release verification remain open. No outside-file change is needed.

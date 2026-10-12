@@ -244,7 +244,7 @@ Common presence helpers guard factories, including assets and webhook verificati
 Tests also suppress the Brevo key and skip dotenv; provider doubles are injected.
 No setting or process environment is rewritten.
 
-All nine store factories select memory in isolated mode. Video/webhook services are
+All store factories select memory in isolated mode. Video/webhook services are
 absent and GitHub feedback remains an unconfigured service which refuses issue creation.
 Existing demo users/course and failed-login memory-storage header are unchanged. Shared
 local mode selects configured existing adapters, including Mongo reset tokens. Missing
@@ -412,6 +412,7 @@ combined browser acceptance remain release checks; see the
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
 | Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository in isolated/test or unconfigured shared mode; operations unavailable in unconfigured hosted mode |
 | Password reset token hashes and rolling-hour reservations | MongoPasswordResetRepository, per-user versioned token document in shared/hosted mode | InMemoryPasswordResetRepository in isolated/test or unconfigured shared mode; missing hosted Mongo refuses operations |
+| Sign-in failures, pending checks and account locks | MongoSignInAttemptRepository, SHA-256 normalized-email key with CAS revision and TTL expiry in shared/hosted mode | InMemorySignInAttemptRepository in isolated/test or unconfigured shared mode; missing/failing hosted Mongo allows ordinary login with a safe warning |
 
 Within shared/hosted mode, factories choose these independently. Mixed configuration
 is possible. Course
@@ -589,3 +590,45 @@ is absent. Existing health fields/storage labels are retained for compatibility.
 Hosted health checks do not prove Google Sheets reads/writes or an entire login
 journey. Follow the release
 checklist and record actual integration verification separately.
+
+## Per-account sign-in attempt limits (US-P008-AC02)
+
+All four existing login routes share one normalized-address limit. The handler
+validates input, reserves an attempt in `signInAttemptRepository.ts`, then reads
+fresh users and checks credentials. Ten generic 401 failures within a rolling
+15-minute window start a fixed 15-minute lock at the tenth completed failure.
+Locked attempts respond 429 before user reads or password checks, with
+`too-many-attempts`, remaining minutes rounded up (singular `1 minute`),
+`Retry-After` seconds rounded up and `Cache-Control: no-store`. They neither
+count nor prolong the deadline; expiry resets the count. Other accounts and
+existing 200/400/401/503 contracts are preserved. Case and surrounding spaces
+normalize before login validation. Disabled/unknown addresses count identically.
+
+`SignInLimit` injects the clock and policy and hashes the address before storage.
+Mongo stores one document per SHA-256 address under
+`<MONGODB_COURSE_CONTENT_COLLECTION>_sign_in_attempts`. Failure timestamps,
+expiring opaque reservation tickets, lock deadline, unique CAS revision and
+Date expiry are the only fields; email and password are absent. Majority
+conditional writes bound failures plus outstanding checks to ten across API
+instances. Saturated pending capacity waits for outcomes rather than locking on
+unfinished requests, polls at 100 ms and stops on HTTP disconnect. Tickets expire after the window if their worker crashes;
+duplicate, expired or cleared outcomes cannot recreate failures. Unique revisions
+avoid stale replacement after TTL deletion and recreation. A single-field TTL
+index reclaims Mongo records; application deadlines remain authoritative because
+TTL deletion is asynchronous. Memory uses the same CAS transitions and reclaims
+expired records on subsequent reservations. No new environment setting.
+
+Success clears failures/tickets; a successfully written reset password also
+clears the lock before the existing confirmation notice. Other reset responses
+and signed-in password changes retain their behavior. Attempt-storage read/write
+failures or a five-second deadline permit ordinary authentication and emit a fixed warning without provider
+details or personal data. Driver operations carry timeoutMS and an abort signal;
+the adapter checks cancellation before read/write/CAS retry stages. Late successful
+reservations are cancelled, and timed-out clears cannot retry over newer state.
+Already-issued writes may have uncertain outcomes. Remaining lock time is measured
+after the storage read; expiry during that read retries admission. Hosted missing Mongo does not select a private memory
+fallback. This fail-open policy, worker-ticket expiry, and the nontransactional
+Sheets-password/Mongo-clear boundary are protection limitations. Signup, reset
+mail limits, wrong current profile passwords and per-client limits are unchanged.
+See the [safe-operation spec](specs/US-P008-safe-operation.md) for scenarios,
+DEF-033 reproduction and local delivery/release checks.

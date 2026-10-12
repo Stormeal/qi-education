@@ -1152,3 +1152,39 @@ deployment verification: hosted/UI/keyboard, real Sheets/Mongo durability, read 
 and operational logging remain unverified. Account/log writes are nontransactional;
 append failure/crash can leave an unlogged change. No push; Codex stopped after the
 delivery-record commit.
+
+### DEF-033 - Unlimited login attempts consume a user-store read each time
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-033 | Confirmed, Codex, 2026-10-12 | P2 | US-P008-AC02 / INV-014 (login only) | 12 wrong-password POST /auth/login requests against an isolated memory user store all returned 401 and made 12 findByEmail calls |
+
+Reproduced before implementation at b646366 on main with
+`npm run api:test -- -- src/signInLimit.test.ts`. The DEF-033 regression expected
+ten 401 responses followed by two 429 responses and only ten user-store reads;
+it failed with twelve 401 responses and twelve reads. No shared service or fixed
+server port was used. Root cause: the login handler reads users and checks the
+password without any attempt reservation or account lock. Signup remains outside
+this fix and the original INV-014 investigation's signup portion is still open.
+### DEF-033 - Resolution, 2026-10-12
+
+| ID | State | Contract | Regression evidence |
+| --- | --- | --- | --- |
+| DEF-033 | Fixed locally, Codex; implementation commit recorded in the next delivery entry | US-P008-AC02 / INV-014 login | signInLimit.test.ts now returns ten generic 401s then 429 without more users reads; all four routes and existing successful-login contract preserved |
+
+The tenth completed failure in a rolling 15-minute window starts a fixed
+15-minute per-normalized-address lock. Known, unknown and disabled addresses
+share the response contract. Correct passwords cannot bypass a lock; another
+account can sign in; success and completed password recovery clear attempts.
+Mongo and memory adapters reserve capacity atomically before user reads, use
+hash-only address keys and expiring records, and ignore stale completions.
+
+Independent review regressions fixed disconnected polling, stalled-store
+fail-open deadlines, remaining-time calculation after slow reads, and late
+operations after a deadline. Abort signals reach read/write/CAS stages and late
+successful reservations are cancelled. Protection fails open with a fixed safe
+warning on storage errors/timeouts; already-issued writes can remain uncertain.
+42 new isolated cases cover HTTP and Mongo collection doubles. Real hosted
+Mongo cancellation/majority durability/TTL, Sheets quotas and deployed browser
+behavior remain release checks. Signup and per-client controls are outside this
+fix; INV-014's signup portion remains an investigation. No shared service used.

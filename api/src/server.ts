@@ -1,4 +1,6 @@
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
+import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
+import { SignInLimit, type SignInLimitOptions } from './signInLimit.js';
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
@@ -89,6 +91,8 @@ import {
 
 type ServerDependencies = {
   authRepository?: AuthRepository;
+  signInAttemptRepository?: SignInAttemptRepository;
+  signInLimitOptions?: SignInLimitOptions;
   userChangeRepository?: UserChangeRepository;
   userChangeOptions?: UserChangeOptions;
   mailSender?: MailSender;
@@ -113,6 +117,7 @@ type AuthenticatedRequest = Request & {
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = dependencies.authRepository ?? createAuthRepository();
+  const signInLimit = new SignInLimit(dependencies.signInAttemptRepository ?? createSignInAttemptRepository(), dependencies.signInLimitOptions);
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
   const mailSender = dependencies.mailSender ?? createMailSender();
   const passwordResetTokens = dependencies.passwordResetRepository ?? createPasswordResetRepository();
@@ -490,7 +495,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
 
   registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
-    options: dependencies.passwordResetOptions });
+    options: dependencies.passwordResetOptions, signInLimit });
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
@@ -505,14 +510,32 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
 
       const input = loginSchema.parse(request.body);
-      const user = await auth.findByEmail(input.email, { fresh: true });
-
-      if (!user || !verifyPassword(input.password, user.passwordHash) || user.status !== 'active') {
-        response.status(401).json({ message: 'Invalid email or password' });
+      const controller = new AbortController();
+      const abandon = () => controller.abort();
+      response.once('close', abandon);
+      const reservation = await signInLimit.reserve(input.email, controller.signal)
+        .finally(() => response.off('close', abandon));
+      if (reservation.aborted) return;
+      if (reservation.retryAfter !== undefined) {
+        const minutes = Math.ceil(reservation.retryAfter / 60);
+        response.setHeader('Retry-After', reservation.retryAfter);
+        response.setHeader('Cache-Control', 'no-store');
+        response.status(429).json({ message: `Too many sign-in attempts. Try again in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`, code: 'too-many-attempts' });
         return;
       }
-
-      response.json(createAuthResponse(user, authTokenSecret));
+      try {
+        const user = await auth.findByEmail(input.email, { fresh: true });
+        if (!user || !verifyPassword(input.password, user.passwordHash) || user.status !== 'active') {
+          await signInLimit.complete(input.email, reservation.ticket, 'failure');
+          response.status(401).json({ message: 'Invalid email or password' });
+          return;
+        }
+        await signInLimit.clear(input.email);
+        response.json(createAuthResponse(user, authTokenSecret));
+      } catch (error) {
+        await signInLimit.complete(input.email, reservation.ticket, 'cancel');
+        throw error;
+      }
     } catch (error) {
       next(error);
     }

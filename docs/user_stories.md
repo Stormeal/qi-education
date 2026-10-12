@@ -21,7 +21,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P004 | Recover career guidance safely across failures and sessions | In progress | P2 | L006, L009; per-increment checks | DEF-016 fixed in this delivery |
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
-| US-P008 | Limit repeated sign-in attempts and reset requests | Proposed | P2 | Attempt-limit decision | Investigation INV-014; AC01/AC03 recorded in safe-operation spec |
+| US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -307,21 +307,16 @@ browser caching only; public caching is outside the selected scope.
 missing setting, a guessing script, or an untested push cannot expose accounts or
 reach users unnoticed.**
 
-State: Proposed (remaining AC02 and the client/confirmation parts of AC05). Checks on pushes to `main` are delivered and removed
+State: Proposed (remaining client/confirmation parts of AC05). Checks on pushes to `main` are delivered and removed
 from this story. AC01 and AC03 are implemented with isolated regressions; their
 delivery and release checks are in the [safe-operation spec](specs/US-P008-safe-operation.md).
 Source: [2026-10-09 code audit](audits/2026-10-09/code_audit.md), INV-014.
-Scope: sign-in attempt limits. Decisions: attempt limits and where they are enforced
-(host firewall or API). The attempt-limit behavior was not changed by AC01/AC03.
+Scope: client reset-request and confirmation-mail limits. Decisions: those limits
+and where they are enforced. AC02 per-account sign-in limits are delivered locally
+2026-10-12; the contract, DEF-033 regression and release checks are in the spec.
 
 ```gherkin
 Feature: Safe operation of the live service
-  Scenario: US-P008-AC02 Limit repeated sign-in attempts
-    Given repeated failed sign-ins for one account or from one client
-    When the agreed limit is exceeded
-    Then further attempts are refused for the agreed period
-    And other users can still sign in
-
   Scenario: US-P008-AC05 Limit client reset requests and confirmation mail
     Given repeated recovery requests from one client or confirmation requests for one address or client
     When the agreed limit is exceeded
@@ -332,8 +327,10 @@ Feature: Safe operation of the live service
 The reset-account part of AC05 is delivered: at most three mail slots per account
 per rolling hour, including failed/uncertain sends, counted in shared token storage.
 Its contract/evidence is in the [reset spec](specs/US-L004-password-reset.md).
-Client-address limits and confirmation-mail limits remain open for Alex's decision;
-no sign-in attempt or other abuse controls were added. Account email US-P009's
+Client-address limits and confirmation-mail limits remain open for Alex's decision.
+Per-account sign-in now permits ten failures in a rolling 15-minute window,
+then refuses that address for 15 minutes. Signup and per-client limits remain
+outside that increment. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
 
 ## Adding a story
