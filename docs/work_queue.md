@@ -16,6 +16,20 @@ refused for 15 minutes, per account only, in the API).
 | Claude Code | The five remaining browser confirmations use the app's dialog: withdraw, load latest and discard in the career path editor; discard course changes (leaving the editor, logout) and use latest version in the course editor | Everything under `app/` except the version lines, `docs/specs/US-A001-user-management.md` | Delivered locally (0.1.159): no browser confirmation is left in the app; record in the [spec](specs/US-A001-user-management.md). Next: check Codex |
 | Codex | US-P008-AC02 / INV-014: sign-in attempt limit per account | See the [handoff](handoffs/US-P008-sign-in-limit-codex.md) and [spec](specs/US-P008-safe-operation.md) | Delivered locally 2026-10-12: implementation 4199948 (0.1.160), delivery record in this docs(US-P008) commit (fresh aligned version 0.1.161/hook). Main/base b646366 confirmed, lead ff23981 and unstaged lead queue row preserved. DEF-033 append-only reproduction/fix; spec scenarios first; API/storage only, ten 401 failures then fixed 15-minute lock/429, normalized private keys, atomic reservations, success/reset clear, safe fail-open deadlines/cancellation. All five checks pass: API 1097/48, journeys 6, API build, app 273/35, Pages build (existing style/test-setup/jsdom warnings); 42 new cases, independent review clear after corrections. Real Mongo majority/TTL/cancellation, hosted Sheets quotas, clock skew and deployed browser unverified. Outage/uncertain issued writes can bypass protection; crash tickets expire in 15 minutes; signup/client/confirmation limits outside scope. No shared services, real mail, ports 3001/4200, push or outside-file change needed. Next: lead/Alex release checks; Codex stopped |
 
+Lead check 2026-10-12 on `a3028be`: Codex stayed within its files and the version lines. New
+on the login route: 429 with `code: "too-many-attempts"` and `Retry-After` while an address
+is locked; 200, 400, 401 and 503 are unchanged. One change on purpose: spaces around the
+email are now removed before it is validated. DEF-033 (was INV-014) is Fixed. 1097 API and
+273 frontend tests, six journeys and the Pages build pass. Every sign-in now reads and writes
+MongoDB once or twice before the users sheet is read.
+Finding, offered to Alex as a Codex follow-up: when an address is at its limit only because
+of checks that never finished (a worker that died mid-login), a new sign-in for that address
+waits, polling MongoDB ten times a second, until the browser gives up or 15 minutes pass. It
+should answer after a few seconds instead.
+Not verified: real MongoDB (expiry, two instances), hosted behavior, the message on the
+login page in a browser.
+Next: Alex decides on the follow-up and the push.
+
 **US-P001 — Role journey verification.** In progress. Owner: Claude Code.
 Delivered: `npm run verify:journeys` and two manual walks of the teacher, admin and learner
 screens ([record](verification/2026-10-09/teacher-walkthrough.md)). Remaining: the live
