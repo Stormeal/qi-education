@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { AdminCareerPath, CareerPathDraft } from '../../app.models';
 import { CareerPathResult, CareerPathService } from '../../services/career-path.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { CareerPathEditor } from './career-path-editor';
 
 const content = (title: string): CareerPathDraft => ({ title, summary: '', outcomes: [], estimatedHours: 0,
@@ -32,11 +33,11 @@ describe('career path editor (US-T008, US-A003)', () => {
     saveResult = { ok: true };
     unpublish.mockClear();
     saveDraft.mockClear();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     TestBed.configureTestingModule({ providers: [{ provide: CareerPathService, useValue: {
       token: signal('token'), adminCourses: signal([]), adminPaths: signal([stored('live', true), stored('hidden', false)]),
       loadAdmin: async () => ({ ok: true }), saveDraft, unpublish,
     } }] });
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     fixture = TestBed.createComponent(CareerPathEditor);
     fixture.detectChanges();
     await fixture.whenStable();
@@ -72,7 +73,7 @@ describe('career path editor (US-T008, US-A003)', () => {
   it('US-A003-AC01 withdraw is offered for a published path only and asks first', async () => {
     await click('live');
     await click('Withdraw');
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('2 learners follow'));
+    expect(TestBed.inject(ConfirmService).ask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Withdraw "live"?', message: expect.stringContaining('2 learners follow') }));
     expect(unpublish).toHaveBeenCalledWith('live');
     expect(text()).toContain('Withdrawn. Learners no longer see this path.');
   });

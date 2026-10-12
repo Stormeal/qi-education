@@ -8,6 +8,7 @@ import { CourseContentDocument, CourseListItem, LoginState } from '../app.models
 import { AppStateService } from './app-state.service';
 import { CourseService } from './course.service';
 import { ApiClientService } from './api-client.service';
+import { ConfirmService } from './confirm.service';
 
 const course: CourseListItem = {
   id: 'course', ownerUserId: 'teacher', title: 'Navigation course', description: 'A valid course description.',
@@ -51,7 +52,7 @@ describe('unsaved course navigation (DEF-006)', () => {
     TestBed.configureTestingModule({ providers: appConfig.providers });
     state = TestBed.inject(AppStateService);
     state.loginState.set(session());
-    confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
     harness = await RouterTestingHarness.create('/courses/course/edit');
     await vi.waitFor(() => expect(state.coursesLoading()).toBe(false));
     harness.detectChanges();
@@ -88,7 +89,7 @@ describe('unsaved course navigation (DEF-006)', () => {
 
   it('NW-02 discards confirmed edits and reloads saved values when returning', async () => {
     state.updateCourseSectionTitle(0, 'Discard this section');
-    confirm.mockReturnValue(true);
+    confirm.mockResolvedValue(true);
     await harness.navigateByUrl('/courses');
     expect(confirm).toHaveBeenCalledOnce();
     await harness.navigateByUrl('/courses/course/edit');
@@ -154,6 +155,24 @@ describe('unsaved course navigation (DEF-006)', () => {
     expect(state.loginState()).toBeNull();
     expect(state.courseContent()).toBeNull();
     expect(state.courseDraft().title).toBe('');
+  });
+
+  it('NW-05 logs out once the discard question is confirmed, and an expired session closes an open question', async () => {
+    state.updateCourseTitle('Unsaved private title');
+    confirm.mockRestore();
+    const question = TestBed.inject(ConfirmService);
+    state.logout();
+    expect(question.open()?.title).toBe('Discard unsaved course changes?');
+    expect(state.loginState()).not.toBeNull();
+    state.logout(true);
+    expect(question.open()).toBeNull();
+    expect(state.loginState()).toBeNull();
+
+    state.loginState.set(session());
+    state.updateCourseTitle('Unsaved again');
+    state.logout();
+    question.answer(true);
+    await vi.waitFor(() => expect(state.loginState()).toBeNull());
   });
 
   it('NW-04 retains both edited parts after metadata saves and outline saving fails', async () => {

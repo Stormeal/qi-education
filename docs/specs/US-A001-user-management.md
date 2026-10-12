@@ -421,3 +421,22 @@ Still using the browser's own dialog, not changed here: the three questions of t
 path editor (withdraw, load latest, discard) and the two of the course editor (discard
 unsaved changes, use the latest saved version). The page-leave warning of the browser tab
 cannot be replaced by a page.
+
+### 2026-10-12: the remaining five questions
+
+The five questions listed above now use the same dialog: withdraw, load latest and discard in
+the career path editor (`career-path-editor.ts`), and discard unsaved course changes (leaving
+the editor and Logout) and use the latest saved version (`app-state.service.ts`). No
+`window.confirm` is left in the app. A session that expires while a question is open closes
+the question. The page-leave warning of the browser tab stays the browser's.
+
+Evidence: `career-path-editor.spec.ts` and `course-navigation.spec.ts` (the NW-01 to NW-05
+cases now answer the app's dialog; one new case for a confirmed logout and an expired
+session). 273 frontend tests and the Pages build pass. Browser, in-memory API, demo admin:
+switching paths with unsaved edits opened the dialog with focus on Cancel; Cancel and Escape
+kept the edits; Discard changes opened the other path. In a new course with a typed title,
+the Catalog link and Logout each opened the dialog; Cancel kept the page, the title and the
+session; Discard changes went to the catalog.
+Not verified in the browser: withdraw (needs a published path), the two "latest version"
+questions (need a second editor's save), a confirmed logout (covered by the spec file only),
+and how the dialog looks (the browser pane did not draw).

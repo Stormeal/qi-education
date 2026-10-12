@@ -40,6 +40,7 @@ import { LearningProgressService } from './learning-progress.service';
 import { canEditCourse } from '../utils/course-permissions';
 import { CourseDraftRecoveryService, CourseEditorBuffer, RecoverableCourseDraft } from './course-draft-recovery.service';
 import { attachmentProblem } from '../utils/attachment-rules';
+import { ConfirmService } from './confirm.service';
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
@@ -54,6 +55,7 @@ export class AppStateService {
   private readonly learningProgress = inject(LearningProgressService);
   private readonly careerPaths = inject(CareerPathService);
   private readonly courseDraftRecovery = inject(CourseDraftRecoveryService);
+  private readonly confirm = inject(ConfirmService);
   private draftRecoveryContext = '';
   private restoredDraftKey = '';
   private recoverySuppressed = false;
@@ -576,15 +578,26 @@ export class AppStateService {
     }
   }
 
-  confirmDiscardCourseChanges(): boolean {
-    const accepted = !this.hasUnsavedCourseChanges() || window.confirm('Discard unsaved course changes?');
+  async confirmDiscardCourseChanges(): Promise<boolean> {
+    if (!this.hasUnsavedCourseChanges()) return true;
+    const accepted = await this.confirm.ask({ title: 'Discard unsaved course changes?',
+      message: 'Your edits to this course since the last save are lost.', confirmLabel: 'Discard changes' });
     if (accepted && this.hasUnsavedCourseChanges()) { this.clearCourseRecovery(); this.recoverySuppressed = true; }
     return accepted;
   }
 
   logout(forced = false): void {
-    if (forced) this.persistCourseRecovery();
-    if (!forced && !this.confirmDiscardCourseChanges()) return;
+    if (forced) {
+      this.persistCourseRecovery();
+      this.confirm.answer(false); // A session that ended must not leave a question open.
+    } else if (this.hasUnsavedCourseChanges()) {
+      void this.confirmDiscardCourseChanges().then((accepted) => { if (accepted && this.loginState()) this.endSession(); });
+      return;
+    }
+    this.endSession();
+  }
+
+  private endSession(): void {
     this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
     this.courseEditorBufferDirty.set(false);
@@ -1886,9 +1899,13 @@ export class AppStateService {
     this.courseSaveConflict.set(false); this.latestCourseVersion.set(null);
     this.courseCreateError.set(''); this.courseContentError.set(''); this.persistCourseRecovery();
   }
-  useLatestCourseVersion(): void {
+  async useLatestCourseVersion(): Promise<void> {
+    if (!this.latestCourseVersion()?.review || this.courseSubmitting()) return;
+    if (!await this.confirm.ask({ title: 'Use the latest saved version?',
+      message: 'Your local edits to this course are discarded.', confirmLabel: 'Use latest version' })) return;
+    // Read again: a newer version may have arrived while the question was open.
     const latest = this.latestCourseVersion();
-    if (!latest?.review || this.courseSubmitting() || !window.confirm('Discard your local edits and use the latest saved version?')) return;
+    if (!latest?.review || this.courseSubmitting()) return;
     this.clearCourseRecovery(); this.focusedCourseBuffer.set(null); this.courseEditorBufferDirty.set(false);
     this.courseReview.set(latest.review); this.courseContent.set(latest);
     const draft = this.courseDraftFromCourse(latest.review.course); this.courseDraft.set(draft);

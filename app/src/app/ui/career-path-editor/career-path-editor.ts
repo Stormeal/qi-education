@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { FormsModule } from '@angular/forms';
 import { AdminCareerPath, CareerPathDraft, CareerPathIssue } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
+import { ConfirmService } from '../../services/confirm.service';
 
 type EditableStep = CareerPathDraft['steps'][number];
 
@@ -17,6 +18,7 @@ const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').
 })
 export class CareerPathEditor {
   protected readonly careerPath = inject(CareerPathService);
+  private readonly confirm = inject(ConfirmService);
 
   protected readonly paths = computed(() =>
     [...this.careerPath.adminPaths()].sort((a, b) => a.id.localeCompare(b.id)));
@@ -63,18 +65,18 @@ export class CareerPathEditor {
     return !!draft && this.snapshot(draft) !== this.savedSnapshot;
   }
 
-  protected edit(path: AdminCareerPath): void {
-    if (path.id === this.editingId() || !this.mayDiscard()) return;
+  protected async edit(path: AdminCareerPath): Promise<void> {
+    if (path.id === this.editingId() || !await this.mayDiscard()) return;
     this.open(path.id, structuredClone(path.draft ?? path.published)!);
   }
 
-  protected createPath(input: HTMLInputElement): void {
+  protected async createPath(input: HTMLInputElement): Promise<void> {
     const id = slug(input.value);
     if (id.length < 2 || this.paths().some((path) => path.id === id)) {
       this.listError.set('Enter a new, unique target role.');
       return;
     }
-    if (!this.mayDiscard()) return;
+    if (!await this.mayDiscard()) return;
     this.listError.set('');
     this.open(id, { title: input.value.trim(), summary: '', outcomes: [], estimatedHours: 0, steps: [] });
     this.savedSnapshot = ''; // A new path is unsaved from the start.
@@ -136,7 +138,8 @@ export class CareerPathEditor {
     const path = this.editing();
     if (!path?.published || this.busy()) return;
     const followers = path.learners === 1 ? '1 learner follows' : `${path.learners} learners follow`;
-    if (!window.confirm(`Withdraw "${path.published.title}"? ${followers} it. They are asked to choose another path until you publish it again. Their completed courses are kept.`)) return;
+    if (!await this.confirm.ask({ title: `Withdraw "${path.published.title}"?`, confirmLabel: 'Withdraw',
+      message: `${followers} it. They are asked to choose another path until you publish it again. Their completed courses are kept.` })) return;
     this.begin();
     const result = await this.careerPath.unpublish(path.id);
     this.busy.set(false);
@@ -146,7 +149,8 @@ export class CareerPathEditor {
 
   // After a conflict: drop the local edits and open what the other admin saved.
   protected async loadLatest(): Promise<void> {
-    if (!window.confirm('Load the latest saved version? Your unsaved edits to this path are discarded.')) return;
+    if (!await this.confirm.ask({ title: 'Load the latest saved version?',
+      message: 'Your unsaved edits to this path are discarded.', confirmLabel: 'Load latest version' })) return;
     this.begin();
     const result = await this.careerPath.loadAdmin();
     this.busy.set(false);
@@ -170,8 +174,9 @@ export class CareerPathEditor {
       : message);
   }
 
-  private mayDiscard(): boolean {
-    return !this.isDirty() || window.confirm('Discard your unsaved changes to this path?');
+  private async mayDiscard(): Promise<boolean> {
+    return !this.isDirty() || this.confirm.ask({ title: 'Discard your unsaved changes to this path?',
+      message: 'Your edits since the last save are lost.', confirmLabel: 'Discard changes' });
   }
 
   private snapshot(draft: CareerPathDraft): string {
