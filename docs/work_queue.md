@@ -1,8 +1,20 @@
 # Work queue
 
-Updated: 2026-10-09. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-12. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**Session 2026-10-12 — started by the user with "let's start working".** Branch: `main`.
+Base: `03e39dd` (local, 0.1.157; two commits not pushed). No confirmed defect is open. Picked
+by the lead: the leftover of the last increment (five questions still asked in the browser's
+dialog). It is too small to split, so Codex takes an independent API item. Chosen by Alex for
+Codex: US-P008-AC02, with the limit decided (10 wrong passwords per account in 15 minutes,
+refused for 15 minutes, per account only, in the API).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | The five remaining browser confirmations use the app's dialog: withdraw, load latest and discard in the career path editor; discard course changes (leaving the editor, logout) and use latest version in the course editor | Everything under `app/` except the version lines, `docs/specs/US-A001-user-management.md` | In progress |
+| Codex | US-P008-AC02 / INV-014: sign-in attempt limit per account | See the [handoff](handoffs/US-P008-sign-in-limit-codex.md) and [spec](specs/US-P008-safe-operation.md) | Handed over 2026-10-12 |
 
 **US-P001 — Role journey verification.** In progress. Owner: Claude Code.
 Delivered: `npm run verify:journeys` and two manual walks of the teacher, admin and learner

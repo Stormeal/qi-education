@@ -119,3 +119,19 @@ URL, because a localhost test page may no longer send changes to a remote host. 
 API and 179 frontend tests, six journeys and the API and Pages builds pass on the combined
 tree. Consequence for developers: `npm run app:dev:frontend` without the local API can
 browse public pages but cannot sign in or save.
+
+## AC02 sign-in attempt limit — decisions 2026-10-12
+
+Selected by Alex on 2026-10-12: after 10 wrong passwords for one account within 15 minutes,
+sign-in for that account is refused for 15 minutes; counted per account only (a class behind
+one school network is not locked out together); enforced in the API. Accepted cost: someone
+who knows an email address can lock that account for 15 minutes.
+
+Lead decisions, confirm or change: counted per normalized email whether or not an account
+exists, with the same refusal for both; a locked attempt is refused before the users sheet is
+read and does not extend the lock; a successful sign-in clears the count; a password set
+through a reset link lifts the lock; stored in MongoDB when hosted and in memory locally; if
+the store fails, sign-in is not limited. Refusal: 429 with `code: "too-many-attempts"`. The
+full list and the contract are in the
+[handoff](../handoffs/US-P008-sign-in-limit-codex.md). Owner: Codex. Scenarios and evidence
+follow below once written.
