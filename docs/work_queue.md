@@ -29,6 +29,13 @@ should answer after a few seconds instead.
 Not verified: real MongoDB (expiry, two instances), hosted behavior, the message on the
 login page in a browser.
 Next: Alex decides on the follow-up and the push.
+Lead check 2026-10-12 on `8c73aab`: the finding is fixed as DEF-034. A sign-in that meets
+capacity held by unfinished checks now waits at most about three seconds and then answers
+429 with the time until capacity frees, without reading the users sheet. Only
+`signInLimit.ts` and `signInAttemptRepository.ts` changed; the login route did not. 1117 API
+and 273 frontend tests, six journeys and the Pages build pass. US-P008-AC02 is Done locally.
+Not verified: real MongoDB, hosted behavior, the lock message on the login page in a browser.
+Next: Alex decides on the push, then the three hosted sign-in checks.
 
 **US-P001 — Role journey verification.** In progress. Owner: Claude Code.
 Delivered: `npm run verify:journeys` and two manual walks of the teacher, admin and learner
