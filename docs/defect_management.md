@@ -1237,3 +1237,13 @@ pass: API 1117/48, journeys 6, API build, frontend 273/35, Pages build; focused
 62 cases. Existing frontend warnings remain. Real Mongo cancellation/TTL,
 hosted login/quotas and browser messages remain unverified. No shared service,
 real mail or deployment was used. Fixing commit follows in the delivery entry.
+### DEF-034 - Delivery commit, 2026-10-12
+
+Fixed locally in `0c6882d` (0.1.164), US-P008-AC02-11, Codex, main/base
+9e06e86. This delivery entry follows in a separate docs(US-P008) commit with
+its own fresh aligned version. Verified all five required checks: API 1117/48,
+journeys 6, API build, frontend 273/35 and Pages build; 62 focused cases,
+including 20 new regressions; final independent review clear. Original defect
+bytes were preserved. Live Mongo cancellation/TTL/majority, hosted login/quotas
+and deployed browser messages remain unverified. No outside-file change needed.
+No shared services, real mail, fixed-port servers, push or deployment; Codex stopped.

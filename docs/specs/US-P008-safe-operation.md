@@ -343,8 +343,9 @@ jsdom scrollTo warnings remain. Independent review found the final-sleep race;
 two failing regressions reproduced the stale capacity response before the bounded
 final observation corrected it. Final review has no P1/P2 code findings.
 
-DEF-034 is Fixed locally in this follow-up implementation commit; the exact ID
-will be recorded in the following delivery-record commit. No outside-file change
+DEF-034 is Fixed locally in follow-up implementation `0c6882d` (0.1.164),
+2026-10-12. This delivery record uses another fresh aligned hook version.
+No outside-file change
 is needed. No shared provider calls, real mail, fixed-port server, push or deployment.
 Real Mongo cancellation/majority/TTL, hosted login/quota and deployed browser
 messages remain release checks. The existing storage fail-open policy and
