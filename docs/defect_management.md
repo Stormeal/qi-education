@@ -1188,3 +1188,15 @@ warning on storage errors/timeouts; already-issued writes can remain uncertain.
 Mongo cancellation/majority durability/TTL, Sheets quotas and deployed browser
 behavior remain release checks. Signup and per-client controls are outside this
 fix; INV-014's signup portion remains an investigation. No shared service used.
+### DEF-033 - Delivery commit and verification, 2026-10-12
+
+Implementation: `4199948` (0.1.160), US-P008-AC02, Codex, main. This append-only
+delivery record follows in a separate docs(US-P008) commit with the required fresh
+aligned version. Fixed locally; hosted verification is still pending.
+
+Verified: npm run api:test (1097/48), npm run verify:journeys (6), npm run
+api:build, npm run app:test (273/35), npm run app:build:pages. All passed;
+existing stylesheet/test-setup/jsdom warnings remain. 42 new focused cases and
+final independent review pass; live Mongo/Sheets/hosted-browser release checks
+were not attempted. Lead ff23981 and its unstaged queue row were preserved.
+No outside-file change was required. Codex stopped; no push or deployment.

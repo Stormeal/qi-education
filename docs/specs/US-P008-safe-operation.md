@@ -276,6 +276,6 @@ The installed Node driver supports [operation timeouts](https://www.mongodb.com/
 
 Final independent review: no Important findings remain; 42 focused cases pass,
 including delayed reservation and delayed clear after a storage timeout. AC02 is
-Done locally in the implementation commit; its exact ID is appended in the
-following delivery-record commit. DEF-033 is Fixed locally. AC05 and hosted
+Done locally in implementation `4199948` (0.1.160), 2026-10-12; this delivery
+record bumps the aligned version again for the hook. DEF-033 is Fixed locally. AC05 and hosted
 release verification remain open. No outside-file change is needed.
