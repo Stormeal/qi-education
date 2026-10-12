@@ -1200,3 +1200,40 @@ existing stylesheet/test-setup/jsdom warnings remain. 42 new focused cases and
 final independent review pass; live Mongo/Sheets/hosted-browser release checks
 were not attempted. Lead ff23981 and its unstaged queue row were preserved.
 No outside-file change was required. Codex stopped; no push or deployment.
+### DEF-034 - Pending sign-in capacity has no overall wait bound
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-034 | Confirmed, Codex, 2026-10-12 | P2 | US-P008-AC02-11 | All four login routes with ten uncompleted memory-store tickets still wait until the test client aborts at 250 ms instead of respecting an injected 25 ms capacity wait |
+
+Reproduced before implementation on main/base 9e06e86 in the four DEF-034 cases
+of api/src/signInLimit.test.ts. The first run fails with AbortError and zero
+user reads instead of 429, too-many-attempts, Retry-After 900 and no-store.
+Existing 18 HTTP cases still pass. Root cause: reserve repeatedly receives busy
+and sleeps 100 ms without an overall capacity deadline; storageTimeoutMs only
+limits each individual store call. A dead worker's tickets occupy the account
+for up to 15 minutes, so a healthy store gets repeatedly polled for that period.
+The reproduction uses isolated stores and ephemeral loopback ports only.
+### DEF-034 - Resolution and verification, 2026-10-12
+
+Fixed locally by US-P008-AC02-11. An injectable capacityWaitMs (default 3000 ms)
+now covers all sleeps and later polls after the first busy snapshot. Busy carries
+the minimum expiry of pending tickets and counted failures. Deadline refusal
+uses the existing 429 body/code, no-store and rounded Retry-After, without a
+user read or password check, counting an attempt or starting/extending a lock.
+
+A final atomic observation has at most min(100 ms, capacityWaitMs) to see genuine
+completion/expiry during the last sleep; it cannot restart the wait. Default
+capacity wait is about 3.1 seconds maximum with a responsive event loop. If this
+read stalls, the last busy expiry is the retry hint. Client disconnects and
+cancellation reach store operations; late successful probe tickets are released.
+
+Twenty new regressions cover all aliases, both memory/Mongo CAS doubles,
+earliest failure/ticket expiry, singular minutes, no new lock, frozen clock,
+slow polls, genuine overlap, final-sleep completion and probe cancellation.
+An independent review caught a final-sleep race, reproduced as two failing
+regressions before correction; final review has no P1/P2 findings. All checks
+pass: API 1117/48, journeys 6, API build, frontend 273/35, Pages build; focused
+62 cases. Existing frontend warnings remain. Real Mongo cancellation/TTL,
+hosted login/quotas and browser messages remain unverified. No shared service,
+real mail or deployment was used. Fixing commit follows in the delivery entry.

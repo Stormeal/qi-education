@@ -26,6 +26,46 @@ function login(base: string, email = 'student@qi-education.local', password = 'w
   return fetch(base + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
 }
 describe('US-P008-AC02 / INV-014 isolated login', () => {
+  it.each(['/auth/login', '/login', '/api/auth/login', '/api/login'])('DEF-034 / 11 bounds abandoned pending capacity without reading users (%s)', async route => {
+    const attempts = new InMemorySignInAttemptRepository(); const key = signInAddressKey('student@qi-education.local');
+    const policy = { limit: 10, windowMs: 900000, lockMs: 900000 };
+    await Promise.all(Array.from({ length: 10 }, () => attempts.reserve(key, 1000, policy)));
+    const { auth, base } = await start(undefined, attempts, { now: () => 1000, capacityWaitMs: 25 });
+    const reads = vi.spyOn(auth, 'findByEmail'); const polls = vi.spyOn(attempts, 'reserve');
+    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 250);
+    let outcome: unknown;
+    try {
+      const response = await fetch(base + route, { method: 'POST', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'student@qi-education.local', password: 'Password123!' }) });
+      outcome = { status: response.status, body: await response.json(), retry: response.headers.get('retry-after'), cache: response.headers.get('cache-control') };
+    } catch (error) { outcome = (error as Error).name; }
+    finally { clearTimeout(timeout); }
+    expect({ outcome, userReads: reads.mock.calls.length }).toEqual({ outcome: { status: 429,
+      body: { message: 'Too many sign-in attempts. Try again in 15 minutes.', code: 'too-many-attempts' }, retry: '900', cache: 'no-store' }, userReads: 0 });
+    expect(polls.mock.calls.length).toBeLessThanOrEqual(2);
+  });
+  it.each(['failure', 'pending'])('11 uses the earliest %s expiry for Retry-After and does not create a lock', async earliest => {
+    let now = 840001;
+    const attempts = new InMemorySignInAttemptRepository(); const key = signInAddressKey('student@qi-education.local');
+    const policy = { limit: 2, windowMs: 900000, lockMs: 900000 };
+    if (earliest === 'pending') await attempts.reserve(key, 0, policy);
+    const failureAt = earliest === 'failure' ? 0 : 100000;
+    const failed = await attempts.reserve(key, failureAt, policy);
+    if (!('ticket' in failed)) throw new Error('Expected reservation');
+    await attempts.complete(key, failed.ticket, 'failure', failureAt, policy);
+    if (earliest === 'failure') await attempts.reserve(key, 100000, policy);
+    const { auth, base } = await start(undefined, attempts, { now: () => now, limit: 2, capacityWaitMs: 25 });
+    const reads = vi.spyOn(auth, 'findByEmail');
+    for (let index = 0; index < 2; index++) {
+      const result = await login(base, undefined, 'Password123!');
+      expect(result.status).toBe(429); expect(result.headers.get('retry-after')).toBe('60');
+      expect(result.headers.get('cache-control')).toBe('no-store');
+      expect(await result.json()).toEqual({ message: 'Too many sign-in attempts. Try again in 1 minute.', code: 'too-many-attempts' });
+    }
+    expect(reads).not.toHaveBeenCalled();
+    now = 900000;
+    expect((await login(base, undefined, 'Password123!')).status).toBe(200);
+  });
   it('DEF-033 refuses attempt 11 before reading users, after ten generic 401 failures', async () => {
     const { auth, base } = await start(); const reads = vi.spyOn(auth, 'findByEmail');
     const statuses = [];

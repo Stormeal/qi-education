@@ -50,7 +50,7 @@ describe.each(['memory', 'mongo-cas'])('AC02 atomic attempt transitions (%s)', k
     const pending = await Promise.all(Array.from({ length: 10 }, () => ticket(first)));
     await first.complete('key', pending[0], 'cancel', 1000, policy);
     expect(await first.reserve('key', 1000, policy)).toHaveProperty('ticket');
-    expect(await first.reserve('key', 900999, policy)).toEqual({ busy: true });
+    expect(await first.reserve('key', 900999, policy)).toEqual({ busy: true, retryAt: 901000 });
     const reclaimed = await ticket(first, 901000);
     await first.complete('key', reclaimed, 'cancel', 901000, policy);
     await first.complete('key', pending[1], 'failure', 901000, policy);
@@ -76,9 +76,100 @@ describe.each(['memory', 'mongo-cas'])('AC02 atomic attempt transitions (%s)', k
     await first.complete('key', await ticket(first, 900000), 'failure', 900000, policy);
     expect(await first.reserve('key', 900000, policy)).toHaveProperty('ticket');
   });
+  it.each(['failure', 'pending'])('11 reports the earliest capacity expiry from a counted %s', async earliest => {
+    const { first } = stores();
+    if (earliest === 'failure') {
+      await first.complete('key', await ticket(first, 0), 'failure', 0, policy);
+      for (let index = 0; index < 9; index++) await ticket(first, 100);
+    } else {
+      await ticket(first, 0);
+      await first.complete('key', await ticket(first, 100), 'failure', 100, policy);
+      for (let index = 0; index < 8; index++) await ticket(first, 200);
+    }
+    expect(await first.reserve('key', 800000, policy)).toEqual({ busy: true, retryAt: 900000 });
+    expect(await first.reserve('key', 900000, policy)).toHaveProperty('ticket');
+  });
 });
 describe('AC02 Mongo expiry, privacy and failure handling', () => {
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+  it('11 the default capacity budget returns within a few seconds with a frozen account clock', async () => {
+    const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
+    for (let index = 0; index < 10; index++) await ticket(store, 1000, key);
+    const controller = new AbortController();
+    const result = new SignInLimit(store, { now: () => 1000 }).reserve('key', controller.signal);
+    try { expect(await Promise.race([result, delay(3500).then(() => 'still waiting')])).toEqual({ retryAfter: 900 }); }
+    finally { controller.abort(); await result; }
+  });
+  it('11 includes slow subsequent store polls in one capacity wait budget', async () => {
+    const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
+    for (let index = 0; index < 10; index++) await ticket(store, 1000, key);
+    const reserve = store.reserve.bind(store); const busy = await reserve(key, 1000, policy);
+    let release!: () => void;
+    vi.spyOn(store, 'reserve').mockImplementationOnce((...args) => reserve(...args))
+      .mockImplementationOnce(() => new Promise(resolve => { release = () => resolve(busy); }));
+    const controller = new AbortController(); const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = new SignInLimit(store, { now: () => 1000, capacityWaitMs: 150 }).reserve('key', controller.signal);
+    try {
+      expect(await Promise.race([result, delay(300).then(() => 'still waiting')])).toEqual({ retryAfter: 900 });
+      expect(warning).not.toHaveBeenCalled();
+    } finally { controller.abort(); release?.(); await result; }
+  });
+  it.each(['cancel', 'failure'] as const)('11 preserves a genuine pending %s completing within the budget', async outcome => {
+    const store = new InMemorySignInAttemptRepository(); const policy = { limit: 1, windowMs: 900000, lockMs: 900000 };
+    const reserved = await store.reserve(signInAddressKey('key'), 1000, policy);
+    if (!('ticket' in reserved)) throw new Error('Expected reservation');
+    const limit = new SignInLimit(store, { now: () => 1000, limit: 1, capacityWaitMs: 500 });
+    const result = limit.reserve('key'); await delay(30);
+    await store.complete(signInAddressKey('key'), reserved.ticket, outcome, 1000, policy);
+    if (outcome === 'cancel') expect(await result).toHaveProperty('ticket');
+    else expect(await result).toEqual({ retryAfter: 900 });
+  });
+  it.each(['cancel', 'failure', 'expiry'] as const)('11 observes a pending %s during the final polling sleep', async outcome => {
+    let now = 1000;
+    const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
+    const policy = { limit: 1, windowMs: 900000, lockMs: 900000 };
+    const reserved = await store.reserve(key, now, policy);
+    if (!('ticket' in reserved)) throw new Error('Expected reservation');
+    const limit = new SignInLimit(store, { now: () => now, limit: 1, capacityWaitMs: 25 });
+    const result = limit.reserve('key'); await delay(10); now = outcome === 'expiry' ? 901000 : 101000;
+    if (outcome !== 'expiry') await store.complete(key, reserved.ticket, outcome, now, policy);
+    if (outcome !== 'failure') expect(await result).toHaveProperty('ticket');
+    else expect(await result).toEqual({ retryAfter: 900 });
+  });
+  it('11 a final state probe that hangs cannot restart the wait', async () => {
+    const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
+    for (let index = 0; index < 10; index++) await ticket(store, 1000, key);
+    const reserve = store.reserve.bind(store);
+    vi.spyOn(store, 'reserve').mockImplementationOnce((...args) => reserve(...args))
+      .mockImplementationOnce(() => new Promise<never>(() => {}));
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const result = new SignInLimit(store, { now: () => 1000, capacityWaitMs: 25 }).reserve('key');
+    expect(await Promise.race([result, delay(200).then(() => 'still waiting')])).toEqual({ retryAfter: 900 });
+    expect(warning).not.toHaveBeenCalled();
+  });
+  it('11 cancels a final state probe on client disconnect', async () => {
+    const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
+    for (let index = 0; index < 10; index++) await ticket(store, 1000, key);
+    const reserve = store.reserve.bind(store); let entered!: () => void;
+    const probing = new Promise<void>(resolve => { entered = resolve; });
+    vi.spyOn(store, 'reserve').mockImplementationOnce((...args) => reserve(...args))
+      .mockImplementationOnce(() => { entered(); return new Promise<never>(() => {}); });
+    const controller = new AbortController();
+    const result = new SignInLimit(store, { now: () => 1000, capacityWaitMs: 25 }).reserve('key', controller.signal);
+    await probing; controller.abort(); expect(await result).toEqual({ aborted: true });
+  });
+  it('11 releases a late successful final probe from a store that ignores cancellation', async () => {
+    const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
+    const one = { ...policy, limit: 1 }; await store.reserve(key, 1000, one);
+    const reserve = store.reserve.bind(store);
+    vi.spyOn(store, 'reserve').mockImplementationOnce((...args) => reserve(...args))
+      .mockImplementationOnce(async (key, now, policy) => {
+        await delay(80); await store.clear(key, now); return reserve(key, now, policy);
+      });
+    const result = await new SignInLimit(store, { now: () => 1000, limit: 1, capacityWaitMs: 25 }).reserve('key');
+    expect(result).toEqual({ retryAfter: 900 }); await delay(100);
+    expect(await reserve(key, 1000, one)).toHaveProperty('ticket');
+  });
   it('08 stops an abandoned request instead of admitting it after pending capacity is released', async () => {
     const store = new InMemorySignInAttemptRepository(); const key = signInAddressKey('key');
     const pending = await Promise.all(Array.from({ length: 10 }, () => ticket(store, 1000, key)));

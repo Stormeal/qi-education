@@ -611,7 +611,20 @@ expiring opaque reservation tickets, lock deadline, unique CAS revision and
 Date expiry are the only fields; email and password are absent. Majority
 conditional writes bound failures plus outstanding checks to ten across API
 instances. Saturated pending capacity waits for outcomes rather than locking on
-unfinished requests, polls at 100 ms and stops on HTTP disconnect. Tickets expire after the window if their worker crashes;
+unfinished requests, polls at 100 ms and stops on HTTP disconnect. US-P008-AC02-11
+(DEF-034) bounds this wait with one injectable capacityWaitMs budget, default
+3,000 ms, shared across all later sleeps and reads. A final atomic observation
+has at most min(100 ms, capacityWaitMs) to see changes during the last sleep;
+it cannot restart the wait. Thus the default capacity wait takes at most about
+3.1 seconds with a responsive event loop, including a stalled later store poll.
+If still busy, the existing private 429 message/code is returned before user
+reads/password checks. Retry-After uses the earliest pending-ticket expiry or
+counted-failure timestamp plus windowMs, rounded up against the current injected
+clock (minimum one second on an expiry race). Busy refusals never create/extend
+a lock or consume an attempt. The last busy snapshot supplies the hint if the
+final observation stalls; a newly observed lock uses its lockedUntil. Ordinary
+completion within the budget still permits admission or the existing lock result.
+Tickets expire after the window if their worker crashes;
 duplicate, expired or cleared outcomes cannot recreate failures. Unique revisions
 avoid stale replacement after TTL deletion and recreation. A single-field TTL
 index reclaims Mongo records; application deadlines remain authoritative because
@@ -631,4 +644,4 @@ fallback. This fail-open policy, worker-ticket expiry, and the nontransactional
 Sheets-password/Mongo-clear boundary are protection limitations. Signup, reset
 mail limits, wrong current profile passwords and per-client limits are unchanged.
 See the [safe-operation spec](specs/US-P008-safe-operation.md) for scenarios,
-DEF-033 reproduction and local delivery/release checks.
+DEF-033/DEF-034 reproduction and local delivery/release checks.

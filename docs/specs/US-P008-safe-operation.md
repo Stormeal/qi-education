@@ -279,3 +279,74 @@ including delayed reservation and delayed clear after a storage timeout. AC02 is
 Done locally in implementation `4199948` (0.1.160), 2026-10-12; this delivery
 record bumps the aligned version again for the hook. DEF-033 is Fixed locally. AC05 and hosted
 release verification remain open. No outside-file change is needed.
+
+## AC02-11 pending-capacity wait follow-up — 2026-10-12
+
+Owner Codex, main/base 9e06e86 confirmed; DEF-034 reproduces the lead finding.
+Use an injectable `capacityWaitMs`, default 3,000 ms, for the entire wait after
+the first busy result. The budget is shared by all subsequent sleeps and store
+polls, independent of the injected calendar clock. At the deadline one final
+atomic state observation checks completion/expiry during the last polling sleep.
+It has a separate allowance of at most min(100 ms, capacityWaitMs), so the default
+capacity refusal takes at most about 3.1 seconds with a responsive event loop.
+The final observation cannot start a new wait; if it stalls, the last busy expiry
+is used. A completion may race any observed snapshot. Deadline cancellation reaches
+the repository stages; late reservation tickets are released by the existing
+cleanup. Store errors retain safe fail-open behavior. Client disconnects still
+stop waiting. No new environment variable or frontend change.
+
+The pruned busy snapshot carries the earliest capacity expiry: minimum of each
+pending ticket's expiresAt and each counted failure's timestamp plus windowMs.
+If the wait budget expires, return 429 with the existing message/code shape,
+Cache-Control: no-store, and Retry-After rounded-up seconds from that expiry to
+the current injected clock (minimum one second for a deadline/expiry race).
+Minutes use the existing rounding and singular wording. This refusal neither
+counts nor starts/extends a lock. Lock refusals retain their own lockedUntil.
+Capacity released by completion, cancellation, success, reset or natural expiry
+during the budget is handled by the existing atomic reservation loop.
+
+```gherkin
+Scenario: US-P008-AC02-11 Bound waits for outstanding sign-in capacity
+  Given an address is at the limit due to counted failures and uncompleted checks
+  When a sign-in cannot reserve capacity within the configured three-second budget
+  Then it responds 429 with too-many-attempts and no-store without reading users or checking a password
+  And Retry-After is the rounded-up time until the earliest pending ticket or counted failure frees capacity
+  And the existing minutes message includes singular 1 minute when appropriate
+  And repeated waiting and polling stop at the budget even if a later store poll stalls
+  And one final observation within at most 100 ms sees completion or expiry during the last sleep without restarting the wait
+  And another request completing within the budget still permits ordinary admission or the existing lock response
+  And all four login aliases preserve their existing 200, 400, 401, 503 and locked 429 contracts
+```
+
+Implementation order: reproduce/append DEF-034, add this scenario, write failing
+deadline/expiry/overlap tests, return earliest expiry from the memory/Mongo CAS
+adapter, bound coordination with one cancellation deadline, run all five checks,
+review and commit locally, then record delivery. Shared services and push remain
+outside this work. Hosted Mongo cancellation/TTL and deployed browser checks
+remain unverified.
+
+### AC02-11 verification and local delivery
+
+| Coverage | Evidence |
+| --- | --- |
+| DEF-034, all four routes | Four initial failures: 25 ms requested budget still waited until client abort at 250 ms. Final HTTP tests return the existing 429 body/code/no-store and Retry-After 900 with zero user reads |
+| Earliest expiry and no new lock | Memory and Mongo CAS double tests cover earliest counted failure versus pending ticket; HTTP covers repeated refusals, rounded 60 seconds/singular 1 minute, and successful admission at exact capacity expiry |
+| Budget and genuine overlap | Default budget with frozen account clock, shared budget including a stalled later poll, genuine cancellation/failure within the wait, and final-sleep cancellation/failure/expiry |
+| Final probe and cancellation | Stalled final observation stays bounded, client disconnect aborts it, late ticket from a noncooperative final probe is released; earlier storage failure, late-clear and atomic overlap regressions still pass |
+| Existing API/frontend contract | Existing 200/400/401/503 and locked 429 tests pass with all aliases; frontend source is untouched except the required version line |
+
+All five required checks pass locally: `npm run api:test` (1,117 / 48 files),
+`npm run verify:journeys` (6), `npm run api:build`, `npm run app:test`
+(273 / 35 files), `npm run app:build:pages`. Focused suites: 62 cases, including
+20 new regressions. Existing stylesheet budgets, test-setup compilation and
+jsdom scrollTo warnings remain. Independent review found the final-sleep race;
+two failing regressions reproduced the stale capacity response before the bounded
+final observation corrected it. Final review has no P1/P2 code findings.
+
+DEF-034 is Fixed locally in this follow-up implementation commit; the exact ID
+will be recorded in the following delivery-record commit. No outside-file change
+is needed. No shared provider calls, real mail, fixed-port server, push or deployment.
+Real Mongo cancellation/majority/TTL, hosted login/quota and deployed browser
+messages remain release checks. The existing storage fail-open policy and
+already-issued write uncertainty remain; Retry-After is a capacity hint from an
+atomic snapshot and can become stale as other requests complete.

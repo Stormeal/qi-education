@@ -3,7 +3,7 @@ import { apiConfig, getServicesMode, hasMongoConfig, isHostedApi } from './confi
 import { getMongoDatabase } from './mongo.js';
 
 export type SignInPolicy = { limit: number; windowMs: number; lockMs: number };
-export type SignInReservation = { ticket: string } | { lockedUntil: number } | { busy: true };
+export type SignInReservation = { ticket: string } | { lockedUntil: number } | { busy: true; retryAt: number };
 export interface SignInAttemptRepository {
   reserve(key: string, now: number, policy: SignInPolicy, signal?: AbortSignal): Promise<SignInReservation>;
   complete(key: string, ticket: string, outcome: 'failure' | 'cancel', now: number, policy: SignInPolicy, signal?: AbortSignal): Promise<void>;
@@ -33,7 +33,11 @@ export class MongoSignInAttemptRepository implements SignInAttemptRepository {
     return this.change<SignInReservation>(key, now, document => {
       if (document.lockedUntil > now) return { value: { lockedUntil: document.lockedUntil } };
       this.prune(document, now, policy);
-      if (document.failures.length + document.pending.length >= policy.limit) return { value: { busy: true } };
+      if (document.failures.length + document.pending.length >= policy.limit) {
+        const retryAt = Math.min(...document.pending.map(attempt => attempt.expiresAt),
+          ...document.failures.map(time => time + policy.windowMs));
+        return { value: { busy: true, retryAt } };
+      }
       const ticket = this.identifier();
       document.pending.push({ ticket, expiresAt: now + policy.windowMs });
       this.expiry(document, now, policy);
