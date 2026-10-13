@@ -51,6 +51,12 @@ the keys are present. Cause, read from the hosted log after Alex signed the Verc
 Vercel are 137 days old, so the token was revoked or its Mux account or environment is no
 longer active. Not a code defect. Next: Alex creates a new Mux token, sets both values in
 Vercel and redeploys, then repeats the upload.
+Resolved by Alex 2026-10-13, configuration only: a new Mux token in `MUX_TOKEN_ID` and
+`MUX_TOKEN_SECRET` (the stored secret did not belong to the stored ID) ended the 401. The
+video then stayed on "Preparing upload": the token's Mux environment had no webhook, and the
+hosted request log showed no call to `/api/webhooks/mux`. Alex created the webhook there and
+set its signing secret as `MUX_WEBHOOK_SECRET`. Confirmed by Alex on the live site: a video
+uploaded and reached "Ready to play".
 Found in the same log, to investigate (API, not started, no defect recorded yet): after each
 of those two answers the API logged `Course lock release requires verified recovery` and
 `Unable to finish course operation coordination. CourseBusyError`, 16 and 46 seconds later
