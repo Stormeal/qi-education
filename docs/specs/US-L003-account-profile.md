@@ -152,7 +152,7 @@ No migration, backfill, new environment variable or users-sheet write is needed.
   failed acknowledgments, first-upsert races and hosted/local selection.
 - [x] Implement validation, projection, memory/Mongo adapters and route registration.
 - [x] Run focused tests, compatibility tests and all five required commands.
-- [ ] Review the owned diff, update architecture/spec/queue evidence, align the fresh
+- [x] Review the owned diff, update architecture/spec/queue evidence, align the fresh
   version, commit locally by explicit paths, then record the delivery commit.
 
 ## Verification and delivery
@@ -200,3 +200,10 @@ issues and separately passed the same 224 focused tests. Frontend accessibility
 and migration, real Mongo durability/hosted routing and deployment remain outside
 that review. Concurrent conflict detection is deliberately absent from this
 complete-profile last-committed-write-wins contract.
+
+Delivery: implementation committed locally as `56c7d36` (aligned version
+`0.1.170`, ordinary commit hook passed), preserving Claude's `05a4bd7` and
+`4a0ac60`. This documentation follow-up records the implementation ID and final
+queue handoff with another fresh aligned version for the required hook. No API
+behavior changed after the recorded verification. Claude owns final AC01/AC02
+browser acceptance and removal of US-L003 from the backlog after that check.
