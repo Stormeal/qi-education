@@ -5,11 +5,12 @@ import { vi } from 'vitest';
 import { CourseListItem, LoginState, CourseContentDocument } from '../app.models';
 import { CourseEditorRoute } from '../routes/course-editor-route';
 import { AppStateService } from './app-state.service';
+import { ConfirmService } from './confirm.service';
 import { CourseService } from './course.service';
 
 const course: CourseListItem = { id: 'course', ownerUserId: 'teacher', title: 'Live course', description: 'Original reviewed course.', level: 'Beginner', teacher: 'Owner',
   requirements: [], whatYoullLearn: [], audience: '', partOfCareer: '', careerGoals: [], status: 'published', createdAt: '2026-10-09', priceDkk: null,
-  thumbnailAssetId: '', isPremium: false, isBestseller: false, rating: 0, ratingCount: 0, category: 'Uncategorized', languages: [] };
+  thumbnailAssetId: '', isPremium: false, isBestseller: false, rating: 0, ratingCount: 0, category: 'Software Testing', languages: [] };
 function login(role: 'teacher' | 'admin'): LoginState { return { token: 'isolated-token', user: { id: 'teacher', email: 'teacher@example.test', displayName: 'Owner', role,
   status: 'active', createdAt: '', enrolledCourseIds: [] }, permissions: { canCreateCourses: true, hasAdminAccess: role === 'admin' } }; }
 function document(status: 'draft' | 'ready-for-review' | 'published') {
@@ -109,4 +110,36 @@ describe('US-T002 editor review flow', () => {
     expect(submissions).toBe(1); expect(state.courseReview()?.course.status).toBe('ready-for-review');
   });
 
+  describe('US-A002 missing category', () => {
+    async function uncategorized() {
+      await render('ready-for-review', 'admin');
+      state.courseReview.update(review => ({ ...review!, course: { ...review!.course, category: 'Uncategorized' } }));
+      const reply = document('published');
+      return vi.spyOn(TestBed.inject(CourseService), 'performReviewAction').mockResolvedValue(reply);
+    }
+    it('AC01 asks before publishing a course without a category and changes nothing on Cancel', async () => {
+      const decision = await uncategorized(); const confirm = TestBed.inject(ConfirmService);
+      const publishing = state.reviewCourse('publish');
+      await vi.waitFor(() => expect(confirm.open()?.title).toBe('Publish without a category?'));
+      expect(confirm.open()?.message).toContain('Catalog settings');
+      confirm.answer(false); await publishing;
+      expect(decision).not.toHaveBeenCalled(); expect(state.courseReview()?.course.status).toBe('ready-for-review');
+    });
+    it('AC01 publishes after "Publish anyway"', async () => {
+      const decision = await uncategorized(); const confirm = TestBed.inject(ConfirmService);
+      const publishing = state.reviewCourse('publish');
+      await vi.waitFor(() => expect(confirm.open()).not.toBeNull());
+      confirm.answer(true); await publishing;
+      expect(decision).toHaveBeenCalledTimes(1); expect(state.courseReview()?.course.status).toBe('published');
+    });
+    it('AC02 publishes a categorized course without a question, and never asks for other decisions', async () => {
+      await render('ready-for-review', 'admin'); const confirm = TestBed.inject(ConfirmService); const ask = vi.spyOn(confirm, 'ask');
+      const decision = vi.spyOn(TestBed.inject(CourseService), 'performReviewAction').mockResolvedValue(document('published'));
+      await state.reviewCourse('publish');
+      expect(ask).not.toHaveBeenCalled(); expect(decision).toHaveBeenCalledTimes(1);
+      state.courseReview.update(review => ({ ...review!, course: { ...review!.course, category: 'Uncategorized' } }));
+      await state.reviewCourse('archive');
+      expect(ask).not.toHaveBeenCalled();
+    });
+  });
 });

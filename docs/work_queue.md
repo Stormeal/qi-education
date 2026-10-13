@@ -15,16 +15,28 @@ access after archival) have no default and are Alex's. All defaults are recorded
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | Lock message browser check (US-P008-AC02 leftover). US-A002: ask before publishing a course without a category. US-L003 frontend: the profile form loads from and saves to the account | Everything under `app/` except the version lines, `docs/specs/US-A002-missing-category.md`, `docs/user_stories.md` | In progress |
-| Codex | US-L003 API and storage: `GET` and `PUT /users/me/profile` | See the [handoff](handoffs/US-L003-account-profile-codex.md) | Handed over 2026-10-13; not started |
+| Claude Code | Lock message browser check (US-P008-AC02 leftover). US-A002: ask before publishing a course without a category. US-L003 frontend: the profile form loads from and saves to the account | Everything under `app/` except the version lines, `docs/specs/US-A002-missing-category.md`, `docs/user_stories.md` | Lock message checked in a browser: after ten wrong passwords the login page shows "Too many sign-in attempts. Try again in 15 minutes." US-A002 delivered locally ([spec](specs/US-A002-missing-category.md)). US-L003 frontend in progress |
+| Codex | US-L003 API and storage: `GET` and `PUT /users/me/profile` | See the [handoff](handoffs/US-L003-account-profile-codex.md) | In progress 2026-10-13; main/base 4e465d9 confirmed. [Spec](specs/US-L003-account-profile.md) written first; next: failing HTTP/storage contract tests, implementation, five checks and local scoped commit. Claude owns frontend and final backlog removal |
 
 Reported by Alex 2026-10-13, during this session: a video upload answers "Video uploads are
 temporarily unavailable. Your draft is saved; try uploading again." That is the upload
 route's 503 when Mux refuses or does not answer the request for an upload address
 (`api/src/server.ts`, the `mux-upload` route). The hosted API reports Mux as configured, so
-the keys are present. The reason is only in the hosted API's log (`Mux upload creation
-failed`), which the lead cannot read. Not reproduced, no defect recorded yet. It goes ahead
-of the stories as soon as Alex supplies the log line. Next: Alex copies that line.
+the keys are present. Cause, read from the hosted log after Alex signed the Vercel CLI in
+(requests at 19:46:54 and 19:47:12 UTC, course `1602e5b5`): Mux answers
+`401 Unauthorized request` to `uploads.create`. `MUX_TOKEN_ID` and `MUX_TOKEN_SECRET` in
+Vercel are 137 days old, so the token was revoked or its Mux account or environment is no
+longer active. Not a code defect. Next: Alex creates a new Mux token, sets both values in
+Vercel and redeploys, then repeats the upload.
+Found in the same log, to investigate (API, not started, no defect recorded yet): after each
+of those two answers the API logged `Course lock release requires verified recovery` and
+`Unable to finish course operation coordination. CourseBusyError`, 16 and 46 seconds later
+and under the request that woke the instance. `withCourseLock` sends the answer inside the
+lock, so the release in `MongoCourseMutationLock.run` runs after the response and the host
+can pause it; its five-second limit then expires. The second upload acquired the lock 18
+seconds after the first, so the release did reach MongoDB that time. Worst case if it does
+not: the course answers "This course is being updated" until the 31-minute expiry. Every
+locked route has this order. Offered to Alex as the next Codex item.
 
 **Session 2026-10-12 — started by the user with "let's start working".** Branch: `main`.
 Base: `03e39dd` (local, 0.1.157; two commits not pushed). No confirmed defect is open. Picked

@@ -68,7 +68,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.167';
+  readonly appVersion = '0.1.168';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2012,6 +2012,10 @@ export class AppStateService {
   async reviewCourse(action: CourseReviewAction): Promise<void> {
     if (this.recoverableCourseDraft()) { this.courseReviewError.set('Restore or discard the local draft before making a review decision.'); return; }
     if (this.courseReviewPending() || this.courseSubmitting() || this.courseContentLoading() || this.courseThumbnailUploading() || this.attachmentUploadComponentId() || this.muxUploadComponentId()) return;
+    // US-A002: the category filters cannot find an uncategorized course, so publishing one is asked first.
+    if (action === 'publish' && (this.courseReview()?.course.category ?? 'Uncategorized') === 'Uncategorized' && !await this.confirm.ask({
+      title: 'Publish without a category?', confirmLabel: 'Publish anyway',
+      message: 'This course has no category, so learners who filter the catalog by category will not find it. To set one, cancel, open the course page and choose Catalog settings.' })) return;
     const courseId = this.courseEditingId(), token = this.loginState()?.token;
     if (!courseId || !token || !this.canUseCourseEditor()) return;
     if (this.courseEditorBufferDirty()) { this.courseReviewError.set('Finish the open lesson editor before submitting for review.'); return; }

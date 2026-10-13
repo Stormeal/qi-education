@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-11. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-13. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -10,7 +10,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
-| US-A002 | Warn about missing category before publication | Proposed | P2 | T002; warning/blocking decision | DEF-012 prevention |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
@@ -35,30 +34,8 @@ numbering are delivered work. Their contracts and evidence remain in `specs/`,
 
 ## Teacher journey
 
-### US-A002 - Warn about missing category before publication
-
-**As an admin, I want missing category metadata called out before publication,
-so that learners can find released courses using category filters.**
-
-State: Proposed. Discovered through DEF-012's confirmed data cause on 2026-10-09.
-Depends on US-T002's publication contract. Decisions: warning versus blocking;
-when Uncategorized is an intentional approved category; legacy course handling.
-The criteria below propose a warning; no publication behavior is changed now.
-
-```gherkin
-Feature: Explicit catalog category review
-  Scenario: US-A002-AC01 Missing category
-    Given a course is otherwise ready to publish and has no assigned category
-    When I prepare to confirm publication
-    Then I see a missing category warning and can edit its category
-    And the course remains unchanged until I confirm an action
-
-  Scenario: US-A002-AC02 Assigned category
-    Given I have selected and saved a valid course category
-    When I publish the course
-    Then its card displays that category
-    And the course is included by the matching category filter
-```
+No open teacher or admin story. US-A002 (category warning) was delivered 2026-10-13;
+see its [spec](specs/US-A002-missing-category.md).
 
 ## Learner journey
 

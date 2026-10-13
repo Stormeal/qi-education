@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-A002-AC01/02. Owner: Claude Code (frontend only; no API change).
-- State: In progress, selected 2026-10-13 by the lead as the first open story in backlog order.
+- State: Done locally 2026-10-13 (delivery commit: the `feat(US-A002)` commit in this file's history). Selected by the lead as the first open story in backlog order.
 - Source: DEF-012 (seven published courses had no category, so the filters missed them).
 
 ## Decisions (confirm or change)
@@ -20,7 +20,7 @@ The story left three decisions open. The lead took the story's own proposal:
 
 In the course editor's Publishing step, "Publish revision" on a course whose category is
 "Uncategorized" opens the app's confirm dialog. It says that category filters will not
-find the course and that the category is set under "Catalog details" on the course page.
+find the course and that the category is set under "Catalog settings" on the course page.
 "Publish anyway" publishes; Cancel changes nothing. A course with a category publishes
 as before, without a question.
 
@@ -28,5 +28,8 @@ as before, without a question.
 
 | Scenario | Check |
 | --- | --- |
-| US-A002-AC01 Missing category | to be recorded |
-| US-A002-AC02 Assigned category | to be recorded |
+| US-A002-AC01 Missing category | `course-review.spec.ts`, "US-A002 missing category": asks first, Cancel sends nothing, "Publish anyway" publishes. Browser, in-memory API, demo admin: the dialog opened with focus on Cancel; Cancel left the course "Ready for review" and returned focus to the button; "Publish anyway" published it |
+| US-A002-AC02 Assigned category | Same spec: no question for a categorized course or for other decisions. Browser: a second waiting course was given "API Testing" in Catalog settings, published without a question, and appeared in the catalog under the "API Testing" filter with that label |
+
+Not verified: hosted behavior, a screen reader. The dialog could not be captured as a picture
+(the browser pane drew it tiled); its text and focus were read from the page instead.
