@@ -68,7 +68,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.168';
+  readonly appVersion = '0.1.169';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -780,6 +780,13 @@ export class AppStateService {
     };
 
     try {
+      const saved = await this.profileService.saveAccount(this.loginState()?.token ?? '', details);
+      if (this.loginState()?.user.id !== userId) return;
+      if (!saved.ok) {
+        // The edits stay in the form, unsaved, so the save can be retried.
+        this.profileError.set(`Your profile was not saved. ${saved.message}`);
+        return;
+      }
       this.profileService.saveProfile(userId, details);
       this.profileBio.set(details.bio);
       this.profileJobTitle.set(details.jobTitle);
@@ -802,8 +809,27 @@ export class AppStateService {
     this.profileSnapshot.set(this.serializeProfile());
     this.profileSaved.set(false);
     this.profileError.set('');
+    const userId = this.loginState()?.user.id, token = this.loginState()?.token;
+    if (!userId || !token) return;
+    const deviceSnapshot = this.profileSnapshot();
+    // US-L003: the account's profile wins over the device copy, unless the user is already typing.
+    void this.profileService.loadAccount(token).then((account) => {
+      if (!account || this.loginState()?.user.id !== userId || this.profileDirty()) return;
+      if (account.updatedAt === null) {
+        // Never saved to the account: hand over what this device holds, once.
+        if (deviceSnapshot !== this.serializeProfile({ bio: '', jobTitle: '', company: '', learningGoals: '', avatarColor: DEFAULT_AVATAR_COLOR })) void this.profileService.saveAccount(token, profile);
+        return;
+      }
+      // A teacher's or admin's "About you" is the public description, read below.
+      if (!this.profileBioPublic()) this.profileBio.set(account.bio);
+      this.profileJobTitle.set(account.jobTitle);
+      this.profileCompany.set(account.company);
+      this.profileLearningGoals.set(account.learningGoals);
+      this.profileAvatarColor.set(account.avatarColor);
+      this.profileSnapshot.set(this.serializeProfile());
+      this.profileService.saveProfile(userId, { ...account, bio: this.profileBio() });
+    });
     if (!this.profileBioPublic()) return;
-    const userId = this.loginState()?.user.id;
     // The effect that mirrors the token runs later; a read without it would be a 401 and end the session.
     this.instructorProfiles.token.set(this.loginState()?.token ?? '');
     // The account's description wins over the device copy, unless the user is already typing.
@@ -814,8 +840,8 @@ export class AppStateService {
     });
   }
 
-  private serializeProfile(): string {
-    return JSON.stringify({
+  private serializeProfile(details?: UserProfileDetails): string {
+    return JSON.stringify(details ?? {
       bio: this.profileBio().trim(),
       jobTitle: this.profileJobTitle().trim(),
       company: this.profileCompany().trim(),
