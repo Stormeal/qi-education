@@ -65,6 +65,8 @@ any code.
 - A failure caused by the other agent's files is reported, not fixed.
 - Claude's browser checks use ports 3001 and 4200. Codex uses in-process tests or other ports.
 - While Codex has uncommitted API changes, do not rebuild `api/dist` for a browser check.
+- Restarting the isolated API makes the session stored in the browser invalid: the first
+  requests after a restart answer 401. Sign in again before reading anything into them.
 
 ### Check routine
 
@@ -114,7 +116,7 @@ npm run api:test          # Vitest backend tests
 npm run verify:journeys
 
 # Run a single test file
-npm --prefix app test -- --run --reporter=verbose <path-to-spec>
+(cd app && npx ng test --watch=false --include <path-to-spec>)   # `ng test` has no --run
 npm --prefix api test -- <path-to-test>
 
 # Health check for local configuration
@@ -193,6 +195,8 @@ Paths are curated by admins and stored in MongoDB; a learner saves one selected 
 4. Mux fires a webhook back to the API (`POST /webhooks/mux`, also `/api/webhooks/mux`)
 5. Webhook handler reads the compressed passthrough payload (`{ c, s, m }` = course/section/component IDs) to locate the target component and writes the Mux asset/playback IDs to MongoDB
 
+"Video uploads are temporarily unavailable" in the editor means Mux refused step 2 (for example a revoked token answers 401). The reason is only in the hosted API's log, as `Mux upload creation failed`.
+
 ### Roles & Course Lifecycle
 
 Roles: `student | teacher | admin`
@@ -213,6 +217,8 @@ owner remain admin-editable only. Release integration checks are tracked in DEF-
 - Frontend → GitHub Pages (`app:build:pages`)
 - API → Vercel Serverless Functions; environment variables managed via Vercel (`npm run env:pull`)
 - Health endpoints: `/health`, `/health/config`, `/health/auth`, `/health/content`
+- The hosted API's log: `npx vercel logs` from the repo root, once `npx vercel login` has been run. The Hobby plan keeps only the last 30 minutes, so read it right after the failure; `--since 1h` is refused.
+- A route wrapped in `withCourseLock` sends its answer before the course lock is released. On Vercel the release can be paused after the response and then logs `Course lock release requires verified recovery`; the lock usually is released anyway, otherwise it expires after 31 minutes.
 - A push to `main` deploys the API on Vercel immediately, but the frontend only if the Pages workflow's tests pass. A failing test therefore leaves a new API serving an old frontend, so keep API changes backward compatible and run both test suites and `npm run app:build:pages` before pushing.
 
 ## Capturing Learnings
