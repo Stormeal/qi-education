@@ -1,8 +1,30 @@
 # Work queue
 
-Updated: 2026-10-12. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-13. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**Session 2026-10-13 — started by the user with "let's work on the next job".** Branch: `main`.
+Base: `63f4d25` (pushed, 0.1.166). No confirmed defect is open and no Active work is
+unfinished. Picked by the lead, in order: the open check of the last increment (the lock
+message on the login page in a browser), then the first open stories in backlog order whose
+decisions have a default: US-A002 (the story proposes a warning) and US-L003 (limits taken
+from the existing profile page). US-L001 is skipped: its decisions (payment, preview,
+access after archival) have no default and are Alex's. All defaults are recorded as
+"confirm or change".
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | Lock message browser check (US-P008-AC02 leftover). US-A002: ask before publishing a course without a category. US-L003 frontend: the profile form loads from and saves to the account | Everything under `app/` except the version lines, `docs/specs/US-A002-missing-category.md`, `docs/user_stories.md` | In progress |
+| Codex | US-L003 API and storage: `GET` and `PUT /users/me/profile` | See the [handoff](handoffs/US-L003-account-profile-codex.md) | Handed over 2026-10-13; not started |
+
+Reported by Alex 2026-10-13, during this session: a video upload answers "Video uploads are
+temporarily unavailable. Your draft is saved; try uploading again." That is the upload
+route's 503 when Mux refuses or does not answer the request for an upload address
+(`api/src/server.ts`, the `mux-upload` route). The hosted API reports Mux as configured, so
+the keys are present. The reason is only in the hosted API's log (`Mux upload creation
+failed`), which the lead cannot read. Not reproduced, no defect recorded yet. It goes ahead
+of the stories as soon as Alex supplies the log line. Next: Alex copies that line.
 
 **Session 2026-10-12 — started by the user with "let's start working".** Branch: `main`.
 Base: `03e39dd` (local, 0.1.157; two commits not pushed). No confirmed defect is open. Picked
