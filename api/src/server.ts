@@ -40,6 +40,8 @@ import { CareerPathConflictError, createCareerPathRepository, type CareerPathRep
 import { registerLearningProgressRoutes } from './learningProgress.js';
 import { registerInstructorProfileRoutes } from './instructorProfileRoutes.js';
 import { createInstructorProfileRepository, type InstructorProfileRepository } from './instructorProfileRepository.js';
+import { registerAccountProfileRoutes } from './accountProfileRoutes.js';
+import { createAccountProfileRepository, type AccountProfileRepository } from './accountProfileRepository.js';
 import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
   apiConfig,
@@ -100,6 +102,7 @@ type ServerDependencies = {
   passwordResetOptions?: PasswordResetOptions;
   careerPathRepository?: CareerPathRepository;
   instructorProfileRepository?: InstructorProfileRepository;
+  accountProfileRepository?: AccountProfileRepository;
   learningProgressRepository?: LearningProgressRepository;
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
@@ -126,6 +129,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
   const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
+  const accountProfiles = dependencies.accountProfileRepository ?? createAccountProfileRepository();
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
@@ -403,6 +407,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use(['/auth/password-reset', '/api/auth/password-reset', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'no-store'); next();
   });
+  app.use(['/users/me/profile', '/api/users/me/profile'], (_request, response, next) => {
+    response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
+  });
   app.use(withRequestBodyErrors(express.json()));
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
@@ -588,6 +595,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   registerInstructorProfileRoutes(app, { authenticate: authenticateRequest(auth), requireCreator: requireCourseCreator,
     requireAdmin, profiles: instructorProfiles, auth, courses });
+  registerAccountProfileRoutes(app, { authenticate: authenticateRequest(auth), profiles: accountProfiles });
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
     try {

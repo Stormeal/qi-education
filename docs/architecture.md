@@ -54,7 +54,9 @@ current quiz. Legacy quiz IDs remain local until a new verified passing attempt.
 The previous grading route remains unchanged for existing clients. MongoDB
 stores account/course sets beside career paths; without configuration the
 repository is in-memory. Real Mongo and hosted two-device checks remain pending.
-Profile goals stay device-local (US-L003).
+US-L003 adds private account-profile persistence for bio, job title, company,
+learning goals and avatar color; browser caching/restoration is owned by the
+profile service. Public instructor descriptions remain separate.
 
 Selection preserves atomic last-committed-write-wins replacement. Its unchanged
 DTO identifies the chosen path, path revision and selection timestamp; GET reads
@@ -85,7 +87,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price/catalog fields, feedback triage, user search/role/reset/status and recent change log | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
-| Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance; per-account public instructor description API | Legacy quizzes need fresh passing evidence; other profile details remain local; hosted Mongo checks pending |
+| Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance; private account profile and separate public instructor description APIs | Legacy quizzes need fresh passing evidence; hosted Mongo and combined profile browser checks pending |
 
 Statuses are `draft`, `ready-for-review`, `published`, and `archived`. Explicit
 review actions enforce transitions. One private working revision may coexist with
@@ -136,7 +138,7 @@ future organization, not paths a fresh contributor can navigate today.
 | `services/course.service.ts` | Course requests, thumbnail warmup, attachment XMLHttpRequest |
 | `services/learning-progress.service.ts` | Account completion union/retry, local cache, synchronous current-outline summaries and session boundaries |
 | `services/auth.service.ts`, `session.service.ts` | Auth requests and stored token/session restoration |
-| `services/profile.service.ts` | Other profile data keyed by user ID in localStorage; instructor description has separate account API storage |
+| `services/profile.service.ts` | Private profile account API and user-ID browser cache; instructor description has separate account API storage |
 
 Routes: `/`, `/courses`, `/courses/new`, `/courses/:id`, `/courses/:id/edit`,
 `/library`, `/library/:id`, `/profile`, `/admin`, `/terms`. Unknown routes redirect
@@ -196,6 +198,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /admin/users/changes` | Admin only; no-store; newest 50 safe Change snapshots; empty array when none, safe 503 when log unavailable; no password/enrollment/document extras |
 | `POST /admin/users/:userId/password-reset` | Admin only; no-store; ordinary shared reset link and three-mail limit; 202 target email, missing 404, inactive/limit 409, unavailable/failed mail 503; no password/token in response |
 | `GET /auth/me` (also `/me`) | Active bearer session |
+| `GET /users/me/profile`, `PUT /users/me/profile` | Active session, every role; own private account only; exact `{ bio, jobTitle, company, learningGoals, avatarColor, updatedAt }`; never-saved empty texts/default color/null timestamp; complete trimmed replacement, 400 validation/no write, 401 ordinary auth, safe 503 storage; private/no-store on both prefixes |
 | `GET /users/me/instructor-profile`, `PUT /users/me/instructor-profile` | Active teacher/admin; own description only, trimmed string 0..280, empty clears; 200 `{ description }`; 400 invalid input, 401 invalid/missing session, 403 student |
 | `GET /instructors` | Public; ignores bearer token; only `{ description, courseIds }` for non-empty descriptions owning published live courses; private/no-store |
 | `GET /admin/instructor-profiles`, `DELETE /admin/instructor-profiles/:userId` | Admin; list only `{ userId, displayName, description }` for every non-empty stored profile; clear returns 204 even when absent; 401/403 otherwise |
@@ -402,6 +405,38 @@ Local/test memory stores return isolated snapshots. Real Mongo durability and
 combined browser acceptance remain release checks; see the
 [instructor description spec](specs/US-T007-instructor-description.md).
 
+US-L003 adds `accountProfile.ts`, `accountProfileRepository.ts` and
+`accountProfileRoutes.ts`; `server.ts` injects/registers this separate dependency
+without altering existing route DTOs/statuses or the users spreadsheet. The only
+new endpoints are GET and PUT `/users/me/profile`, with the existing `/api`
+normalization. Authentication resolves the active account first; every role can
+read/replace only its own profile. No target-user, admin-list or public private-profile
+endpoint exists. Private bio never flows into instructor descriptions.
+
+The exact six-field response returns empty texts, `#2f4f43` and `updatedAt: null`
+for an absent document, without writing defaults. PUT requires all five strings:
+trimmed bio/learningGoals at most 280 and jobTitle/company at most 120; avatarColor
+exactly `#` and six ASCII hex digits, preserving case. Unknown fields and client
+timestamps are ignored. Empty saves remain stored with a server UTC ISO timestamp
+so they cannot be mistaken for never-saved profiles. Both prefixes set
+`Cache-Control: private, no-store` and vary on Authorization before JSON parsing,
+including errors. Invalid input is message-only 400 with no write; failed profile
+reads/writes return fixed message-only 503 without logging provider/profile data.
+Existing centralized authentication behavior is retained.
+
+Hosted documents use user ID as `_id` in
+`<MONGODB_COURSE_CONTENT_COLLECTION>_account_profiles`, containing only the five
+fields and `updatedAt`. Per-user atomic upserts await majority acknowledgment,
+following instructor-profile handling of first-save unique-ID races (one
+replacement retry, honest failure if the row vanished). Successful responses
+await persistence. Concurrent saves remain last committed write wins; a timed-out
+write may have an uncertain outcome. No revision precondition, migration, new
+setting or spreadsheet backfill is introduced. Clocks are injectable. Every
+nonhosted local/test run uses a fresh isolated memory store, including local
+shared-service opt-in; hosted missing Mongo fails closed. Real Mongo durability,
+hosted API and combined two-device browser acceptance remain release checks in
+the [account profile spec](specs/US-L003-account-profile.md).
+
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
 | Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts in isolated/test or unconfigured shared mode; unavailable in unconfigured hosted mode |
@@ -411,6 +446,7 @@ combined browser acceptance remain release checks; see the
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
 | Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository in isolated/test or unconfigured shared mode; operations unavailable in unconfigured hosted mode |
+| Private account profiles | MongoAccountProfileRepository, separate per-user collection in hosted mode | InMemoryAccountProfileRepository for all nonhosted local/test runs; operations unavailable in unconfigured hosted mode |
 | Password reset token hashes and rolling-hour reservations | MongoPasswordResetRepository, per-user versioned token document in shared/hosted mode | InMemoryPasswordResetRepository in isolated/test or unconfigured shared mode; missing hosted Mongo refuses operations |
 | Sign-in failures, pending checks and account locks | MongoSignInAttemptRepository, SHA-256 normalized-email key with CAS revision and TTL expiry in shared/hosted mode | InMemorySignInAttemptRepository in isolated/test or unconfigured shared mode; missing/failing hosted Mongo allows ordinary login with a safe warning |
 
