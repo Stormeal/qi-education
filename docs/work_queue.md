@@ -18,6 +18,19 @@ access after archival) have no default and are Alex's. All defaults are recorded
 | Claude Code | Lock message browser check (US-P008-AC02 leftover). US-A002: ask before publishing a course without a category. US-L003 frontend: the profile form loads from and saves to the account | Everything under `app/` except the version lines, `docs/specs/US-A002-missing-category.md`, `docs/user_stories.md` | Lock message checked in a browser: after ten wrong passwords the login page shows "Too many sign-in attempts. Try again in 15 minutes." US-A002 delivered locally ([spec](specs/US-A002-missing-category.md)). US-L003 frontend delivered locally: the profile form reads `GET /users/me/profile` and saves with `PUT`; a failed save keeps the edits and says so; a profile that exists only on the device is sent to an account that has none, once; for teachers and admins "About you" stays the public description. 283 frontend tests pass (seven new in `profile.service.spec.ts`). Browser, API without the new route yet: the save failure message, the kept edit and the kept session. Not verified: load and save against Codex's API (waits for the check), `npm run app:build:pages`. Next: check Codex |
 | Codex | US-L003 API and storage: `GET` and `PUT /users/me/profile` | See the [handoff](handoffs/US-L003-account-profile-codex.md) | API/storage delivered locally 2026-10-13; main/base 4e465d9 confirmed, Claude frontend 4a0ac60 preserved. [Spec](specs/US-L003-account-profile.md) written first; implementation 56c7d36 (0.1.170), delivery record in this docs(US-L003) commit with a fresh aligned version/hook. New private own-account routes/aliases, exact DTO/defaults, trimmed complete replacement, safe 400/401/503 and private/no-store; separate hosted Mongo and local/test memory, instructor routes unchanged. All five checks pass: API 1281/50, six journeys, API build, app 283/36, Pages build (existing style/test-setup/jsdom warnings); 164 new cases, focused 224, independent review clear. Real Mongo durability/hosted API and combined browser/keyboard/two-device behavior unverified; no shared services, real mail, ports 3001/4200 or push. No existing defect discovered or outside-file implementation needed. Next: Claude checks API/frontend AC01/AC02, then removes US-L003 from docs/user_stories.md only after full acceptance; Alex owns release/deployment order. Codex stopped |
 
+Lead check 2026-10-13 on `778be2c`: Codex stayed within its files and the version lines. New:
+`GET` and `PUT /users/me/profile` in their own module, eight lines of wiring in
+`api/src/server.ts`; no existing route changed. 1281 API and 283 frontend tests, six journeys
+and the API and Pages builds pass. Browser, in-memory API, as the demo student: job title and
+goals saved ("Saved to your account."), the browser's own copy deleted, and after a reload
+both came back from the account. The demo admin got an empty profile, a request without a
+session 401, and a 121-character job title 400. Noted, not changed: that 400's text is
+technical ("jobTitle: Too big: expected string to have <=120 characters"); the form's length
+limits keep users from seeing it. US-L003 and US-A002 are Done locally and out of the backlog.
+Not verified: real MongoDB, hosted behavior, the hand-over of a device-only profile in a
+browser (unit-tested), a keyboard-only walk.
+Next: Alex decides on the push; the new Mux token; the lock release investigation.
+
 Reported by Alex 2026-10-13, during this session: a video upload answers "Video uploads are
 temporarily unavailable. Your draft is saved; try uploading again." That is the upload
 route's 503 when Mux refuses or does not answer the request for an upload address

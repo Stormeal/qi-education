@@ -11,7 +11,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | ID | Story | State | Priority | Dependencies | Defects |
 | --- | --- | --- | --- | --- | --- |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
-| US-L003 | Keep profile details across devices | Proposed | P3 | None | None |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
@@ -67,28 +66,6 @@ Feature: Enrollment and learning access
     When I request its learning content or resources
     Then only the agreed public preview is available
     And draft lesson content and quiz scoring answers are not disclosed
-```
-
-### US-L003 — Keep profile details across devices
-
-**As a learner, I want my profile details saved to my account, so that my goals
-and bio are available wherever I sign in.**
-
-State: Proposed. Current limitation: `ProfileService` stores details in localStorage.
-Decisions: approved profile fields/limits, storage choice, and privacy scope.
-
-```gherkin
-Feature: Account profile persistence
-  Scenario: US-L003-AC01 Save and restore my profile
-    Given I am signed in
-    When I save valid profile details and sign in on another device
-    Then the saved details are restored for my account
-
-  Scenario: US-L003-AC02 Preserve edits on failure
-    Given I have changed my profile details
-    When saving fails or validation rejects a field
-    Then I see a useful error and my edits remain available
-    And another account cannot read or change my private profile details
 ```
 
 ### US-L007 — Present the primary recommendation first
