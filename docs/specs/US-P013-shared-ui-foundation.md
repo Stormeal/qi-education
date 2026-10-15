@@ -186,6 +186,7 @@ meaning). Components use `var(--…)`; templates may use the generated utilities
 | `--color-highlight-soft` | `#fff4e1` | Current row, hover warmth |
 | `--color-highlight-ink` | `#78350f` | Text on highlight fills (8.3:1 on the soft fill) |
 | `--color-focus` | `#b45309` | The focus ring (5.0:1 on white) |
+| `--color-focus-inverse` | `#ffd08e` | Focus ring on dark bands (`data-surface="dark"`); at least 3:1 on every hero colour |
 | `--color-link` | `#5b3df5` | Text links and timestamp links only |
 | `--color-danger` | `#991b1b` | Destructive actions, errors |
 | `--color-danger-soft` | `#fff5f5` | Error backgrounds |
@@ -196,7 +197,7 @@ The video hero gradient `#16241f → #29463c → #80592f` becomes `--gradient-he
 ### Type, space, shape, depth, motion
 
 - Fonts: `--font-display` Bricolage Grotesque, `--font-body` Instrument Sans,
-  `--font-mono` JetBrains Mono, moved from `styles.scss` into `@theme`.
+  `--font-mono` JetBrains Mono, defined in `@theme`.
 - Type scale: `--text-caption` 12px, `--text-meta` 13px, `--text-body` 14px,
   `--text-lead` 16px, `--text-title-sm` 18px, `--text-title` 22px, `--text-title-lg` 28px,
   `--text-display` 42px. Body line height 1.55; headings 1.15 with `text-wrap: balance`.
@@ -211,8 +212,13 @@ The video hero gradient `#16241f → #29463c → #80592f` becomes `--gradient-he
 ### Global focus ring
 
 In `styles.scss`: `:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }`.
-The four component-local green focus rules are removed. Inputs keep their border change
-on focus and also get the ring.
+The component-local focus rings (about 20 rules in 13 stylesheets, including the faint
+amber input outlines) are removed, so the global ring is the only one; the quiz answer row
+is the one exception, because its input is hidden and the row re-draws the ring with the
+same colour. Inputs keep their border change on focus and also get the ring. On dark
+bands (`data-surface="dark"`: course view hero, editor hero, dashboard hero stat) the
+ring uses `--color-focus-inverse`. `scripts/ui-foundation/focus-ring.test.mjs` fails when
+any other stylesheet draws a focus outline.
 
 ## Shared components
 
@@ -329,9 +335,9 @@ intended.
 
 ## Implementation checklist
 
-1. Design values in `tailwind.css`; fonts moved from `styles.scss`; global focus ring;
-   design-value contrast test.
-2. Colour check script, baseline and its spec; guard spec with the removed-pattern list
+1. Design values in `tailwind.css`; fonts defined in `@theme`; global focus ring;
+   design-value contrast test and focus-ring regression test (node checks).
+2. Colour check script, baseline and its node test; removed-pattern node check
    (starts failing, which is expected until step 9).
 3. Button component with tests (variants, sizes, default `type`, loading, disabled,
    anchor, label).
@@ -340,7 +346,7 @@ intended.
 6. Progress bar and chip with tests (clamping, ARIA values, variants).
 7. Migrate `app-button` usages page by page; remove the element component.
 8. Migrate `cp-btn`, `cpe-btn`, learning, builder, editor, login and draft-status buttons.
-9. Migrate both tab sets and the progress bars; guard spec passes.
+9. Migrate both tab sets and the progress bars; removed-pattern check passes.
 10. Exact-match colour replacement; baseline written.
 11. Update `design/course-ui-design-dna.md` (primary green, focus colour, component list).
 12. Full checks and a browser walk of every page with a keyboard.

@@ -209,7 +209,7 @@
 
 /* The real box is invisible, so the row shows keyboard focus. */
 .learning-quiz-answer:has(input:focus-visible) {
-  outline: 2px solid #2f4f43;
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -868,7 +868,6 @@
 
 .price-field input:focus,
 .price-field select:focus {
-  outline: 2px solid rgba(245, 158, 11, 0.24);
   border-color: rgba(245, 158, 11, 0.64);
   background: #fffdf9;
 }

@@ -24,7 +24,7 @@
     [revisionId]="courseReview()?.revisionId ?? null" [pending]="courseSubmitting() || reviewPending()"
     (restored)="draftRestored.emit()" (discarded)="recoveryDiscarded.emit()" (compared)="latestRequested.emit()"
     (reconciled)="draftReconciled.emit()" (latestAccepted)="latestAccepted.emit()" />
-  <header class="course-editor-hero">
+  <header class="course-editor-hero" data-surface="dark">
     <div class="course-editor-hero-content">
       <nav class="course-breadcrumb" aria-label="Course editor breadcrumbs">
         <button type="button" (click)="courseCanceled.emit()">Courses</button>

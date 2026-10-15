@@ -33,6 +33,7 @@ test('colours match the spec table', () => {
     '--color-highlight-soft': '#fff4e1',
     '--color-highlight-ink': '#78350f',
     '--color-focus': '#b45309',
+    '--color-focus-inverse': '#ffd08e',
     '--color-link': '#5b3df5',
     '--color-danger': '#991b1b',
     '--color-danger-soft': '#fff5f5',
@@ -99,6 +100,14 @@ test('focus ring reaches 3:1 on every surface', () => {
   for (const bg of ['--color-surface-card', '--color-surface-page', '--color-surface-sunken']) {
     const ratio = contrastRatio(v('--color-focus'), v(bg));
     assert.ok(ratio >= 3, `focus on ${bg} = ${ratio.toFixed(2)}`);
+  }
+});
+
+test('inverse focus ring reaches 3:1 on dark bands', () => {
+  assert.equal(v('--color-focus-inverse'), '#ffd08e');
+  for (const bg of ['#16241f', '#29463c', '#80592f', '#345247', '#8f6336']) {
+    const ratio = contrastRatio(v('--color-focus-inverse'), bg);
+    assert.ok(ratio >= 3, `inverse focus on ${bg} = ${ratio.toFixed(2)}`);
   }
 });
 
