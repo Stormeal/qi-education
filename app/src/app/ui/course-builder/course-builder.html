@@ -412,6 +412,7 @@
                                 appIconButton="danger"
                                 size="sm"
                                 [label]="'Delete answer ' + (answerIndex + 1)"
+                                [hint]="question.answers.length <= quizMinAnswers ? 'A question needs at least two answers' : null"
                                 [disabled]="courseContentSaving() || courseSubmitting() || question.answers.length <= quizMinAnswers"
                                 (click)="removeQuizAnswer(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex)"
                               >
@@ -630,6 +631,7 @@
                   <input
                     class="mux-file-input"
                     type="file"
+                    hidden
                     [accept]="attachmentAccept(component)"
                     [id]="attachmentInputId(component)"
                     [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"

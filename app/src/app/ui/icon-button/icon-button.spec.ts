@@ -8,6 +8,7 @@ import { IconButton } from './icon-button';
     <button appIconButton label="Remove section" id="plain"><svg width="16" height="16"></svg></button>
     <button appIconButton [label]="'Move step ' + n + ' up'" id="dynamic"></button>
     <button appIconButton="danger" size="sm" label="Delete" id="danger"></button>
+    <button appIconButton label="Delete answer 1" hint="Needs two answers" id="hinted"></button>
     <a appIconButton="ghost" label="Open" href="/x" id="link"></a>
   `,
 })
@@ -43,6 +44,12 @@ describe('IconButton', () => {
     const el = setup();
     expect(el('dynamic').getAttribute('aria-label')).toBe('Move step 2 up');
     expect(el('dynamic').getAttribute('title')).toBe('Move step 2 up');
+  });
+
+  it('shows a hint as the tooltip while the label stays the accessible name', () => {
+    const el = setup();
+    expect(el('hinted').getAttribute('aria-label')).toBe('Delete answer 1');
+    expect(el('hinted').getAttribute('title')).toBe('Needs two answers');
   });
 
   it('reflects variant and size', () => {

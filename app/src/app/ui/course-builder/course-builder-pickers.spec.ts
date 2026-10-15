@@ -7,7 +7,7 @@ describe('US-P013 course builder file pickers', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
   afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
 
-  function open(type: 'video' | 'resources') {
+  function open(type: 'video' | 'resources' | 'text') {
     const fixture = TestBed.createComponent(CourseBuilder);
     const component = { id: 'c1', title: 'Lesson', type, content: '', resourceUrl: '', durationMinutes: 1, attachments: [] } as unknown as CourseComponent;
     fixture.componentRef.setInput('courseContent', { _id: 'course', createdAt: '', updatedAt: '', sections: [{ id: 's1', title: 'One', components: [component] }] });
@@ -40,5 +40,25 @@ describe('US-P013 course builder file pickers', () => {
     const input = host.querySelector<HTMLInputElement>('input[type="file"]')!;
     expect(input.disabled).toBe(true);
     expect(input.closest('label')!.getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('keeps the rich-text toolbar input out of the tab order', () => {
+    const { host } = open('text');
+    const input = host.querySelector<HTMLInputElement>('.rich-text-toolbar input[type="file"]')!;
+    expect(input.hidden || getComputedStyle(input).display === 'none').toBe(true);
+  });
+
+  it.each([
+    ['video', 'mux-video-upload-c1', 'courseComponentMuxVideoSelected'],
+    ['resources', 'component-attachment-c1', 'courseComponentAttachmentSelected'],
+  ] as const)('passes the file chosen in the %s picker to the builder output', (type, id, output) => {
+    const { fixture, host } = open(type);
+    const emitted = vi.fn();
+    (fixture.componentInstance[output] as { subscribe(fn: (e: unknown) => void): unknown }).subscribe(emitted);
+    const input = host.querySelector<HTMLInputElement>(`label input#${id}`)!;
+    const file = new File(['x'], 'lesson.mp4');
+    Object.defineProperty(input, 'files', { configurable: true, value: [file] });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(emitted).toHaveBeenCalledWith(expect.objectContaining({ sectionIndex: 0, componentIndex: 0, file }));
   });
 });

@@ -548,7 +548,7 @@ select:focus {
 }
 
 /* Visually hidden but focusable: the picker label shows the focus ring through :focus-within. */
-.mux-file-input {
+label[appButton] .mux-file-input {
   position: absolute;
   width: 1px;
   height: 1px;

@@ -15,7 +15,7 @@ export type IconButtonSize = 'sm' | 'md' | 'lg';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.aria-label]': 'label()',
-    '[attr.title]': 'label()',
+    '[attr.title]': 'hint() ?? label()',
     '[attr.data-variant]': 'appIconButton()',
     '[attr.data-size]': 'size()',
     '[attr.type]': 'isNativeButton ? type() : null',
@@ -26,6 +26,8 @@ export class IconButton {
     transform: (value) => value || 'default',
   });
   readonly label = input.required<string>();
+  /** Optional tooltip text that replaces the label as the title; the label stays the accessible name. */
+  readonly hint = input<string | null>(null);
   readonly size = input<IconButtonSize>('md');
   readonly type = input<'button' | 'submit' | 'reset'>('button');
 
