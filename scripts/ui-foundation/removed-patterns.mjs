@@ -12,7 +12,8 @@ function matchesFor(entry, text, path) {
     for (const m of text.matchAll(re)) indexes.push(m.index);
   };
   if (entry.kind === 'element') {
-    if (!path.endsWith('.scss')) push(new RegExp(`</?${name}(?![\\w-])`, 'g'));
+    if (path.endsWith('.scss')) push(new RegExp(`(?<![\\w.#-])${name}(?![\\w-])`, 'g'));
+    else push(new RegExp(`</?${name}(?![\\w-])`, 'g'));
   } else {
     if (!path.endsWith('.scss')) {
       push(new RegExp(`\\[class\\.${name}\\]`, 'g'));

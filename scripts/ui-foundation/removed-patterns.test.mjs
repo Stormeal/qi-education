@@ -43,3 +43,13 @@ test('finds the element in a TS template and closing tags once per line', () => 
     { path: 'a.ts', line: 1, id: 'app-button' },
   ]);
 });
+
+test('flags a removed element used as a selector in SCSS', () => {
+  assert.deepEqual(find('a.scss', '.x {}\n.editor-action-bar app-button {\n}'), [
+    { path: 'a.scss', line: 2, id: 'app-button' },
+  ]);
+});
+
+test('does not flag .app-button, app-buttons or #app-button in SCSS', () => {
+  assert.deepEqual(find('a.scss', '.app-button { }\napp-buttons { }\n#app-button { }'), []);
+});
