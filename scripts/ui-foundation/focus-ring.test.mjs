@@ -7,7 +7,7 @@ import path from 'node:path';
 const srcDir = fileURLToPath(new URL('../../app/src/', import.meta.url));
 
 // The visually hidden input cannot show a ring, so the label re-draws it.
-const ALLOWED = [".learning-quiz-answer:has(input:focus-visible)"];
+const ALLOWED = [".learning-quiz-answer:has(input:focus-visible)", ":host(label:focus-within)"];
 
 function scssFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
