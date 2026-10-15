@@ -270,9 +270,8 @@
 
 .carousel-nav {
   position: absolute;
-  top: 50%;
+  top: calc(50% - 20px);
   z-index: 2;
-  transform: translateY(-50%);
 }
 
 .carousel-nav-previous {
@@ -679,6 +678,10 @@
 }
 
 @media (max-width: 980px) {
+  .filters-toggle-host {
+    display: inline-flex;
+  }
+
   .browse-layout {
     grid-template-columns: 1fr;
   }
@@ -760,14 +763,9 @@
   .carousel-nav {
     position: static;
     margin-top: 14px;
-    transform: none;
   }
 
   .carousel-nav-previous {
     margin-right: 8px;
-  }
-
-  .filters-toggle-host {
-    display: inline-flex;
   }
 }

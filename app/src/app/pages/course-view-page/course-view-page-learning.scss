@@ -307,10 +307,6 @@
   color: #991b1b;
 }
 
-
-
-
-
 .learning-resource-link {
   display: inline-flex;
   align-items: center;
@@ -353,8 +349,6 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-
-
 
 .learning-attachment-name {
   flex: 1 1 auto;
@@ -766,8 +760,6 @@
   font-weight: 900;
 }
 
-
-
 .price-field {
   display: grid;
   gap: 8px;
@@ -901,6 +893,10 @@
     grid-template-columns: 1fr;
   }
 
+  .learning-player-actions [appButton],
+  .learning-player-footer [appButton] {
+    width: 100%;
+  }
 
   .learning-main {
     border-right: 0;
