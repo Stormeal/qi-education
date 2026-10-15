@@ -82,6 +82,17 @@ describe('Tabs', () => {
     page.cleanup();
   });
 
+  it('leaves modified arrow keys to the browser', () => {
+    const page = setup();
+    for (const mod of [{ altKey: true }, { ctrlKey: true }, { metaKey: true }]) {
+      const event = new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true, ...mod });
+      page.tab('current').dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(page.host.emitted).toEqual([]);
+    page.cleanup();
+  });
+
   it('keeps the first tab focusable when selected is not in the list', () => {
     const page = setup();
     page.host.selected = 'drafts';

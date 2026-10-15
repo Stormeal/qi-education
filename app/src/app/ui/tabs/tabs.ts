@@ -40,6 +40,8 @@ export class Tabs {
   });
 
   protected onKeydown(event: KeyboardEvent, index: number): void {
+    // Leave Alt+Arrow (browser Back/Forward) and Ctrl/Meta shortcuts alone.
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
     const count = this.tabs().length;
     let target: number;
     switch (event.key) {
