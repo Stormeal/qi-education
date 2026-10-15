@@ -27,6 +27,11 @@ h4 {
   outline-offset: 2px;
 }
 
+/* Tabs sit in a scroll container that would clip an outer ring, so theirs is drawn inside. */
+[role='tab']:focus-visible {
+  outline-offset: -4px;
+}
+
 [data-surface='dark'] :focus-visible {
   outline-color: var(--color-focus-inverse);
 }
