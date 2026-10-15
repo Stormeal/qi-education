@@ -1,8 +1,16 @@
 # Work queue
 
-Updated: 2026-10-13. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-15. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**Session 2026-10-15 — learning view redesign, parts 1 and 2 in parallel.** Part 1 is
+US-P013 (shared UI, Claude Code) on `feat/US-P013-shared-ui-foundation`. Part 2 is this
+branch, `feat/US-L015-learning-backend`, base `ee1b660`.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Codex | US-L015 notes, US-L016 lesson votes and problem reports, US-L017 enrolled count, US-T015 exercise type: API and storage | `api/src/**`; see the [handoff](handoffs/US-L015-learning-backend-codex.md) and [spec](specs/US-L015-L016-L017-T015-learning-backend.md) | Ready for Codex |
 
 **Session 2026-10-13 — started by the user with "let's work on the next job".** Branch: `main`.
 Base: `63f4d25` (pushed, 0.1.166). No confirmed defect is open and no Active work is

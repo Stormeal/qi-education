@@ -20,6 +20,10 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
+| US-L015 | Write private, timestamped notes on a lesson | Ready | P2 | L002 | None |
+| US-L016 | Vote on a lesson and report a problem with it | Ready | P2 | None | None |
+| US-L017 | See how many learners take a course | Ready | P3 | None | None |
+| US-T015 | Add a hands-on exercise lesson | Ready | P2 | None | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -114,6 +118,15 @@ Feature: Email confirmation
     Then the agreed limits for unconfirmed accounts apply
     And I can ask for the confirmation mail again
 ```
+
+### US-L015, US-L016, US-L017, US-T015 — Learning view backend
+
+**Learners want private timestamped notes, a way to say whether a lesson helped and to
+report problems, and a real enrolled count; teachers want an exercise lesson type.**
+
+State: Ready (2026-10-15). Part 2 of 3 of the learning view redesign, owner Codex. Product
+decisions by Alex on 2026-10-15; contract, defaults and all scenarios are in the
+[spec](specs/US-L015-L016-L017-T015-learning-backend.md).
 
 ## Platform reliability
 
