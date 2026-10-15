@@ -603,7 +603,7 @@ the contrast test over the design values in US-P013. Not yet fixed.
 | --- | --- | --- | --- | --- |
 | DEF-036 | Confirmed, Claude Code, 2026-10-15 | P3 | WCAG 2.2 1.4.11 (3:1 for focus indicators), 2.4.7; US-P013-AC02 | Stylesheets on `ee1b660`: four different local focus colours, most controls on browser defaults; the design DNA's amber focus colour `#ffd08e` is 1.43:1 on white |
 
-Found in the same audit. Focus styles exist only in four components (`#4f773e`,
+Found in the same audit. Focus styles exist as about 20 local focus rules in 13 stylesheets, at least five colours (`#4f773e`,
 `#29463c`, `#315c24`), the login page uses an amber glow, and the remaining controls
 depend on the browser. The documented focus colour cannot meet 3:1 against the white
 and cream surfaces. Expected: one visible ring of at least 3:1 on every focusable

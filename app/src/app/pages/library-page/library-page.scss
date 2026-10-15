@@ -113,11 +113,6 @@
   transform: translateY(0);
 }
 
-.library-course:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.34);
-  outline-offset: 3px;
-}
-
 .library-course-mark {
   display: grid;
   width: 62px;

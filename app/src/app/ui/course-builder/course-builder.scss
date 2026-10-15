@@ -88,7 +88,6 @@
   font-size: 22px;
   line-height: 1.15;
   font-weight: 900;
-  outline: none;
 }
 
 .builder-section-title.is-editing {
@@ -971,7 +970,6 @@ select:focus {
 .review-content-preview {
   details { margin-block: 0.75rem; border-top: 1px solid #d9dfd5; padding-block: 0.75rem; overflow-wrap: anywhere; }
   summary { cursor: pointer; font-weight: 600; }
-  summary:focus-visible { outline: 2px solid #4f773e; outline-offset: 3px; }
   mux-player { width: 100%; margin-block: 1rem; }
   button { margin-block: 0.5rem; }
 }
@@ -992,7 +990,6 @@ select:focus {
 .quiz-question-state { color: #62594e; font-size: 12px; font-weight: 400; margin-left: 8px; }
 .quiz-question-card:not(.is-collapsed) { border-color: #4f773e; }
 .quiz-question-attention { margin: 0; padding: 0 14px 12px; color: #854d0e; font-size: 13px; line-height: 1.5; }
-.quiz-question-trigger:focus-visible, .lesson-move-select:focus-visible { outline: 2px solid #4f773e; outline-offset: 3px; }
 .lesson-move-select { max-width: 180px; min-width: 0; padding: 8px; border: 1px solid #cfc7bc; border-radius: 6px; font: inherit; font-size: 13px; background: #fff; }
 .lesson-move-select:disabled { opacity: 0.6; }
 .chapter-drop-end { padding: 8px 14px; border: 1px dashed #cfc7bc; border-radius: 6px; color: #75624d; font-size: 12px; overflow-wrap: anywhere; }
@@ -1010,7 +1007,6 @@ select:focus {
 .quiz-answer-remove { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid transparent; border-radius: 6px; color: #7b6650; background: none; cursor: pointer; }
 .quiz-answer-remove:disabled { cursor: not-allowed; opacity: 0.35; }
 .quiz-inline-action { justify-self: start; border: 0; padding: 6px 0; color: #2f5222; background: none; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-.quiz-answer-correct:focus-within, .quiz-answer-remove:focus-visible, .quiz-inline-action:focus-visible { outline: 2px solid #4f773e; outline-offset: 2px; }
 @media (max-width: 600px) {
   .quiz-answer-row { grid-template-columns: minmax(0, 1fr) auto; }
   .quiz-answer-input { grid-column: 1 / -1; }

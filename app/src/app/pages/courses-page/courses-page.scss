@@ -68,11 +68,6 @@
   transform: translateY(1px);
 }
 
-.catalog-view-tabs button:focus-visible {
-  outline: 2px solid rgba(245, 158, 11, 0.38);
-  outline-offset: 2px;
-}
-
 .catalog-heading-copy {
   display: grid;
   gap: 6px;
@@ -143,11 +138,6 @@
     0 18px 52px rgba(23, 27, 74, 0.04),
     0 54px 150px rgba(23, 27, 74, 0.045);
   transform: translateY(-3px);
-}
-
-.catalog-card:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.34);
-  outline-offset: 3px;
 }
 
 .catalog-card-media {
@@ -695,11 +685,6 @@
   border-color: rgba(47, 79, 67, 0.26);
   box-shadow: 0 22px 42px rgba(23, 27, 74, 0.12);
   transform: translateY(-2px);
-}
-
-.browse-card:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.34);
-  outline-offset: 3px;
 }
 
 .browse-card-media {

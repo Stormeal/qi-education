@@ -56,11 +56,6 @@ $line: rgba(108, 101, 88, 0.2);
   textarea {
     resize: vertical;
   }
-
-  :is(input, textarea, select, button):focus-visible {
-    outline: 3px solid $ink;
-    outline-offset: 2px;
-  }
 }
 
 .cpe-paths,

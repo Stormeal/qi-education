@@ -4,7 +4,6 @@ h2 { margin: 0 0 .5rem; font-size: 1.1rem; font-weight: 600; }
 p { margin: .5rem 0; }
 .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1rem; }
 button { padding: .5rem .8rem; border: 1px solid #657b59; border-radius: .3rem; background: white; cursor: pointer; }
-button:focus-visible, summary:focus-visible { outline: 2px solid #315c24; outline-offset: 3px; }
 button:disabled { opacity: .55; cursor: default; }
 details { margin-top: 1rem; }
 summary { cursor: pointer; font-weight: 600; }

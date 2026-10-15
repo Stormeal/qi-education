@@ -47,6 +47,8 @@ Observed on `ee1b660`:
   and catalog view tabs (no tab roles at all).
 - `app-button` primary is white on `#f59e0b`: contrast 2.15:1, below the 4.5:1 minimum
   (DEF-035). The career path primary is a white-on-amber gradient with the same problem.
+- `app.scss` sets the font stack to Inter, which is never loaded, so body text falls back
+  to the system font.
 - Focus rings use four different greens in four components; the design DNA's amber focus
   colour `#ffd08e` is 1.43:1 against white, below the 3:1 minimum for focus indicators
   (DEF-036). Many controls rely on browser defaults.
@@ -83,8 +85,9 @@ Not included:
   `learning-outline-header`, `cpe-step-toggle`, `quiz-question-trigger`), selectable
   list rows (`learning-outline-item`, `curriculum-item-row`, `cpe-path`), menu items
   (`profile-menu-item`, `profile-trigger`), answer and choice options (`rating-option`,
-  `cp-yes-no-option`, `profile-swatch`, quiz answers), the `drag-handle`, and the two
-  segmented switches named above.
+  `cp-yes-no-option`, `profile-swatch`, quiz answers), the `drag-handle`, admin status and
+  priority choices, the editor's step navigation, breadcrumb links, the login "remember
+  me" toggle, and the two segmented switches named above.
 - Colour values that match no design value (for example `#5c5d56`, `#8a8578`). They stay
   and are listed in the colour baseline; each page removes them when it is next
   redesigned.
@@ -244,7 +247,7 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 - `appIconButton`: `'default' | 'ghost' | 'danger'`, default `default`.
 - `label`: required. Sets `aria-label` and `title` (AC04). Compilation fails without it.
 - `size`: `'sm' | 'md' | 'lg'` (28, 32, 40px square), default `md`.
-- The icon is projected; projected SVGs get `aria-hidden="true"`.
+- The icon is projected. The `aria-label` names the button, so icon content is never read.
 
 ### Tabs — `<app-tabs>`
 
@@ -265,7 +268,8 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 
 ### Progress bar — `<app-progress-bar>`
 
-- `value` (clamped 0–100), `label` (required), `size` `'sm' | 'md'`.
+- `value` (clamped 0–100), `label` (required), optional `valueText` (replaces the
+  default `<n>%` announcement), `size` `'sm' | 'md'`.
 - `role="progressbar"`, `aria-valuemin="0"`, `aria-valuemax="100"`, `aria-valuenow`,
   `aria-valuetext="<n>%"`, `aria-label` (AC07).
 - Primary fill on a sunken track; the width transition is switched off with reduced motion.
@@ -295,15 +299,17 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 
 ## Guard checks
 
-- `app/src/app/shared-ui.guard.spec.ts` reads the source with Node `fs` and fails when a
-  template contains `<app-button` or a removed class, or a stylesheet defines one (AC08).
+- The guards are Node checks under `scripts/ui-foundation/`, tested with `node --test`,
+  because Angular specs cannot import `node:fs`. `check-ui-foundation.mjs` reads the
+  source tree and `removed-patterns.test.mjs` fails when a template contains
+  `<app-button` or a removed class, or a stylesheet defines one (AC08).
 - `scripts/check-hardcoded-colors.mjs` counts hex and `rgb[a]()` colour literals per
   stylesheet outside `tailwind.css`, compares the counts with
   `scripts/hardcoded-colors-baseline.json`, and fails when a file's count rises or a new
-  file has any (AC09). It writes a lower baseline with `--update`. It runs inside
-  `npm run app:test` through a spec, so CI enforces it without a workflow change. If the
-  Angular test runner cannot read the source tree, the check runs as a separate step of
-  the root `app:test` script instead, which CI also runs.
+  file has any (AC09). It writes a lower baseline with `--update`. It is tested
+  by `scripts/ui-foundation/colors.test.mjs`. The root `app:test` script runs
+  `node --test "scripts/ui-foundation/*.test.mjs"` before the Angular tests, so CI
+  enforces all guards without a workflow change.
 
 ## UI and accessibility
 
@@ -343,15 +349,15 @@ intended.
 
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
-| US-P013-AC01 | `design-values.spec.ts` contrast test; browser walk of every page | Pending |
-| US-P013-AC02 | `design-values.spec.ts` focus contrast; keyboard walk of every page | Pending |
-| US-P013-AC03 | `app-button.spec.ts` loading cases | Pending |
-| US-P013-AC04 | `app-icon-button.spec.ts`; guard spec finds no unnamed icon button | Pending |
-| US-P013-AC05 | `app-tabs.spec.ts` keyboard cases; admin and catalog keyboard walk | Pending |
-| US-P013-AC06 | `app-tabs.spec.ts` ARIA cases | Pending |
-| US-P013-AC07 | `app-progress-bar.spec.ts` | Pending |
-| US-P013-AC08 | `shared-ui.guard.spec.ts` | Pending |
-| US-P013-AC09 | `hardcoded-colors.spec.ts` | Pending |
+| US-P013-AC01 | `scripts/ui-foundation/design-values.test.mjs` contrast test; browser walk of every page | Pending |
+| US-P013-AC02 | `scripts/ui-foundation/design-values.test.mjs` focus contrast; keyboard walk of every page | Pending |
+| US-P013-AC03 | `app/src/app/ui/button/button.spec.ts` loading cases | Pending |
+| US-P013-AC04 | `app/src/app/ui/icon-button/icon-button.spec.ts`; guard check finds no unnamed icon button | Pending |
+| US-P013-AC05 | `app/src/app/ui/tabs/tabs.spec.ts` keyboard cases; admin and catalog keyboard walk | Pending |
+| US-P013-AC06 | `app/src/app/ui/tabs/tabs.spec.ts` ARIA cases | Pending |
+| US-P013-AC07 | `app/src/app/ui/progress-bar/progress-bar.spec.ts` | Pending |
+| US-P013-AC08 | `scripts/ui-foundation/removed-patterns.test.mjs` plus `check-ui-foundation.mjs` | Pending |
+| US-P013-AC09 | `scripts/ui-foundation/colors.test.mjs` | Pending |
 | US-P013-AC10 | `npm run app:test`, `npm run api:test`, `npm run verify:journeys`, `npm run app:build:pages` | Pending |
 
 Browser evidence: before and after screenshots of every page at 1440px and 400px in

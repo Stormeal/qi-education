@@ -643,11 +643,6 @@
   transform: translateY(1px);
 }
 
-.course-admin-action:focus-visible {
-  outline: 2px solid rgba(245, 158, 11, 0.34);
-  outline-offset: 2px;
-}
-
 .course-admin-action::after {
   content: attr(data-tooltip);
   position: absolute;

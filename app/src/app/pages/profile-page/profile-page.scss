@@ -133,8 +133,6 @@
 
 .profile-input:focus-visible {
   border-color: #d97706;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28);
 }
 
 textarea.profile-input {
@@ -179,11 +177,6 @@ textarea.profile-input {
 .profile-swatch.selected {
   border-color: #171b4a;
   box-shadow: inset 0 0 0 2px #fff;
-}
-
-.profile-swatch:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.34);
-  outline-offset: 2px;
 }
 
 .profile-actions {
