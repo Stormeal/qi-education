@@ -118,3 +118,64 @@ Update your row in `docs/work_queue.md`, then stop and summarise: commits (SHA +
 files touched, test counts and the command output lines, RED evidence for each test file,
 anything you could not verify (real MongoDB, Sheets, hosted), and every deviation from this
 brief with the reason.
+
+## Codex execution record — 2026-10-15
+
+- Branch `feat/US-L015-learning-backend`, handoff commit/base `5dcf7de`, ancestor `ee1b660`.
+  Fetch succeeded. Checkout in the original folder was refused because existing local
+  changes would be overwritten. The work is in the app-managed isolated worktree
+  `C:/Users/ast/.codex/worktrees/learning-backend/qi-education` on the exact requested branch;
+  the original checkout and its frontend changes were preserved. No push.
+- Implemented exercises (including HTTP attachment upload/download and progress), private
+  notes, changeable votes, problem-report context through triage/Sheets/GitHub, and enrolled
+  stats with a five-minute cache invalidated by enrollment. New repositories are injectable;
+  new HTTP fixtures and the journey explicitly inject memory notes/votes. No dependencies added.
+- RED evidence was captured before implementation: exercise schema `false` versus `true`;
+  review submission/publication `200` versus `400` (four cases); feedback lost course context
+  and accepted invalid fields; notes returned `404` instead of `201` (34 initial cases);
+  votes returned `404` instead of `200`/`400`; stats returned `404` instead of `200` (eight
+  cases); GitHub issue text omitted `Course ID` (one case, intercepted fetch only).
+- One independent read-only final review found three important gaps. Each received a new
+  failing regression before its fix: exercise upload `404` versus `201`; parser-boundary
+  privacy headers `null` versus `private, no-store` (four cases); editing a note on a deleted
+  lesson `200` versus `400` (two cases). The initial upload/download regression also had an
+  incorrect download URL; that test URL was corrected to the existing `/content/attachments/`
+  route. No production workaround was added for the test error.
+- Rulings: reuse the course content mutation lock for note count/create, enforcing the
+  500-note limit across workers without an additional storage domain. Deleting one's obsolete
+  note remains possible after its lesson is removed (course access still required); listing
+  omits it and editing rejects it. This permits cleanup rather than consuming the quota forever.
+  Cache invalidation takes effect on the next stats read, avoiding a new users-sheet failure
+  mode in the existing enrollment response. These choices preserve the documented API shapes.
+- Necessary existing-test changes: add exercise readiness cases to `courseReview.test.ts`,
+  extend `journey.test.ts`, and change only the expected feedback range in `server.test.ts`
+  and `isolatedServices.test.ts` from `A:M` to the required `A:P`. Other existing tests are
+  unchanged. Anonymous/outline projections already treat every non-quiz lesson generically;
+  their exercise behavior is covered without changing those implementations.
+- Environment: locked dependencies installed from the local npm cache with lifecycle scripts
+  disabled. Host Node is 24.10.0 (repository requests 22.x); npm warned about that engine
+  difference. No real Sheets, MongoDB, Mux, GitHub or mail calls were made. Real durability,
+  distributed locking/upsert behavior and hosted/UI integration remain unverified.
+- Final command results and scenario counts are recorded in the binding spec's verification
+  table. Default-concurrency API runs exposed the unchanged `signInLimit.test.ts` case
+  `DEF-034 / 11 bounds abandoned pending capacity without reading users (/auth/login)`:
+  its 250 ms fetch deadline produced `AbortError` rather than 429 under CPU load. The first
+  concurrent frontend run timed out in unchanged `course-review.spec.ts` AC07 (5000 ms).
+  These failures are retained as evidence; their code and deadlines were not changed.
+
+### File manifest
+
+- Added API modules: `api/src/courseStats.ts`, `learningAccess.ts`, `lessonFeedback.ts`,
+  `lessonNotes.ts`, `lessonNotesRepository.ts`, `lessonVotesRepository.ts` (all under `api/src/`).
+- Updated API modules: `api/src/config.ts`, `courseContent.ts`, `courseReview.ts`,
+  `feedback.ts`, `feedbackRepository.ts`, `githubFeedback.ts`, `server.ts`.
+- Added tests/fixture: `api/src/courseStats.test.ts`, `exerciseLesson.test.ts`,
+  `feedback.test.ts`, `githubFeedback.test.ts`, `lessonFeedback.test.ts`, `lessonNotes.test.ts`,
+  `learningBackendTestFixture.ts`.
+- Updated existing tests: `api/src/courseReview.test.ts`, `isolatedServices.test.ts`,
+  `journey.test.ts`, `server.test.ts`.
+- Delivery records: this handoff, `docs/specs/US-L015-L016-L017-T015-learning-backend.md`,
+  `docs/user_stories.md`, `docs/work_queue.md`.
+- Aligned version only: root `package.json`, `package-lock.json` (top level and root/app
+  workspace entries), `app/package.json`, `app/src/app/services/app-state.service.ts:71`.
+  Version 0.1.175; no frontend behavior, scripts, workflows or committed `api/dist` changes.

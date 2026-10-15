@@ -11,6 +11,8 @@ import { InMemoryCourseRepository } from './courseRepository.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository } from './feedbackRepository.js';
+import { InMemoryLessonNotesRepository } from './lessonNotesRepository.js';
+import { InMemoryLessonVotesRepository } from './lessonVotesRepository.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
 
@@ -54,6 +56,7 @@ describe('US-P001 release journey: author, review, enroll, learn', () => {
     server = createServer({ authRepository: auth, careerPathRepository: new InMemoryCareerPathRepository(),
       courseRepository: new InMemoryCourseRepository(), courseContentRepository: new InMemoryCourseContentRepository(),
       courseAssetRepository: new InMemoryCourseAssetRepository(), feedbackRepository: new InMemoryFeedbackRepository(),
+      lessonNotesRepository: new InMemoryLessonNotesRepository(), lessonVotesRepository: new InMemoryLessonVotesRepository(),
       muxVideoService: null, muxWebhookService: null,
       gitHubFeedbackService: { createIssueFromFeedback: async () => { throw new Error('The journey must never create a GitHub issue.'); } },
     }).listen(0);
@@ -124,7 +127,23 @@ describe('US-P001 release journey: author, review, enroll, learn', () => {
     expect((await attempt('b', otherTeacher)).status).toBe(403);
   });
 
-  it('6. published learning cannot be changed without a new reviewed revision', async () => {
+  it('6. a learner saves a private note, changes a vote and reports a lesson problem', async () => {
+    const note = await request(`/users/me/courses/${courseId}/notes`, student, 'POST', { componentId: 'lesson', body: 'My private reminder' });
+    expect(note.status).toBe(201);
+    expect((await note.json()).videoSeconds).toBeNull();
+    const notes = await (await request(`/users/me/courses/${courseId}/notes`, student)).json();
+    expect(notes.notes.map((item: { body: string }) => item.body)).toEqual(['My private reminder']);
+    const votePath = `/users/me/courses/${courseId}/lessons/lesson/vote`;
+    expect((await request(votePath, student, 'PUT', { vote: 'up' })).status).toBe(200);
+    expect((await request(votePath, student, 'PUT', { vote: 'down' })).status).toBe(200);
+    expect(await (await request(`/users/me/courses/${courseId}/lesson-votes`, student)).json())
+      .toEqual({ votes: [{ componentId: 'lesson', vote: 'down' }] });
+    expect((await request('/feedback', student, 'POST', { page: 'learning', rating: 'needs-work', message: 'The file is broken', courseId, componentId: 'lesson', category: 'file' })).status).toBe(201);
+    const reports = await (await request('/feedback', admin)).json();
+    expect(reports).toEqual([expect.objectContaining({ rating: 'needs-work', courseId, componentId: 'lesson', category: 'file' })]);
+  });
+
+  it('7. published learning cannot be changed without a new reviewed revision', async () => {
     expect((await save(teacher, `/courses/${courseId}/content`, { sections: [] })).status).toBe(409);
     expect((await request(`/courses/${courseId}/content`, student)).status).toBe(200);
     expect((await request('/feedback', student)).status).toBe(403);

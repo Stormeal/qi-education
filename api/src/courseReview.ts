@@ -122,6 +122,14 @@ export class CourseReviewService {
         updateCourseSchema.parse(effective(base, workflow, true));
         if (!working.sections.some(section => section.components.length > 0)) throw new CourseReviewError(400, 'Add at least one lesson before review or publication.');
         const issues = assessmentIssues(working.sections, true);
+        for (const section of working.sections) {
+          for (const component of section.components) {
+            if (component.type === 'exercise' && !component.content.trim()) {
+              issues.push({ sectionId: section.id, componentId: component.id,
+                message: `Add instructions to the exercise "${component.title}".` });
+            }
+          }
+        }
         if (issues.length) throw new CourseReviewError(400, issues.map(issue => issue.message).join(' '), issues);
       }
       if (input.action === 'submit') working.status = 'ready-for-review';

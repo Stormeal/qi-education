@@ -38,6 +38,12 @@ import {
 } from './careerPath.js';
 import { CareerPathConflictError, createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
 import { registerLearningProgressRoutes } from './learningProgress.js';
+import { registerLessonNotesRoutes } from './lessonNotes.js';
+import { registerLessonFeedbackRoutes } from './lessonFeedback.js';
+import { createLessonVotesRepository, type LessonVotesRepository } from './lessonVotesRepository.js';
+import { CourseStatsCache, registerCourseStatsRoutes } from './courseStats.js';
+import { privateLearningResponse } from './learningAccess.js';
+import { createLessonNotesRepository, type LessonNotesRepository } from './lessonNotesRepository.js';
 import { registerInstructorProfileRoutes } from './instructorProfileRoutes.js';
 import { createInstructorProfileRepository, type InstructorProfileRepository } from './instructorProfileRepository.js';
 import { registerAccountProfileRoutes } from './accountProfileRoutes.js';
@@ -104,6 +110,8 @@ type ServerDependencies = {
   instructorProfileRepository?: InstructorProfileRepository;
   accountProfileRepository?: AccountProfileRepository;
   learningProgressRepository?: LearningProgressRepository;
+  lessonNotesRepository?: LessonNotesRepository;
+  lessonVotesRepository?: LessonVotesRepository;
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
   feedbackRepository?: FeedbackRepository;
@@ -131,6 +139,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
   const accountProfiles = dependencies.accountProfileRepository ?? createAccountProfileRepository();
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
+  const lessonNotes = dependencies.lessonNotesRepository ?? createLessonNotesRepository();
+  const lessonVotes = dependencies.lessonVotesRepository ?? createLessonVotesRepository();
+  const courseStats = new CourseStatsCache(auth);
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
@@ -334,7 +345,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         const component = findCourseComponent(content.sections, sectionId, componentId);
 
-        if (!component || (component.type !== 'text' && component.type !== 'resources' && component.type !== 'quiz')) {
+        if (!component || (component.type !== 'text' && component.type !== 'resources' && component.type !== 'quiz' && component.type !== 'exercise')) {
           response.status(404).json({ message: 'Attachment uploads are only available for text and resources components.' });
           return;
         }
@@ -410,6 +421,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use(['/users/me/profile', '/api/users/me/profile'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
+  app.use([
+    '/users/me/courses/:courseId/notes', '/api/users/me/courses/:courseId/notes',
+    '/users/me/notes', '/api/users/me/notes',
+    '/users/me/courses/:courseId/lesson-votes', '/api/users/me/courses/:courseId/lesson-votes',
+    '/users/me/courses/:courseId/lessons/:componentId/vote', '/api/users/me/courses/:courseId/lessons/:componentId/vote',
+  ], privateLearningResponse);
   app.use(withRequestBodyErrors(express.json()));
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
@@ -621,6 +638,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
 
+      courseStats.invalidate(courseId);
       response.json({
         user: toAuthenticatedUser(updatedUser),
         permissions: getRolePermissions(updatedUser.role),
@@ -1281,6 +1299,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     courses, content: courseContent, progress: learningProgress });
+  registerLessonNotesRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
+    courses, content: courseContent, notes: lessonNotes });
+  registerLessonFeedbackRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
+    courses, content: courseContent, votes: lessonVotes });
+  registerCourseStatsRoutes(app, { optionalAuthentication: optionalAuthentication(auth), read: withCourseRead,
+    courses, stats: courseStats });
 
   app.get('/career-paths', async (_request, response, next) => {
     try {
@@ -1371,6 +1395,17 @@ export function createServer(dependencies: ServerDependencies = {}) {
     try {
       const input = createFeedbackSchema.parse(request.body);
       const authenticatedRequest = request as AuthenticatedRequest;
+      if (input.courseId) {
+        const course = (await courses.listCourses()).find(item => item.id === input.courseId);
+        if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
+        if (!canLearnCourse(course, authenticatedRequest.user)) {
+          response.status(403).json({ message: 'You do not have access to this course.' }); return;
+        }
+        const document = await courseContent.getCourseContent(input.courseId);
+        if (input.componentId && !document?.sections.some(section => section.components.some(component => component.id === input.componentId))) {
+          response.status(400).json({ message: 'Lesson not found' }); return;
+        }
+      }
       const createdFeedback = await feedback.createFeedback(input, authenticatedRequest.user);
 
       response.status(201).json({

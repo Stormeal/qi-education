@@ -70,6 +70,9 @@ const muxVideoSchema = z.object({
 
 export const courseContentComponentSchema = z.discriminatedUnion('type', [
   baseCourseContentComponentSchema.extend({
+    type: z.literal('exercise'),
+  }),
+  baseCourseContentComponentSchema.extend({
     type: z.literal('video'),
     mux: muxVideoSchema.optional(),
   }),

@@ -224,6 +224,24 @@ describe.each(['', '/api'])('US-T002 review and uninterrupted revisions (%s)', (
     expect((await author()).review.history).toEqual([]);
   });
 
+  it.each(['submit', 'publish'])('US-T015-AC02 rejects an exercise without instructions on %s', async action => {
+    // Legacy storage can already contain an exercise before the new schema is deployed.
+    const exercise = [{ id: 's', title: 'Practice', components: [{ ...sections[0].components[0], type: 'exercise', content: '   ' }] }];
+    await content.updateCourseContent('course', exercise as typeof sections);
+    if (action === 'publish') {
+      const doc = await content.getCourseContent('course');
+      const course = (await courses.listCourses()).find(item => item.id === 'course')!;
+      await courses.updateCourse('course', { ...course, status: 'ready-for-review' });
+      expect(doc).not.toBeNull();
+    }
+    const state = (await author()).review;
+    const response = await request('/courses/course/review', action === 'publish' ? admin : teacher, 'POST', {
+      action, expectedVersion: state.version, revisionId: state.revisionId });
+    expect(response.status).toBe(400);
+    expect((await response.json()).message).toContain('Add instructions to the exercise "Original lesson".');
+    expect((await author()).review.history).toEqual([]);
+  });
+
   it('AC05 omits private workflow at the learner DTO boundary', async () => {
     await published(); await act('start-revision'); await act('submit'); await act('return', admin, 'Private review reason');
     const stored = await content.getCourseContent('course');

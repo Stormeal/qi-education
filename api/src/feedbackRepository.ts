@@ -170,7 +170,7 @@ async function ensureFeedbackHeaders() {
   await ensureWorksheetHeaders(feedbackDataRange(), [...feedbackSheetHeaders]);
   await sheets.spreadsheets.values.update({
     spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-    range: `${feedbackSheetTitle()}!A1:M1`,
+    range: `${feedbackSheetTitle()}!A1:P1`,
     valueInputOption: 'RAW',
     requestBody: {
       values: [[...feedbackSheetHeaders]],
@@ -183,5 +183,5 @@ function feedbackSheetTitle(): string {
 }
 
 function feedbackDataRange(): string {
-  return `${feedbackSheetTitle()}!A:M`;
+  return `${feedbackSheetTitle()}!A:P`;
 }

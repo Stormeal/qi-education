@@ -82,7 +82,7 @@ export function buildApiConfig(source: Record<string, string | undefined>) {
       usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:H',
     GOOGLE_SHEETS_FEEDBACK_RANGE:
       env.GOOGLE_SHEETS_FEEDBACK_RANGE && env.GOOGLE_SHEETS_FEEDBACK_RANGE !== 'GOOGLE_SHEETS_FEEDBACK_RANGE'
-        ? env.GOOGLE_SHEETS_FEEDBACK_RANGE : 'Feedback!A:M',
+        ? env.GOOGLE_SHEETS_FEEDBACK_RANGE : 'Feedback!A:P',
   };
 }
 export const apiConfig = buildApiConfig(process.env);

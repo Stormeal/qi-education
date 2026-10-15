@@ -5,7 +5,7 @@
 - Stories: US-L015 (private lesson notes), US-L016 (lesson feedback), US-L017 (enrolled
   learner count), US-T015 (exercise lesson type). Part 2 of 3 of the learning view
   redesign; part 1 is US-P013 (shared UI), part 3 is the learning page itself.
-- State: Ready (2026-10-15)
+- State: Done locally (2026-10-15), delivery `feat(US-L015): add the learning view backend` (0.1.175); no push/deployment.
 - Owner: Codex (API and storage only). Claude builds the screens in part 3 against this
   contract.
 - Related defects: none
@@ -217,12 +217,24 @@ like a text lesson.
 
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
-| US-L015-AC01–AC04 | `api/src/lessonNotes.test.ts` | Pending |
-| US-L016-AC01 | `api/src/lessonFeedback.test.ts` | Pending |
-| US-L016-AC02–AC03 | `api/src/lessonFeedback.test.ts`, existing feedback tests | Pending |
-| US-L017-AC01–AC02 | `api/src/courseStats.test.ts` | Pending |
-| US-T015-AC01–AC02 | `api/src/exerciseLesson.test.ts`, `courseReview.test.ts` | Pending |
-| All | `npm run api:test`, `npm run verify:journeys`, `npm run api:build`, `npm run app:test` | Pending |
+| US-L015-AC01–AC04 | `api/src/lessonNotes.test.ts` | PASS: 38 cases across normal and `/api` paths; create/list/edit/delete, privacy/ownership, denial and validation, deleted lessons, private parser errors, concurrent 500-note boundary |
+| US-L016-AC01 | `api/src/lessonFeedback.test.ts` | PASS: one changeable/removable vote, repeat/concurrent writes, private/error headers, per-account data, current lesson validation |
+| US-L016-AC02–AC03 | `api/src/lessonFeedback.test.ts`, `feedback.test.ts`, `githubFeedback.test.ts`, existing server feedback tests | PASS: lessonFeedback 32, feedback 6, GitHub 1; lesson context reaches admin triage and issue text; old rows/clients preserved; Sheets mapping columns N:P; no real service calls |
+| US-L017-AC01–AC02 | `api/src/courseStats.test.ts` | PASS: 8 cases; 3 active plus 1 disabled yields 3, visibility checked before cached reads, five-minute expiry/status refresh, immediate enrollment invalidation and idempotency |
+| US-T015-AC01–AC02 | `api/src/exerciseLesson.test.ts`, `courseReview.test.ts` | PASS: 2 exercise tests (HTTP content save, attachment upload/download, learner/outline projections and completion); 4 new readiness cases within 44 review tests |
+| All API | `npm run api:test -- -- --maxWorkers=2` | PASS: `Test Files 56 passed (56)`; `Tests 1373 passed (1373)`; 92 added cases. Default-concurrency run: 1372 passed, 1 unchanged sign-in deadline failure; see handoff |
+| Journey | `npm run verify:journeys` | PASS: 7 cases including learner note, vote change and problem report; isolated HTTP stores |
+| API build | `npm run api:build` | PASS: TypeScript compilation, exit 0 |
+| Frontend | `npm run app:test` | PASS: `Test Files 36 passed (36)`; `Tests 283 passed (283)`. Initial concurrent run: 282 passed, 1 unchanged AC07 timeout (5000 ms); standalone rerun green. Existing test-setup/jsdom warnings remain |
 
 Isolated in-memory stores only. Real MongoDB, Sheets and hosted behaviour are recorded as
 not verified.
+
+Delivery notes: the handoff contains RED evidence, review findings/fixes, environment
+limitations and deviations. The original checkout was dirty, so the exact requested branch
+was checked out in `C:/Users/ast/.codex/worktrees/learning-backend/qi-education` without
+stashing or altering existing work. Course stats refresh on the next read after enrollment;
+obsolete notes may be deleted by their owner with course access, while edits on removed
+lessons are rejected. The existing course mutation lock serializes note quota checks and
+inserts across workers. Exercise projections required no implementation changes because
+the existing generic non-quiz mapping already gives the required behavior.

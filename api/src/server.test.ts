@@ -230,7 +230,7 @@ describe('QI-Education API', () => {
       ranges: {
         courses: 'Courses!A:R',
         users: 'Users!A:H',
-        feedback: 'Feedback!A:M',
+        feedback: 'Feedback!A:P',
       },
     });
   });

@@ -3,12 +3,18 @@ import { z } from 'zod';
 export const feedbackRatingSchema = z.enum(['great', 'okay', 'needs-work']);
 export const feedbackWorkStatusSchema = z.enum(['work', 'completed', 'wont-do']);
 export const feedbackPrioritySchema = z.enum(['low', 'medium', 'high']);
+export const feedbackCategorySchema = z.enum(['video', 'content', 'file', 'other']);
 
 export const createFeedbackSchema = z.object({
   page: z.string().trim().min(1).max(120),
   rating: feedbackRatingSchema,
   message: z.string().trim().max(2000).default(''),
   userAgent: z.string().trim().max(500).optional(),
+  courseId: z.string().trim().min(1).max(120).optional(),
+  componentId: z.string().trim().min(1).max(120).optional(),
+  category: feedbackCategorySchema.optional(),
+}).refine(input => !!input.courseId || (!input.componentId && !input.category), {
+  message: 'Lesson feedback requires a course ID.',
 });
 
 export const updateFeedbackTriageSchema = z.object({
@@ -48,6 +54,9 @@ export const feedbackSheetHeaders = [
   'Priority',
   'GitHub Issue Number',
   'GitHub Issue URL',
+  'Course ID',
+  'Lesson ID',
+  'Category',
 ] as const;
 
 export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
@@ -65,6 +74,9 @@ export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
     feedback.priority ?? '',
     feedback.githubIssueNumber?.toString() ?? '',
     feedback.githubIssueUrl ?? '',
+    feedback.courseId ?? '',
+    feedback.componentId ?? '',
+    feedback.category ?? '',
   ];
 }
 
@@ -83,6 +95,9 @@ export function feedbackFromSheetRow(row: string[]): FeedbackEntry {
     priority: feedbackPrioritySchema.optional().catch(undefined).parse(row[10] || undefined),
     githubIssueNumber: parseGithubIssueNumber(row[11]),
     githubIssueUrl: row[12] || undefined,
+    courseId: row[13] || undefined,
+    componentId: row[14] || undefined,
+    category: feedbackCategorySchema.optional().catch(undefined).parse(row[15] || undefined),
   };
 }
 
