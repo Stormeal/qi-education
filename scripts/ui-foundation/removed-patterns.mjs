@@ -2,6 +2,13 @@
 export const REMOVED = [
   { id: 'app-button', kind: 'element', name: 'app-button' },
   { id: 'app-button-class', kind: 'class', name: 'app-button' },
+  { id: 'cp-btn', kind: 'class', name: 'cp-btn' },
+  { id: 'cp-btn-primary', kind: 'class', name: 'cp-btn-primary' },
+  { id: 'cp-btn-secondary', kind: 'class', name: 'cp-btn-secondary' },
+  { id: 'cp-btn-ghost', kind: 'class', name: 'cp-btn-ghost' },
+  { id: 'cp-btn-map', kind: 'class', name: 'cp-btn-map' },
+  { id: 'cp-btn-arrow', kind: 'class', name: 'cp-btn-arrow' },
+  { id: 'cpe-btn', kind: 'class', name: 'cpe-btn' },
 ];
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

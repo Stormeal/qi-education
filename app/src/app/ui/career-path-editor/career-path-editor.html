@@ -16,7 +16,7 @@
     <form class="cpe-new" (submit)="createPath(newTitle); $event.preventDefault()">
       <label for="cpe-new-title">New path</label>
       <input #newTitle id="cpe-new-title" type="text" maxlength="120" placeholder="Target role, e.g. Test Lead" />
-      <button type="submit" class="cpe-btn">Add path</button>
+      <button type="submit" appButton size="sm">Add path</button>
     </form>
   </aside>
 
@@ -51,9 +51,9 @@
               <span class="cpe-step-title">{{ step.title || 'Untitled step' }}</span>
               <span class="cpe-step-meta">{{ stepSummary(step) }}</span>
             </button>
-            <button type="button" class="cpe-btn is-small" [disabled]="i === 0" [attr.aria-label]="'Move step ' + (i + 1) + ' up'" (click)="moveStep(path, i, -1)">Up</button>
-            <button type="button" class="cpe-btn is-small" [disabled]="i === path.steps.length - 1" [attr.aria-label]="'Move step ' + (i + 1) + ' down'" (click)="moveStep(path, i, 1)">Down</button>
-            <button type="button" class="cpe-btn is-small is-danger" [attr.aria-label]="'Remove step ' + (i + 1)" (click)="removeStep(path, step)">Remove</button>
+            <button type="button" appIconButton="ghost" size="sm" [disabled]="i === 0" [label]="'Move step ' + (i + 1) + ' up'" (click)="moveStep(path, i, -1)"><span aria-hidden="true">&uarr;</span></button>
+            <button type="button" appIconButton="ghost" size="sm" [disabled]="i === path.steps.length - 1" [label]="'Move step ' + (i + 1) + ' down'" (click)="moveStep(path, i, 1)"><span aria-hidden="true">&darr;</span></button>
+            <button type="button" appIconButton="danger" size="sm" [label]="'Remove step ' + (i + 1)" (click)="removeStep(path, step)"><span aria-hidden="true">&times;</span></button>
           </div>
           @for (issue of stepIssues(step.id); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
 
@@ -97,10 +97,10 @@
                     @if (!course.courseId) {
                       <label>Preview title <input type="text" [name]="'courseTitle' + i + '-' + c" maxlength="160" [(ngModel)]="course.title" /></label>
                     }
-                    <button type="button" class="cpe-btn is-small is-danger" (click)="step.courses.splice(c, 1)">Remove course</button>
+                    <button type="button" appButton="danger" size="sm" (click)="step.courses.splice(c, 1)">Remove course</button>
                   </div>
                 }
-                <button type="button" class="cpe-btn is-small" (click)="step.courses.push({ courseId: '', title: '' })">Add course</button>
+                <button type="button" appButton size="sm" (click)="step.courses.push({ courseId: '', title: '' })">Add course</button>
               </fieldset>
             </div>
           }
@@ -108,20 +108,20 @@
       } @empty {
         <p class="cpe-hint">This path has no steps yet.</p>
       }
-      <button type="button" class="cpe-btn cpe-add-step" (click)="addStep(path)">Add step</button>
+      <button type="button" class="cpe-add-step" appButton="dashed" size="sm" (click)="addStep(path)">Add step</button>
 
       <footer class="cpe-savebar">
         <p [class.cpe-error]="!!error()" [attr.role]="error() ? 'alert' : 'status'">
           {{ error() || message() || (isDirty() ? 'You have unsaved changes.' : 'No unsaved changes.') }}
         </p>
         @if (conflict()) {
-          <button type="button" class="cpe-btn" [disabled]="busy()" (click)="loadLatest()">Load latest version</button>
+          <button type="button" appButton size="sm" [disabled]="busy()" (click)="loadLatest()">Load latest version</button>
         }
         @if (editing()?.published) {
-          <button type="button" class="cpe-btn is-danger" [disabled]="busy()" (click)="withdraw()">Withdraw</button>
+          <button type="button" appButton="danger" size="sm" [disabled]="busy()" (click)="withdraw()">Withdraw</button>
         }
-        <button type="button" class="cpe-btn" [disabled]="busy()" (click)="save(false)">Save draft</button>
-        <button type="button" class="cpe-btn is-primary" [disabled]="busy()" (click)="save(true)">Save and publish</button>
+        <button type="button" appButton size="sm" [disabled]="busy()" (click)="save(false)">Save draft</button>
+        <button type="button" appButton="primary" size="sm" [disabled]="busy()" (click)="save(true)">Save and publish</button>
       </footer>
     </form>
   } @else {

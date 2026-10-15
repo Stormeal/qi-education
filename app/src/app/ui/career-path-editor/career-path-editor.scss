@@ -133,46 +133,6 @@ $line: rgba(108, 101, 88, 0.2);
   padding-top: 12px;
 }
 
-.cpe-btn {
-  border: 1px solid rgba(108, 101, 88, 0.35);
-  border-radius: 8px;
-  padding: 8px 14px;
-  color: $ink;
-  background: #fff;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    border-color: $ink;
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(1px);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
-  }
-
-  &.is-small {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-
-  &.is-primary {
-    border-color: $ink;
-    color: #fff;
-    background: $ink;
-  }
-
-  &.is-danger {
-    color: $danger;
-  }
-}
-
 .cpe-form {
   display: grid;
   gap: 14px;

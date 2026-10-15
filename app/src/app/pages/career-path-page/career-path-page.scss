@@ -251,69 +251,6 @@
   line-height: 1.6;
 }
 
-/* Buttons */
-
-.cp-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 11px 20px;
-  color: var(--cp-text);
-  background: transparent;
-  font-family: var(--cp-font-body);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 160ms ease;
-}
-
-.cp-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-.cp-btn-primary {
-  border-color: var(--cp-amber-strong);
-  color: #fff;
-  background: linear-gradient(135deg, var(--cp-amber), var(--cp-amber-strong));
-  box-shadow: 0 10px 26px rgba(217, 119, 6, 0.24);
-}
-
-.cp-btn-primary:hover:not(:disabled) {
-  box-shadow: 0 14px 32px rgba(217, 119, 6, 0.34);
-  transform: translateY(-1px);
-}
-
-.cp-btn-arrow {
-  transition: transform 160ms ease;
-}
-
-.cp-btn-primary:hover:not(:disabled) .cp-btn-arrow {
-  transform: translateX(3px);
-}
-
-.cp-btn-secondary {
-  border-color: var(--cp-border-strong);
-  background: var(--cp-panel-strong);
-}
-
-.cp-btn-secondary:hover {
-  border-color: var(--cp-success);
-  color: var(--cp-success);
-}
-
-.cp-btn-ghost {
-  padding-left: 4px;
-  color: var(--cp-text-dim);
-  padding-right: 4px;
-}
-
-.cp-btn-ghost:hover {
-  color: var(--cp-text);
-}
-
 /* Generic step shell */
 
 .cp-step {
@@ -864,7 +801,7 @@
     line-height: 1.6;
   }
 
-  .cp-btn {
+  [appButton] {
     margin-top: 6px;
     text-decoration: none;
   }
