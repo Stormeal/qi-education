@@ -1,6 +1,6 @@
 {
   "name": "qi-education",
-  "version": "0.1.177",
+  "version": "0.1.178",
   "private": true,
   "engines": {
     "node": "22.x"
@@ -10,7 +10,7 @@
     "app:dev:frontend": "npm --prefix app run start --",
     "app:build": "npm --prefix app run build",
     "app:build:pages": "npm --prefix app run build -- --base-href /qi-education/ --deploy-url /qi-education/ && node scripts/create-pages-fallback.mjs",
-    "app:test": "node --test \"scripts/ui-foundation/*.test.mjs\" && npm --prefix app test",
+    "app:test": "node --test \"scripts/ui-foundation/*.test.mjs\" && node scripts/check-ui-foundation.mjs && npm --prefix app test",
     "api:dev": "npm --prefix api run dev",
     "api:build": "npm --prefix api run build",
     "api:test": "npm --prefix api test",
