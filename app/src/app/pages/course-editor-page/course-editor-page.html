@@ -69,13 +69,13 @@
           <p>{{ locked.text }}</p>
         </div>
         @if (locked.canStartRevision) {
-          <app-button
-            variant="primary"
+          <button
+            appButton="primary"
             [disabled]="reviewPending() || courseSubmitting() || recoveryAvailable()"
-            (buttonClicked)="reviewAction.emit('start-revision')"
+            (click)="reviewAction.emit('start-revision')"
           >
             Start revision
-          </app-button>
+          </button>
         }
       </div>
     }
@@ -370,23 +370,23 @@
     </div>
 
       <div class="editor-action-bar">
-        <app-button [disabled]="courseSubmitting() || reviewPending()" (buttonClicked)="courseCanceled.emit()">
+        <button appButton [disabled]="courseSubmitting() || reviewPending()" (click)="courseCanceled.emit()">
           Cancel
-        </app-button>
+        </button>
         <span class="editor-action-spacer"></span>
         @if (previousStep(); as previous) {
-          <app-button (buttonClicked)="goToStep(previous.id)">Back</app-button>
+          <button appButton (click)="goToStep(previous.id)">Back</button>
         }
         @if (nextStep(); as next) {
-          <app-button [variant]="courseFormMode() === 'create' ? 'primary' : 'outline'" (buttonClicked)="goToStep(next.id)">
+          <button [appButton]="courseFormMode() === 'create' ? 'primary' : 'secondary'" (click)="goToStep(next.id)">
             <span>Next<span class="editor-next-label">: {{ next.label }}</span></span>
-          </app-button>
+          </button>
         }
         @if (courseFormMode() === 'edit' || !nextStep()) {
-        <app-button
-          variant="primary"
+        <button
+          appButton="primary"
           [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
-          (buttonClicked)="courseSubmitted.emit()"
+          (click)="courseSubmitted.emit()"
         >
           @if (courseSubmitting()) {
             Saving...
@@ -395,7 +395,7 @@
           } @else {
             Create course
           }
-        </app-button>
+        </button>
         }
       </div>
     </section>

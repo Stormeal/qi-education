@@ -27,7 +27,7 @@
   } @else if (!course()) {
     <section class="course-view-empty">
       <p class="course-empty">Course not found.</p>
-      <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Back to courses</app-button>
+      <button appButton="primary" (click)="coursesClicked.emit()">Back to courses</button>
     </section>
   } @else {
     @let currentCourse = course()!;
@@ -35,7 +35,7 @@
       @if (!isEnrolled() && !canEditCourse()) {
         <section class="course-view-empty">
           <p class="course-empty">This course is not available in My Learning yet.</p>
-          <app-button variant="primary" (buttonClicked)="libraryClicked.emit()">Back to My Learning</app-button>
+          <button appButton="primary" (click)="libraryClicked.emit()">Back to My Learning</button>
         </section>
       } @else {
       <section class="learning-shell" aria-label="Course workspace">
@@ -515,11 +515,11 @@
               <span>{{ ratingCountLabel(currentCourse.ratingCount) }}</span>
             </div>
             @if (isEnrolled() || canEditCourse()) {
-              <app-button class="fill" variant="primary" (buttonClicked)="openLearningWorkspace(currentCourse.id)">
+              <button appButton="primary" (click)="openLearningWorkspace(currentCourse.id)" fullWidth>
                 {{ isEnrolled() ? 'Start learning' : 'Preview course' }}
-              </app-button>
+              </button>
             } @else if (currentCourse.status === 'published') {
-              <app-button class="fill" variant="primary" (buttonClicked)="openEnrollDialog()">Enroll</app-button>
+              <button appButton="primary" (click)="openEnrollDialog()" fullWidth>Enroll</button>
             } @else {
               <p>Enrollment is closed for this course.</p>
             }
@@ -642,15 +642,15 @@
       }
 
       <footer class="price-modal-actions">
-        <app-button variant="outline" [disabled]="priceSaving()" (buttonClicked)="closePriceModal()">Cancel</app-button>
-        <app-button variant="primary" [disabled]="priceSaving()" (buttonClicked)="applyPriceDraft(course()!.id)">
+        <button appButton [disabled]="priceSaving()" (click)="closePriceModal()">Cancel</button>
+        <button appButton="primary" [disabled]="priceSaving()" (click)="applyPriceDraft(course()!.id)">
           @if (priceSaving()) {
             <span class="button-spinner" aria-hidden="true"></span>
             <span>Saving price...</span>
           } @else {
             <span>Save price</span>
           }
-        </app-button>
+        </button>
       </footer>
     </section>
   </div>
@@ -687,11 +687,11 @@
       }
 
       <footer class="price-modal-actions">
-        <app-button variant="outline" [disabled]="enrollmentSubmitting()" (buttonClicked)="closeEnrollDialog()">Cancel</app-button>
-        <app-button
-          variant="primary"
+        <button appButton [disabled]="enrollmentSubmitting()" (click)="closeEnrollDialog()">Cancel</button>
+        <button
+          appButton="primary"
           [disabled]="enrollmentSubmitting()"
-          (buttonClicked)="confirmEnrollment(enrollCourse.id)"
+          (click)="confirmEnrollment(enrollCourse.id)"
         >
           @if (enrollmentSubmitting()) {
             <span class="button-spinner" aria-hidden="true"></span>
@@ -699,7 +699,7 @@
           } @else {
             <span>Confirm enrollment</span>
           }
-        </app-button>
+        </button>
       </footer>
     </section>
   </div>
@@ -794,15 +794,15 @@
       </p>
 
       <footer class="price-modal-actions">
-        <app-button variant="outline" [disabled]="catalogSaving()" (buttonClicked)="closeCatalogModal()">Cancel</app-button>
-        <app-button variant="primary" [disabled]="catalogSaving()" (buttonClicked)="applyCatalogDraft(course()!.id)">
+        <button appButton [disabled]="catalogSaving()" (click)="closeCatalogModal()">Cancel</button>
+        <button appButton="primary" [disabled]="catalogSaving()" (click)="applyCatalogDraft(course()!.id)">
           @if (catalogSaving()) {
             <span class="button-spinner" aria-hidden="true"></span>
             <span>Saving...</span>
           } @else {
             <span>Save settings</span>
           }
-        </app-button>
+        </button>
       </footer>
     </section>
   </div>

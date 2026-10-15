@@ -1,5 +1,8 @@
 // Old UI patterns that migrated code must not bring back. Tasks 7-11 add entries.
-export const REMOVED = [];
+export const REMOVED = [
+  { id: 'app-button', kind: 'element', name: 'app-button' },
+  { id: 'app-button-class', kind: 'class', name: 'app-button' },
+];
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const lineAt = (text, index) => text.slice(0, index).split('\n').length;

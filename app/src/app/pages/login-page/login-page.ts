@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { BrandLink } from '../../ui/brand-link/brand-link';
 
 @Component({
   selector: 'app-login-page',
-  imports: [AppButton, BrandLink, RouterLink],
+  imports: [Button, BrandLink, RouterLink],
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

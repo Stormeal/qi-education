@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, ElementRef, effect, inject } from '@angular/core';
 import { ConfirmService } from '../../services/confirm.service';
-import { AppButton } from '../app-button/app-button';
+import { Button } from '../button/button';
 
 /** The one confirmation dialog of the app. Same keyboard contract as the feedback dialog. */
 @Component({
   selector: 'app-confirm-dialog',
-  imports: [AppButton],
+  imports: [Button],
   templateUrl: './confirm-dialog.html',
   styleUrl: './confirm-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

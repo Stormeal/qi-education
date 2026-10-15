@@ -35,9 +35,9 @@
 
           <div class="section-heading-actions">
             @if (canCreateCourses()) {
-              <app-button variant="primary" (buttonClicked)="createCourseOpened.emit()">
+              <button appButton="primary" (click)="createCourseOpened.emit()">
                 + New course
-              </app-button>
+              </button>
             }
           </div>
         </div>

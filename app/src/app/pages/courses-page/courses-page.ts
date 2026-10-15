@@ -14,7 +14,7 @@ import {
 import { ApiClientService } from '../../services/api-client.service';
 import { CourseService } from '../../services/course.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -44,7 +44,7 @@ type PopularInstructorCard = {
 
 @Component({
   selector: 'app-courses-page',
-  imports: [AppButton, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink],
+  imports: [Button, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink],
   templateUrl: './courses-page.html',
   styleUrls: ['../../app.scss', './courses-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

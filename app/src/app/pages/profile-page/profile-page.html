@@ -119,9 +119,9 @@
           <span class="profile-save-hint">{{ bioPublic() ? 'Changes are saved to your account. "About you" is shown publicly.' : 'Changes are saved to your account.' }}</span>
         }
       </p>
-      <app-button variant="primary" type="submit" [disabled]="!profileDirty() || profileSaving()">
+      <button appButton="primary" type="submit" [disabled]="!profileDirty() || profileSaving()">
         {{ profileSaving() ? 'Saving…' : 'Save changes' }}
-      </app-button>
+      </button>
     </div>
   </form>
 
@@ -188,13 +188,13 @@
           <span class="profile-save-hint">Other browsers where you are signed in stay signed in.</span>
         }
       </p>
-      <app-button
-        variant="primary"
+      <button
+        appButton="primary"
         type="submit"
         [disabled]="passwordBusy() || !currentPassword() || !newPassword() || !newPasswordRepeat()"
       >
         {{ passwordBusy() ? 'Changing…' : 'Change password' }}
-      </app-button>
+      </button>
     </div>
   </form>
 

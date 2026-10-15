@@ -13,7 +13,6 @@
   --accent: #ff8a1c;
   --accent-soft: #ffd08e;
   --accent-deep: #b85d12;
-  --button-disabled: #d9ccb8;
   --form-ink: #171b4a;
   --ink: #39393a;
   --muted: #6c6558;
@@ -44,7 +43,7 @@ a {
   text-decoration: none;
 }
 
-button,
+button:not([appButton]):not([appIconButton]),
 input,
 textarea {
   font: inherit;

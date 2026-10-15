@@ -8,11 +8,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { FeedbackOption } from '../../app.models';
-import { AppButton } from '../app-button/app-button';
+import { Button } from '../button/button';
+import { IconButton } from '../icon-button/icon-button';
 
 @Component({
   selector: 'app-feedback-dialog',
-  imports: [AppButton],
+  imports: [Button, IconButton],
   templateUrl: './feedback-dialog.html',
   styleUrl: '../../app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

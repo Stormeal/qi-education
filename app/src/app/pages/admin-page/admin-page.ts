@@ -10,7 +10,7 @@ import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService } from '..
 import { ConfirmService } from '../../services/confirm.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -31,7 +31,7 @@ function storedSection(): AdminSection {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, AppButton, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [DatePipe, Button, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -111,14 +111,14 @@ describe('US-A001 user management on the Admin page', () => {
     expect(page.rows()[0].textContent).toContain('Your own role cannot be changed here.');
     expect(page.rows()[1].querySelector('select')!.disabled).toBe(false);
     expect(page.rows()[2].textContent).toContain('Deactivated');
-    expect(page.rows()[2].querySelector<HTMLButtonElement>('app-button button')!.disabled).toBe(true);
+    expect(page.rows()[2].querySelector<HTMLButtonElement>('button[appButton]')!.disabled).toBe(true);
   });
 
   it('sends a reset link after confirmation and reports a failure in plain words', async () => {
     replies['POST /admin/users/ann/password-reset'] = () => json(202, { message: 'A reset link was sent to ann@example.test.' });
     const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     const page = await setup();
-    const button = () => page.rows()[1].querySelector<HTMLButtonElement>('app-button button')!;
+    const button = () => page.rows()[1].querySelector<HTMLButtonElement>('button[appButton]')!;
     button().click();
     await page.settle();
     expect(confirm.mock.calls[0][0].title).toContain('Send a password reset link to ann@example.test?');
@@ -135,7 +135,7 @@ describe('US-A001 user management on the Admin page', () => {
     replies['PATCH /admin/users/ann/status'] = () => json(200, user('ann', 'student', 'disabled'));
     const confirm = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     const page = await setup();
-    const statusButton = (row: number) => [...page.rows()[row].querySelectorAll<HTMLButtonElement>('app-button button')].at(-1)!;
+    const statusButton = (row: number) => [...page.rows()[row].querySelectorAll<HTMLButtonElement>('button[appButton]')].at(-1)!;
     expect(statusButton(0).disabled).toBe(true);
     expect(statusButton(1).textContent).toContain('Deactivate');
     expect(statusButton(2).textContent).toContain('Reactivate');
@@ -171,7 +171,7 @@ describe('US-A001 user management on the Admin page', () => {
     expect(page.host.querySelector('.admin-user-changes time')!.getAttribute('datetime')).toBe('2026-10-11T12:30:00.000Z');
 
     replies['GET /admin/users/changes'] = () => json(200, { changes: [change('c2', 'status', 'active', 'disabled'), change('c1', 'role', 'student', 'teacher')] });
-    [...page.rows()[1].querySelectorAll<HTMLButtonElement>('app-button button')].at(-1)!.click();
+    [...page.rows()[1].querySelectorAll<HTMLButtonElement>('button[appButton]')].at(-1)!.click();
     await vi.waitFor(() => { page.fixture.detectChanges(); expect(log()[0]).toBe('User admin changed the status of User ann from Active to Deactivated'); });
     expect(log()).toHaveLength(2);
   });

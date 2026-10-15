@@ -50,7 +50,7 @@ import { CourseService } from '../../services/course.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
 import { ApiClientService } from '../../services/api-client.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -59,7 +59,7 @@ type CourseViewMode = 'details' | 'learning';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [AppButton, DatePipe, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [Button, DatePipe, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

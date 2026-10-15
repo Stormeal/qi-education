@@ -352,10 +352,9 @@
               </div>
             }
 
-            <app-button
-              class="fill"
+            <button
               type="submit"
-              variant="login-submit"
+              appButton="primary" size="lg" fullWidth
               [disabled]="authMode() === 'login' ? !canSubmit() : !canSignupSubmit()"
             >
               {{
@@ -367,7 +366,7 @@
                     ? 'Log In'
                     : 'Create Student Account'
               }}
-            </app-button>
+            </button>
 
             @if (authMode() === 'signup') {
               <p class="mx-auto max-w-[380px] text-center text-[11px] leading-4 text-[var(--muted)]">

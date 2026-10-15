@@ -754,13 +754,13 @@
       }
 
       <footer class="builder-modal-footer">
-        <app-button
-          variant="primary"
+        <button
+          appButton="primary"
           [disabled]="courseContentSaving() || courseSubmitting()"
-          (buttonClicked)="closeComponentEditor()"
+          (click)="closeComponentEditor()"
         >
           Done
-        </app-button>
+        </button>
       </footer>
     </section>
   </div>
@@ -817,13 +817,13 @@
       </div>
 
       <footer class="builder-modal-footer">
-        <app-button
-          variant="outline"
+        <button
+          appButton
           [disabled]="courseContentSaving() || courseSubmitting()"
-          (buttonClicked)="closeComponentPicker()"
+          (click)="closeComponentPicker()"
         >
           Cancel
-        </app-button>
+        </button>
       </footer>
     </section>
   </div>

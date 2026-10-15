@@ -4,13 +4,13 @@ import { RouterLink } from '@angular/router';
 import { CareerPathService } from '../../services/career-path.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
 import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [AppButton, FeedbackDialog, PageHeader, RouterLink],
+  imports: [Button, FeedbackDialog, PageHeader, RouterLink],
   templateUrl: './dashboard-page.html',
   styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

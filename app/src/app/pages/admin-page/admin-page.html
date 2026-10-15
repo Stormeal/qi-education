@@ -33,13 +33,13 @@
 
     @if (section() === 'feedback') {
       <div class="admin-hero-actions">
-        <app-button
-          variant="primary"
+        <button
+          appButton="primary"
           [disabled]="feedbackLoading()"
-          (buttonClicked)="feedbackReloaded.emit()"
+          (click)="feedbackReloaded.emit()"
         >
           {{ feedbackLoading() ? 'Refreshing...' : 'Refresh' }}
-        </app-button>
+        </button>
       </div>
     }
   </header>
@@ -214,7 +214,7 @@
         <label for="admin-user-search">Search by name or email</label>
         <div>
           <input id="admin-user-search" type="search" maxlength="100" [value]="userSearch()" (input)="userSearch.set($any($event.target).value)" />
-          <app-button variant="primary" type="submit">Search</app-button>
+          <button appButton="primary" type="submit">Search</button>
         </div>
       </form>
       <p class="admin-user-status" role="status">
@@ -227,7 +227,7 @@
       @if (usersState() === 'loading') {
         <app-loading-skeleton variant="stat-card" [count]="2" />
       } @else if (usersState() === 'error') {
-        <app-button variant="outline" (buttonClicked)="searchUsers()">Try again</app-button>
+        <button appButton (click)="searchUsers()">Try again</button>
       } @else if (users().length > 0) {
         <ul class="admin-user-list">
           @for (user of users(); track user.id) {
@@ -251,22 +251,22 @@
                 </select>
                 @if (user.id === currentUserId()) { <small>Your own role cannot be changed here.</small> }
               </label>
-              <app-button
-                variant="outline"
-                [ariaLabel]="'Send a password reset link to ' + user.displayName"
+              <button
+                appButton
+                [attr.aria-label]="'Send a password reset link to ' + user.displayName"
                 [disabled]="userBusyId() === user.id || user.status !== 'active'"
-                (buttonClicked)="sendUserPasswordReset(user)"
+                (click)="sendUserPasswordReset(user)"
               >
                 {{ userBusyId() === user.id ? 'Working…' : 'Send reset link' }}
-              </app-button>
-              <app-button
-                variant="outline"
-                [ariaLabel]="(user.status === 'active' ? 'Deactivate ' : 'Reactivate ') + user.displayName"
+              </button>
+              <button
+                appButton
+                [attr.aria-label]="(user.status === 'active' ? 'Deactivate ' : 'Reactivate ') + user.displayName"
                 [disabled]="userBusyId() === user.id || user.id === currentUserId()"
-                (buttonClicked)="changeUserStatus(user)"
+                (click)="changeUserStatus(user)"
               >
                 {{ user.status === 'active' ? 'Deactivate' : 'Reactivate' }}
-              </app-button>
+              </button>
             </li>
           }
         </ul>
@@ -291,7 +291,7 @@
       @if (instructorsState() === 'loading') {
         <app-loading-skeleton variant="stat-card" [count]="2" />
       } @else if (instructorsState() === 'error') {
-        <app-button variant="outline" (buttonClicked)="loadInstructors()">Try again</app-button>
+        <button appButton (click)="loadInstructors()">Try again</button>
       } @else if (instructors().length === 0) {
         <p class="admin-instructor-empty">No teacher has written a description yet.</p>
       } @else {
@@ -302,7 +302,7 @@
                 <strong>{{ profile.displayName }}</strong>
                 <p>{{ profile.description }}</p>
               </div>
-              <app-button variant="outline" [ariaLabel]="'Clear the description of ' + profile.displayName" (buttonClicked)="clearInstructor(profile)">Clear</app-button>
+              <button appButton [attr.aria-label]="'Clear the description of ' + profile.displayName" (click)="clearInstructor(profile)">Clear</button>
             </li>
           }
         </ul>

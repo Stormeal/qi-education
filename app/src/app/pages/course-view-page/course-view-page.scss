@@ -23,7 +23,7 @@
   color: inherit;
 }
 
-:host button,
+:host button:not([appButton]):not([appIconButton]),
 :host input,
 :host textarea {
   font: inherit;

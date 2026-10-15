@@ -81,10 +81,10 @@
         <p role="status">Loading your courses…</p>
       } @else if (coursesError()) {
         <p role="alert">{{ coursesError() }}</p>
-        <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+        <button appButton (click)="progressReloaded.emit()">Retry</button>
       } @else if (courses().length === 0) {
         <p>No courses in your learning library yet.</p>
-        <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Browse courses</app-button>
+        <button appButton="primary" (click)="coursesClicked.emit()">Browse courses</button>
       } @else {
       @for (course of courses(); track course.id) {
         <article
@@ -114,7 +114,7 @@
               </div>
             } @else if (course.progressState === 'error') {
               <p>Progress unavailable</p>
-              <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+              <button appButton (click)="progressReloaded.emit()">Retry</button>
             }
           </div>
         </article>
