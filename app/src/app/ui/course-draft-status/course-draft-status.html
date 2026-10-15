@@ -9,8 +9,8 @@
     </label>
     @if (!editable()) { <p>This revision cannot currently be edited. Your local draft is retained.</p> }
     <div class="actions">
-      <button type="button" [disabled]="pending() || !editable()" (click)="restored.emit()">Restore draft</button>
-      <button type="button" [disabled]="pending()" (click)="discarded.emit()">Discard local draft</button>
+      <button appButton size="sm" [disabled]="pending() || !editable()" (click)="restored.emit()">Restore draft</button>
+      <button appButton size="sm" [disabled]="pending()" (click)="discarded.emit()">Discard local draft</button>
     </div>
   </section>
 }
@@ -19,7 +19,7 @@
   <section class="draft-status" aria-label="Course save conflict">
     <h2>Newer course work has been saved</h2>
     <p role="alert">Your local draft is intact. Compare the latest saved version, update your draft below, then confirm you have reconciled the changes before saving again.</p>
-    <button type="button" [disabled]="loading() || pending()" (click)="compared.emit()">{{ loading() ? 'Loading latest…' : 'Compare latest saved version' }}</button>
+    <button appButton size="sm" [disabled]="loading() || pending()" (click)="compared.emit()">{{ loading() ? 'Loading latest…' : 'Compare latest saved version' }}</button>
     @if (latest(); as snapshot) {
       <details open>
         <summary>Latest saved course · version {{ snapshot.review?.version }}</summary>
@@ -30,8 +30,8 @@
       </details>
       @if (!canReconcile()) { <p>The working revision changed or is awaiting review. You can use the latest saved version; this draft cannot be saved to that revision.</p> }
       <div class="actions">
-        <button type="button" [disabled]="pending() || !canReconcile()" (click)="reconciled.emit()">I have reconciled my draft</button>
-        <button type="button" [disabled]="pending()" (click)="latestAccepted.emit()">Discard my edits and use latest</button>
+        <button appButton size="sm" [disabled]="pending() || !canReconcile()" (click)="reconciled.emit()">I have reconciled my draft</button>
+        <button appButton size="sm" [disabled]="pending()" (click)="latestAccepted.emit()">Discard my edits and use latest</button>
       </div>
     }
   </section>

@@ -268,60 +268,19 @@
   line-height: 1;
 }
 
-.carousel-control {
+.carousel-nav {
   position: absolute;
   top: 50%;
   z-index: 2;
-  display: inline-grid;
-  width: 52px;
-  height: 52px;
-  place-items: center;
-  border: 1px solid #ff8a1c;
-  border-radius: 999px;
-  color: #fff;
-  background: #ff8a1c;
-  box-shadow: 0 16px 34px rgba(245, 137, 28, 0.24);
-  cursor: pointer;
   transform: translateY(-50%);
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
 }
 
-.carousel-control:hover:not(:disabled) {
-  border-color: #d97706;
-  background: #d97706;
-  box-shadow: 0 22px 40px rgba(217, 119, 6, 0.26);
-  transform: translateY(calc(-50% - 2px));
+.carousel-nav-previous {
+  left: -20px;
 }
 
-.carousel-control:disabled {
-  opacity: 0.34;
-  cursor: default;
-}
-
-.carousel-control > span:not(.carousel-control-icon) {
-  display: none;
-}
-
-.carousel-control-icon,
-.carousel-control-icon svg {
-  display: block;
-  width: 30px;
-  height: 30px;
-}
-
-.carousel-control-icon svg {
-  stroke-width: 2.25;
-}
-
-.carousel-control-previous {
-  left: -26px;
-}
-
-.carousel-control-next {
-  right: -26px;
+.carousel-nav-next {
+  right: -20px;
 }
 
 @keyframes carousel-slide-next {
@@ -428,28 +387,15 @@
   color: #171b4a;
 }
 
+.filters-toggle-host {
+  display: none;
+}
+
 .browse-layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   align-items: start;
   gap: 22px;
-}
-
-.filters-toggle {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  border: 1px solid rgba(108, 101, 88, 0.18);
-  border-radius: 12px;
-  background: #fff;
-  color: #171b4a;
-  min-height: 46px;
-  padding: 0 18px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .filters-toggle-badge {
@@ -488,21 +434,6 @@
   color: #171b4a;
   font-size: 18px;
   font-weight: 800;
-}
-
-.filters-clear {
-  border: 0;
-  background: transparent;
-  color: #5c2fd8;
-  padding: 0;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.filters-clear:hover {
-  text-decoration: underline;
 }
 
 .filter-group {
@@ -752,10 +683,6 @@
     grid-template-columns: 1fr;
   }
 
-  .filters-toggle {
-    display: inline-flex;
-  }
-
   .filters-panel {
     position: static;
     display: none;
@@ -830,17 +757,17 @@
     font-size: 18px;
   }
 
-  .carousel-control {
+  .carousel-nav {
     position: static;
     margin-top: 14px;
     transform: none;
   }
 
-  .carousel-control:hover:not(:disabled) {
-    transform: translateY(-1px);
+  .carousel-nav-previous {
+    margin-right: 8px;
   }
 
-  .carousel-control-previous {
-    margin-right: 8px;
+  .filters-toggle-host {
+    display: inline-flex;
   }
 }

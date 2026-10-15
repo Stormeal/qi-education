@@ -133,22 +133,21 @@
                             Score: {{ activeQuizScore() }} / {{ activeQuizTotalPoints() }}
                           </p>
                           @if (!activeQuizPassed()) {
-                            <button type="button" class="learning-secondary-button" (click)="retryActiveQuiz()">Try again</button>
+                            <button appButton (click)="retryActiveQuiz()">Try again</button>
                           }
                         } @else {
                           @if (!activeQuizQuestionSubmitted()) {
-                            <button type="button" class="learning-secondary-button" [disabled]="quizScoring()" (click)="skipActiveQuizQuestion()">
+                            <button appButton [disabled]="quizScoring()" (click)="skipActiveQuizQuestion()">
                               Skip
                             </button>
                           }
                           @if (activeQuizQuestionSubmitted()) {
-                            <button type="button" class="learning-primary-button" [disabled]="quizScoring()" (click)="goToNextQuizQuestion()">
+                            <button appButton="primary" [disabled]="quizScoring()" (click)="goToNextQuizQuestion()">
                               {{ isLastActiveQuizQuestion() ? 'Finish quiz' : 'Next question' }}
                             </button>
                           } @else {
                             <button
-                              type="button"
-                              class="learning-primary-button"
+                              appButton="primary"
                               [disabled]="!activeQuizQuestionAnswered() || quizScoring()"
                               (click)="submitActiveQuizAnswer()"
                             >
@@ -184,7 +183,7 @@
                         <div class="learning-attachment-list">
                           <p class="learning-attachment-label">Downloads</p>
                           @for (attachment of currentComponent.attachments; track attachment.assetId) {
-                            <button type="button" class="learning-attachment-item" (click)="downloadAttachment(currentCourse.id, attachment)">
+                            <button appButton size="sm" fullWidth (click)="downloadAttachment(currentCourse.id, attachment)">
                               <span class="learning-attachment-name">{{ attachment.fileName }}</span>
                               <span class="learning-attachment-size">{{ formatFileSize(attachment.sizeBytes) }}</span>
                             </button>
@@ -192,7 +191,7 @@
                         </div>
                       }
                       <div class="learning-player-footer">
-                        <button type="button" class="learning-primary-button" (click)="completeActiveComponent()">
+                        <button appButton="primary" (click)="completeActiveComponent()">
                           Mark complete
                         </button>
                       </div>
@@ -231,7 +230,7 @@
                 }
               </div>
               @if (hasRealCurriculum()) {
-                <button type="button" (click)="toggleAllSections()">
+                <button appButton="ghost" size="sm" (click)="toggleAllSections()">
                   {{ allSectionsExpanded() ? 'Collapse' : 'Expand' }}
                 </button>
               }
@@ -363,7 +362,7 @@
               <p>{{ contentSummary() }}</p>
             </div>
             @if (hasRealCurriculum()) {
-              <button type="button" class="curriculum-expand-button" (click)="toggleAllSections()">
+              <button appButton="ghost" size="sm" (click)="toggleAllSections()">
                 {{ allSectionsExpanded() ? 'Collapse all sections' : 'Expand all sections' }}
               </button>
             } @else {
@@ -449,7 +448,7 @@
                               @if (component.attachments.length > 0) {
                                 <div class="curriculum-resource-list">
                                   @for (attachment of component.attachments; track attachment.assetId) {
-                                    <button type="button" (click)="downloadAttachment(currentCourse.id, attachment)">
+                                    <button appButton size="sm" (click)="downloadAttachment(currentCourse.id, attachment)">
                                       {{ attachment.fileName }} · {{ formatFileSize(attachment.sizeBytes) }}
                                     </button>
                                   }
@@ -547,11 +546,8 @@
           @if (canEditCourse()) {
             <div class="course-admin-panel" aria-label="Course management">
               <button
-                type="button"
-                class="course-admin-action"
-                aria-label="Edit course"
-                title="Edit course"
-                data-tooltip="Edit course"
+                appIconButton
+                label="Edit course"
                 (click)="courseEdited.emit(currentCourse.id)"
               >
                 <span class="course-admin-icon" aria-hidden="true" [innerHTML]="editCourseIcon"></span>
@@ -559,22 +555,16 @@
 
               @if (canAccessAdmin()) {
                 <button
-                  type="button"
-                  class="course-admin-action"
-                  aria-label="Set price"
-                  title="Set price"
-                  data-tooltip="Set price"
+                  appIconButton
+                  label="Set price"
                   (click)="openPriceModal(currentCourse)"
                 >
                   <span class="course-admin-icon" aria-hidden="true" [innerHTML]="setPriceIcon"></span>
                 </button>
 
                 <button
-                  type="button"
-                  class="course-admin-action"
-                  aria-label="Catalog settings"
-                  title="Catalog settings"
-                  data-tooltip="Catalog settings"
+                  appIconButton
+                  label="Catalog settings"
                   (click)="openCatalogModal(currentCourse)"
                 >
                   <span class="course-admin-icon" aria-hidden="true" [innerHTML]="catalogSettingsIcon"></span>
@@ -621,7 +611,7 @@
           <p class="course-enroll-kicker">Admin</p>
           <h2 id="price-modal-title">Set course price</h2>
         </div>
-        <button type="button" class="price-modal-close" aria-label="Close price modal" (click)="closePriceModal()">
+        <button appIconButton="ghost" label="Close price modal" (click)="closePriceModal()">
           <span class="inline-icon" aria-hidden="true" [innerHTML]="closeIcon"></span>
         </button>
       </header>
@@ -665,7 +655,7 @@
           <p class="course-enroll-kicker">Enrollment</p>
           <h2 id="enroll-modal-title">Enroll in this course?</h2>
         </div>
-        <button type="button" class="price-modal-close" aria-label="Close enrollment dialog" (click)="closeEnrollDialog()">
+        <button appIconButton="ghost" label="Close enrollment dialog" (click)="closeEnrollDialog()">
           <span class="inline-icon" aria-hidden="true" [innerHTML]="closeIcon"></span>
         </button>
       </header>
@@ -713,7 +703,7 @@
           <p class="course-enroll-kicker">Admin</p>
           <h2 id="catalog-modal-title">Catalog settings</h2>
         </div>
-        <button type="button" class="price-modal-close" aria-label="Close catalog modal" (click)="closeCatalogModal()">
+        <button appIconButton="ghost" label="Close catalog modal" (click)="closeCatalogModal()">
           <span class="inline-icon" aria-hidden="true" [innerHTML]="closeIcon"></span>
         </button>
       </header>

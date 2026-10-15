@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Button } from '../ui/button/button';
 import { CourseEditorPage } from '../pages/course-editor-page/course-editor-page';
 import { LoginPage } from '../pages/login-page/login-page';
 import { AppStateService } from '../services/app-state.service';
 
 @Component({
   selector: 'app-course-editor-route',
-  imports: [CourseEditorPage, LoginPage],
+  imports: [Button, CourseEditorPage, LoginPage],
   templateUrl: './course-editor-route.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

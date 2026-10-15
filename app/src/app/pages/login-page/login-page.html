@@ -235,8 +235,8 @@
                     (input)="passwordChanged.emit(inputValue($event))"
                   />
                   <button
-                    type="button"
-                    class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--label)] transition hover:text-[var(--accent-deep)]"
+                    appButton="ghost"
+                    size="sm"
                     (click)="passwordVisibilityToggled.emit()"
                   >
                     {{ passwordVisible() ? 'Hide' : 'Show' }}
@@ -321,8 +321,8 @@
                     (input)="signupPasswordConfirmationChanged.emit(inputValue($event))"
                   />
                   <button
-                    type="button"
-                    class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--label)] transition hover:text-[var(--accent-deep)]"
+                    appButton="ghost"
+                    size="sm"
                     (click)="passwordVisibilityToggled.emit()"
                   >
                     {{ passwordVisible() ? 'Hide' : 'Show' }}

@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { CourseContentDocument } from '../../app.models';
+import { Button } from '../button/button';
 import { CourseBuilder } from '../course-builder/course-builder';
 import type { RecoverableCourseDraft } from '../../services/course-draft-recovery.service';
 
 @Component({
-  selector: 'app-course-draft-status', imports: [CourseBuilder], changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-course-draft-status', imports: [Button, CourseBuilder], changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-draft-status.html', styleUrl: './course-draft-status.scss',
 })
 export class CourseDraftStatus {

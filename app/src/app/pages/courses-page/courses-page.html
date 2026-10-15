@@ -126,24 +126,24 @@
 
         @if (featuredCourses().length > 4) {
           <button
-            type="button"
-            class="carousel-control carousel-control-previous"
-            aria-label="Show previous featured courses"
+            appIconButton
+            size="lg"
+            class="carousel-nav carousel-nav-previous"
+            label="Show previous featured courses"
             [disabled]="!canRetreatCarousel()"
             (click)="retreatCarousel()"
           >
-            <span class="carousel-control-icon" aria-hidden="true" [innerHTML]="carouselPreviousIcon"></span>
-            <span aria-hidden="true">›</span>
+            <span aria-hidden="true" [innerHTML]="carouselPreviousIcon"></span>
           </button>
           <button
-            type="button"
-            class="carousel-control carousel-control-next"
-            aria-label="Show next featured courses"
+            appIconButton
+            size="lg"
+            class="carousel-nav carousel-nav-next"
+            label="Show next featured courses"
             [disabled]="!canAdvanceCarousel()"
             (click)="advanceCarousel()"
           >
-            <span class="carousel-control-icon" aria-hidden="true" [innerHTML]="carouselNextIcon"></span>
-            <span aria-hidden="true">&rsaquo;</span>
+            <span aria-hidden="true" [innerHTML]="carouselNextIcon"></span>
           </button>
         }
       </div>
@@ -204,8 +204,9 @@
 
       <div class="browse-layout" [class.is-filters-open]="filtersOpen()">
         <button
-          type="button"
-          class="filters-toggle"
+          appButton
+          size="sm"
+          class="filters-toggle-host"
           [attr.aria-expanded]="filtersOpen()"
           (click)="toggleFilters()"
         >
@@ -219,7 +220,7 @@
           <div class="filters-header">
             <h3>Filters</h3>
             @if (hasActiveFilters()) {
-              <button type="button" class="filters-clear" (click)="clearAllFilters()">Clear all</button>
+              <button appButton="ghost" size="sm" (click)="clearAllFilters()">Clear all</button>
             }
           </div>
 

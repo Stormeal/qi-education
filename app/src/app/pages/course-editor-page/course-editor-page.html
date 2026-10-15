@@ -458,7 +458,7 @@
         </div>
 
         <div class="course-preview-actions">
-          <button type="button" class="course-preview-action" (click)="courseCanceled.emit()">
+          <button appButton fullWidth (click)="courseCanceled.emit()">
             @if (courseFormMode() === 'edit') {
               Back to course
             } @else {

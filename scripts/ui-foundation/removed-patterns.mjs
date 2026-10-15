@@ -9,6 +9,16 @@ export const REMOVED = [
   { id: 'cp-btn-map', kind: 'class', name: 'cp-btn-map' },
   { id: 'cp-btn-arrow', kind: 'class', name: 'cp-btn-arrow' },
   { id: 'cpe-btn', kind: 'class', name: 'cpe-btn' },
+  { id: 'learning-primary-button', kind: 'class', name: 'learning-primary-button' },
+  { id: 'learning-secondary-button', kind: 'class', name: 'learning-secondary-button' },
+  { id: 'learning-attachment-item', kind: 'class', name: 'learning-attachment-item' },
+  { id: 'curriculum-expand-button', kind: 'class', name: 'curriculum-expand-button' },
+  { id: 'course-admin-action', kind: 'class', name: 'course-admin-action' },
+  { id: 'price-modal-close', kind: 'class', name: 'price-modal-close' },
+  { id: 'carousel-control', kind: 'class', name: 'carousel-control' },
+  { id: 'filters-toggle', kind: 'class', name: 'filters-toggle' },
+  { id: 'filters-clear', kind: 'class', name: 'filters-clear' },
+  { id: 'course-preview-action', kind: 'class', name: 'course-preview-action' },
 ];
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

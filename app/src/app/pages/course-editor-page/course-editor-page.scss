@@ -640,31 +640,7 @@
   padding: 10px 12px;
 }
 
-.course-preview-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid rgba(108, 101, 88, 0.18);
-  border-radius: 7px;
-  color: #5d6f91;
-  background: #fff;
-  padding: 7px 10px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    color 160ms ease;
-}
 
-.course-preview-action:hover {
-  border-color: rgba(93, 111, 145, 0.36);
-  background: #f7faff;
-}
 
 .save-toast {
   position: fixed;
