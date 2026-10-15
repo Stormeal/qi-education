@@ -201,7 +201,7 @@ export class CareerPathPage {
   }
 
   protected cancelSwitch(): void {
-    this.focusAfterRender(`[data-path="${this.confirmingPathId()}"] button`);
+    this.focusAfterRender(`[data-path="${this.confirmingPathId()}"] [appButton]`);
     this.saveError.set('');
     this.draftPathId.set('');
     this.confirmingPathId.set('');

@@ -51,9 +51,9 @@
               <span class="cpe-step-title">{{ step.title || 'Untitled step' }}</span>
               <span class="cpe-step-meta">{{ stepSummary(step) }}</span>
             </button>
-            <button type="button" appIconButton="ghost" size="sm" [disabled]="i === 0" [label]="'Move step ' + (i + 1) + ' up'" (click)="moveStep(path, i, -1)"><span aria-hidden="true">&uarr;</span></button>
-            <button type="button" appIconButton="ghost" size="sm" [disabled]="i === path.steps.length - 1" [label]="'Move step ' + (i + 1) + ' down'" (click)="moveStep(path, i, 1)"><span aria-hidden="true">&darr;</span></button>
-            <button type="button" appIconButton="danger" size="sm" [label]="'Remove step ' + (i + 1)" (click)="removeStep(path, step)"><span aria-hidden="true">&times;</span></button>
+            <button type="button" appButton="ghost" size="sm" [disabled]="i === 0" [attr.aria-label]="'Move step ' + (i + 1) + ' up'" (click)="moveStep(path, i, -1)">Up</button>
+            <button type="button" appButton="ghost" size="sm" [disabled]="i === path.steps.length - 1" [attr.aria-label]="'Move step ' + (i + 1) + ' down'" (click)="moveStep(path, i, 1)">Down</button>
+            <button type="button" appButton="danger" size="sm" [attr.aria-label]="'Remove step ' + (i + 1)" (click)="removeStep(path, step)">Remove</button>
           </div>
           @for (issue of stepIssues(step.id); track issue.message) { <p class="cpe-error" role="alert">{{ issue.message }}</p> }
 
