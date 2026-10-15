@@ -31,7 +31,7 @@
             }
             @for (attachment of component.attachments; track attachment.assetId) {
               @if (allowDownloads()) {
-                <button type="button" [disabled]="courseSubmitting()" (click)="downloadAttachment(sectionIndex, componentIndex, attachment.assetId, attachment.fileName)">Download {{ attachment.fileName }}</button>
+                <button appButton size="sm" [disabled]="courseSubmitting()" (click)="downloadAttachment(sectionIndex, componentIndex, attachment.assetId, attachment.fileName)">Download {{ attachment.fileName }}</button>
               } @else { <p>Attachment: {{ attachment.fileName }}</p> }
             }
           </details>
@@ -49,9 +49,8 @@
   <div class="content-toolbar">
     <span class="content-summary">{{ contentSummary() }}</span>
     <button
-      type="button"
-      class="icon-action-button"
-      aria-label="Add section"
+      appIconButton
+      label="Add section"
       [disabled]="courseContentSaving() || courseSubmitting()"
       (click)="courseSectionAdded.emit()"
     >
@@ -65,9 +64,9 @@
         <div class="builder-section-header">
           <div class="builder-section-heading">
             <button
-              type="button"
-              class="chevron-button"
-              [attr.aria-label]="sectionToggleLabel(sectionIndex)"
+              appIconButton="ghost"
+              class="section-toggle"
+              [label]="sectionToggleLabel(sectionIndex)"
               [class.is-collapsed]="isSectionCollapsed(sectionIndex)"
               (click)="toggleSection(sectionIndex)"
             >
@@ -95,9 +94,8 @@
               <span>{{ sectionDuration(sectionIndex) }}</span>
             </span>
             <button
-              type="button"
-              class="icon-action-button icon-action-button-danger"
-              aria-label="Remove section"
+              appIconButton="danger"
+              label="Remove section"
               [disabled]="courseContentSaving() || courseSubmitting()"
               (click)="courseSectionRemoved.emit(sectionIndex)"
             >
@@ -154,8 +152,8 @@
                 }
 
                 <button
-                  type="button"
-                  class="component-row-action"
+                  appButton
+                  size="sm"
                   [disabled]="courseContentSaving() || courseSubmitting()"
                   (click)="openComponentEditor(sectionIndex, componentIndex)"
                 >
@@ -163,8 +161,8 @@
                 </button>
 
                 <button
-                  type="button"
-                  class="component-row-action component-row-action-danger"
+                  appButton="danger"
+                  size="sm"
                   [disabled]="courseContentSaving() || courseSubmitting()"
                   (click)="removeComponent(sectionIndex, componentIndex)"
                 >
@@ -175,8 +173,7 @@
           </div>
 
           <button
-            type="button"
-            class="add-component-button"
+            appButton="dashed"
             [disabled]="courseContentSaving() || courseSubmitting()"
             (click)="openComponentPicker(sectionIndex)"
           >
@@ -216,9 +213,8 @@
         </div>
 
         <button
-          type="button"
-          class="icon-action-button"
-          aria-label="Close editor"
+          appIconButton
+          label="Close editor"
           [disabled]="courseContentSaving() || courseSubmitting()"
           (click)="closeComponentEditor()"
         >
@@ -311,9 +307,9 @@
 
                       @if (isQuizQuestionExpanded(questionIndex) && component.quiz.questions.length > 1) {
                         <button
-                          type="button"
-                          class="quiz-question-remove"
-                          aria-label="Remove question"
+                          appIconButton="danger"
+                          size="sm"
+                          label="Remove question"
                           [disabled]="courseContentSaving() || courseSubmitting()"
                           (click)="removeQuizQuestion(editor.sectionIndex, editor.componentIndex, questionIndex)"
                         >
@@ -360,8 +356,8 @@
                               />
                             </label>
                             <button
-                              type="button"
-                              class="quiz-inline-action"
+                              appButton="ghost"
+                              size="sm"
                               [disabled]="courseContentSaving() || courseSubmitting() || !!attachmentUploadComponentId()"
                               (click)="removeQuizImage(editor.sectionIndex, editor.componentIndex, questionIndex)"
                             >
@@ -376,8 +372,8 @@
                               (change)="quizImageSelected(editor.sectionIndex, editor.componentIndex, question.id, $event)"
                             />
                             <button
-                              type="button"
-                              class="quiz-inline-action"
+                              appButton="ghost"
+                              size="sm"
                               [disabled]="courseContentSaving() || courseSubmitting() || !!attachmentUploadComponentId()"
                               (click)="quizImageInput.click()"
                             >
@@ -413,10 +409,9 @@
                                 <span aria-hidden="true">Correct</span>
                               </label>
                               <button
-                                type="button"
-                                class="quiz-answer-remove"
-                                [attr.aria-label]="'Delete answer ' + (answerIndex + 1)"
-                                [title]="question.answers.length <= quizMinAnswers ? 'A question needs at least two answers' : 'Delete answer'"
+                                appIconButton="danger"
+                                size="sm"
+                                [label]="'Delete answer ' + (answerIndex + 1)"
                                 [disabled]="courseContentSaving() || courseSubmitting() || question.answers.length <= quizMinAnswers"
                                 (click)="removeQuizAnswer(editor.sectionIndex, editor.componentIndex, questionIndex, answerIndex)"
                               >
@@ -426,8 +421,8 @@
                           }
                           @if (question.answers.length < quizMaxAnswers) {
                             <button
-                              type="button"
-                              class="quiz-inline-action"
+                              appButton="ghost"
+                              size="sm"
                               [disabled]="courseContentSaving() || courseSubmitting()"
                               (click)="addQuizAnswer(editor.sectionIndex, editor.componentIndex, questionIndex)"
                             >
@@ -450,8 +445,8 @@
                           </label>
                         } @else {
                           <button
-                            type="button"
-                            class="quiz-inline-action"
+                            appButton="ghost"
+                            size="sm"
                             [disabled]="courseContentSaving() || courseSubmitting()"
                             (click)="openQuizExplanation(question)"
                           >
@@ -465,8 +460,8 @@
               </div>
 
               <button
-                type="button"
-                class="add-component-button quiz-add-question-button"
+                appButton="dashed"
+                class="quiz-add-question"
                 [disabled]="courseContentSaving() || courseSubmitting()"
                 (click)="addQuizQuestion(editor.sectionIndex, editor.componentIndex)"
               >
@@ -498,8 +493,8 @@
 
                 @if (component.type === 'video' && component.mux) {
                   <button
-                    type="button"
-                    class="component-row-action component-row-action-danger"
+                    appButton="danger"
+                    size="sm"
                     [disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
                     (click)="courseComponentMuxVideoRemoved.emit({ sectionIndex: editor.sectionIndex, componentIndex: editor.componentIndex })"
                   >
@@ -510,19 +505,20 @@
                     }
                   </button>
                 } @else {
-                  <input
-                    class="mux-file-input"
-                    type="file"
-                    accept="video/*"
-                    [id]="muxUploadInputId(component)"
-                    [disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
-                    (change)="muxVideoSelected($event, editor.sectionIndex, editor.componentIndex)"
-                  />
                   <label
-                    class="component-row-action mux-upload-button"
-                    [class.is-disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
+                    appButton
+                    size="sm"
+                    [attr.aria-disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id || null"
                     [attr.for]="muxUploadInputId(component)"
                   >
+                    <input
+                      class="mux-file-input"
+                      type="file"
+                      accept="video/*"
+                      [id]="muxUploadInputId(component)"
+                      [disabled]="courseContentSaving() || courseSubmitting() || muxUploadComponentId() === component.id"
+                      (change)="muxVideoSelected($event, editor.sectionIndex, editor.componentIndex)"
+                    />
                     @if (muxUploadComponentId() === component.id) {
                       Uploading...
                     } @else {
@@ -587,11 +583,11 @@
               </aside>
 
               <div class="rich-text-workspace">
-                <div class="rich-text-toolbar" aria-label="Text formatting">
-                  <button type="button" title="Undo" aria-label="Undo" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('undo', editor.sectionIndex, editor.componentIndex)">
+                <div class="rich-text-toolbar" role="toolbar" aria-label="Text formatting">
+                  <button appIconButton="ghost" size="sm" label="Undo" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('undo', editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="undoIcon"></span>
                   </button>
-                  <button type="button" title="Redo" aria-label="Redo" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('redo', editor.sectionIndex, editor.componentIndex)">
+                  <button appIconButton="ghost" size="sm" label="Redo" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('redo', editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="redoIcon"></span>
                   </button>
                   <select
@@ -613,22 +609,22 @@
                     <option value="Verdana">Sans</option>
                     <option value="Courier New">Mono</option>
                   </select>
-                  <button type="button" title="Bold" aria-label="Bold" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('bold', editor.sectionIndex, editor.componentIndex)">
+                  <button appIconButton="ghost" size="sm" label="Bold" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('bold', editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="boldIcon"></span>
                   </button>
-                  <button type="button" title="Italic" aria-label="Italic" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('italic', editor.sectionIndex, editor.componentIndex)">
+                  <button appIconButton="ghost" size="sm" label="Italic" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('italic', editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="italicIcon"></span>
                   </button>
-                  <button type="button" title="Underline" aria-label="Underline" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('underline', editor.sectionIndex, editor.componentIndex)">
+                  <button appIconButton="ghost" size="sm" label="Underline" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('underline', editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="underlineIcon"></span>
                   </button>
-                  <button type="button" title="Bulleted list" aria-label="Bulleted list" (mousedown)="preventToolbarMouseDown($event)" (click)="insertUnorderedList(editor.sectionIndex, editor.componentIndex)">
+                  <button appIconButton="ghost" size="sm" label="Bulleted list" (mousedown)="preventToolbarMouseDown($event)" (click)="insertUnorderedList(editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="listIcon"></span>
                   </button>
-                  <button type="button" title="Link" aria-label="Link" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('createLink', editor.sectionIndex, editor.componentIndex)">
+                  <button appIconButton="ghost" size="sm" label="Link" (mousedown)="preventToolbarMouseDown($event)" (click)="executeRichTextCommand('createLink', editor.sectionIndex, editor.componentIndex)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="linkIcon"></span>
                   </button>
-                  <button type="button" title="Upload documentation" aria-label="Upload documentation" (mousedown)="preventToolbarMouseDown($event)" (click)="selectDocumentationFile(component)">
+                  <button appIconButton="ghost" size="sm" label="Upload documentation" (mousedown)="preventToolbarMouseDown($event)" (click)="selectDocumentationFile(component)">
                     <span class="inline-icon" aria-hidden="true" [innerHTML]="fileUpIcon"></span>
                   </button>
                   <input
@@ -683,19 +679,20 @@
                   <strong>{{ attachmentPanelTitle(component) }}</strong>
                   <span>{{ attachmentPanelDescription(component) }}</span>
                 </div>
-                <input
-                  class="mux-file-input"
-                  type="file"
-                  [accept]="attachmentAccept(component)"
-                  [id]="attachmentInputId(component)"
-                  [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
-                  (change)="attachmentFileSelected($event, editor.sectionIndex, editor.componentIndex, component)"
-                />
                 <label
-                  class="component-row-action mux-upload-button"
-                  [class.is-disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                  appButton
+                  size="sm"
+                  [attr.aria-disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id || null"
                   [attr.for]="attachmentInputId(component)"
                 >
+                  <input
+                    class="mux-file-input"
+                    type="file"
+                    [accept]="attachmentAccept(component)"
+                    [id]="attachmentInputId(component)"
+                    [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
+                    (change)="attachmentFileSelected($event, editor.sectionIndex, editor.componentIndex, component)"
+                  />
                   {{ attachmentUploadLabel(component) }}
                 </label>
               </div>
@@ -725,18 +722,18 @@
                     </span>
                     <span class="attachment-row-actions">
                       <button
-                        type="button"
-                        class="attachment-icon-button"
-                        aria-label="Download {{ attachment.fileName }}"
+                        appIconButton
+                        size="sm"
+                        label="Download {{ attachment.fileName }}"
                         [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
                         (click)="downloadAttachment(editor.sectionIndex, editor.componentIndex, attachment.assetId, attachment.fileName)"
                       >
                         <span class="inline-icon" aria-hidden="true" [innerHTML]="downloadIcon"></span>
                       </button>
                       <button
-                        type="button"
-                        class="attachment-icon-button attachment-icon-button-danger"
-                        aria-label="Remove {{ attachment.fileName }}"
+                        appIconButton="danger"
+                        size="sm"
+                        label="Remove {{ attachment.fileName }}"
                         [disabled]="courseContentSaving() || courseSubmitting() || attachmentUploadComponentId() === component.id"
                         (click)="removeAttachment(editor.sectionIndex, editor.componentIndex, attachment.assetId)"
                       >
@@ -776,9 +773,8 @@
         </div>
 
         <button
-          type="button"
-          class="icon-action-button"
-          aria-label="Close component picker"
+          appIconButton
+          label="Close component picker"
           [disabled]="courseContentSaving() || courseSubmitting()"
           (click)="closeComponentPicker()"
         >
@@ -803,8 +799,8 @@
               </div>
 
               <button
-                type="button"
-                class="component-picker-add"
+                appButton="primary"
+                size="sm"
                 [attr.aria-label]="'Add ' + choice.title + ' lesson'"
                 [disabled]="courseContentSaving() || courseSubmitting()"
                 (click)="addComponentOfType(choice.type)"

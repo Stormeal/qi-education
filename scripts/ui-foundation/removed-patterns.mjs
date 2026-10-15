@@ -19,6 +19,20 @@ export const REMOVED = [
   { id: 'filters-toggle', kind: 'class', name: 'filters-toggle' },
   { id: 'filters-clear', kind: 'class', name: 'filters-clear' },
   { id: 'course-preview-action', kind: 'class', name: 'course-preview-action' },
+  { id: 'icon-action-button', kind: 'class', name: 'icon-action-button' },
+  { id: 'icon-action-button-danger', kind: 'class', name: 'icon-action-button-danger' },
+  { id: 'chevron-button', kind: 'class', name: 'chevron-button' },
+  { id: 'component-row-action', kind: 'class', name: 'component-row-action' },
+  { id: 'component-row-action-danger', kind: 'class', name: 'component-row-action-danger' },
+  { id: 'mux-upload-button', kind: 'class', name: 'mux-upload-button' },
+  { id: 'add-component-button', kind: 'class', name: 'add-component-button' },
+  { id: 'quiz-add-question-button', kind: 'class', name: 'quiz-add-question-button' },
+  { id: 'quiz-inline-action', kind: 'class', name: 'quiz-inline-action' },
+  { id: 'quiz-question-remove', kind: 'class', name: 'quiz-question-remove' },
+  { id: 'quiz-answer-remove', kind: 'class', name: 'quiz-answer-remove' },
+  { id: 'attachment-icon-button', kind: 'class', name: 'attachment-icon-button' },
+  { id: 'attachment-icon-button-danger', kind: 'class', name: 'attachment-icon-button-danger' },
+  { id: 'component-picker-add', kind: 'class', name: 'component-picker-add' },
 ];
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

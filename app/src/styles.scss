@@ -165,7 +165,6 @@ app-course-builder .rich-text-toolbar {
   box-shadow: 0 8px 28px rgba(106, 79, 48, 0.06);
 }
 
-app-course-builder .rich-text-toolbar button,
 app-course-builder .rich-text-toolbar select {
   width: auto;
   min-height: 34px;
@@ -178,13 +177,6 @@ app-course-builder .rich-text-toolbar select {
   font-weight: 800;
 }
 
-app-course-builder .rich-text-toolbar button {
-  display: inline-grid;
-  width: 34px;
-  place-items: center;
-}
-
-app-course-builder .rich-text-toolbar button:hover,
 app-course-builder .rich-text-toolbar select:hover {
   color: #0b8ed3;
   background: #edf8ff;

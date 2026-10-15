@@ -39,6 +39,7 @@ import {
 import '@mux/mux-player';
 import { CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
 import { Button } from '../button/button';
+import { IconButton } from '../icon-button/icon-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
 import { attachmentProblem } from '../../utils/attachment-rules';
@@ -59,7 +60,7 @@ type TextOutlineItem = {
 
 @Component({
   selector: 'app-course-builder',
-  imports: [Button, LoadingSkeleton],
+  imports: [Button, IconButton, LoadingSkeleton],
   templateUrl: './course-builder.html',
   styleUrl: './course-builder.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
