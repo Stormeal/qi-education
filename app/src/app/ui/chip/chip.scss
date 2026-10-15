@@ -1,0 +1,30 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+:host([data-variant='neutral']) {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+:host([data-variant='primary']) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+:host([data-variant='highlight']) {
+  background: var(--color-highlight-soft);
+  color: var(--color-highlight-ink);
+}
+
+:host([data-variant='danger']) {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}

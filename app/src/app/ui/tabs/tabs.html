@@ -1,0 +1,21 @@
+<div role="tablist" class="tabs" [attr.aria-label]="label()">
+  @for (tab of tabs(); track tab.id; let i = $index) {
+    <button
+      #tabButton
+      type="button"
+      role="tab"
+      class="tab"
+      [id]="tabId(groupId(), tab.id)"
+      [attr.aria-controls]="tabPanelId(groupId(), tab.id)"
+      [attr.aria-selected]="tab.id === selected()"
+      [attr.tabindex]="tab.id === focusableId() ? 0 : -1"
+      (click)="selectedChange.emit(tab.id)"
+      (keydown)="onKeydown($event, i)"
+    >
+      {{ tab.label }}
+      @if (tab.count !== undefined) {
+        <span appChip>{{ tab.count }}</span>
+      }
+    </button>
+  }
+</div>
