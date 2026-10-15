@@ -583,6 +583,33 @@ isolation, forged account IDs are ignored, and the path never grants content
 access or enrollment. Full API/frontend/build checks pass. Hosted verification
 is pending. Fixing commit: b66a8e1; delivery row records the release limitations.
 
+### DEF-035 - Primary buttons fail text contrast
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-035 | Confirmed, Claude Code, 2026-10-15 | P2 | WCAG 2.2 1.4.3 (4.5:1 for text); US-P013-AC01 | Computed from the stylesheet values on `ee1b660`: white on `#f59e0b` is 2.15:1 |
+
+Found while auditing buttons for US-P013 on `main` / `ee1b660`. `app-button.scss`
+renders `variant="primary"` as white 12px bold text on `#f59e0b`, hover `#d97706`
+(3.19:1). The career path primary (`cp-btn-primary`) is white on a `#ff8a1c` to
+`#d97706` gradient. Both are below the 4.5:1 minimum for normal text, so the main
+action on most pages is hard to read for low-vision users. Expected: at least 4.5:1 in
+every state. Fix: US-P013 makes primary buttons white on `#2f4f43` (9.05:1). Regression:
+the contrast test over the design values in US-P013. Not yet fixed.
+
+### DEF-036 - Focus rings are inconsistent and partly too faint
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-036 | Confirmed, Claude Code, 2026-10-15 | P3 | WCAG 2.2 1.4.11 (3:1 for focus indicators), 2.4.7; US-P013-AC02 | Stylesheets on `ee1b660`: four different local focus colours, most controls on browser defaults; the design DNA's amber focus colour `#ffd08e` is 1.43:1 on white |
+
+Found in the same audit. Focus styles exist only in four components (`#4f773e`,
+`#29463c`, `#315c24`), the login page uses an amber glow, and the remaining controls
+depend on the browser. The documented focus colour cannot meet 3:1 against the white
+and cream surfaces. Expected: one visible ring of at least 3:1 on every focusable
+control. Fix: US-P013's global ring in `--color-focus` `#b45309` (5.0:1). Regression:
+the focus contrast test and a keyboard walk of every page. Not yet fixed.
+
 ## New defect record
 
 Include the next unused DEF ID, title, severity, state, discovery date, tested

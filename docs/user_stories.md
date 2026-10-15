@@ -20,6 +20,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
+| US-P013 | Use one shared look for actions, views and progress | In progress | P2 | None | DEF-035, DEF-036 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -286,6 +287,33 @@ Per-account sign-in now permits ten failures in a rolling 15-minute window,
 then refuses that address for 15 minutes. Signup and per-client limits remain
 outside that increment. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
+
+### US-P013 — Use one shared look for actions, views and progress
+
+**As a learner, teacher or admin, I want buttons, tabs and progress to look and behave
+the same on every page, so that the app feels like one product and I can rely on what a
+control means.**
+
+State: In progress (2026-10-15) on `feat/US-P013-shared-ui-foundation`. Scope, decisions and the contract are in the
+[spec](specs/US-P013-shared-ui-foundation.md). Decided by Alex on 2026-10-15: one shared
+button and tab style on every page; primary actions are deep green, amber stays for focus
+and "you are here". Part 1 of 3 of the learning view redesign.
+
+```gherkin
+Feature: Shared look for actions, views and progress
+  Scenario: US-P013-AC01 Primary actions look the same and are readable everywhere
+    Given any page with a primary action
+    When the page is shown
+    Then the primary action is a deep green button with white text
+    And its text contrast is at least 4.5:1 in its normal, hover and pressed states
+
+  Scenario: US-P013-AC08 No page keeps its own button or tab system
+    Given the frontend source
+    When the shared-UI guard test runs
+    Then no template uses the removed classes or the old app-button element
+```
+
+The full scenario list (AC01–AC10) is in the spec.
 
 ## Adding a story
 
