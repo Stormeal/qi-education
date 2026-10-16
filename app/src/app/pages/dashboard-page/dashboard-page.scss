@@ -279,28 +279,6 @@
   line-height: 1.45;
 }
 
-.db-action-progress {
-  height: 4px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(108, 101, 88, 0.1);
-}
-
-.db-action-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: rgba(108, 101, 88, 0.28);
-}
-
-.is-complete .db-action-progress span {
-  background: #2f4f43;
-}
-
-.is-current .db-action-progress span {
-  background: #f59e0b;
-}
-
 @media (max-width: 860px) {
   .db-welcome {
     flex-direction: column;

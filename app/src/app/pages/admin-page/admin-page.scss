@@ -143,66 +143,6 @@
   color: #171b4a;
 }
 
-.admin-feedback-tabs {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  width: min(720px, 100%);
-  margin: 0 auto;
-}
-
-.admin-feedback-tabs button {
-  position: relative;
-  display: inline-grid;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 220px;
-  border: 0;
-  color: #6c6558;
-  background: transparent;
-  padding: 10px 6px 14px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-align: center;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.admin-feedback-tabs button span {
-  justify-self: center;
-  min-width: 24px;
-  border-radius: 999px;
-  color: #2f4f43;
-  background: rgba(47, 79, 67, 0.08);
-  padding: 3px 7px;
-  font-size: 11px;
-  letter-spacing: 0;
-}
-
-.admin-feedback-tabs button.active {
-  color: #5c5d56;
-}
-
-.admin-feedback-tabs button::after {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  content: '';
-  background: rgba(108, 101, 88, 0.22);
-}
-
-.admin-feedback-tabs button.active::after {
-  height: 4px;
-  background: #da8b78;
-}
-
 .admin-panel-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -472,16 +412,6 @@
     justify-items: start;
   }
 
-  .admin-feedback-tabs {
-    justify-content: flex-start;
-    gap: 18px;
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .admin-feedback-tabs button {
-    min-width: 180px;
-  }
 }
 
 .admin-instructor-list {

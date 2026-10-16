@@ -592,21 +592,6 @@ button.quiz-add-question {
   background: #162019;
 }
 
-.mux-upload-progress {
-  overflow: hidden;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(79, 119, 62, 0.12);
-}
-
-.mux-upload-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #4f773e, #7a9f5b);
-  transition: width 180ms ease;
-}
-
 .attachment-panel {
   display: grid;
   gap: 12px;
@@ -693,21 +678,6 @@ button.quiz-add-question {
 .attachment-upload-status-copy {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-}
-
-.attachment-upload-progress {
-  overflow: hidden;
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(217, 119, 6, 0.12);
-}
-
-.attachment-upload-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #d97706, #f59e0b);
-  transition: width 180ms ease;
 }
 
 @media (max-width: 1120px) {

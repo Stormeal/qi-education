@@ -61,17 +61,11 @@
                         <span>Question {{ activeQuizQuestionNumber() }} of {{ activeQuizQuestions().length }}</span>
                       </header>
 
-                      <div
-                        class="learning-quiz-progress"
-                        role="progressbar"
-                        [attr.aria-valuenow]="activeQuizPositionPercent()"
-                        [attr.aria-valuetext]="'Question ' + activeQuizQuestionNumber() + ' of ' + activeQuizQuestions().length"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-label="Question position"
-                      >
-                        <span [style.width.%]="activeQuizPositionPercent()"></span>
-                      </div>
+                      <app-progress-bar
+                        [value]="activeQuizPositionPercent()"
+                        label="Question position"
+                        [valueText]="'Question ' + activeQuizQuestionNumber() + ' of ' + activeQuizQuestions().length"
+                      />
 
                       <section class="learning-quiz-prompt" aria-labelledby="learning-player-title">
                         <div class="learning-quiz-meta">

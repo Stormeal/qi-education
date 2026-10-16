@@ -55,12 +55,13 @@ import { IconButton } from '../../ui/icon-button/icon-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 type CourseViewMode = 'details' | 'learning';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader, ProgressBar],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

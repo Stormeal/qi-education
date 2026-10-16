@@ -423,9 +423,7 @@
               <strong>{{ completionPercent() }}%</strong>
               filled
             </span>
-            <div class="preview-progress-track">
-              <span [style.width.%]="completionPercent()"></span>
-            </div>
+            <app-progress-bar [value]="completionPercent()" label="Course detail completion" />
           </div>
 
           <div class="preview-stat-grid">

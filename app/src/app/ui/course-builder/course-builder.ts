@@ -45,6 +45,7 @@ import type { CourseEditorBuffer } from '../../services/course-draft-recovery.se
 import { attachmentProblem } from '../../utils/attachment-rules';
 import { inertHtml } from '../../utils/inert-html';
 import { plural } from '../../utils/plural';
+import { ProgressBar } from '../progress-bar/progress-bar';
 
 type ComponentPickerState = {
   sectionIndex: number;
@@ -60,7 +61,7 @@ type TextOutlineItem = {
 
 @Component({
   selector: 'app-course-builder',
-  imports: [Button, IconButton, LoadingSkeleton],
+  imports: [Button, IconButton, LoadingSkeleton, ProgressBar],
   templateUrl: './course-builder.html',
   styleUrl: './course-builder.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

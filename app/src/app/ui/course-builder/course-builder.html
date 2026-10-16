@@ -530,9 +530,7 @@
               </div>
 
               @if (muxUploadComponentId() === component.id || (component.type === 'video' && component.mux?.status === 'uploading')) {
-                <div class="mux-upload-progress" aria-label="Video upload progress">
-                  <span [style.width.%]="muxUploadProgressValue(component)"></span>
-                </div>
+                <app-progress-bar [value]="muxUploadProgressValue(component)" label="Video upload progress" size="sm" />
               }
             </section>
 
@@ -709,9 +707,7 @@
                     <strong>Uploading file</strong>
                     <span>{{ attachmentUploadProgressValue(component) }}%</span>
                   </div>
-                  <div class="attachment-upload-progress">
-                    <span [style.width.%]="attachmentUploadProgressValue(component)"></span>
-                  </div>
+                  <app-progress-bar [value]="attachmentUploadProgressValue(component)" label="Attachment upload progress" size="sm" />
                 </div>
               }
 

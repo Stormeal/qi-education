@@ -85,32 +85,23 @@
   <section class="admin-panel" id="admin-feedback">
     <div class="admin-panel-header">
       <div>
-        <div class="admin-feedback-tabs" role="tablist" aria-label="Feedback views">
-          <button
-            type="button"
-            role="tab"
-            [attr.aria-selected]="activeTab() === 'current'"
-            [class.active]="activeTab() === 'current'"
-            (click)="selectTab('current')"
-          >
-            Current Work Items
-            <span>{{ activeTabCount('current') }}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            [attr.aria-selected]="activeTab() === 'archived'"
-            [class.active]="activeTab() === 'archived'"
-            (click)="selectTab('archived')"
-          >
-            Archived
-            <span>{{ activeTabCount('archived') }}</span>
-          </button>
-        </div>
+        <app-tabs
+          groupId="feedback"
+          label="Feedback views"
+          [tabs]="feedbackTabs()"
+          [selected]="activeTab()"
+          (selectedChange)="onFeedbackTabChange($event)"
+        />
       </div>
     </div>
 
-    <div class="admin-panel-body">
+    <div
+      class="admin-panel-body"
+      role="tabpanel"
+      [id]="tabPanelId('feedback', activeTab())"
+      [attr.aria-labelledby]="tabId('feedback', activeTab())"
+      tabindex="0"
+    >
       @if (feedbackLoading()) {
         <app-loading-skeleton variant="feedback-card" [count]="4" />
       } @else if (feedbackError()) {

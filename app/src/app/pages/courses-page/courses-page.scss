@@ -25,49 +25,6 @@
   gap: 18px;
 }
 
-.catalog-view-tabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  border: 1px solid rgba(108, 101, 88, 0.12);
-  border-radius: 16px;
-  background: rgba(246, 242, 234, 0.9);
-  padding: 4px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
-    0 12px 28px rgba(23, 27, 74, 0.06);
-}
-
-.catalog-view-tabs button {
-  border: 0;
-  border-radius: 12px;
-  color: #6c6558;
-  background: transparent;
-  min-height: 40px;
-  padding: 0 16px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    color 180ms ease,
-    background 180ms ease,
-    box-shadow 180ms ease,
-    transform 180ms ease;
-}
-
-.catalog-view-tabs button.active,
-.catalog-view-tabs button:hover {
-  color: #171b4a;
-  background: #fff;
-  box-shadow: 0 8px 18px rgba(23, 27, 74, 0.08);
-}
-
-.catalog-view-tabs button:active {
-  transform: translateY(1px);
-}
-
 .catalog-heading-copy {
   display: grid;
   gap: 6px;

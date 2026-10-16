@@ -33,6 +33,13 @@ export const REMOVED = [
   { id: 'attachment-icon-button', kind: 'class', name: 'attachment-icon-button' },
   { id: 'attachment-icon-button-danger', kind: 'class', name: 'attachment-icon-button-danger' },
   { id: 'component-picker-add', kind: 'class', name: 'component-picker-add' },
+  { id: 'admin-feedback-tabs', kind: 'class', name: 'admin-feedback-tabs' },
+  { id: 'catalog-view-tabs', kind: 'class', name: 'catalog-view-tabs' },
+  { id: 'learning-quiz-progress', kind: 'class', name: 'learning-quiz-progress' },
+  { id: 'db-action-progress', kind: 'class', name: 'db-action-progress' },
+  { id: 'preview-progress-track', kind: 'class', name: 'preview-progress-track' },
+  { id: 'mux-upload-progress', kind: 'class', name: 'mux-upload-progress' },
+  { id: 'attachment-upload-progress', kind: 'class', name: 'attachment-upload-progress' },
 ];
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

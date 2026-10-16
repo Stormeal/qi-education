@@ -129,6 +129,10 @@ describe('owned course drafts (DEF-001)', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
+    const selected = (fixture.nativeElement as HTMLElement).querySelector('[role="tab"][aria-selected="true"]');
+    expect(selected?.textContent).toContain('My drafts');
+    const panel = (fixture.nativeElement as HTMLElement).querySelector('[role="tabpanel"]');
+    expect(panel?.getAttribute('aria-labelledby')).toBe(selected?.id);
     expect(fixture.nativeElement.textContent).toContain('My renamed course');
     expect(fixture.nativeElement.textContent).not.toContain('Another teachers course');
     expect(fixture.nativeElement.textContent).not.toContain('Legacy unowned course');

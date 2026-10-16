@@ -109,9 +109,7 @@
             @if (course.progressState === 'ready') {
               <p>{{ course.completed }} of {{ course.total }} completed · {{ course.progress }}%</p>
               @if (course.nextLesson) { <p>Next lesson: {{ course.nextLesson }}</p> }
-              <div class="db-action-progress" [attr.aria-label]="course.title + ' progress'">
-                <span [style.width.%]="course.progress"></span>
-              </div>
+              <app-progress-bar [value]="course.progress ?? 0" [label]="course.title + ' progress'" />
             } @else if (course.progressState === 'error') {
               <p>Progress unavailable</p>
               <button appButton (click)="progressReloaded.emit()">Retry</button>

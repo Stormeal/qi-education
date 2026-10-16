@@ -556,21 +556,6 @@
   font-size: 20px;
 }
 
-.preview-progress-track {
-  height: 8px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #e0e0d0;
-}
-
-.preview-progress-track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #2f4f43;
-  transition: width 180ms ease;
-}
-
 .preview-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
