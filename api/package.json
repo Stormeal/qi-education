@@ -1,5 +1,5 @@
 {
-  "name": "@qi-education/api",
+  "name": "@qi-academy/api",
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
@@ -13,7 +13,7 @@
   "keywords": [],
   "author": "",
   "license": "UNLICENSED",
-  "description": "QI-Education API backed by Google Sheets.",
+  "description": "QI Academy API backed by Google Sheets.",
   "dependencies": {
     "@mux/mux-node": "^14.1.0",
     "cors": "^2.8.6",

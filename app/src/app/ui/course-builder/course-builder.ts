@@ -484,7 +484,7 @@ export class CourseBuilder {
 
   protected muxStatusDescription(component: CourseComponent): string {
     if (component.type !== 'video' || !component.mux) {
-      return 'Select a video file and QI Education will prepare the Mux upload automatically.';
+      return 'Select a video file and QI Academy will prepare the Mux upload automatically.';
     }
 
     if (this.muxVideoDelayed(component)) {

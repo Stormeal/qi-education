@@ -239,7 +239,7 @@ export class InMemoryCourseRepository implements CourseRepository {
       audience: 'Learners who want a clear starting point for choosing a practical education path.',
       level: 'Beginner',
       partOfCareer: 'QA Foundations',
-      teacher: 'QI Education',
+      teacher: 'QI Academy',
       careerGoals: ['Career change', 'Skill mapping'],
       status: 'published',
       createdAt: new Date().toISOString(),

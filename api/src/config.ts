@@ -46,7 +46,7 @@ const envSchema = z.object({
   GITHUB_FEEDBACK_PROJECT_ID: z.string().min(1).optional(),
   BREVO_API_KEY: z.string().trim().min(1).optional(),
   MAIL_FROM_ADDRESS: z.email().optional(),
-  MAIL_FROM_NAME: z.string().trim().min(1).default('QI-Education'),
+  MAIL_FROM_NAME: z.string().trim().min(1).default('QI Academy'),
   APP_PUBLIC_URL: z.url().refine(value => /^https?:\/\//.test(value), 'APP_PUBLIC_URL must use HTTP or HTTPS').optional(),
   MUX_TOKEN_ID: z.string().min(1).optional(),
   MUX_TOKEN_SECRET: z.string().min(1).optional(),

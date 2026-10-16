@@ -179,13 +179,13 @@ describe.each(['', '/api'])('US-A001 isolated HTTP (%s)', prefix => {
     const reserve = vi.spyOn(tokens, 'reserve'); const response = await request(resetPath(), 'POST'); expect(response.status).toBe(202);
     expect(await response.json()).toEqual({ message: 'A reset link was sent to student@qi-education.local.' }); expect(response.headers.get('cache-control')).toBe('no-store');
     const raw = rawToken(); expect(Buffer.from(raw, 'base64url')).toHaveLength(32);
-    expect(mail.messages).toEqual([{ to: 'student@qi-education.local', subject: 'Reset your QI-Education password',
-      text: `We received a request to reset your QI-Education password.\n\nUse this link within 60 minutes:\nhttps://example.test/reset-password#token=${raw}\n\nIf you did not request this, you can ignore this message.` }]);
+    expect(mail.messages).toEqual([{ to: 'student@qi-education.local', subject: 'Reset your QI Academy password',
+      text: `We received a request to reset your QI Academy password.\n\nUse this link within 60 minutes:\nhttps://example.test/reset-password#token=${raw}\n\nIf you did not request this, you can ignore this message.` }]);
     expect(reserve.mock.calls[0][1]).toBe(createHash('sha256').update(raw).digest('hex')); expect(reserve.mock.calls[0][1]).not.toBe(raw);
     expect((await request('/auth/password-reset/check', 'POST', { token: raw }, null)).status).toBe(204);
     expect((await request('/auth/password-reset/confirm', 'POST', { token: raw, password: 'Changed456!' }, null)).status).toBe(204);
-    await assertInvalid(raw); expect(mail.messages[1]).toEqual({ to: 'student@qi-education.local', subject: 'Your QI-Education password was changed',
-      text: 'Your QI-Education password was changed. If you did not make this change, contact QI-Education support.' }); expect(mail.messages).toHaveLength(2);
+    await assertInvalid(raw); expect(mail.messages[1]).toEqual({ to: 'student@qi-education.local', subject: 'Your QI Academy password was changed',
+      text: 'Your QI Academy password was changed. If you did not make this change, contact QI Academy support.' }); expect(mail.messages).toHaveLength(2);
     for (const [password, status] of [['Password123!', 401], ['Changed456!', 200]] as const) expect((await request('/auth/login', 'POST', { email: users[0].email, password }, null)).status).toBe(status);
   });
   it('AC05 expires the admin-issued token at exactly 60 minutes', async () => {

@@ -136,7 +136,7 @@
             <input
               type="text"
               [value]="courseDraft().teacher"
-              placeholder="QI Education"
+              placeholder="QI Academy"
               [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
               required
               (input)="courseTeacherChanged.emit(controlValue($event))"

@@ -56,7 +56,7 @@ describe.each(['', '/api'])('Account recovery HTTP (%s)', prefix => {
     const response = await request('request', { email: ' STUDENT@qi-education.local ' });
     expect(response.status).toBe(202); expect(await response.json()).toEqual(accepted);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(mail.messages[0]).toMatchObject({ to: 'student@qi-education.local', subject: 'Reset your QI-Education password' });
+    expect(mail.messages[0]).toMatchObject({ to: 'student@qi-education.local', subject: 'Reset your QI Academy password' });
     expect(mail.messages[0].text).toContain('60 minutes');
     expect(mail.messages[0].text).toContain('https://example.test/reset-password#token=');
     const raw = token(); expect(Buffer.from(raw, 'base64url')).toHaveLength(32);
@@ -95,7 +95,7 @@ describe.each(['', '/api'])('Account recovery HTTP (%s)', prefix => {
       const login = await fetch(base + prefix + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'student@qi-education.local', password }) }); expect(login.status).toBe(status);
     }
-    expect(mail.messages[1].subject).toBe('Your QI-Education password was changed');
+    expect(mail.messages[1].subject).toBe('Your QI Academy password was changed');
     expect(mail.messages[1].text).not.toMatch(/Changed456|Password123|https?:|token=|reset-password/);
   });
   it.each(['short', 'nocapital123', 'NoNumberHere', 'A1'.repeat(101), 42])('L004-AC02 uses signup validation and keeps the token for bad password %j', async password => {

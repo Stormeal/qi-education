@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BrevoMailSender, createMailSender, LocalMailSender } from './mailSender.js';
 
-const settings = { BREVO_API_KEY: 'stub-key', MAIL_FROM_ADDRESS: 'sender@example.test', MAIL_FROM_NAME: 'QI-Education', APP_PUBLIC_URL: 'https://example.test' };
+const settings = { BREVO_API_KEY: 'stub-key', MAIL_FROM_ADDRESS: 'sender@example.test', MAIL_FROM_NAME: 'QI Academy', APP_PUBLIC_URL: 'https://example.test' };
 const message = { to: 'user@example.test', subject: 'Subject', text: 'Plain message' };
 describe('US-P009 mail sender', () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
@@ -11,7 +11,7 @@ describe('US-P009 mail sender', () => {
     const [url, options] = fetcher.mock.calls[0];
     expect(url).toBe('https://api.brevo.com/v3/smtp/email');
     expect(options).toMatchObject({ method: 'POST', headers: { 'api-key': 'stub-key', 'Content-Type': 'application/json', Accept: 'application/json' } });
-    expect(JSON.parse(options!.body as string)).toEqual({ sender: { email: settings.MAIL_FROM_ADDRESS, name: 'QI-Education' },
+    expect(JSON.parse(options!.body as string)).toEqual({ sender: { email: settings.MAIL_FROM_ADDRESS, name: 'QI Academy' },
       to: [{ email: message.to }], subject: message.subject, textContent: message.text });
     expect(options!.signal).toBeInstanceOf(AbortSignal);
   });

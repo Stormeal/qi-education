@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560" role="img" aria-labelledby="title desc">
-  <title id="title">QI-Education book logo concepts</title>
+  <title id="title">QI Academy book logo concepts</title>
   <desc id="desc">Six book-themed logo concepts inspired by Testhuset's angular mark, using grey line work and orange accents.</desc>
   <defs>
     <style>
@@ -14,7 +14,7 @@
   </defs>
 
   <rect class="bg" width="1180" height="560" />
-  <text x="32" y="42" class="wordmark">QI-Education Book Logo Concepts</text>
+  <text x="32" y="42" class="wordmark">QI Academy Book Logo Concepts</text>
 
   <g transform="translate(32 76)">
     <rect class="panel" width="356" height="196" rx="8" />
@@ -24,7 +24,7 @@
         <path class="line" d="M36 20v29M18 22h11M18 32h11M43 22h11M43 32h11" />
         <path class="accent" d="M15 43c8-6 16-6 21 1M36 44c6-7 15-7 21-1" />
       </svg>
-      <text x="92" y="36" class="wordmark">QI-Education</text>
+      <text x="92" y="36" class="wordmark">QI Academy</text>
     </g>
     <text x="24" y="128" class="label">A. Angular Open Book</text>
     <text x="24" y="154" class="note">Direct open-book symbol with Testhuset-style</text>
@@ -40,7 +40,7 @@
         <path class="line" d="M36 25v17" />
         <path class="accent" d="M24 31h7M41 31h7M27 13h18" />
       </svg>
-      <text x="92" y="36" class="wordmark">QI-Education</text>
+      <text x="92" y="36" class="wordmark">QI Academy</text>
     </g>
     <text x="24" y="128" class="label">B. Book In Quality Frame</text>
     <text x="24" y="154" class="note">Closest to the original logo language while</text>
@@ -55,7 +55,7 @@
         <path class="line" d="M36 10l8 8v27M20 19h9M20 28h9M45 28h8" />
         <path class="accent" d="M43 18c8 4 10 14 3 22M29 18c-8 5-9 16-2 22" />
       </svg>
-      <text x="92" y="36" class="wordmark">QI-Education</text>
+      <text x="92" y="36" class="wordmark">QI Academy</text>
     </g>
     <text x="24" y="128" class="label">C. Page Turn Monogram</text>
     <text x="24" y="154" class="note">Cleaner page-turn mark. More education-first</text>
@@ -70,7 +70,7 @@
         <path class="line" d="M36 18v31M18 23h10M18 32h10M45 23h9" />
         <path class="accent" d="M45 12v20l5-4 5 4V12" />
       </svg>
-      <text x="92" y="36" class="wordmark">QI-Education</text>
+      <text x="92" y="36" class="wordmark">QI Academy</text>
     </g>
     <text x="24" y="128" class="label">D. Book And Bookmark</text>
     <text x="24" y="154" class="note">Clear learning-platform cue, with the orange</text>
@@ -85,7 +85,7 @@
         <path class="line" d="M36 21v28M15 14l10-8h22l10 8" />
         <path class="accent" d="M24 25h7M41 25h7M20 35h12M40 35h12" />
       </svg>
-      <text x="92" y="36" class="wordmark">QI-Education</text>
+      <text x="92" y="36" class="wordmark">QI Academy</text>
     </g>
     <text x="24" y="128" class="label">E. Abstract Pages</text>
     <text x="24" y="154" class="note">More abstract and logo-like: book pages plus</text>
@@ -101,7 +101,7 @@
         <path class="line" d="M36 23v17" />
         <path class="accent" d="M26 28h6M40 28h6M30 36h3M39 36h3" />
       </svg>
-      <text x="92" y="36" class="wordmark">QI-Education</text>
+      <text x="92" y="36" class="wordmark">QI Academy</text>
     </g>
     <text x="24" y="128" class="label">F. Compact Book Hex</text>
     <text x="24" y="154" class="note">Small-header option: compact, balanced, and</text>

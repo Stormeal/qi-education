@@ -2,7 +2,7 @@ import { copyFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { resolve } from 'node:path';
 
-const pagesOutput = resolve('app/dist/qi-education-app/browser');
+const pagesOutput = resolve('app/dist/qi-academy-app/browser');
 const indexPath = resolve(pagesOutput, 'index.html');
 const fallbackPath = resolve(pagesOutput, '404.html');
 

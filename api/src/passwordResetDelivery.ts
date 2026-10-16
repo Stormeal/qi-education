@@ -25,8 +25,8 @@ export async function sendPasswordResetLink(user: AuthUser, dependencies: {
   if (!hash) throw new Error('Invalid generated reset token.');
   if (!await tokens.reserve(user.id, hash, now(), passwordCredentialVersion(user.passwordHash))) return 'limit';
   try {
-    await sender.send({ to: user.email, subject: 'Reset your QI-Education password',
-      text: `We received a request to reset your QI-Education password.\n\nUse this link within 60 minutes:\n${publicUrl}/reset-password#token=${raw}\n\nIf you did not request this, you can ignore this message.` });
+    await sender.send({ to: user.email, subject: 'Reset your QI Academy password',
+      text: `We received a request to reset your QI Academy password.\n\nUse this link within 60 minutes:\n${publicUrl}/reset-password#token=${raw}\n\nIf you did not request this, you can ignore this message.` });
   } catch {
     // An uncertain delivery still counts. Its pending token cannot be used.
     return 'mail-unavailable';

@@ -1,5 +1,5 @@
 {
-  "name": "@qi-education/app",
+  "name": "@qi-academy/app",
   "version": "0.1.199",
   "scripts": {
     "ng": "ng",
