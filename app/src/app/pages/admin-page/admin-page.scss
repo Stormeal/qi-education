@@ -11,6 +11,7 @@
 
 .admin-sections {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
 
@@ -26,6 +27,7 @@
     font: inherit;
     font-size: 13px;
     font-weight: 800;
+    white-space: nowrap;
     cursor: pointer;
   }
 

@@ -13,7 +13,7 @@ found in the hosted log on 2026-10-13, recorded as DEF-042.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | DEF-037 to DEF-041: library button gap, admin switch at 400px, builder modal header at 400px, catalog drafts tab fallback, section chevron `aria-expanded` | Everything under `app/` except the version lines, `docs/defect_management.md` | Started |
+| Claude Code | DEF-037 to DEF-041: library button gap, admin switch at 400px, builder modal header at 400px, catalog drafts tab fallback, section chevron `aria-expanded` | Everything under `app/` except the version lines, `docs/defect_management.md` | Done locally (not pushed). All five Fixed, see the defect log. Also fixed: the focus ring guard (`scripts/ui-foundation/focus-ring.test.mjs`) compared a Windows path with a trailing `\` and failed on Windows only. Checks: node guards 23/23, app 317/43, Pages build passes. Browser on 3001/4200 with in-memory stores: DEF-037 to DEF-039 and DEF-041 checked, screenshots in `docs/verification/2026-10-16/DEF-037-041/`. Not verified: the DEF-040 tab disappearing in a browser (no way to remove a course; unit-tested), a keyboard-only walk. Next: check Codex |
 | Codex | DEF-042: answer locked routes only after the course lock is released | See the [handoff](handoffs/DEF-042-course-lock-release-codex.md) | Not started |
 
 **Session 2026-10-15 — US-P013 shared UI foundation, selected by Alex.** Branch:

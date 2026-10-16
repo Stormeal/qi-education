@@ -53,7 +53,7 @@ test('styles.scss defines the one global focus ring', () => {
 test('no other stylesheet draws its own focus outline', () => {
   const offenders = [];
   for (const file of scssFiles(srcDir)) {
-    if (path.basename(file) === 'styles.scss' && path.dirname(file) === srcDir.replace(/\/$/, '')) continue;
+    if (path.basename(file) === 'styles.scss' && path.dirname(file) === path.resolve(srcDir)) continue;
     for (const chain of outlineDeclarations(readFileSync(file, 'utf8'))) {
       if (!chain.includes(':focus')) continue;
       if (ALLOWED.some((a) => chain.includes(a))) continue;

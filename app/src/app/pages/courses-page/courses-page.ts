@@ -96,7 +96,7 @@ export class CoursesPage {
   readonly adminClicked = output<void>();
   readonly careerPathClicked = output<void>();
 
-  protected readonly activeView = signal<CourseCatalogView>('published');
+  private readonly chosenView = signal<CourseCatalogView>('published');
   protected readonly activeCollection = signal<CourseCollectionTab>('popular');
   protected readonly carouselStart = signal(0);
   protected readonly carouselMotion = signal<'next' | 'previous' | ''>('');
@@ -204,6 +204,10 @@ export class CoursesPage {
   );
 
   protected readonly hasCreatorCourses = computed(() => this.creatorCourses().length > 0);
+  // The drafts tab disappears with the last creator course; fall back to a tab that exists.
+  protected readonly activeView = computed<CourseCatalogView>(() =>
+    this.chosenView() === 'drafts' && this.hasCreatorCourses() ? 'drafts' : 'published',
+  );
 
   protected readonly visibleCourses = computed(() => {
     if (this.activeView() === 'drafts') {
@@ -335,7 +339,7 @@ export class CoursesPage {
       return;
     }
 
-    this.activeView.set(view);
+    this.chosenView.set(view);
     this.carouselStart.set(0);
     this.carouselMotionStart.set(0);
   }

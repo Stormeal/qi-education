@@ -68,6 +68,7 @@
               class="section-toggle"
               [label]="sectionToggleLabel(sectionIndex)"
               [class.is-collapsed]="isSectionCollapsed(sectionIndex)"
+              [attr.aria-expanded]="!isSectionCollapsed(sectionIndex)"
               (click)="toggleSection(sectionIndex)"
             >
               <span class="inline-icon" aria-hidden="true" [innerHTML]="chevronDownIcon"></span>

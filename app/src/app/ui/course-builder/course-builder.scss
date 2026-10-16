@@ -258,6 +258,12 @@
   align-items: flex-start;
 }
 
+// Keeps the close button beside a long title on narrow screens (DEF-039).
+.builder-modal-header > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .builder-modal-footer {
   justify-content: flex-end;
 }
@@ -689,7 +695,6 @@ button.quiz-add-question {
 @media (max-width: 760px) {
   .content-toolbar,
   .builder-section-header,
-  .builder-modal-header,
   .builder-modal-footer,
   .builder-component-row {
     display: grid;

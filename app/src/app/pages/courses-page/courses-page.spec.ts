@@ -145,6 +145,27 @@ describe('owned course drafts (DEF-001)', () => {
     expect(fixture.nativeElement.textContent).toContain('Another teachers course');
     expect(fixture.nativeElement.textContent).toContain('Legacy unowned course');
   });
+
+  it('DEF-040 falls back to Published when the last draft disappears while My drafts is selected', async () => {
+    const { fixture } = await createPage([
+      Object.assign(makeCourse({ id: 'mine', title: 'My only draft', status: 'draft' }), { ownerUserId: 'teacher-a' }),
+    ]);
+    fixture.componentRef.setInput('canCreateCourses', true);
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+    Array.from(host.querySelectorAll('button')).find((button) => button.textContent?.includes('My drafts'))!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    fixture.componentRef.setInput('courses', []);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const selected = host.querySelector('[role="tab"][aria-selected="true"]');
+    expect(selected?.textContent).toContain('Published');
+    expect(host.querySelector('[role="tabpanel"]')?.getAttribute('aria-labelledby')).toBe(selected?.id);
+  });
 });
 
 describe('CoursesPage browse filters', () => {

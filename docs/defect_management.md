@@ -644,46 +644,56 @@ review; not pushed yet.
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-037 | Open | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/library-student-1440.png (walkthrough finding 3) |
+| DEF-037 | Fixed, Claude Code, 2026-10-16 | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/library-student-1440.png (walkthrough finding 3) |
 
 Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a student with an enrolled course, open Library at 1440px.
 Expected: The button has a visible gap below the course list. Actual: "Refresh progress" sits flush against the bottom edge of the course card. Probably a margin the old `app-button` host used to add; not investigated. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+Fixed 2026-10-16: `.library-list` has a 16px bottom margin (`library-page.scss`). Verified in a browser at 1440px with one enrolled course: 16px between the list and the button (docs/verification/2026-10-16/DEF-037-041/DEF-037-library-1440.jpg).
 
 ### DEF-038 - Admin section switch clips its fourth segment at 400px
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-038 | Open, existed before US-P013 | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/admin-feedback-admin-400.png (walkthrough finding 4) |
+| DEF-038 | Fixed, Claude Code, 2026-10-16 (existed before US-P013) | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/admin-feedback-admin-400.png (walkthrough finding 4) |
 
 Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as admin, open Admin at a 400px viewport width.
 Expected: All four segments (including "User management") are visible, or the switch wraps cleanly. Actual: The fourth segment is clipped by the right edge and labels wrap onto two lines; the strip scrolls inside itself. The page itself does not scroll horizontally. The switch is a segmented control this story leaves alone. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+Fixed 2026-10-16: the switch wraps (`flex-wrap: wrap`) and labels stay on one line (`admin-page.scss`). Verified at 400px as the demo admin: all four segments visible on two rows, no clipping (docs/verification/2026-10-16/DEF-037-041/DEF-038-admin-400.jpg).
 
 ### DEF-039 - Builder edit modal: the close button drops under the title at 400px
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-039 | Open | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/builder-richtext-toolbar-focus-teacher-400.png (walkthrough finding 5) |
+| DEF-039 | Fixed, Claude Code, 2026-10-16 | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/builder-richtext-toolbar-focus-teacher-400.png (walkthrough finding 5) |
 
 Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher, open a draft course in the editor, press Edit on a lesson in the builder at a 400px viewport width.
 Expected: The close button stays beside the title in the modal header. Actual: The close button wraps onto its own row under the title. Modals are out of scope for US-P013; not compared with the base build. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+Cause: the narrow-screen rule in `course-builder.scss` turned the modal header into a one-column grid. Fixed 2026-10-16: the header is no longer in that rule and its title block may shrink and wrap. Applies to the component editor and the component picker. Verified at 400px with a 54-character lesson title: the close button stays beside the title (docs/verification/2026-10-16/DEF-037-041/DEF-039-builder-modal-400.jpg).
 
 ### DEF-040 - Catalog "My drafts" tab vanishing while selected leaves no selected tab
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-040 | Open, existed before US-P013 | P3 (Low) | US-P013 | `courses-page.ts` `activeView`; `courses-page.html` panel `aria-labelledby` |
+| DEF-040 | Fixed, Claude Code, 2026-10-16 (existed before US-P013) | P3 (Low) | US-P013 | `courses-page.ts` `activeView`; `courses-page.html` panel `aria-labelledby` |
 
 Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher with exactly one draft, open the catalog, select "My drafts", then publish or delete that last draft so the tab disappears.
 Expected: The view falls back to "Published", which is selected, and the panel is labelled by an existing tab. Actual: No tab is selected, and the panel's `aria-labelledby` points to the missing `catalog-tab-drafts` element. `activeView` keeps the old value. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+Fixed 2026-10-16: the shown view is computed and falls back to Published when the drafts tab is not offered (`courses-page.ts`). Regression test in `courses-page.spec.ts` ("DEF-040 falls back to Published..."). Browser: My drafts still selects and labels the panel. Not verified in a browser: the tab disappearing, because no route or screen removes a course in this build.
 
 ### DEF-041 - Course builder section chevron has no aria-expanded
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-041 | Open, existed before US-P013 | P3 (Low) | US-P013 | `course-builder.html` section chevron button |
+| DEF-041 | Fixed, Claude Code, 2026-10-16 (existed before US-P013) | P3 (Low) | US-P013 | `course-builder.html` section chevron button |
 
 Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher, open a draft course in the editor, and inspect the section expand/collapse chevron in the builder with a screen reader or the accessibility tree.
 Expected: The chevron button exposes `aria-expanded` true or false for its section (WCAG 2.2 4.1.2). Actual: The button has no `aria-expanded`, so assistive technology cannot tell whether the section is open. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+Fixed 2026-10-16: `[attr.aria-expanded]` on the section toggle (`course-builder.html`). Verified in a browser: "true" when open, "false" after collapsing, "true" again after expanding.
 
 ### DEF-042 - Course lock is released after the answer is sent
 
