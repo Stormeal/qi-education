@@ -20,7 +20,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
     '[attr.data-full-width]': "fullWidth() ? '' : null",
     '[attr.type]': 'isNativeButton ? type() : null',
     '[attr.aria-busy]': "loading() ? 'true' : null",
-    '[attr.aria-disabled]': "loading() ? 'true' : null",
+    '[attr.aria-disabled]': "loading() || inactive() ? 'true' : null",
   },
 })
 export class Button {
@@ -30,6 +30,8 @@ export class Button {
   readonly size = input<ButtonSize>('md');
   readonly fullWidth = input(false, { transform: booleanAttribute });
   readonly loading = input(false, { transform: booleanAttribute });
+  /** Disabled look for a `label[appButton]` whose file input carries the real `disabled`. */
+  readonly inactive = input(false, { transform: booleanAttribute });
   readonly type = input<'button' | 'submit' | 'reset'>('button');
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;

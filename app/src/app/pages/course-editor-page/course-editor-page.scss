@@ -393,34 +393,22 @@
   align-content: start;
 }
 
-.thumbnail-upload-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 40px;
+/* Visually hidden but focusable: the picker label shows the focus ring through :focus-within. */
+label[appButton] {
+  position: relative;
   width: fit-content;
-  border: 1px solid rgba(108, 101, 88, 0.18);
-  border-radius: 8px;
-  color: var(--color-ink);
-  background: #fff;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    transform 160ms ease;
 }
 
-.thumbnail-upload-button:hover {
-  border-color: rgba(47, 79, 67, 0.28);
-  background: #fffdf9;
-  transform: translateY(-1px);
-}
-
-.thumbnail-upload-button input {
-  display: none;
+label[appButton] .thumbnail-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .thumbnail-help {

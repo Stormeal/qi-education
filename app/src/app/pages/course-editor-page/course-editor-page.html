@@ -259,8 +259,13 @@
             </div>
 
             <div class="thumbnail-controls">
-              <label class="thumbnail-upload-button">
+              <label
+                appButton
+                size="sm"
+                [inactive]="thumbnailUploading() || reviewPending() || !courseEditable() || recoveryAvailable()"
+              >
                 <input
+                  class="thumbnail-file-input"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   [disabled]="thumbnailUploading() || reviewPending() || !courseEditable() || recoveryAvailable()"
