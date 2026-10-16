@@ -156,6 +156,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         (['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && /^\/(?:api\/)?courses\//.test(request.path) &&
           !/\/(price|catalog-metadata|quiz-attempts)$/.test(request.path));
       return reviewScope.run({ author, user: (request as Partial<AuthenticatedRequest>).user }, async () => {
+      let sendResponse: (() => void) | undefined;
       try {
         if (courses.storageType === 'google-sheets' && courseContent.storageType !== 'mongodb') {
           response.status(503).json({ message: 'Shared course operations require MongoDB content and coordination storage.' });
@@ -167,22 +168,32 @@ export function createServer(dependencies: ServerDependencies = {}) {
           await handler(request, response, next);
           return;
         }
-        await courseContent.withCourseMutationLock(courseId, async () => {
-          clearCourseRequestReads();
-          if (author && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && !request.path.endsWith('/review')) {
-            if (request.header('X-Course-Revision')) await review.assertRevision(courseId, request.header('X-Course-Revision'));
-            await review.assertEditable(courseId);
-          }
-          let failure: unknown;
-          await handler(request, response, (error?: unknown) => {
-            if (error) failure = error;
+        // Locked routes finish with send/json, never a stream. Let Express
+        // serialize JSON and set its headers, but hold the final send until
+        // coordination settles: hosts may pause work once the answer is sent.
+        const send = response.send;
+        response.send = (body) => {
+          sendResponse = () => { send.call(response, body); };
+          return response;
+        };
+        try {
+          await courseContent.withCourseMutationLock(courseId, async () => {
+            clearCourseRequestReads();
+            if (author && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && !request.path.endsWith('/review')) {
+              if (request.header('X-Course-Revision')) await review.assertRevision(courseId, request.header('X-Course-Revision'));
+              await review.assertEditable(courseId);
+            }
+            let failure: unknown;
+            await handler(request, response, (error?: unknown) => {
+              if (error) failure = error;
+            });
+            if (failure) throw failure;
           });
-          if (failure) throw failure;
-        });
+        } finally { response.send = send; }
       } catch (error) {
-        if (response.headersSent) { console.error('Unable to finish course operation coordination.', error); return; }
-        next(error);
-      }
+        if (sendResponse || response.headersSent) console.error('Unable to finish course operation coordination.', error);
+        else next(error);
+      } finally { sendResponse?.(); }
       });
     };
 

@@ -16,7 +16,12 @@ never enters the course operation and may leave an owner requiring recovery.
 
 The lock covers consistent reads, author/admin mutations, enrollment, and webhook
 content writes. It remains held until the awaited handler finishes, even if a
-client disconnects. Successful operations and validation failures release it.
+client disconnects. Locked routes hold their finished answer until lock release
+completes, so the host cannot pause release work after sending the answer.
+Successful operations and validation failures release it. If release fails, the
+failure is logged before the handler's finished answer is sent; that answer keeps
+its original status, body, and headers. Errors without a finished answer go to
+normal error handling after coordination settles.
 Actual provider write failures conservatively retain durable ownership:
 a remotely accepted write may still complete after a local connection failure.
 Logs identify course/owner records requiring verified recovery. Read failures
