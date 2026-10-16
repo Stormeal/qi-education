@@ -165,7 +165,7 @@ export class ApiClientService {
     }
 
     this.hasLoggedApiBaseUrls = true;
-    console.info(`QI-Education API order: ${apiBaseUrls.join(' -> ')}`);
+    console.info(`QI Academy API order: ${apiBaseUrls.join(' -> ')}`);
   }
 
   private logApiFallback(failedApiBaseUrl: string, apiBaseUrls: string[]): void {
@@ -175,7 +175,7 @@ export class ApiClientService {
       return;
     }
 
-    console.warn(`QI-Education API ${failedApiBaseUrl} is unreachable. Trying ${fallbackApiBaseUrl}.`);
+    console.warn(`QI Academy API ${failedApiBaseUrl} is unreachable. Trying ${fallbackApiBaseUrl}.`);
   }
 }
 

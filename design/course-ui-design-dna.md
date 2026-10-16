@@ -1,10 +1,10 @@
 # Course UI Design DNA
 
-Use this as the design reference for future QI-Education course view, course editor, and curriculum-builder work. It captures the current product language so new UI changes feel related to the existing app instead of becoming one-off styling.
+Use this as the design reference for future QI Academy course view, course editor, and curriculum-builder work. It captures the current product language so new UI changes feel related to the existing app instead of becoming one-off styling.
 
 ## Product Feel
 
-QI-Education should feel like a calm professional learning workspace: structured, trustworthy, and warm. It is not a marketing splash page and it is not a dense admin console. The learner view should feel guided and clear; the teacher editor should feel efficient, reviewable, and low-drama.
+QI Academy should feel like a calm professional learning workspace: structured, trustworthy, and warm. It is not a marketing splash page and it is not a dense admin console. The learner view should feel guided and clear; the teacher editor should feel efficient, reviewable, and low-drama.
 
 Design keywords:
 

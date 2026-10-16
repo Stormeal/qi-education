@@ -8,7 +8,7 @@ const envPath = join(root, 'api', '.env');
 const options = new Set(process.argv.slice(2));
 const allowDemo = options.has('--allow-demo');
 const skipServer = options.has('--skip-server');
-const localApiBaseUrl = process.env.QI_EDUCATION_LOCAL_API ?? 'http://localhost:3001';
+const localApiBaseUrl = process.env.QI_ACADEMY_LOCAL_API ?? process.env.QI_EDUCATION_LOCAL_API ?? 'http://localhost:3001';
 
 const checks = [];
 const warnings = [];
@@ -218,7 +218,7 @@ async function fetchJson(url) {
 }
 
 function printResults() {
-  console.log('QI-Education local doctor');
+  console.log('QI Academy local doctor');
   console.log('');
 
   for (const check of checks) {

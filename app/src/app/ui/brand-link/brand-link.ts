@@ -13,8 +13,8 @@ type BrandLinkSize = 'default' | 'large';
 })
 export class BrandLink {
   readonly href = input('/');
-  readonly label = input('QI-Education');
-  readonly ariaLabel = input('QI-Education home');
+  readonly label = input('QI Academy');
+  readonly ariaLabel = input('QI Academy home');
   readonly appearance = input<BrandLinkAppearance>('dark');
   readonly size = input<BrandLinkSize>('default');
 }

@@ -56,6 +56,6 @@ describe('US-P011 local script behavior over FS/child/health doubles', () => {
     vi.doMock('./config.js', () => ({ apiConfig: { PORT: 43210, mode, GOOGLE_PRIVATE_KEY: 'synthetic-key', MONGODB_URI: 'mongodb://synthetic.invalid' } }));
     vi.doMock('./server.js', () => ({ createServer: () => ({ listen }) })); await import('./index.js');
     expect(listen).toHaveBeenCalledOnce(); const lines = logs.mock.calls.map(args => args.join(' ')); expect(lines.filter(line => line.startsWith('Stores:'))).toEqual(['Stores: ' + mode]);
-    expect(lines).toContain('QI-Education API listening on http://localhost:43210'); expect(lines.join('\n')).not.toContain('synthetic-key'); expect(lines.join('\n')).not.toContain('mongodb://synthetic.invalid');
+    expect(lines).toContain('QI Academy API listening on http://localhost:43210'); expect(lines.join('\n')).not.toContain('synthetic-key'); expect(lines.join('\n')).not.toContain('mongodb://synthetic.invalid');
   });
 });

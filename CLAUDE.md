@@ -84,7 +84,7 @@ Every instruction for Alex is an exact thing to paste or click, with full paths.
 
 ## Project Overview
 
-QI-Education is a full-stack educational platform where teachers create courses and students enroll and learn. The repo is an npm workspace with two packages: `app/` (Angular frontend) and `api/` (Express backend).
+QI Academy is a full-stack educational platform where teachers create courses and students enroll and learn. The repo is an npm workspace with two packages: `app/` (Angular frontend) and `api/` (Express backend).
 
 ## Commands
 

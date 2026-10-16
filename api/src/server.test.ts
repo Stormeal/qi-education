@@ -18,7 +18,7 @@ import type { MuxVideoService, MuxWebhookEvent, MuxWebhookService } from './muxS
 import { createServer } from './server.js';
 import { InMemoryAuthRepository } from './authRepository.js';
 
-describe('QI-Education API', () => {
+describe('QI Academy API', () => {
   let server: Server;
   let baseUrl: string;
 

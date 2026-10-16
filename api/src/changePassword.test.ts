@@ -76,8 +76,8 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
       const login = await post('/auth/login', { email: users[index].email, password }, null); expect(login.status).toBe(status);
     }
     expect((await fetch(base + prefix + '/auth/me', { headers: { Authorization: 'Bearer ' + bearer } })).status).toBe(200);
-    expect(mail.messages).toEqual([{ to: users[index].email, subject: 'Your QI-Education password was changed',
-      text: 'Your QI-Education password was changed. If you did not make this change, contact QI-Education support.' }]);
+    expect(mail.messages).toEqual([{ to: users[index].email, subject: 'Your QI Academy password was changed',
+      text: 'Your QI Academy password was changed. If you did not make this change, contact QI Academy support.' }]);
   });
   it('AC01 exercises the same route with the actual Sheets hash-cell adapter over isolated rows', async () => {
     const repository = new GoogleSheetsAuthRepository(); const origin = await start(repository);
@@ -128,8 +128,8 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
     const send = vi.fn().mockRejectedValue(new Error('private ' + newPassword)); const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const origin = await start(auth, { provider: 'local', available: true, send });
     const response = await change(undefined, session(), origin); expect(response.status).toBe(204); expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toEqual({ to: users[0].email, subject: 'Your QI-Education password was changed',
-      text: 'Your QI-Education password was changed. If you did not make this change, contact QI-Education support.' });
+    expect(send.mock.calls[0][0]).toEqual({ to: users[0].email, subject: 'Your QI Academy password was changed',
+      text: 'Your QI Academy password was changed. If you did not make this change, contact QI Academy support.' });
     expect(error).not.toHaveBeenCalled();
   });
   it.each(['profile', 'reset'])('AC05 cancels active/pending own links through %s and preserves another account and mail slots', async kind => {
@@ -154,7 +154,7 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
     vi.spyOn(tokens, 'reserve').mockImplementationOnce(async (...args) => { entered.resolve(); await release.promise; return reserve(...args); });
     const request = post('/auth/password-reset/request', { email: users[0].email }, null); await entered.promise;
     try { expect((await change()).status).toBe(204); } finally { release.resolve(); }
-    await request; const raw = mail.messages.find(message => message.subject === 'Reset your QI-Education password')!.text.match(/#token=([A-Za-z0-9_-]+)/)![1];
+    await request; const raw = mail.messages.find(message => message.subject === 'Reset your QI Academy password')!.text.match(/#token=([A-Za-z0-9_-]+)/)![1];
     await isInvalid(raw);
   });
   it('AC04 cancels no password write on cancellation failure and keeps its diagnostics private', async () => {

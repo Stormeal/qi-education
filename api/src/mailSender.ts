@@ -9,8 +9,8 @@ export interface MailSender {
 
 export async function sendPasswordChangedNotice(sender: MailSender, to: string): Promise<void> {
   try {
-    await sender.send({ to, subject: 'Your QI-Education password was changed',
-      text: 'Your QI-Education password was changed. If you did not make this change, contact QI-Education support.' });
+    await sender.send({ to, subject: 'Your QI Academy password was changed',
+      text: 'Your QI Academy password was changed. If you did not make this change, contact QI Academy support.' });
   } catch { /* A failed notice never fails or undoes a completed password change. */ }
 }
 export type MailSettings = {
@@ -32,7 +32,7 @@ export class BrevoMailSender implements MailSender {
       const response = await this.fetcher('https://api.brevo.com/v3/smtp/email', {
         method: 'POST', signal: AbortSignal.timeout(10_000),
         headers: { 'api-key': this.settings.BREVO_API_KEY!, 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ sender: { email: this.settings.MAIL_FROM_ADDRESS, name: this.settings.MAIL_FROM_NAME ?? 'QI-Education' },
+        body: JSON.stringify({ sender: { email: this.settings.MAIL_FROM_ADDRESS, name: this.settings.MAIL_FROM_NAME ?? 'QI Academy' },
           to: [{ email: message.to }], subject: message.subject, textContent: message.text }),
       });
       if (response.status !== 201) {

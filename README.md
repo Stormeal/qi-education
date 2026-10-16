@@ -1,6 +1,8 @@
-# QI-Education
+# QI Academy
 
-QI-Education is a portal for students and teachers to create, discover, and participate in courses.
+The product has been renamed to QI Academy. See [the rename and infrastructure cutover guide](docs/qi-academy-rename.md) for compatibility details and remaining external changes.
+
+QI Academy is a portal for students and teachers to create, discover, and participate in courses.
 
 - `app`: Angular frontend.
 - `api`: Node/Express API with Google Sheets for account/course metadata/feedback and MongoDB for course content/assets; isolated in-memory implementations support tests.
@@ -162,7 +164,7 @@ The current foundation intentionally starts with courses only. Career paths shou
 
 GitHub Actions runs build and test checks for pull requests.
 
-Merges to `main` deploy the Angular app to GitHub Pages from the `app/dist/qi-education-app/browser` build output.
+Merges to `main` deploy the Angular app to GitHub Pages from the `app/dist/qi-academy-app/browser` build output.
 
 The published site will be available at `https://stormeal.github.io/qi-education/` once GitHub Pages is enabled for the repository.
 

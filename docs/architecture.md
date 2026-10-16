@@ -610,7 +610,7 @@ see [review verification](verification/2026-10-09/US-T002.md) for current eviden
 
 PR CI runs frontend builds, Pages build, frontend tests, API build, and API tests.
 Pushes to `main` run the Pages workflow, including tests and hosted API health/config
-checks. The workflow publishes `app/dist/qi-education-app/browser`, with a generated
+checks. The workflow publishes `app/dist/qi-academy-app/browser`, with a generated
 `404.html` SPA fallback. Vercel serves the API via `api/[...path].ts` and can also
 serve the frontend using `vercel.json` routing.
 

@@ -1,4 +1,4 @@
-# Working on QI-Education
+# Working on QI Academy
 
 Read [docs/README.md](docs/README.md), [the work queue](docs/work_queue.md), and
 [the delivery workflow](docs/development_workflow.md) before selecting work.
