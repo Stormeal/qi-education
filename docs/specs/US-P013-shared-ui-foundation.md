@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-P013 ([backlog](../user_stories.md#us-p013--use-one-shared-look-for-actions-views-and-progress))
-- State: Done locally on the branch, in review (spec approved by Alex 2026-10-15; execution: subagent-driven; 0.1.195 on the branch, not pushed, no pull request yet)
+- State: Done locally on the branch, in review (spec approved by Alex 2026-10-15; execution: subagent-driven; 0.1.199 on the branch, not pushed, no pull request yet)
 - Owner: Claude Code (frontend only; no API or storage change, so no Codex part)
 - Related defects: DEF-035 (primary buttons fail text contrast), DEF-036 (focus rings are
   inconsistent and partly too faint)
@@ -200,7 +200,7 @@ The video hero gradient `#16241f → #29463c → #80592f` becomes `--gradient-he
   `--font-mono` JetBrains Mono, defined in `@theme`.
 - Type scale: `--text-caption` 12px, `--text-meta` 13px, `--text-body` 14px,
   `--text-lead` 16px, `--text-title-sm` 18px, `--text-title` 22px, `--text-title-lg` 28px,
-  `--text-display` 42px. Body line height 1.55; headings 1.15 with `text-wrap: balance`.
+  `--text-display` 42px.
 - Spacing uses Tailwind's existing 4px step (`--spacing`); components use multiples of it.
 - Radius: `--radius-control` 6px, `--radius-card` 8px, `--radius-panel` 12px,
   `--radius-modal` 24px, `--radius-pill` 999px.
@@ -214,8 +214,8 @@ The video hero gradient `#16241f → #29463c → #80592f` becomes `--gradient-he
 In `styles.scss`: `:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }`.
 The component-local focus rings (about 20 rules in 13 stylesheets, including the faint
 amber input outlines) are removed, so the global ring is the only one; the quiz answer row
-is the one exception, because its input is hidden and the row re-draws the ring with the
-same colour. Inputs keep their border change on focus and also get the ring. On dark
+and `label[appButton]:focus-within` are the two exceptions that re-draw the ring: the quiz answer input is hidden and the row draws the ring with the
+same colour, and a file-picker label shows the ring when its hidden input has focus. Inputs keep their border change on focus and also get the ring. On dark
 bands (`data-surface="dark"`: course view hero, editor hero, dashboard hero stat) the ring uses `--color-focus-inverse` (`#ffd08e`, at least 3:1 on
 every hero gradient stop) through `[data-surface='dark'] :focus-visible { outline-color: var(--color-focus-inverse) }`. `scripts/ui-foundation/focus-ring.test.mjs` fails when
 any other stylesheet draws a focus outline.
@@ -234,6 +234,8 @@ work without a wrapper element.
 - `fullWidth`, `loading`: boolean attributes.
 - `type`: defaults to `button` on `<button>` so no button submits a form by accident;
   `type="submit"` must be written out. Not set on `<a>` and `<label>`.
+- The host always carries its `appButton` attribute, also when the variant is bound (`[appButton]="…"`), so the attribute selectors in the global styles still match.
+- `inactive`: boolean; gives a `label[appButton]` the disabled look (`aria-disabled="true"`) when its file input is disabled. A template `[attr.aria-disabled]` would be overwritten by the host binding on first render.
 - `loading` shows a spinner before the label, sets `aria-busy="true"` and
   `aria-disabled="true"`, and stops clicks (AC03). The label stays, so width does not jump.
 - States: hover darkens (primary) or warms the border (secondary); pressed scales to
@@ -250,7 +252,7 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 
 ### Icon button — `button[appIconButton]`, `a[appIconButton]`
 
-- `appIconButton`: `'default' | 'ghost' | 'danger'`, default `default`.
+- `appIconButton`: `'default' | 'ghost' | 'danger'`, default `default`. The host always carries its `appIconButton` attribute, also when the variant is bound.
 - `label`: required. Sets `aria-label` and `title` (AC04). Compilation fails without it.
 - `hint`: optional. Replaces the tooltip (`title`) when it must say more than the name, for example why
   a control is disabled. The `aria-label` always stays the `label`, so AC04 holds. Built for the
@@ -277,6 +279,7 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
   inside the tab (`[role='tab']:focus-visible { outline-offset: -4px }`) and the row line and the
   underline are inset box-shadows, so the ring is never clipped by the row.
 - Alt, Ctrl and Meta with an arrow key are left to the browser (Alt+Left is Back).
+- The catalog panel carries `role="tabpanel"` only when tabs are shown (teachers and admins); learners get a plain container.
 
 ### Progress bar — `<app-progress-bar>`
 
@@ -300,8 +303,8 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
   `quiz-inline-action`, `course-admin-action`, `price-modal-close`, `carousel-control`,
   `course-preview-action`, `filters-toggle`, `filters-clear`, `component-picker-add`,
   `quiz-question-remove`, `quiz-answer-remove`, `chevron-button`,
-  `curriculum-expand-button`, the draft-status actions, the editor's back and breadcrumb
-  buttons, the rich-text toolbar buttons (→ icon button, ghost, small, inside a
+  `curriculum-expand-button`, the draft-status actions, the editor's back
+  button (breadcrumbs are structural and stay native), the editor's thumbnail picker (`label[appButton]`), the rich-text toolbar buttons (→ icon button, ghost, small, inside a
   `role="toolbar"`), and the login page's password-visibility and inline text actions.
 - The editor step buttons stay text buttons (ghost or danger, small) with their `aria-label`s, because the
   rule that a visible label never changes outranks the icon button mapping. They are shared buttons, not
@@ -315,13 +318,15 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 ## Guard checks
 
 - The guards are Node checks under `scripts/ui-foundation/`, tested with `node --test`,
-  because Angular specs cannot import `node:fs`. `check-ui-foundation.mjs` reads the
-  source tree and `removed-patterns.test.mjs` fails when a template contains
-  `<app-button` or a removed class, or a stylesheet defines one (AC08).
-- `scripts/check-hardcoded-colors.mjs` counts hex and `rgb[a]()` colour literals per
+  because Angular specs cannot import `node:fs`. The CLI is
+  `scripts/check-ui-foundation.mjs` (`--update-baseline` rewrites the colour baseline, never raising a count). It
+  runs both the colour baseline check and the removed-pattern scan over the source tree, and
+  fails when a template contains `<app-button` or a removed class, or a stylesheet defines one
+  (AC08). `scripts/ui-foundation/removed-patterns.test.mjs` tests the matcher.
+- The colour part of `check-ui-foundation.mjs` counts hex and `rgb[a]()` colour literals per
   stylesheet outside `tailwind.css`, compares the counts with
   `scripts/hardcoded-colors-baseline.json`, and fails when a file's count rises or a new
-  file has any (AC09). It writes a lower baseline with `--update`. It is tested
+  file has any (AC09). It writes a lower baseline with `--update-baseline`. It is tested
   by `scripts/ui-foundation/colors.test.mjs`. The root `app:test` script runs
   `node --test "scripts/ui-foundation/*.test.mjs"` before the Angular tests, so CI
   enforces all guards without a workflow change.
@@ -366,34 +371,33 @@ intended.
 | --- | --- | --- |
 | US-P013-AC01 | `scripts/ui-foundation/design-values.test.mjs` contrast test; browser walk of every page | Pass. Contrast test in the 23 node guard tests (`ba43cac`, `89ff5d4`); all pages moved to the shared button in `03cd669` and later; green primary seen on every page in `docs/verification/2026-10-15/US-P013/` |
 | US-P013-AC02 | `scripts/ui-foundation/design-values.test.mjs` focus contrast; keyboard walk of every page | Pass. Focus contrast test and `focus-ring.test.mjs` (`ba43cac`, `d6c605e`); ring visible on shared buttons, tabs, file picker and toolbar, inverse ring on dark bands, see `walkthrough.md` |
-| US-P013-AC03 | `app/src/app/ui/button/button.spec.ts` loading cases | Pass (`89ff5d4`), in `npm run app:test`: 42 files, 311 tests |
+| US-P013-AC03 | `app/src/app/ui/button/button.spec.ts` loading cases | Pass (`89ff5d4`), in `npm run app:test`: 43 files, 316 tests |
 | US-P013-AC04 | `app/src/app/ui/icon-button/icon-button.spec.ts`; guard check finds no unnamed icon button | Pass (`2fb2d83`, `4fd6f56` for `hint`) |
 | US-P013-AC05 | `app/src/app/ui/tabs/tabs.spec.ts` keyboard cases; admin and catalog keyboard walk | Pass (`698ca69`, `ce01441`, `704ca8f`); arrows, wrap, Home and End and one Tab stop checked in the browser for both tab sets, `walkthrough.md` |
 | US-P013-AC06 | `app/src/app/ui/tabs/tabs.spec.ts` ARIA cases | Pass (`698ca69`); `aria-selected` and the panel's `aria-labelledby` read back in the browser walk |
 | US-P013-AC07 | `app/src/app/ui/progress-bar/progress-bar.spec.ts` | Pass (`a0a6ffc`, `704ca8f`) |
 | US-P013-AC08 | `scripts/ui-foundation/removed-patterns.test.mjs` plus `check-ui-foundation.mjs` | Pass (`cf47851`, `e478b94`); runs inside `npm run app:test` |
 | US-P013-AC09 | `scripts/ui-foundation/colors.test.mjs` | Pass (`cf47851`, `5f23fd8`) |
-| US-P013-AC10 | `npm run app:test`, `npm run api:test`, `npm run verify:journeys`, `npm run app:build:pages` | Pass on `5f23fd8`: app:test 23 node tests plus 42 files and 311 tests; api:build then api:test 50 files and 1281 tests; verify:journeys 1 file and 6 tests; Pages build succeeds (see limits below) |
+| US-P013-AC10 | `npm run app:test`, `npm run api:test`, `npm run verify:journeys`, `npm run app:build:pages` | Pass on `7d91b07` (0.1.198): app:test 23 node tests plus 43 files and 316 tests; api:test 50 files and 1281 tests; verify:journeys 1 file and 6 tests; Pages build succeeds (see limits below) |
 
-Run on 2026-10-16 against `5f23fd8` (0.1.194), before this record commit:
+Run on 2026-10-16 against `7d91b07` (0.1.198), the final code commit; the docs commit after it changes no code. The first walk and review used `5f23fd8`:
 
-- `npm run app:test`: 23 of 23 node guard tests, then 42 of 42 Angular test files, 311 of 311 tests
+- `npm run app:test`: 23 of 23 node guard tests, then 43 of 43 Angular test files, 316 of 316 tests
   (baseline on `ee1b660` was 283 tests in 36 files).
-- `npm run api:build && npm run api:test`: 50 files, 1281 tests, same as the baseline.
+- `npm run api:test`: 50 files, 1281 tests, same as the baseline (no API change).
 - `npm run verify:journeys`: 1 file, 6 tests.
-- `npm run app:build:pages`: succeeds, with three component-style budget warnings (warnings, not
-  errors): `course-view-page-learning.scss` 13.59 kB, `career-path-page.scss` 13.91 kB, `app.scss` 12.31 kB,
-  against a 12 kB warning level. The first two files are smaller than on `ee1b660`; `app.scss` grew
-  about 500 bytes of source and may be new. Not compared against a base build.
+- `npm run app:build:pages`: succeeds, with two component-style budget warnings (warnings, not
+  errors): `course-view-page-learning.scss` 13.16 kB and `career-path-page.scss` 13.91 kB against a 12 kB warning
+  level. The `app.scss` warning from the earlier run is gone after the dead styles were deleted. Not compared against a base build.
 - Limit: Google Fonts cannot be reached from the build sandbox (403), so the Pages build was run with
   `optimization.fonts: false` in the production configuration of `app/angular.json`, which was restored
   afterwards (`git diff app/angular.json` empty). The font inlining step is therefore only proven by the
   hosted workflow.
-- Browser walk: 41 kept screenshots (one role per page, plus special cases; the rest are listed as checked text) and `walkthrough.md` in `docs/verification/2026-10-15/US-P013/`, all
+- Browser walk: 40 kept screenshots (one role per page, plus special cases; the rest are listed as checked text) and `walkthrough.md` in `docs/verification/2026-10-15/US-P013/`, all
   without horizontal page scroll. Five visual findings are listed there; findings 1 (Feedback button stretched
   in the page header) and 2 (editor "Next" button loses its font because `[appButton]` is property-bound) were
   fixed in the same branch afterwards (`Button` and `IconButton` always carry their attribute; header button
-  `justify-self: start`); findings 3 to 5 stay recorded. Not verifiable with demo data: catalog carousel arrows, the Mux player ring, admin
+  `justify-self: start`); findings 3 to 5 are logged as DEF-037, DEF-038 and DEF-039. A final fix wave after the whole-branch review moved the editor thumbnail picker to the shared button (`e803fa3`), set the course view to the body font and deleted dead styles (`7d91b07`); defects DEF-040 and DEF-041 (older, found in the same walk) are logged too. Not verifiable with demo data: catalog carousel arrows, the Mux player ring, admin
   feedback rows.
 
 Browser evidence: screenshots of every page at 1440px and 400px, plus the 900px catalog, in

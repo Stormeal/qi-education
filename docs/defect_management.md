@@ -640,6 +640,51 @@ video stage (Mux player) has no `data-surface="dark"` marker and could not be sh
 its ring on a dark background is unchecked; the hosted look after deployment; the final whole-branch
 review; not pushed yet.
 
+### DEF-037 - Library "Refresh progress" button has no gap below the course list
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-037 | Open | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/library-student-1440.png (walkthrough finding 3) |
+
+Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a student with an enrolled course, open Library at 1440px.
+Expected: The button has a visible gap below the course list. Actual: "Refresh progress" sits flush against the bottom edge of the course card. Probably a margin the old `app-button` host used to add; not investigated. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+### DEF-038 - Admin section switch clips its fourth segment at 400px
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-038 | Open, existed before US-P013 | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/admin-feedback-admin-400.png (walkthrough finding 4) |
+
+Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as admin, open Admin at a 400px viewport width.
+Expected: All four segments (including "User management") are visible, or the switch wraps cleanly. Actual: The fourth segment is clipped by the right edge and labels wrap onto two lines; the strip scrolls inside itself. The page itself does not scroll horizontally. The switch is a segmented control this story leaves alone. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+### DEF-039 - Builder edit modal: the close button drops under the title at 400px
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-039 | Open | P3 (Low) | US-P013 | docs/verification/2026-10-15/US-P013/builder-richtext-toolbar-focus-teacher-400.png (walkthrough finding 5) |
+
+Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher, open a draft course in the editor, press Edit on a lesson in the builder at a 400px viewport width.
+Expected: The close button stays beside the title in the modal header. Actual: The close button wraps onto its own row under the title. Modals are out of scope for US-P013; not compared with the base build. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+### DEF-040 - Catalog "My drafts" tab vanishing while selected leaves no selected tab
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-040 | Open, existed before US-P013 | P3 (Low) | US-P013 | `courses-page.ts` `activeView`; `courses-page.html` panel `aria-labelledby` |
+
+Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher with exactly one draft, open the catalog, select "My drafts", then publish or delete that last draft so the tab disappears.
+Expected: The view falls back to "Published", which is selected, and the panel is labelled by an existing tab. Actual: No tab is selected, and the panel's `aria-labelledby` points to the missing `catalog-tab-drafts` element. `activeView` keeps the old value. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
+### DEF-041 - Course builder section chevron has no aria-expanded
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-041 | Open, existed before US-P013 | P3 (Low) | US-P013 | `course-builder.html` section chevron button |
+
+Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher, open a draft course in the editor, and inspect the section expand/collapse chevron in the builder with a screen reader or the accessibility tree.
+Expected: The chevron button exposes `aria-expanded` true or false for its section (WCAG 2.2 4.1.2). Actual: The button has no `aria-expanded`, so assistive technology cannot tell whether the section is open. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
+
 ## New defect record
 
 Include the next unused DEF ID, title, severity, state, discovery date, tested
