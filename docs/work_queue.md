@@ -13,7 +13,7 @@ found in the hosted log on 2026-10-13, recorded as DEF-042.
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | DEF-037 to DEF-041: library button gap, admin switch at 400px, builder modal header at 400px, catalog drafts tab fallback, section chevron `aria-expanded` | Everything under `app/` except the version lines, `docs/defect_management.md` | Done locally (not pushed). All five Fixed, see the defect log. Also fixed: the focus ring guard (`scripts/ui-foundation/focus-ring.test.mjs`) compared a Windows path with a trailing `\` and failed on Windows only. Checks: node guards 23/23, app 317/43, Pages build passes. Browser on 3001/4200 with in-memory stores: DEF-037 to DEF-039 and DEF-041 checked, screenshots in `docs/verification/2026-10-16/DEF-037-041/`. Not verified: the DEF-040 tab disappearing in a browser (no way to remove a course; unit-tested), a keyboard-only walk. Next: check Codex |
+| Claude Code | DEF-037 to DEF-041: library button gap, admin switch at 400px, builder modal header at 400px, catalog drafts tab fallback, section chevron `aria-expanded` | Everything under `app/` except the version lines, `docs/defect_management.md` | Done locally (not pushed). All five Fixed, see the defect log. Also fixed: the focus ring guard (`scripts/ui-foundation/focus-ring.test.mjs`) compared a Windows path with a trailing `\` and failed on Windows only. Checks: node guards 23/23, app 317/43, Pages build passes. Browser on 3001/4200 with in-memory stores: DEF-037 to DEF-039 and DEF-041 checked, screenshots in `docs/verification/2026-10-16/DEF-037-041/`. Not verified: the DEF-040 tab disappearing in a browser (no way to remove a course; unit-tested), a keyboard-only walk. Next: Alex decides on the push |
 | Codex | DEF-042: answer locked routes only after the course lock is released | See the [handoff](handoffs/DEF-042-course-lock-release-codex.md) | Fixed locally 2026-10-16: implementation 953b534 (0.1.203), delivery record in this docs(DEF-042) commit with a fresh three-line version bump/hook. Main/base 0deff80 and required ancestor 926bb19 confirmed. Lead default confirmed: answer after release settles; failed release logs before the original handler answer. No dependency/frontend contract change. Reproduced 12 failing cases first; 20 new route cases cover both prefixes, PUT/POST/PATCH/DELETE and failures. Checks: focused 35 pass, API 1301/51, API build and six journeys pass; read-only review clear. Not verified: hosted Vercel suspension or real Mongo/Sheets/Mux behavior; no shared services, ports 3001/4200, push or deployment. Frontend tests/build not rerun. Outside-owned follow-up: lead aligns package-lock.json version entries (still 0.1.202) and transfers Outcome to DEF-042. Next: lead/Alex release checks; Codex stopped. |
 
 **Session 2026-10-15 — US-P013 shared UI foundation, selected by Alex.** Branch:
@@ -25,6 +25,14 @@ redesign; parts 2 and 3 are listed at the end of the [spec](specs/US-P013-shared
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | US-P013: design values, shared button, icon button, tabs, progress bar and chip; every page migrated; DEF-035, DEF-036 | Everything under `app/`, `scripts/check-ui-foundation.mjs`, `scripts/ui-foundation/`, `scripts/hardcoded-colors-baseline.json`, `design/course-ui-design-dna.md`, the US-P013 spec | Done locally and verified on the branch (0.1.199, not pushed). Tasks 1-13 committed; DEF-035 and DEF-036 Fixed. Checks on `7d91b07`: node guards 23/23, app 316/43, API 1281/50, journeys 6, Pages build passes (fonts off in this sandbox only). Browser walk: 40 screenshots in `docs/verification/2026-10-15/US-P013/`, two visual findings fixed in fix round 1, three low ones logged as DEF-037 to DEF-039 (DEF-040, DEF-041 also open); final fix wave after the whole-branch review done (`e803fa3`, `7d91b07`). Merged to `main` through pull request #47 (2026-10-16) |
+
+Lead check 2026-10-16 on `d07edf2`: Codex stayed within its files. `withCourseLock` holds the
+final `send` until the release settles; the error path and the restore of `send` are correct,
+and the two `response.end` calls are in unlocked read routes. API 1301/51, app 317/43 with
+guards 23/23, six journeys and the Pages build pass. `package-lock.json` version entries
+aligned by the lead (left out of the handoff's version list). DEF-037 to DEF-042 are Fixed
+locally. Not verified: hosted Vercel and real MongoDB for DEF-042. Next: Alex decides on the
+push; after deploying, one video upload and a look at the hosted log.
 
 **Session 2026-10-13 — started by the user with "let's work on the next job".** Branch: `main`.
 Base: `63f4d25` (pushed, 0.1.166). No confirmed defect is open and no Active work is
