@@ -33,14 +33,14 @@
 
 .section-heading h2 {
   margin: 0 0 6px;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 30px;
   line-height: 1.02;
   font-weight: 800;
 }
 
 .section-heading p {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 15px;
 }
 
@@ -101,7 +101,7 @@
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  background: #f5f2ea;
+  background: var(--color-surface-sunken);
   background-image:
     radial-gradient(circle at 18% 22%, rgba(255, 208, 142, 0.18), transparent 26%),
     linear-gradient(140deg, #1d3028 0%, #305043 54%, #80592f 100%);
@@ -155,7 +155,7 @@
   width: fit-content;
   border: 1px solid rgba(108, 101, 88, 0.14);
   border-radius: 999px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   background: #fff;
   padding: 5px 10px;
   font-size: 12px;
@@ -180,7 +180,7 @@
 }
 
 .catalog-pill-rating {
-  color: #171b4a;
+  color: var(--color-ink);
 }
 
 .catalog-star {
@@ -199,14 +199,14 @@
   min-height: 2.36em;
   overflow-wrap: anywhere;
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 18px;
   line-height: 1.18;
   font-weight: 800;
 }
 
 .catalog-card-author {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -219,7 +219,7 @@
 
 .catalog-card-price {
   align-self: end;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 21px;
   font-weight: 500;
   line-height: 1;
@@ -272,7 +272,7 @@
   border: 1px solid rgba(108, 101, 88, 0.14);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.78);
-  color: #171b4a;
+  color: var(--color-ink);
   padding: 14px;
   font-size: 14px;
   font-weight: 700;
@@ -317,13 +317,13 @@
 
 .instructor-copy h3 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 22px;
   line-height: 1.08;
 }
 
 .instructor-copy p {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -331,7 +331,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  color: #39393a;
+  color: var(--color-text);
   font-size: 12px;
   font-weight: 700;
 }
@@ -340,7 +340,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #171b4a;
+  color: var(--color-ink);
 }
 
 .filters-toggle-host {
@@ -387,7 +387,7 @@
 
 .filters-header h3 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 18px;
   font-weight: 800;
 }
@@ -405,7 +405,7 @@
 }
 
 .filter-label {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 14px;
   font-weight: 800;
 }
@@ -416,7 +416,7 @@
   border: 1px solid rgba(108, 101, 88, 0.2);
   border-radius: 10px;
   background: #fbfaf7;
-  color: #39393a;
+  color: var(--color-text);
   padding: 10px 12px;
   font: inherit;
   font-size: 14px;
@@ -437,7 +437,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #39393a;
+  color: var(--color-text);
   font-size: 14px;
   cursor: pointer;
 }
@@ -459,7 +459,7 @@
 }
 
 .filter-option-count {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -473,7 +473,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 13px;
   font-weight: 700;
 }
@@ -486,7 +486,7 @@
 }
 
 .filter-range-label {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -519,7 +519,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -528,7 +528,7 @@
   border: 1px solid rgba(108, 101, 88, 0.2);
   border-radius: 10px;
   background: #fbfaf7;
-  color: #171b4a;
+  color: var(--color-ink);
   padding: 8px 12px;
   font: inherit;
   font-size: 14px;
@@ -537,7 +537,7 @@
 }
 
 .browse-results-count {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 14px;
   font-weight: 700;
 }
@@ -578,7 +578,7 @@
   aspect-ratio: 16 / 9;
   border-radius: 12px;
   overflow: hidden;
-  background: #f5f2ea;
+  background: var(--color-surface-sunken);
   background-image:
     radial-gradient(circle at 18% 22%, rgba(255, 208, 142, 0.18), transparent 26%),
     linear-gradient(140deg, #1d3028 0%, #305043 54%, #80592f 100%);
@@ -608,7 +608,7 @@
 
 .browse-card-body h3 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 18px;
   line-height: 1.18;
   font-weight: 800;
@@ -616,7 +616,7 @@
 }
 
 .browse-card-author {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -627,7 +627,7 @@
 }
 
 .browse-card-price {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 20px;
   font-weight: 600;
   line-height: 1;

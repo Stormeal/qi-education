@@ -35,6 +35,8 @@ The course editor uses a workbench layout:
 
 ### Palette
 
+The named values live in the `@theme` block of `app/src/tailwind.css` and are the source of truth (`--color-ink`, `--color-text`, `--color-primary`, `--color-focus`, and so on). The hex values below describe the intent; use the variables in styles.
+
 Primary ink:
 
 - Deep navy: `#171b4a` for major headings and strong labels.
@@ -59,7 +61,8 @@ Learning trust:
 
 Action accent:
 
-- Blue-violet links/buttons: `#5b3df5` and muted blue `#5d7ea6`
+- Primary actions are deep green (`--color-primary`, `#2f4f43`; hover `#243d34`).
+- Violet (`--color-link`, `#5b3df5`) is for text links only, not buttons. Muted blue `#5d7ea6` stays an occasional secondary tint.
 - Use sparingly. It should identify actions, not dominate the page.
 
 Error:
@@ -103,7 +106,7 @@ Expected states:
 Micro-interactions:
 
 - Hover states are subtle warm/blue background shifts, not glow effects.
-- Focus states use amber outlines and white field backgrounds.
+- Focus states use `--color-focus` (`#b45309`) outlines, not the amber highlight `#ffd08e`, and white field backgrounds.
 - Sticky elements are allowed when they support workflow: enrollment card, editor panel header.
 
 ## Course View DNA
@@ -191,5 +194,7 @@ Use type colors:
 - Prefer signals for local UI state and services for API access.
 - Use Tailwind for simple layout utility work, SCSS for component-specific selectors and states.
 - Do not introduce a new styling framework.
-- Prefer existing UI components such as `app-button`, `page-header`, `loading-skeleton`, and `course-builder`.
+- Prefer existing UI components and directives such as `appButton`, `appIconButton`, `app-tabs`, `app-progress-bar`, `appChip`, `page-header`, `loading-skeleton`, and `course-builder`.
+- `appIconButton` takes a required `label` (its accessible name). It also has an optional `hint` input whose tooltip may differ from the accessible name when it explains why a control is disabled; this is a deliberate exception to the rule that an icon button's tooltip and name match (decided in Task 10 of US-P013).
+- New styles use the design values (`var(--color-…)` and the other `@theme` variables); the colour check (`node scripts/check-ui-foundation.mjs`) refuses new hard-coded colours.
 - When frontend API behavior changes, check the matching Express route and response shape.

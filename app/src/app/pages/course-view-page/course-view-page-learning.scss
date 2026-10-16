@@ -19,7 +19,7 @@
   grid-template-columns: minmax(0, 1fr) 392px;
   gap: 0;
   align-items: start;
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
@@ -33,7 +33,7 @@
 
 .learning-player {
   background: #fff;
-  color: #39393a;
+  color: var(--color-text);
 }
 
 .learning-player-inner {
@@ -61,7 +61,7 @@
 .learning-player-header h1,
 .learning-text-player h1 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 26px;
   line-height: 1.15;
   font-weight: 900;
@@ -80,7 +80,7 @@
 
 .learning-text-player > p {
   margin: 0;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 15px;
   line-height: 1.65;
 }
@@ -97,7 +97,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -130,7 +130,7 @@
 
 .learning-quiz-prompt h1 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 24px;
   line-height: 1.25;
   letter-spacing: 0;
@@ -144,7 +144,7 @@
   flex: 0 0 auto;
   border: 1px solid rgba(47, 79, 67, 0.18);
   border-radius: 7px;
-  color: #2f4f43;
+  color: var(--color-primary);
   background: #f3fbf6;
   padding: 6px 8px;
   font-size: 12px;
@@ -209,20 +209,20 @@
   height: 28px;
   place-items: center;
   border-radius: 999px;
-  color: #39393a;
-  background: #f5f2ea;
+  color: var(--color-text);
+  background: var(--color-surface-sunken);
   font-size: 12px;
   font-weight: 800;
 }
 
 .learning-quiz-answer:has(input:checked) .learning-answer-letter {
   color: #fff;
-  background: #2f4f43;
+  background: var(--color-primary);
 }
 
 .learning-quiz-answer strong {
   display: block;
-  color: #39393a;
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
@@ -233,16 +233,16 @@
   display: grid;
   gap: 4px;
   margin: 12px 0 0;
-  border-left: 3px solid #991b1b;
+  border-left: 3px solid var(--color-danger);
   padding: 10px 14px;
-  color: #39393a;
-  background: #fff5f5;
+  color: var(--color-text);
+  background: var(--color-danger-soft);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .learning-quiz-result.is-correct {
-  border-left-color: #2f4f43;
+  border-left-color: var(--color-primary);
   background: rgba(47, 79, 67, 0.08);
 }
 
@@ -253,22 +253,22 @@
 
 .learning-quiz-answer.is-correct:has(input:checked) .learning-answer-letter {
   color: #fff;
-  background: #2f4f43;
+  background: var(--color-primary);
 }
 
 .learning-quiz-answer.is-incorrect {
   border-color: rgba(153, 27, 27, 0.24);
-  background: #fff5f5;
+  background: var(--color-danger-soft);
 }
 
 .learning-quiz-answer.is-incorrect:has(input:checked) {
   border-color: rgba(153, 27, 27, 0.32);
-  background: #fff5f5;
+  background: var(--color-danger-soft);
 }
 
 .learning-quiz-answer.is-incorrect:has(input:checked) .learning-answer-letter {
   color: #fff;
-  background: #991b1b;
+  background: var(--color-danger);
 }
 
 .learning-player-actions {
@@ -285,11 +285,11 @@
 }
 
 .learning-player-actions .is-success {
-  color: #2f4f43;
+  color: var(--color-primary);
 }
 
 .learning-player-actions .is-error {
-  color: #991b1b;
+  color: var(--color-danger);
 }
 
 .learning-resource-link {
@@ -298,7 +298,7 @@
   width: fit-content;
   border: 1px solid rgba(47, 79, 67, 0.22);
   border-radius: 7px;
-  color: #2f4f43;
+  color: var(--color-primary);
   background: rgba(47, 79, 67, 0.05);
   padding: 8px 14px;
   font: inherit;
@@ -340,7 +340,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #39393a;
+  color: var(--color-text);
   font-size: 13px;
   font-weight: 600;
   text-align: left;
@@ -360,7 +360,7 @@
 
 .learning-markdown {
   max-width: 72ch;
-  color: #39393a;
+  color: var(--color-text);
   font-size: 15px;
   line-height: 1.78;
 }
@@ -369,7 +369,7 @@
 .learning-markdown h2,
 .learning-markdown h3 {
   margin: 1.5em 0 0.45em;
-  color: #171b4a;
+  color: var(--color-ink);
   line-height: 1.18;
   font-weight: 900;
   letter-spacing: -0.01em;
@@ -394,7 +394,7 @@
 
 .learning-markdown p {
   margin: 0 0 1em;
-  color: #39393a;
+  color: var(--color-text);
 }
 
 .learning-markdown ul,
@@ -414,7 +414,7 @@
 .learning-markdown li {
   margin-bottom: 0.32em;
   line-height: 1.65;
-  color: #39393a;
+  color: var(--color-text);
 }
 
 .learning-markdown li + li {
@@ -436,7 +436,7 @@
 }
 
 .learning-markdown a {
-  color: #2f4f43;
+  color: var(--color-primary);
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-color: rgba(47, 79, 67, 0.3);
@@ -450,11 +450,11 @@
 
 .learning-markdown code {
   border-radius: 4px;
-  background: #f5f2ea;
+  background: var(--color-surface-sunken);
   padding: 2px 5px;
   font-family: ui-monospace, 'SFMono-Regular', Menlo, 'Consolas', monospace;
   font-size: 0.875em;
-  color: #2f4f43;
+  color: var(--color-primary);
 }
 
 .learning-markdown pre {
@@ -470,7 +470,7 @@
   background: transparent;
   padding: 0;
   font-size: 13px;
-  color: #39393a;
+  color: var(--color-text);
 }
 
 .learning-markdown blockquote {
@@ -479,7 +479,7 @@
   border-radius: 8px;
   background: #fbfaf7;
   padding: 14px 18px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 
@@ -502,7 +502,7 @@
 .learning-tabs button {
   border: 0;
   border-bottom: 2px solid transparent;
-  color: #6c6558;
+  color: var(--color-text-muted);
   background: transparent;
   padding: 16px 0 13px;
   font: inherit;
@@ -513,8 +513,8 @@
 }
 
 .learning-tabs button.active {
-  border-bottom-color: #2f4f43;
-  color: #171b4a;
+  border-bottom-color: var(--color-primary);
+  color: var(--color-ink);
 }
 
 .learning-overview-body {
@@ -525,14 +525,14 @@
 
 .learning-overview-body h2 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 26px;
   line-height: 1.2;
 }
 
 .learning-overview-body p {
   width: min(760px, 100%);
-  color: #39393a;
+  color: var(--color-text);
   font-size: 15px;
   line-height: 1.68;
 }
@@ -546,7 +546,7 @@
 .learning-stat-row span {
   border: 1px solid rgba(108, 101, 88, 0.14);
   border-radius: 999px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   padding: 6px 10px;
   font-size: 12px;
   font-weight: 800;
@@ -574,13 +574,13 @@
 
 .learning-content-panel h2 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 18px;
 }
 
 .learning-content-panel header p {
   margin: 4px 0 0;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -594,7 +594,7 @@
   gap: 4px;
   width: 100%;
   border: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   background: #fbfaf7;
   padding: 15px 18px;
   font: inherit;
@@ -609,7 +609,7 @@
 }
 
 .learning-outline-header small {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 700;
 }
@@ -638,11 +638,11 @@
 }
 
 .learning-outline-item.is-active {
-  background: #f5f2ea;
+  background: var(--color-surface-sunken);
 }
 
 .learning-outline-item.is-complete {
-  color: #2f4f43;
+  color: var(--color-primary);
 }
 
 .learning-check {
@@ -656,7 +656,7 @@
 }
 
 .learning-outline-item.is-complete .learning-check {
-  color: #2f4f43;
+  color: var(--color-primary);
 }
 
 .learning-check svg {
@@ -666,7 +666,7 @@
 
 .learning-outline-item strong {
   display: block;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 13px;
   font-weight: 400;
   line-height: 1.38;
@@ -695,13 +695,13 @@
 }
 
 .enroll-modal-course strong {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 15px;
 }
 
 .enroll-modal-course p {
   margin: 0;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -719,7 +719,7 @@
   display: grid;
   gap: 18px;
   width: min(420px, 100%);
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #fff;
   padding: 20px;
@@ -740,7 +740,7 @@
 
 .price-modal-header h2 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 20px;
   font-weight: 900;
 }
@@ -762,7 +762,7 @@
   width: 100%;
   border: 1px solid rgba(140, 121, 96, 0.22);
   border-radius: 8px;
-  color: #39393a;
+  color: var(--color-text);
   background: #fbfaf7;
   padding: 10px 12px;
   font: inherit;
@@ -792,7 +792,7 @@
 }
 
 .price-field-note {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -840,8 +840,8 @@
 
 .save-toast-error {
   border-color: rgba(153, 27, 27, 0.14);
-  color: #991b1b;
-  background: #fff5f5;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 @keyframes button-spin {

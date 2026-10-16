@@ -1,15 +1,15 @@
 :host {
   --cp-panel: rgba(255, 255, 255, 0.82);
   --cp-panel-strong: rgba(255, 255, 255, 0.98);
-  --cp-border: rgba(108, 101, 88, 0.16);
-  --cp-border-strong: rgba(108, 101, 88, 0.28);
-  --cp-text: #171b4a;
-  --cp-text-dim: #6c6558;
+  --cp-border: var(--color-border);
+  --cp-border-strong: var(--color-border-strong);
+  --cp-text: var(--color-ink);
+  --cp-text-dim: var(--color-text-muted);
   --cp-text-faint: #8a8578;
   --cp-amber: #ff8a1c;
   --cp-amber-strong: #d97706;
   --cp-amber-dim: rgba(255, 138, 28, 0.14);
-  --cp-success: #2f4f43;
+  --cp-success: var(--color-primary);
   --cp-success-dim: rgba(47, 79, 67, 0.1);
   --cp-font-display: 'Bricolage Grotesque', ui-sans-serif, sans-serif;
   --cp-font-body: 'Instrument Sans', ui-sans-serif, sans-serif;

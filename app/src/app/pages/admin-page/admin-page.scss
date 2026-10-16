@@ -21,7 +21,7 @@
     border: 1px solid rgba(108, 101, 88, 0.2);
     border-radius: 8px;
     padding: 8px 14px;
-    color: #6c6558;
+    color: var(--color-text-muted);
     background: rgba(255, 255, 255, 0.78);
     font: inherit;
     font-size: 13px;
@@ -30,15 +30,15 @@
   }
 
   button[aria-current='page'] {
-    border-color: #171b4a;
+    border-color: var(--color-ink);
     color: #fff;
-    background: #171b4a;
+    background: var(--color-ink);
   }
 
   span {
     border-radius: 999px;
     padding: 1px 7px;
-    background: rgba(108, 101, 88, 0.16);
+    background: var(--color-border);
     font-size: 11px;
   }
 
@@ -62,12 +62,12 @@
 }
 
 .admin-hero h1 {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 24px;
 }
 
 .admin-hero p:not(.eyebrow) {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -94,14 +94,14 @@
 
 .admin-stats span,
 .admin-stats small {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .admin-stats strong {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 26px;
   line-height: 1;
 }
@@ -118,7 +118,7 @@
   min-height: 0;
   overflow: hidden;
   margin-bottom: 12px;
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #fff;
   padding: 16px;
@@ -140,7 +140,7 @@
 
 .admin-panel-header h2 {
   margin-bottom: 0;
-  color: #171b4a;
+  color: var(--color-ink);
 }
 
 .admin-panel-body {
@@ -160,7 +160,7 @@
   display: grid;
   gap: 8px;
   overflow: hidden;
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
 }
@@ -230,13 +230,13 @@
 }
 
 .admin-feedback-card-header strong {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 14px;
 }
 
 .admin-feedback-card-header time {
   flex: 0 0 auto;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -245,7 +245,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -258,22 +258,22 @@
 }
 
 .rating-great {
-  color: #2f4f43;
+  color: var(--color-primary);
   background: rgba(47, 79, 67, 0.1);
 }
 
 .rating-okay {
-  color: #78350f;
+  color: var(--color-highlight-ink);
   background: #fff0d3;
 }
 
 .rating-needs-work {
-  color: #991b1b;
+  color: var(--color-danger);
   background: rgba(153, 27, 27, 0.08);
 }
 
 .admin-feedback-message {
-  color: #39393a;
+  color: var(--color-text);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -285,14 +285,14 @@
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  background: #2f4f43;
+  background: var(--color-primary);
   font-size: 11px;
   font-weight: 800;
 }
 
 .admin-feedback-user small {
   border-radius: 999px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   background: #fff;
   padding: 4px 8px;
   font-size: 11px;
@@ -302,7 +302,7 @@
 
 .admin-issue-link {
   border-radius: 999px;
-  color: #171b4a;
+  color: var(--color-ink);
   background: rgba(23, 27, 74, 0.08);
   padding: 4px 8px;
   font-size: 11px;
@@ -326,7 +326,7 @@
 .priority-picker button {
   border: 1px solid rgba(108, 101, 88, 0.18);
   border-radius: 999px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   background: rgba(255, 255, 255, 0.74);
   padding: 5px 8px;
   font: inherit;
@@ -340,18 +340,18 @@
 .priority-picker button:hover,
 .priority-picker button.active {
   border-color: rgba(47, 79, 67, 0.34);
-  color: #2f4f43;
+  color: var(--color-primary);
   background: rgba(47, 79, 67, 0.1);
 }
 
 .admin-triage button.status-completed.active {
   color: #fff;
-  background: #2f4f43;
+  background: var(--color-primary);
 }
 
 .admin-triage button.status-wont-do.active {
   border-color: rgba(108, 101, 88, 0.3);
-  color: #39393a;
+  color: var(--color-text);
   background: rgba(255, 255, 255, 0.88);
 }
 
@@ -364,7 +364,7 @@
 
 .priority-picker button.priority-high.active {
   border-color: rgba(153, 27, 27, 0.3);
-  color: #991b1b;
+  color: var(--color-danger);
   background: rgba(153, 27, 27, 0.08);
 }
 
@@ -374,12 +374,12 @@
 }
 
 .admin-empty strong {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 14px;
 }
 
 .admin-empty span {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
@@ -427,18 +427,18 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 16px;
     align-items: start;
-    border: 1px solid rgba(108, 101, 88, 0.16);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 12px 14px;
   }
 
   strong {
-    color: #171b4a;
+    color: var(--color-ink);
   }
 
   p {
     margin: 4px 0 0;
-    color: #6c6558;
+    color: var(--color-text-muted);
     font-size: 14px;
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -448,7 +448,7 @@
 .admin-instructor-message,
 .admin-instructor-empty {
   margin: 0 0 12px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -458,7 +458,7 @@
   margin-bottom: 12px;
 
   label {
-    color: #171b4a;
+    color: var(--color-ink);
     font-size: 14px;
     font-weight: 800;
   }
@@ -471,7 +471,7 @@
   input {
     flex: 1 1 auto;
     min-width: 0;
-    border: 1px solid rgba(108, 101, 88, 0.28);
+    border: 1px solid var(--color-border-strong);
     border-radius: 8px;
     background: #fffdf8;
     padding: 9px 12px;
@@ -485,12 +485,12 @@
   display: grid;
   gap: 4px;
   margin: 0 0 12px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .admin-user-ok {
-  color: #2f4f43;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -512,7 +512,7 @@
     grid-template-columns: minmax(0, 1fr) auto auto auto;
     gap: 16px;
     align-items: center;
-    border: 1px solid rgba(108, 101, 88, 0.16);
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 12px 14px;
   }
@@ -524,11 +524,11 @@
   min-width: 0;
 
   strong {
-    color: #171b4a;
+    color: var(--color-ink);
   }
 
   span {
-    color: #6c6558;
+    color: var(--color-text-muted);
     font-size: 14px;
     overflow-wrap: anywhere;
   }
@@ -542,11 +542,11 @@
 .admin-user-role {
   display: grid;
   gap: 4px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 
   select {
-    border: 1px solid rgba(108, 101, 88, 0.28);
+    border: 1px solid var(--color-border-strong);
     border-radius: 8px;
     background: #fff;
     padding: 7px 10px;
@@ -572,12 +572,12 @@
 
 .admin-user-changes {
   margin-top: 18px;
-  border-top: 1px solid rgba(108, 101, 88, 0.16);
+  border-top: 1px solid var(--color-border);
   padding-top: 14px;
 
   h2 {
     margin: 0 0 8px;
-    color: #171b4a;
+    color: var(--color-ink);
     font-size: 15px;
   }
 
@@ -593,12 +593,12 @@
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
     gap: 12px;
-    color: #39393a;
+    color: var(--color-text);
     font-size: 14px;
   }
 
   time {
-    color: #6c6558;
+    color: var(--color-text-muted);
   }
 }
 

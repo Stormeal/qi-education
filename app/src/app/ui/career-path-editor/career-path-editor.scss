@@ -1,7 +1,7 @@
 // Uses the Admin page's palette and 8px corners; small status chips are pills as elsewhere on that page.
-$ink: #171b4a;
-$muted: #6c6558;
-$green: #2f4f43;
+$ink: var(--color-ink);
+$muted: var(--color-text-muted);
+$green: var(--color-primary);
 $danger: #9f1239;
 $line: rgba(108, 101, 88, 0.2);
 
@@ -61,7 +61,7 @@ $line: rgba(108, 101, 88, 0.2);
 .cpe-paths,
 .cpe-form,
 .cpe-empty {
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #fff;
   padding: 16px;

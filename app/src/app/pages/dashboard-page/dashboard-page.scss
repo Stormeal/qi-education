@@ -15,14 +15,14 @@
 
 .db-welcome-name {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 30px;
   line-height: 1.05;
   font-weight: 800;
 }
 
 .db-welcome-path {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
@@ -51,7 +51,7 @@
 }
 
 .db-stat-label {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -65,7 +65,7 @@
 
 .db-stat-value {
   display: block;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 32px;
   line-height: 1;
   font-weight: 800;
@@ -86,7 +86,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2f4f43;
+  background: var(--color-primary);
 }
 
 .db-stat-hero .db-progress-track {
@@ -98,7 +98,7 @@
 }
 
 .db-stat-meta {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.45;
 }
@@ -116,7 +116,7 @@
 
 .db-section-heading h2 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 22px;
   line-height: 1.05;
   font-weight: 800;
@@ -166,7 +166,7 @@
   height: 34px;
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 50%;
   color: #8a8a82;
   background: #fff;
@@ -195,9 +195,9 @@
 }
 
 .is-complete .db-action-icon {
-  border-color: #2f4f43;
+  border-color: var(--color-primary);
   color: #fff;
-  background: #2f4f43;
+  background: var(--color-primary);
 }
 
 .is-complete .db-action-icon::before {
@@ -229,7 +229,7 @@
 }
 
 .db-action-chapter {
-  color: #78350f;
+  color: var(--color-highlight-ink);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -239,7 +239,7 @@
 
 .db-action-title h3 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 15px;
   font-weight: 700;
   line-height: 1.25;
@@ -252,7 +252,7 @@
   border: 1px solid rgba(108, 101, 88, 0.18);
   border-radius: 999px;
   padding: 4px 10px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   background: rgba(246, 242, 234, 0.8);
   font-size: 11px;
   font-weight: 700;
@@ -263,18 +263,18 @@
 
 .is-complete .db-action-badge {
   border-color: rgba(47, 79, 67, 0.2);
-  color: #2f4f43;
+  color: var(--color-primary);
   background: rgba(47, 79, 67, 0.08);
 }
 
 .is-current .db-action-badge {
   border-color: rgba(245, 158, 11, 0.35);
-  color: #78350f;
+  color: var(--color-highlight-ink);
   background: #fff0d3;
 }
 
 .db-action-body p {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.45;
 }

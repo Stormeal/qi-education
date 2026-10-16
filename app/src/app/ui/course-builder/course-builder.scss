@@ -42,7 +42,7 @@
 }
 
 .content-summary {
-  color: #2f4f43;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -77,14 +77,14 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  color: #78350f;
+  color: var(--color-highlight-ink);
   background: #fff1db;
   font-size: 12px;
   font-weight: 900;
 }
 
 .builder-section-title {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 22px;
   line-height: 1.15;
   font-weight: 900;
@@ -272,7 +272,7 @@
 
 .builder-modal-header h3 {
   margin: 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 28px;
   line-height: 1.1;
   font-weight: 900;
@@ -330,7 +330,7 @@ select {
   width: 100%;
   border: 1px solid rgba(140, 121, 96, 0.18);
   border-radius: 12px;
-  color: #39393a;
+  color: var(--color-text);
   background: #fff;
   padding: 12px 14px;
   font: inherit;
@@ -355,12 +355,12 @@ select:focus {
 }
 
 .course-content-empty {
-  color: #6c6558;
+  color: var(--color-text-muted);
 }
 
 .course-error {
   margin-top: 12px;
-  color: #991b1b;
+  color: var(--color-danger);
 }
 
 .component-picker-body {
@@ -645,7 +645,7 @@ button.quiz-add-question {
 }
 
 .attachment-error {
-  color: #991b1b;
+  color: var(--color-danger);
 }
 
 .attachment-row {
