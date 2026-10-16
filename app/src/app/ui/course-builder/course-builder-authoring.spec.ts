@@ -26,6 +26,9 @@ function outline(): CourseContentDocument {
     { id: 'empty', title: 'Empty chapter', components: [] },
   ] };
 }
+function buttonByText(host: HTMLElement, text: string): HTMLButtonElement {
+  return [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === text) as HTMLButtonElement;
+}
 function setup() {
   const fixture = TestBed.createComponent(CourseBuilder);
   const doc = outline();
@@ -36,7 +39,7 @@ function setup() {
   Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
   fixture.detectChanges();
   const host = fixture.nativeElement as HTMLElement;
-  const open = () => { (host.querySelector('.component-row-action') as HTMLButtonElement).click(); fixture.detectChanges(); };
+  const open = () => { buttonByText(host, 'Edit').click(); fixture.detectChanges(); };
   return { fixture, host, doc, open };
 }
 describe('US-T011 quiz authoring interactions', () => {
@@ -64,7 +67,7 @@ describe('US-T011 quiz authoring interactions', () => {
       vi.spyOn(host.querySelectorAll('.quiz-question-card')[2], 'getBoundingClientRect')
         .mockReturnValue({ top: 300 } as DOMRect);
     });
-    (host.querySelector('.quiz-add-question-button') as HTMLButtonElement).click(); fixture.detectChanges();
+    buttonByText(host, '+ New question').click(); fixture.detectChanges();
     await vi.waitFor(() => expect(document.activeElement).toBe(host.querySelectorAll('.quiz-question-field input')[0]));
     expect(host.querySelectorAll('.quiz-question-body')).toHaveLength(1);
     expect(host.querySelectorAll('.quiz-question-trigger')[2].getAttribute('aria-expanded')).toBe('true');
@@ -254,7 +257,7 @@ describe('DEF-022 lesson editor dialog keyboard focus', () => {
 
   it('takes focus on open, keeps Tab inside, closes on Escape and returns focus', async () => {
     const { fixture, host } = setup();
-    const edit = host.querySelector<HTMLButtonElement>('.component-row-action')!;
+    const edit = buttonByText(host, 'Edit');
     edit.focus(); edit.click(); fixture.detectChanges();
     const dialog = host.querySelector<HTMLElement>('[role="dialog"]')!;
     const close = dialog.querySelector<HTMLButtonElement>('[aria-label="Close editor"]')!;
@@ -336,7 +339,7 @@ describe('US-T013 simple quiz questions', () => {
       const next = structuredClone(doc); quizOf(next).questions.splice(event.questionIndex, 1);
       fixture.componentRef.setInput('courseContent', next); fixture.detectChanges();
     });
-    const removeQuestion = host.querySelector<HTMLButtonElement>('.quiz-question-remove')!;
+    const removeQuestion = host.querySelector<HTMLButtonElement>('[aria-label="Remove question"]')!;
     removeQuestion.focus(); removeQuestion.click(); fixture.detectChanges();
     await vi.waitFor(() => expect(document.activeElement).toBe(host.querySelector('.quiz-question-trigger[aria-expanded="true"]')));
   });

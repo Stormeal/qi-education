@@ -1,8 +1,18 @@
 # Work queue
 
-Updated: 2026-10-13. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-15. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**Session 2026-10-15 — US-P013 shared UI foundation, selected by Alex.** Branch:
+`feat/US-P013-shared-ui-foundation` (Alex chose a branch and pull request for this story).
+Base: `ee1b660` (0.1.173). Frontend only, so there is no Codex part; Codex is free for other
+work but must not edit `app/` files on this branch. Part 1 of 3 of the learning view
+redesign; parts 2 and 3 are listed at the end of the [spec](specs/US-P013-shared-ui-foundation.md).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-P013: design values, shared button, icon button, tabs, progress bar and chip; every page migrated; DEF-035, DEF-036 | Everything under `app/`, `scripts/check-ui-foundation.mjs`, `scripts/ui-foundation/`, `scripts/hardcoded-colors-baseline.json`, `design/course-ui-design-dna.md`, the US-P013 spec | Done locally and verified on the branch (0.1.199, not pushed). Tasks 1-13 committed; DEF-035 and DEF-036 Fixed. Checks on `7d91b07`: node guards 23/23, app 316/43, API 1281/50, journeys 6, Pages build passes (fonts off in this sandbox only). Browser walk: 40 screenshots in `docs/verification/2026-10-15/US-P013/`, two visual findings fixed in fix round 1, three low ones logged as DEF-037 to DEF-039 (DEF-040, DEF-041 also open); final fix wave after the whole-branch review done (`e803fa3`, `7d91b07`). Next: pull request review, then push and pull request to `main` (Alex says when) |
 
 **Session 2026-10-13 — started by the user with "let's work on the next job".** Branch: `main`.
 Base: `63f4d25` (pushed, 0.1.166). No confirmed defect is open and no Active work is

@@ -12,8 +12,8 @@
       <h2 id="confirm-dialog-title">{{ question.title }}</h2>
       <p id="confirm-dialog-message">{{ question.message }}</p>
       <div class="confirm-actions">
-        <app-button variant="outline" (buttonClicked)="confirm.answer(false)">Cancel</app-button>
-        <app-button variant="primary" (buttonClicked)="confirm.answer(true)">{{ question.confirmLabel }}</app-button>
+        <button appButton (click)="confirm.answer(false)">Cancel</button>
+        <button appButton="primary" (click)="confirm.answer(true)">{{ question.confirmLabel }}</button>
       </div>
     </section>
   </div>

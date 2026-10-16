@@ -10,14 +10,16 @@ import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService } from '..
 import { ConfirmService } from '../../services/confirm.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 type FeedbackTab = 'current' | 'archived';
+const isFeedbackTab = (id: string): id is FeedbackTab => id === 'current' || id === 'archived';
 type AdminSection = 'feedback' | 'career-paths' | 'instructors' | 'users';
 const SECTION_KEY = 'qi-education:admin-section';
 
@@ -31,7 +33,7 @@ function storedSection(): AdminSection {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, AppButton, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [DatePipe, Button, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader, Tabs],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -259,6 +261,18 @@ export class AdminPage {
   protected selectSection(section: AdminSection): void {
     this.section.set(section);
     try { window.sessionStorage.setItem(SECTION_KEY, section); } catch { /* The choice still applies until reload. */ }
+  }
+
+  protected readonly tabId = tabId;
+  protected readonly tabPanelId = tabPanelId;
+
+  protected readonly feedbackTabs = computed<TabItem[]>(() => [
+    { id: 'current', label: 'Current work items', count: this.activeTabCount('current') },
+    { id: 'archived', label: 'Archived', count: this.activeTabCount('archived') },
+  ]);
+
+  protected onFeedbackTabChange(id: string): void {
+    if (isFeedbackTab(id)) this.selectTab(id);
   }
 
   protected selectTab(tab: FeedbackTab): void {

@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AppButton } from '../app-button/app-button';
+import { Button } from '../button/button';
 import { BrandLink } from '../brand-link/brand-link';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
@@ -9,7 +9,7 @@ export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'edit
 
 @Component({
   selector: 'app-page-header',
-  imports: [AppButton, BrandLink, ProfileMenu, RouterLink],
+  imports: [Button, BrandLink, ProfileMenu, RouterLink],
   templateUrl: './page-header.html',
   styleUrl: './page-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CourseListItem, CourseSummary, FeedbackOption, StudentSummary } from '../../app.models';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-library-page',
-  imports: [AppButton, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink],
+  imports: [Button, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink],
   templateUrl: './library-page.html',
   styleUrls: ['../../app.scss', './library-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

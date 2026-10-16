@@ -22,7 +22,7 @@
       <h1>Learning hub</h1>
       <p>Open the courses you have joined and continue in the dedicated learning workspace.</p>
     </div>
-    <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Browse courses</app-button>
+    <button appButton="primary" (click)="coursesClicked.emit()">Browse courses</button>
   </header>
 
   <section class="library-layout" id="library-list">
@@ -30,7 +30,7 @@
       <app-loading-skeleton variant="course-card" [count]="3" />
     } @else if (coursesError()) {
       <p class="course-error" role="alert">{{ coursesError() }}</p>
-      <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+      <button appButton (click)="progressReloaded.emit()">Retry</button>
     } @else if (courses().length === 0) {
       <div class="library-empty">
         <span aria-hidden="true"></span>
@@ -38,7 +38,7 @@
           <h2>No courses in your library yet</h2>
           <p>Enroll from the course catalog and the course will stay here for quick access.</p>
         </div>
-        <app-button variant="outline" (buttonClicked)="coursesClicked.emit()">Find a course</app-button>
+        <button appButton (click)="coursesClicked.emit()">Find a course</button>
       </div>
     } @else {
       <div class="library-list">
@@ -67,7 +67,7 @@
           </a>
         }
       </div>
-      <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Refresh progress</app-button>
+      <button appButton (click)="progressReloaded.emit()">Refresh progress</button>
     }
   </section>
 

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { BrandLink } from '../../ui/brand-link/brand-link';
 
 type Step = 'request' | 'sent' | 'checking' | 'choose' | 'invalid' | 'done';
@@ -12,7 +12,7 @@ type Step = 'request' | 'sent' | 'checking' | 'choose' | 'invalid' | 'done';
  */
 @Component({
   selector: 'app-password-reset-page',
-  imports: [AppButton, BrandLink, RouterLink],
+  imports: [Button, BrandLink, RouterLink],
   templateUrl: './password-reset-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

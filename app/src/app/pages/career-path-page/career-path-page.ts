@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
+import { Button } from '../../ui/button/button';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 type CareerPathWizardStep = 'intro' | 'upload' | 'questions' | 'choose-career' | 'roadmap';
@@ -25,7 +26,7 @@ const SUGGESTED_PATH_BY_ANSWER: [string, string][] = [
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [FeedbackDialog, PageHeader, RouterLink],
+  imports: [Button, FeedbackDialog, PageHeader, RouterLink],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -200,7 +201,7 @@ export class CareerPathPage {
   }
 
   protected cancelSwitch(): void {
-    this.focusAfterRender(`[data-path="${this.confirmingPathId()}"] .cp-btn`);
+    this.focusAfterRender(`[data-path="${this.confirmingPathId()}"] [appButton]`);
     this.saveError.set('');
     this.draftPathId.set('');
     this.confirmingPathId.set('');

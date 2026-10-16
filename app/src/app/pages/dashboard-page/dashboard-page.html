@@ -24,7 +24,7 @@
   </header>
 
   <section class="db-stats" aria-label="Learning summary">
-    <article class="db-stat db-stat-hero">
+    <article class="db-stat db-stat-hero" data-surface="dark">
       <span class="db-stat-label">Career path</span>
       @if (careerPath.selectedPath(); as path) {
         <strong class="db-stat-value">{{ careerPath.progress()?.percent }}%</strong>
@@ -81,10 +81,10 @@
         <p role="status">Loading your courses…</p>
       } @else if (coursesError()) {
         <p role="alert">{{ coursesError() }}</p>
-        <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+        <button appButton (click)="progressReloaded.emit()">Retry</button>
       } @else if (courses().length === 0) {
         <p>No courses in your learning library yet.</p>
-        <app-button variant="primary" (buttonClicked)="coursesClicked.emit()">Browse courses</app-button>
+        <button appButton="primary" (click)="coursesClicked.emit()">Browse courses</button>
       } @else {
       @for (course of courses(); track course.id) {
         <article
@@ -109,12 +109,10 @@
             @if (course.progressState === 'ready') {
               <p>{{ course.completed }} of {{ course.total }} completed · {{ course.progress }}%</p>
               @if (course.nextLesson) { <p>Next lesson: {{ course.nextLesson }}</p> }
-              <div class="db-action-progress" [attr.aria-label]="course.title + ' progress'">
-                <span [style.width.%]="course.progress"></span>
-              </div>
+              <app-progress-bar [value]="course.progress ?? 0" [label]="course.title + ' progress'" />
             } @else if (course.progressState === 'error') {
               <p>Progress unavailable</p>
-              <app-button variant="outline" (buttonClicked)="progressReloaded.emit()">Retry</app-button>
+              <button appButton (click)="progressReloaded.emit()">Retry</button>
             }
           </div>
         </article>

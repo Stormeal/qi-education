@@ -1,9 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { CourseReviewAction, CourseReviewState } from '../../app.models';
-import { AppButton } from '../app-button/app-button';
+import { Button } from '../button/button';
 
-@Component({ selector: 'app-course-review-panel', imports: [DatePipe, AppButton], changeDetection: ChangeDetectionStrategy.OnPush,
+@Component({ selector: 'app-course-review-panel', imports: [DatePipe, Button], changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-review-panel.html', styleUrl: './course-review-panel.scss' })
 export class CourseReviewPanel {
   readonly review = input<CourseReviewState | null>(null);

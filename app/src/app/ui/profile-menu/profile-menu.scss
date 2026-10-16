@@ -17,7 +17,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.34);
   padding: 0;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font: inherit;
   cursor: pointer;
 }
@@ -25,7 +25,7 @@
 .profile-trigger:hover,
 .profile-trigger:focus-visible {
   border-color: #d97706;
-  color: #78350f;
+  color: var(--color-highlight-ink);
   background: #fff7e8;
 }
 
@@ -35,7 +35,7 @@
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  background: #2f4f43;
+  background: var(--color-primary);
   font-weight: 800;
 }
 
@@ -88,17 +88,17 @@
 }
 
 .profile-summary strong {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 13px;
 }
 
 .profile-summary span {
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
 .profile-summary small {
-  color: #78350f;
+  color: var(--color-highlight-ink);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -110,7 +110,7 @@
   gap: 10px;
   width: 100%;
   border: 0;
-  color: #39393a;
+  color: var(--color-text);
   background: #fff;
   padding: 11px 14px;
   font: inherit;
@@ -122,12 +122,12 @@
 
 .profile-menu-item:hover,
 .profile-menu-item:focus-visible {
-  color: #78350f;
+  color: var(--color-highlight-ink);
   background: #fff7e8;
 }
 
 .profile-menu-item.danger {
-  color: #991b1b;
+  color: var(--color-danger);
 }
 
 .profile-menu-item svg {

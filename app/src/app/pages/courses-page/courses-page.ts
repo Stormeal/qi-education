@@ -14,13 +14,16 @@ import {
 import { ApiClientService } from '../../services/api-client.service';
 import { CourseService } from '../../services/course.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
+import { IconButton } from '../../ui/icon-button/icon-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 
 type CourseCollectionTab = 'popular' | 'newest';
 type CourseCatalogView = 'published' | 'drafts';
+const isCatalogView = (id: string): id is CourseCatalogView => id === 'published' || id === 'drafts';
 type CatalogSort = 'popular' | 'newest' | 'rating' | 'price-asc' | 'price-desc';
 
 type FacetCount = {
@@ -44,7 +47,7 @@ type PopularInstructorCard = {
 
 @Component({
   selector: 'app-courses-page',
-  imports: [AppButton, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink],
+  imports: [Button, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink, Tabs],
   templateUrl: './courses-page.html',
   styleUrls: ['../../app.scss', './courses-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -313,6 +316,18 @@ export class CoursesPage {
     this.activeCollection.set(tab);
     this.carouselStart.set(0);
     this.carouselMotionStart.set(0);
+  }
+
+  protected readonly tabId = tabId;
+  protected readonly tabPanelId = tabPanelId;
+
+  protected readonly catalogTabs = computed<TabItem[]>(() => [
+    { id: 'published', label: 'Published' },
+    ...(this.hasCreatorCourses() ? [{ id: 'drafts', label: 'My drafts' }] : []),
+  ]);
+
+  protected onCatalogTabChange(id: string): void {
+    if (isCatalogView(id)) this.setView(id);
   }
 
   protected setView(view: CourseCatalogView): void {

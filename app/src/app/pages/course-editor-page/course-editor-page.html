@@ -24,7 +24,7 @@
     [revisionId]="courseReview()?.revisionId ?? null" [pending]="courseSubmitting() || reviewPending()"
     (restored)="draftRestored.emit()" (discarded)="recoveryDiscarded.emit()" (compared)="latestRequested.emit()"
     (reconciled)="draftReconciled.emit()" (latestAccepted)="latestAccepted.emit()" />
-  <header class="course-editor-hero">
+  <header class="course-editor-hero" data-surface="dark">
     <div class="course-editor-hero-content">
       <nav class="course-breadcrumb" aria-label="Course editor breadcrumbs">
         <button type="button" (click)="courseCanceled.emit()">Courses</button>
@@ -69,13 +69,13 @@
           <p>{{ locked.text }}</p>
         </div>
         @if (locked.canStartRevision) {
-          <app-button
-            variant="primary"
+          <button
+            appButton="primary"
             [disabled]="reviewPending() || courseSubmitting() || recoveryAvailable()"
-            (buttonClicked)="reviewAction.emit('start-revision')"
+            (click)="reviewAction.emit('start-revision')"
           >
             Start revision
-          </app-button>
+          </button>
         }
       </div>
     }
@@ -259,8 +259,13 @@
             </div>
 
             <div class="thumbnail-controls">
-              <label class="thumbnail-upload-button">
+              <label
+                appButton
+                size="sm"
+                [inactive]="thumbnailUploading() || reviewPending() || !courseEditable() || recoveryAvailable()"
+              >
                 <input
+                  class="thumbnail-file-input"
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   [disabled]="thumbnailUploading() || reviewPending() || !courseEditable() || recoveryAvailable()"
@@ -370,23 +375,23 @@
     </div>
 
       <div class="editor-action-bar">
-        <app-button [disabled]="courseSubmitting() || reviewPending()" (buttonClicked)="courseCanceled.emit()">
+        <button appButton [disabled]="courseSubmitting() || reviewPending()" (click)="courseCanceled.emit()">
           Cancel
-        </app-button>
+        </button>
         <span class="editor-action-spacer"></span>
         @if (previousStep(); as previous) {
-          <app-button (buttonClicked)="goToStep(previous.id)">Back</app-button>
+          <button appButton (click)="goToStep(previous.id)">Back</button>
         }
         @if (nextStep(); as next) {
-          <app-button [variant]="courseFormMode() === 'create' ? 'primary' : 'outline'" (buttonClicked)="goToStep(next.id)">
+          <button [appButton]="courseFormMode() === 'create' ? 'primary' : 'secondary'" (click)="goToStep(next.id)">
             <span>Next<span class="editor-next-label">: {{ next.label }}</span></span>
-          </app-button>
+          </button>
         }
         @if (courseFormMode() === 'edit' || !nextStep()) {
-        <app-button
-          variant="primary"
+        <button
+          appButton="primary"
           [disabled]="courseSubmitting() || reviewPending() || !courseEditable() || recoveryAvailable()"
-          (buttonClicked)="courseSubmitted.emit()"
+          (click)="courseSubmitted.emit()"
         >
           @if (courseSubmitting()) {
             Saving...
@@ -395,7 +400,7 @@
           } @else {
             Create course
           }
-        </app-button>
+        </button>
         }
       </div>
     </section>
@@ -423,9 +428,7 @@
               <strong>{{ completionPercent() }}%</strong>
               filled
             </span>
-            <div class="preview-progress-track">
-              <span [style.width.%]="completionPercent()"></span>
-            </div>
+            <app-progress-bar [value]="completionPercent()" label="Course detail completion" />
           </div>
 
           <div class="preview-stat-grid">
@@ -458,7 +461,7 @@
         </div>
 
         <div class="course-preview-actions">
-          <button type="button" class="course-preview-action" (click)="courseCanceled.emit()">
+          <button appButton fullWidth (click)="courseCanceled.emit()">
             @if (courseFormMode() === 'edit') {
               Back to course
             } @else {

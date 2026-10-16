@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { FeedbackOption } from '../../app.models';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 
@@ -10,7 +10,7 @@ const GOALS_MAX_LENGTH = 280;
 
 @Component({
   selector: 'app-profile-page',
-  imports: [AppButton, FeedbackDialog, PageHeader],
+  imports: [Button, FeedbackDialog, PageHeader],
   templateUrl: './profile-page.html',
   styleUrls: ['../../app.scss', './profile-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

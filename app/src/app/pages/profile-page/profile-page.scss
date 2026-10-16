@@ -43,7 +43,7 @@
 
 .profile-identity h1 {
   margin: 4px 0 0;
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 34px;
   line-height: 1.1;
   font-weight: 900;
@@ -55,7 +55,7 @@
   align-items: center;
   gap: 8px 14px;
   margin: 12px 0 0;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -63,7 +63,7 @@
   border-radius: 999px;
   background: #fff7e8;
   padding: 4px 11px;
-  color: #78350f;
+  color: var(--color-highlight-ink);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -79,7 +79,7 @@
 .profile-card {
   display: grid;
   gap: 22px;
-  border: 1px solid rgba(108, 101, 88, 0.16);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   background: #fff;
   padding: 26px;
@@ -100,25 +100,25 @@
 }
 
 .profile-label {
-  color: #171b4a;
+  color: var(--color-ink);
   font-size: 14px;
   font-weight: 800;
 }
 
 .profile-section-hint {
   margin: -2px 0 2px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.5;
 }
 
 .profile-input {
   width: 100%;
-  border: 1px solid rgba(108, 101, 88, 0.28);
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   background: #fffdf8;
   padding: 11px 13px;
-  color: #39393a;
+  color: var(--color-text);
   font: inherit;
   font-size: 14px;
   line-height: 1.55;
@@ -133,8 +133,6 @@
 
 .profile-input:focus-visible {
   border-color: #d97706;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28);
 }
 
 textarea.profile-input {
@@ -177,13 +175,8 @@ textarea.profile-input {
 }
 
 .profile-swatch.selected {
-  border-color: #171b4a;
+  border-color: var(--color-ink);
   box-shadow: inset 0 0 0 2px #fff;
-}
-
-.profile-swatch:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.34);
-  outline-offset: 2px;
 }
 
 .profile-actions {
@@ -203,7 +196,7 @@ textarea.profile-input {
 }
 
 .profile-saved {
-  color: #2f4f43;
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -220,7 +213,7 @@ h2.profile-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #6c6558;
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 

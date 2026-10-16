@@ -1,1 +1,70 @@
 @import 'tailwindcss';
+
+/* `static` emits every variable on :root; component stylesheets are compiled
+   separately, so unused variables would otherwise be dropped. */
+@theme static {
+  /* Colour */
+  --color-ink: #171b4a;
+  --color-text: #39393a;
+  --color-text-muted: #6c6558;
+  --color-surface-page: #fcfaf5;
+  --color-surface-card: #ffffff;
+  --color-surface-sunken: #f5f2ea;
+  --color-border: rgba(108, 101, 88, 0.16);
+  --color-border-strong: rgba(108, 101, 88, 0.28);
+  --color-primary: #2f4f43;
+  --color-primary-hover: #243d34;
+  --color-primary-soft: #eaf3ee;
+  --color-highlight: #ffd08e;
+  --color-highlight-soft: #fff4e1;
+  --color-highlight-ink: #78350f;
+  --color-focus: #b45309;
+  --color-focus-inverse: #ffd08e;
+  --color-link: #5b3df5;
+  --color-danger: #991b1b;
+  --color-danger-soft: #fff5f5;
+  --color-lesson-video: #e8edf3;
+  --color-lesson-quiz: #e6f2ea;
+  --color-lesson-text: #f3ebdd;
+  --color-lesson-exercise: #fbe7d2;
+  --color-lesson-resources: #eeeaf6;
+  --gradient-hero: linear-gradient(135deg, #16241f, #29463c 55%, #80592f);
+
+  /* Fonts */
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Type scale */
+  --text-caption: 12px;
+  --text-meta: 13px;
+  --text-body: 14px;
+  --text-lead: 16px;
+  --text-title-sm: 18px;
+  --text-title: 22px;
+  --text-title-lg: 28px;
+  --text-display: 42px;
+
+  /* Shape */
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
+  --radius-modal: 24px;
+  --radius-pill: 999px;
+
+  /* Depth */
+  --shadow-card: 0 1px 2px rgba(106, 79, 48, 0.06), 0 8px 24px rgba(106, 79, 48, 0.08);
+  --shadow-raised: 0 14px 36px rgba(106, 79, 48, 0.12);
+  --shadow-modal: 0 24px 64px rgba(23, 27, 74, 0.18);
+
+  /* Layers */
+  --z-sticky: 10;
+  --z-dropdown: 20;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* Motion */
+  --duration-fast: 160ms;
+  --ease-standard: ease;
+}

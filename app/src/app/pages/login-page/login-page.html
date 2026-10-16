@@ -235,8 +235,8 @@
                     (input)="passwordChanged.emit(inputValue($event))"
                   />
                   <button
-                    type="button"
-                    class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--label)] transition hover:text-[var(--accent-deep)]"
+                    appButton="ghost"
+                    size="sm"
                     (click)="passwordVisibilityToggled.emit()"
                   >
                     {{ passwordVisible() ? 'Hide' : 'Show' }}
@@ -321,8 +321,8 @@
                     (input)="signupPasswordConfirmationChanged.emit(inputValue($event))"
                   />
                   <button
-                    type="button"
-                    class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--label)] transition hover:text-[var(--accent-deep)]"
+                    appButton="ghost"
+                    size="sm"
                     (click)="passwordVisibilityToggled.emit()"
                   >
                     {{ passwordVisible() ? 'Hide' : 'Show' }}
@@ -352,10 +352,9 @@
               </div>
             }
 
-            <app-button
-              class="fill"
+            <button
               type="submit"
-              variant="login-submit"
+              appButton="primary" size="lg" fullWidth
               [disabled]="authMode() === 'login' ? !canSubmit() : !canSignupSubmit()"
             >
               {{
@@ -367,7 +366,7 @@
                     ? 'Log In'
                     : 'Create Student Account'
               }}
-            </app-button>
+            </button>
 
             @if (authMode() === 'signup') {
               <p class="mx-auto max-w-[380px] text-center text-[11px] leading-4 text-[var(--muted)]">

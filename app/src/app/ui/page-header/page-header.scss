@@ -21,7 +21,7 @@
 }
 
 .tabs a {
-  color: #6c6558;
+  color: var(--color-text-muted);
   padding: 14px 0;
   text-decoration: none;
   white-space: nowrap;
@@ -29,7 +29,7 @@
 
 .tab-link {
   border: 0;
-  color: #6c6558;
+  color: var(--color-text-muted);
   background: transparent;
   padding: 14px 0;
   font: inherit;
@@ -40,7 +40,7 @@
 
 .tabs a:hover,
 .tab-link:hover {
-  color: #78350f;
+  color: var(--color-highlight-ink);
 }
 
 .tabs .active,
@@ -76,4 +76,9 @@
     justify-content: flex-start;
     gap: 22px;
   }
+}
+
+/* The Feedback button sits in the 1fr grid column; keep it content-wide. */
+.topbar > button {
+  justify-self: start;
 }

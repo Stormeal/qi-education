@@ -1,6 +1,6 @@
 <nav class="topbar" aria-label="Primary navigation">
   <app-brand-link />
-  <app-button (buttonClicked)="feedbackOpened.emit()">Feedback</app-button>
+  <button appButton (click)="feedbackOpened.emit()">Feedback</button>
   <div class="tabs" aria-label="Site sections">
     <a
       class="tab-link"

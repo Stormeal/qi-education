@@ -1,0 +1,47 @@
+:host {
+  display: block;
+}
+
+/* Row line and selected underline share the bottom edge: both are inset shadows, no negative margins. */
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-body);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.tab:hover {
+  color: var(--color-ink);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--color-ink);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

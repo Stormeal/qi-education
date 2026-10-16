@@ -38,12 +38,14 @@ import {
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
 import { CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
-import { AppButton } from '../app-button/app-button';
+import { Button } from '../button/button';
+import { IconButton } from '../icon-button/icon-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
 import type { CourseEditorBuffer } from '../../services/course-draft-recovery.service';
 import { attachmentProblem } from '../../utils/attachment-rules';
 import { inertHtml } from '../../utils/inert-html';
 import { plural } from '../../utils/plural';
+import { ProgressBar } from '../progress-bar/progress-bar';
 
 type ComponentPickerState = {
   sectionIndex: number;
@@ -59,7 +61,7 @@ type TextOutlineItem = {
 
 @Component({
   selector: 'app-course-builder',
-  imports: [AppButton, LoadingSkeleton],
+  imports: [Button, IconButton, LoadingSkeleton, ProgressBar],
   templateUrl: './course-builder.html',
   styleUrl: './course-builder.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

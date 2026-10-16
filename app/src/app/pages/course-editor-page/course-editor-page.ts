@@ -15,14 +15,15 @@ import {
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
 import { ApiClientService } from '../../services/api-client.service';
-import { AppButton } from '../../ui/app-button/app-button';
+import { Button } from '../../ui/button/button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 @Component({
   selector: 'app-course-editor-page',
-  imports: [CourseDraftStatus, CourseReviewPanel, AppButton, CourseBuilder, FeedbackDialog, PageHeader],
+  imports: [CourseDraftStatus, CourseReviewPanel, Button, CourseBuilder, FeedbackDialog, PageHeader, ProgressBar],
   templateUrl: './course-editor-page.html',
   styleUrls: ['../../app.scss', './course-editor-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

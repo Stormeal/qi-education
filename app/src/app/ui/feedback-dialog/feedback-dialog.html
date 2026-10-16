@@ -11,16 +11,16 @@
   >
     <div class="feedback-modal-header">
       <span>Share Feedback</span>
-      <app-button variant="ghost" ariaLabel="Close feedback" (buttonClicked)="closed.emit()">
+      <button appIconButton="ghost" label="Close feedback" (click)="closed.emit()">
         X
-      </app-button>
+      </button>
     </div>
 
     @if (submitted()) {
       <div class="feedback-thanks">
         <h2 id="feedback-title">Thank you for the feedback</h2>
         <p>We captured this feedback for {{ page() }}.</p>
-        <app-button variant="primary" (buttonClicked)="closed.emit()"> Done </app-button>
+        <button appButton="primary" (click)="closed.emit()"> Done </button>
       </div>
     } @else {
       <div class="feedback-body">
@@ -55,13 +55,13 @@
           <p class="feedback-error" role="alert">{{ error() }}</p>
         }
 
-        <app-button
-          variant="primary"
+        <button
+          appButton="primary"
           [disabled]="submitting()"
-          (buttonClicked)="submittedClicked.emit()"
+          (click)="submittedClicked.emit()"
         >
           {{ submitting() ? 'Submitting...' : 'Submit Feedback' }}
-        </app-button>
+        </button>
       </div>
     }
   </section>

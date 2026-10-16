@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminCareerPath, CareerPathDraft, CareerPathIssue } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
 import { ConfirmService } from '../../services/confirm.service';
+import { Button } from '../button/button';
 
 type EditableStep = CareerPathDraft['steps'][number];
 
@@ -11,7 +12,7 @@ const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').
 /** Admin-only curation of career paths: edit a draft, then publish it as the next revision. */
 @Component({
   selector: 'app-career-path-editor',
-  imports: [FormsModule],
+  imports: [Button, FormsModule],
   templateUrl: './career-path-editor.html',
   styleUrl: './career-path-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -32,14 +32,14 @@
           <div class="cp-empty" role="alert">
             <h2>Career paths are unavailable</h2>
             <p>We could not load career paths or your saved choice. Nothing was changed.</p>
-            <button type="button" class="cp-btn cp-btn-primary" (click)="careerPath.reload()">Retry</button>
+            <button type="button" appButton="primary" (click)="careerPath.reload()">Retry</button>
           </div>
         } @else if (careerPath.paths().length === 0) {
           <div class="cp-empty">
             <p class="cp-empty-kicker">No flight plans yet</p>
             <h2>No career paths are published yet</h2>
             <p>Paths appear here once they are published. You can keep learning from the catalog meanwhile.</p>
-            <button type="button" class="cp-btn cp-btn-primary" (click)="coursesClicked.emit()">Browse courses</button>
+            <button type="button" appButton="primary" (click)="coursesClicked.emit()">Browse courses</button>
           </div>
         } @else {
         @if (wizardStep() !== 'intro') {
@@ -87,11 +87,11 @@
                 Answer a few quick questions, compare the available paths, and choose the one that
                 matches where you want to go.
               </p>
-              <button type="button" class="cp-btn cp-btn-primary" (click)="beginWizard()">
+              <button type="button" appButton="primary" (click)="beginWizard()">
                 Start Career Path
-                <span class="cp-btn-arrow" aria-hidden="true">&rarr;</span>
+                <span aria-hidden="true">&rarr;</span>
               </button>
-              <button type="button" class="cp-btn cp-btn-ghost" (click)="continueToCareerChoice()">Just compare paths</button>
+              <button type="button" appButton="ghost" (click)="continueToCareerChoice()">Just compare paths</button>
             </div>
           }
 
@@ -126,7 +126,7 @@
                   (change)="onCvFileSelected($event)"
                 />
               </label>
-              <button type="button" class="cp-btn cp-btn-secondary" (click)="continueToQuestions()">Skip this step</button>
+              <button type="button" appButton="secondary" (click)="continueToQuestions()">Skip this step</button>
             </div>
           }
 
@@ -168,12 +168,12 @@
               </div>
               <button
                 type="button"
-                class="cp-btn cp-btn-primary"
+                appButton="primary"
                 [disabled]="!allQuestionsAnswered()"
                 (click)="continueToCareerChoice()"
               >
                 Continue
-                <span class="cp-btn-arrow" aria-hidden="true">&rarr;</span>
+                <span aria-hidden="true">&rarr;</span>
               </button>
             </div>
           }
@@ -226,10 +226,10 @@
                         @if (impact.fresh) { <p>Still to do: {{ impact.fresh }}.</p> }
                         <p>Your completed courses and enrollments are kept. You can switch back at any time.</p>
                         <div class="cp-switch-actions">
-                          <button type="button" class="cp-btn cp-btn-primary" [disabled]="saving()" (click)="savePath(path.id)">
+                          <button type="button" appButton="primary" [disabled]="saving()" (click)="savePath(path.id)">
                             {{ saving() ? 'Saving…' : saveError() ? 'Retry switching' : 'Switch to ' + path.title }}
                           </button>
-                          <button type="button" class="cp-btn cp-btn-secondary" [disabled]="saving()" (click)="cancelSwitch()">
+                          <button type="button" appButton="secondary" [disabled]="saving()" (click)="cancelSwitch()">
                             Keep {{ careerPath.selectedPath()?.title }}
                           </button>
                         </div>
@@ -237,7 +237,7 @@
                     } @else {
                     <button
                       type="button"
-                      class="cp-btn cp-btn-primary"
+                      appButton="primary"
                       [disabled]="saving()"
                       (click)="choosePath(path.id)"
                     >
@@ -274,9 +274,9 @@
                     <p class="cp-milestone-courses-label">Next required step</p>
                     <h3 id="cp-next-title">{{ next.step.title }}</h3>
                     <p>{{ next.course.title }}. {{ next.reason }}</p>
-                    <a class="cp-btn cp-btn-primary" [routerLink]="next.link">
+                    <a appButton="primary" [routerLink]="next.link">
                       {{ next.label }}
-                      <span class="cp-btn-arrow" aria-hidden="true">&rarr;</span>
+                      <span aria-hidden="true">&rarr;</span>
                     </a>
                   </section>
                 } @else if (!progress?.finished) {
@@ -361,7 +361,7 @@
               }
 
               <div class="cp-roadmap-actions">
-                <button type="button" class="cp-btn cp-btn-secondary" (click)="continueToCareerChoice()">Change target career</button>
+                <button type="button" appButton="secondary" (click)="continueToCareerChoice()">Change target career</button>
               </div>
             </div>
           }
