@@ -699,9 +699,11 @@ Fixed 2026-10-16: `[attr.aria-expanded]` on the section toggle (`course-builder.
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-042 | Investigating, Codex, 2026-10-16 | P2 | `docs/course_operation_recovery.md` (the lock is held until the handler finishes and then released) | Hosted log 2026-10-13, course `1602e5b5`: `Course lock release requires verified recovery`, then `Unable to finish course operation coordination. CourseBusyError` |
+| DEF-042 | Fixed, Codex, 2026-10-16 (lead-checked) | P2 | `docs/course_operation_recovery.md` (the lock is held until the handler finishes and then released) | Hosted log 2026-10-13, course `1602e5b5`: `Course lock release requires verified recovery`, then `Unable to finish course operation coordination. CourseBusyError` |
 
 Found in the hosted API log on 2026-10-13 after two video upload requests. `withCourseLock` lets the handler answer inside the lock, so `MongoCourseMutationLock.run` releases it after the response; Vercel can pause the function in between and the release's five-second limit expires. Worst case: the course answers "This course is being updated" until the 31-minute expiry. Every locked route has this order. Fix default (lead, confirm or change): answer only after the release. See the [handoff](handoffs/DEF-042-course-lock-release-codex.md).
+
+Fixed 2026-10-16 in `953b534` (Codex): `withCourseLock` holds the handler's final `send` until the lock release has settled, then sends the unchanged answer; a failed release is logged first. Default confirmed by Codex; Alex may still change it. Reproduced first: 12 route cases in `api/src/courseLockResponse.test.ts` failed with the release paused; 20 route cases now pass (both route prefixes, PUT, POST, PATCH, DELETE, failure paths). Lead check: the two `response.end` calls in `server.ts` are in unlocked read routes, so no locked answer bypasses the hold. API 1301/51, app 317/43, six journeys, Pages build pass. Not verified: hosted Vercel behaviour and real MongoDB. Check after the next deploy: the hosted log should no longer show `Course lock release requires verified recovery` after a video upload.
 
 ## New defect record
 

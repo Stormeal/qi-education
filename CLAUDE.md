@@ -218,7 +218,7 @@ owner remain admin-editable only. Release integration checks are tracked in DEF-
 - API → Vercel Serverless Functions; environment variables managed via Vercel (`npm run env:pull`)
 - Health endpoints: `/health`, `/health/config`, `/health/auth`, `/health/content`
 - The hosted API's log: `npx vercel logs` from the repo root, once `npx vercel login` has been run. The Hobby plan keeps only the last 30 minutes, so read it right after the failure; `--since 1h` is refused.
-- A route wrapped in `withCourseLock` sends its answer before the course lock is released. On Vercel the release can be paused after the response and then logs `Course lock release requires verified recovery`; the lock usually is released anyway, otherwise it expires after 31 minutes.
+- A route wrapped in `withCourseLock` holds its answer until the course lock is released (DEF-042): Vercel may pause a function once the answer is sent. Locked handlers must answer with `send`/`json`; `response.end` would bypass the hold.
 - A push to `main` deploys the API on Vercel immediately, but the frontend only if the Pages workflow's tests pass. A failing test therefore leaves a new API serving an old frontend, so keep API changes backward compatible and run both test suites and `npm run app:build:pages` before pushing.
 
 ## Capturing Learnings
