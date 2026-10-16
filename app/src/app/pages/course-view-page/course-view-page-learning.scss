@@ -491,32 +491,6 @@
   background: #fff;
 }
 
-.learning-tabs {
-  display: flex;
-  gap: 20px;
-  border-bottom: 1px solid rgba(108, 101, 88, 0.14);
-  padding: 0 26px;
-  overflow-x: auto;
-}
-
-.learning-tabs button {
-  border: 0;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-muted);
-  background: transparent;
-  padding: 16px 0 13px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 800;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.learning-tabs button.active {
-  border-bottom-color: var(--color-primary);
-  color: var(--color-ink);
-}
-
 .learning-overview-body {
   display: grid;
   gap: 12px;

@@ -100,7 +100,6 @@ p {
 }
 
 .topbar,
-.overview-header,
 .action-row {
   display: flex;
   align-items: center;
@@ -196,32 +195,6 @@ p {
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: translateY(-2px) rotate(45deg);
-}
-
-.overview-header {
-  border: 1px solid rgba(120, 53, 15, 0.18);
-  border-radius: 8px;
-  background: #fff;
-  padding: 12px 16px;
-  margin-bottom: 10px;
-}
-
-.overview-header button,
-.feedback-submit {
-  border: 1px solid #f59e0b;
-  border-radius: 8px;
-  color: #fff;
-  background: #f59e0b;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.overview-header button:hover,
-.feedback-submit:hover {
-  border-color: #d97706;
-  background: #d97706;
 }
 
 .eyebrow {
@@ -837,17 +810,6 @@ p {
   margin: -0.25rem 0 0;
 }
 
-.feedback-submit {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  padding: 12px 14px;
-}
-
-.feedback-submit:hover {
-  border-color: #22392f;
-  background: #22392f;
-}
-
 @keyframes heart-pulse {
   50% {
     transform: scale(1.25);
@@ -855,8 +817,7 @@ p {
 }
 
 @media (max-width: 860px) {
-  .topbar,
-  .overview-header {
+  .topbar {
     display: flex;
     align-items: flex-start;
     flex-direction: column;

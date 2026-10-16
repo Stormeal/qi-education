@@ -39,6 +39,9 @@ export const REMOVED = [
   { id: 'db-action-progress', kind: 'class', name: 'db-action-progress' },
   { id: 'preview-progress-track', kind: 'class', name: 'preview-progress-track' },
   { id: 'mux-upload-progress', kind: 'class', name: 'mux-upload-progress' },
+  { id: 'thumbnail-upload-button', kind: 'class', name: 'thumbnail-upload-button' },
+  { id: 'learning-tabs', kind: 'class', name: 'learning-tabs' },
+  { id: 'feedback-submit', kind: 'class', name: 'feedback-submit' },
   { id: 'attachment-upload-progress', kind: 'class', name: 'attachment-upload-progress' },
 ];
 
