@@ -389,10 +389,11 @@ Run on 2026-10-16 against `5f23fd8` (0.1.194), before this record commit:
   `optimization.fonts: false` in the production configuration of `app/angular.json`, which was restored
   afterwards (`git diff app/angular.json` empty). The font inlining step is therefore only proven by the
   hosted workflow.
-- Browser walk: 63 screenshots and `walkthrough.md` in `docs/verification/2026-10-15/US-P013/`, all
+- Browser walk: 41 kept screenshots (one role per page, plus special cases; the rest are listed as checked text) and `walkthrough.md` in `docs/verification/2026-10-15/US-P013/`, all
   without horizontal page scroll. Five visual findings are listed there; findings 1 (Feedback button stretched
-  in the page header) and 2 (editor "Next" button loses its font because `[appButton]` is property-bound) are
-  open for a decision. Not verifiable with demo data: catalog carousel arrows, the Mux player ring, admin
+  in the page header) and 2 (editor "Next" button loses its font because `[appButton]` is property-bound) were
+  fixed in the same branch afterwards (`Button` and `IconButton` always carry their attribute; header button
+  `justify-self: start`); findings 3 to 5 stay recorded. Not verifiable with demo data: catalog carousel arrows, the Mux player ring, admin
   feedback rows.
 
 Browser evidence: screenshots of every page at 1440px and 400px, plus the 900px catalog, in

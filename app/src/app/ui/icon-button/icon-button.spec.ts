@@ -64,3 +64,28 @@ describe('IconButton', () => {
     expect(el('link').getAttribute('data-variant')).toBe('ghost');
   });
 });
+
+@Component({
+  imports: [IconButton],
+  template: `<button [appIconButton]="variant" label="Close" id="bound"></button>`,
+})
+class BoundHost {
+  variant: 'ghost' | 'danger' = 'ghost';
+}
+
+describe('IconButton bound variant', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    TestBed.configureTestingModule({ imports: [BoundHost] });
+  });
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('still carries the appiconbutton attribute so attribute selectors match it', () => {
+    const fixture = TestBed.createComponent(BoundHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement.querySelector('#bound') as HTMLElement;
+    expect(el.hasAttribute('appiconbutton')).toBe(true);
+    expect(el.getAttribute('data-variant')).toBe('ghost');
+  });
+});

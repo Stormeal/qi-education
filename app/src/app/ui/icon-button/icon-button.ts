@@ -14,6 +14,7 @@ export type IconButtonSize = 'sm' | 'md' | 'lg';
   styleUrl: './icon-button.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
+    appIconButton: '',
     '[attr.aria-label]': 'label()',
     '[attr.title]': 'hint() ?? label()',
     '[attr.data-variant]': 'appIconButton()',

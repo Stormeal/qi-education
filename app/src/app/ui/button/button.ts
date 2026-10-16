@@ -14,6 +14,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg';
   styleUrl: './button.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
+    appButton: '',
     '[attr.data-variant]': 'appButton()',
     '[attr.data-size]': 'size()',
     '[attr.data-full-width]': "fullWidth() ? '' : null",

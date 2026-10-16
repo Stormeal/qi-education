@@ -77,3 +77,8 @@
     gap: 22px;
   }
 }
+
+/* The Feedback button sits in the 1fr grid column; keep it content-wide. */
+.topbar > button {
+  justify-self: start;
+}

@@ -19,12 +19,12 @@ The dev server and walk were stopped afterwards; ports 3001 and 4200 answer noth
 
 ## Visual findings
 
-Nothing was fixed in this task. The controller decides.
+Findings 1 and 2 were fixed afterwards in fix round 1 (see below the table). Findings 3 to 5 stay recorded.
 
 | # | Severity | Finding | Screenshot | Likely cause |
 | --- | --- | --- | --- | --- |
-| 1 | Medium | The Feedback button in the page header is stretched across the whole middle grid column (about 590px wide at 1440px) on every page that has the header. At 400px the header stacks and the button is content-wide. Before the migration the button stayed content-wide. | `dashboard-student-1440`, `catalog-student-1440`, `learning-student-1440` (and every other 1440 shot) | `.topbar` is `grid-template-columns: auto minmax(96px, 1fr) auto auto`. The old `app-button` host was `inline-flex`, so the inner button did not stretch. The new `<button appButton>` is a grid item and stretches. `justify-self: start` on it in `page-header.scss` fixes it. |
-| 2 | Medium | The editor's "Next: <step>" button renders at 16px regular weight, while Cancel, Back and Save changes are 14px semibold. It also loses `white-space: nowrap`. Computed: Next 16px/400, Back 14px/600. | `editor-teacher-1440`, `editor-builder-teacher-1440` | `course-editor-page.html:381` binds `[appButton]="..."`. A property binding does not write the `appbutton` attribute (checked in the DOM: the Cancel, Back and Save buttons have it, Next does not). So `app.scss:46` `button:not([appButton]):not([appIconButton]) { font: inherit }` matches it and overrides the component font, and `.editor-action-bar [appButton]` does not apply. It is the only `[appButton]=` binding in the app. |
+| 1 | Medium, fixed in fix round 1 | The Feedback button in the page header is stretched across the whole middle grid column (about 590px wide at 1440px) on every page that has the header. At 400px the header stacks and the button is content-wide. Before the migration the button stayed content-wide. | `dashboard-student-1440`, `catalog-student-1440`, `learning-student-1440` (and every other 1440 shot) | `.topbar` is `grid-template-columns: auto minmax(96px, 1fr) auto auto`. The old `app-button` host was `inline-flex`, so the inner button did not stretch. The new `<button appButton>` is a grid item and stretches. `justify-self: start` on it in `page-header.scss` fixes it. |
+| 2 | Medium, fixed in fix round 1 | The editor's "Next: <step>" button renders at 16px regular weight, while Cancel, Back and Save changes are 14px semibold. It also loses `white-space: nowrap`. Computed: Next 16px/400, Back 14px/600. | `editor-teacher-1440`, `editor-builder-teacher-1440` | `course-editor-page.html:381` binds `[appButton]="..."`. A property binding does not write the `appbutton` attribute (checked in the DOM: the Cancel, Back and Save buttons have it, Next does not). So `app.scss:46` `button:not([appButton]):not([appIconButton]) { font: inherit }` matches it and overrides the component font, and `.editor-action-bar [appButton]` does not apply. It is the only `[appButton]=` binding in the app. |
 | 3 | Low | "Refresh progress" in the library sits flush against the bottom edge of the course card, with no gap. Not compared with the base build. | `library-student-1440` | Probably a missing margin where the `app-button` host used to add space; not investigated. |
 | 4 | Low, probably existing | Admin section switch at 400px: the fourth segment ("User management") is clipped by the right edge and the labels wrap onto two lines; the strip scrolls inside itself. The page itself does not scroll horizontally. The switch is a segmented control that this story leaves alone. | `admin-feedback-admin-400` | Out of scope, listed for completeness. |
 | 5 | Low, probably existing | In the builder's edit modal at 400px the close button drops onto its own row under the title. | `builder-richtext-toolbar-focus-teacher-400` | Modal header wraps; modals are out of scope. |
@@ -40,6 +40,12 @@ Not verified, because the demo data cannot show them:
   hero instead (see below).
 - Admin feedback rows (status and priority choices): the in-memory store has no feedback, so the tabs show
   their empty state with count 0.
+
+Fix round 1: finding 2 is fixed at the component: `Button` and `IconButton` now always carry `appbutton` /
+`appiconbutton` as a static host attribute, so a bound `[appButton]` still matches the attribute selectors
+(spec cases in `button.spec.ts` and `icon-button.spec.ts`, red before, green after). In the browser the editor
+"Next" button is 14px, weight 600, `nowrap`, the same as Back. Finding 1 is fixed with `justify-self: start` on
+`.topbar > button` in `page-header.scss`; the Feedback button is now 100px wide at 1440px.
 
 ## What is confirmed
 
@@ -98,25 +104,34 @@ Modal (the builder's component picker, opened with Enter on "Add New Component")
 
 Result: pass. The two dark bands the ledger asked to recheck (course view hero, editor hero) show the inverse ring.
 
-## Screenshots
+## Screenshots kept (41 PNGs, 7.6 MB after lossless optimisation)
 
-All viewport-only PNGs, named `<page>-<role>-<width>.png`; `anon` means signed out. Every one passed the
-no-horizontal-scroll check.
+To keep the repo light, one role per page is kept at 1440 and 400, plus the special cases. All were
+viewport-only and passed the no-horizontal-scroll check. After fix round 1, `dashboard-student-1440` and
+`editor-teacher-1440` were re-shot with the fixes for findings 1 and 2.
 
 - Login and password reset: `login-anon-{1440,400}`, `password-reset-anon-{1440,400}`.
-- Dashboard: `dashboard-{student,teacher,admin}-{1440,400}`.
-- Catalog: `catalog-student-{1440,900,400}`, `catalog-filters-open-student-900`, `catalog-teacher-{1440,400}`
-  (Published tab), `catalog-drafts-teacher-{1440,400}` (My drafts tab).
+- Dashboard: `dashboard-student-{1440,400}`.
+- Catalog: `catalog-teacher-{1440,400}` (Published tab), `catalog-drafts-teacher-{1440,400}` (My drafts tab),
+  `catalog-student-900`, `catalog-filters-open-student-900` (filters toggle).
 - Course details: `course-details-student-{1440,400}`.
-- Learning: `learning-student-{1440,400}` (video lesson, no asset), `learning-text-student-*`,
-  `learning-quiz-student-*`, `learning-resources-student-*`.
-- Library: `library-student-*`, `library-teacher-*`.
-- Career path: `career-path-student-*` (nothing chosen), `career-path-wizard-student-*`,
-  `career-path-selected-student-*`.
-- Course editor: `editor-teacher-{1440,400}`, `editor-builder-teacher-1440` (full page), `builder-text-open-teacher-*`,
-  `builder-richtext-toolbar-focus-teacher-*`, `builder-file-picker-focus-teacher-*`.
-- Admin: `admin-feedback-admin-*`, `admin-users-admin-*`, `admin-career-paths-admin-*`,
-  `admin-career-path-editor-admin-*`.
-- Profile: `profile-{student,teacher,admin}-*`.
-- Dark bands: `dark-band-course-details-breadcrumb-focus-student-1440`,
-  `dark-band-editor-breadcrumb-focus-teacher-1440`.
+- Learning: `learning-student-{1440,400}` (video lesson, full-width button at 400), `learning-quiz-student-{1440,400}`,
+  `learning-resources-student-1440`.
+- Library: `library-student-{1440,400}`.
+- Career path: `career-path-selected-student-{1440,400}`.
+- Course editor: `editor-teacher-{1440,400}`, `builder-text-open-teacher-{1440,400}`,
+  `builder-richtext-toolbar-focus-teacher-{1440,400}`, `builder-file-picker-focus-teacher-{1440,400}`.
+- Admin: `admin-feedback-admin-{1440,400}` (tab focus), `admin-users-admin-{1440,400}`,
+  `admin-career-path-editor-admin-{1440,400}`.
+- Profile: `profile-teacher-{1440,400}`.
+- Dark bands: `dark-band-course-details-breadcrumb-focus-student-1440`, `dark-band-editor-breadcrumb-focus-teacher-1440`.
+
+## Checked but not kept as files
+
+Screenshots of these variants were taken and looked at, then deleted for size. Each passed the scroll test
+(`scrollWidth <= innerWidth`; 1425 of 1440 and 385 of 400, the gap is the 15px scrollbar):
+`catalog-student-{1440,400}`, `dashboard-{teacher,admin}-{1440,400}`, `profile-{student,admin}-{1440,400}`,
+`library-teacher-{1440,400}`, `career-path-student-{1440,400}` (empty state, green "Browse courses" and "Start Career Path"),
+`career-path-wizard-student-{1440,400}`, `learning-text-student-{1440,400}`, `learning-resources-student-400`,
+`admin-career-paths-admin-{1440,400}`, `editor-builder-teacher-1440` (full page). Findings 1 to 3 above were
+read from some of these (finding 1 in every 1440 page; finding 3 in `library-student-1440`, which is kept).

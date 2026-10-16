@@ -111,3 +111,28 @@ describe('Button', () => {
     page.cleanup();
   });
 });
+
+@Component({
+  imports: [Button],
+  template: `<button [appButton]="variant" id="bound">Next</button>`,
+})
+class BoundHost {
+  variant: 'primary' | 'secondary' = 'primary';
+}
+
+describe('Button bound variant', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    TestBed.configureTestingModule({ imports: [BoundHost] });
+  });
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('still carries the appbutton attribute so attribute selectors match it', () => {
+    const fixture = TestBed.createComponent(BoundHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement.querySelector('#bound') as HTMLElement;
+    expect(el.hasAttribute('appbutton')).toBe(true);
+    expect(el.getAttribute('data-variant')).toBe('primary');
+  });
+});
