@@ -587,7 +587,7 @@ is pending. Fixing commit: b66a8e1; delivery row records the release limitations
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-035 | Confirmed, Claude Code, 2026-10-15 | P2 | WCAG 2.2 1.4.3 (4.5:1 for text); US-P013-AC01 | Computed from the stylesheet values on `ee1b660`: white on `#f59e0b` is 2.15:1 |
+| DEF-035 | Fixed, Claude Code, 2026-10-16 (confirmed 2026-10-15) | P2 | WCAG 2.2 1.4.3 (4.5:1 for text); US-P013-AC01 | Computed from the stylesheet values on `ee1b660`: white on `#f59e0b` is 2.15:1 |
 
 Found while auditing buttons for US-P013 on `main` / `ee1b660`. `app-button.scss`
 renders `variant="primary"` as white 12px bold text on `#f59e0b`, hover `#d97706`
@@ -595,20 +595,50 @@ renders `variant="primary"` as white 12px bold text on `#f59e0b`, hover `#d97706
 `#d97706` gradient. Both are below the 4.5:1 minimum for normal text, so the main
 action on most pages is hard to read for low-vision users. Expected: at least 4.5:1 in
 every state. Fix: US-P013 makes primary buttons white on `#2f4f43` (9.05:1). Regression:
-the contrast test over the design values in US-P013. Not yet fixed.
+the contrast test over the design values in US-P013. Fixed; see the resolution below.
+
+### DEF-035 - Resolution and verification, 2026-10-16
+
+Fixed locally on `feat/US-P013-shared-ui-foundation` by US-P013-AC01. Fix: `--color-primary`
+`#2f4f43` and `--color-primary-hover` `#243d34` in `app/src/tailwind.css` (`ba43cac`), the shared
+button with a green primary (`89ff5d4`), and every page moved to it, the amber fill removed from
+buttons and the career path gradient replaced (`03cd669`, `a92570f`, `b74df12`, `1653e72`).
+The contrast test over the design values in `scripts/ui-foundation/design-values.test.mjs` proves
+white on primary at 9.05:1 and on hover at least 4.5:1, and the removed-pattern guard fails if
+`app-button`, `cp-btn` or the other old classes return. Regression checks on `5f23fd8`: `npm run
+app:test` (23 node guard tests, 311 Angular tests in 42 files), `npm run api:test` 1281/50,
+`npm run verify:journeys` 6, Pages build passes (with font inlining switched off in this
+sandbox only). Browser walk 2026-10-16 in `docs/verification/2026-10-15/US-P013/`: every page shows
+white text on deep green primary buttons. Remaining release checks: the hosted Pages build with font
+inlining, a look at the deployed pages, and the final whole-branch review; not pushed yet.
 
 ### DEF-036 - Focus rings are inconsistent and partly too faint
 
 | ID | State | Severity | Contract | Evidence |
 | --- | --- | --- | --- | --- |
-| DEF-036 | Confirmed, Claude Code, 2026-10-15 | P3 | WCAG 2.2 1.4.11 (3:1 for focus indicators), 2.4.7; US-P013-AC02 | Stylesheets on `ee1b660`: four different local focus colours, most controls on browser defaults; the design DNA's amber focus colour `#ffd08e` is 1.43:1 on white |
+| DEF-036 | Fixed, Claude Code, 2026-10-16 (confirmed 2026-10-15) | P3 | WCAG 2.2 1.4.11 (3:1 for focus indicators), 2.4.7; US-P013-AC02 | Stylesheets on `ee1b660`: four different local focus colours, most controls on browser defaults; the design DNA's amber focus colour `#ffd08e` is 1.43:1 on white |
 
 Found in the same audit. Focus styles exist as about 20 local focus rules in 13 stylesheets, at least five colours (`#4f773e`,
 `#29463c`, `#315c24`), the login page uses an amber glow, and the remaining controls
 depend on the browser. The documented focus colour cannot meet 3:1 against the white
 and cream surfaces. Expected: one visible ring of at least 3:1 on every focusable
 control. Fix: US-P013's global ring in `--color-focus` `#b45309` (5.0:1). Regression:
-the focus contrast test and a keyboard walk of every page. Not yet fixed.
+the focus contrast test and a keyboard walk of every page. Fixed; see the resolution below.
+
+### DEF-036 - Resolution and verification, 2026-10-16
+
+Fixed locally on `feat/US-P013-shared-ui-foundation` by US-P013-AC02. Fix: one global
+`:focus-visible` ring in `app/src/styles.scss` using `--color-focus` `#b45309` (5.0:1 on white)
+(`ba43cac`), the remaining local focus outlines removed and a light ring `--color-focus-inverse`
+`#ffd08e` on `data-surface="dark"` bands (`d6c605e`), tab focus drawn inside the tab so the row cannot
+clip it (`ce01441`, `7014f58`). `scripts/ui-foundation/focus-ring.test.mjs` fails when another stylesheet
+draws a focus outline and `design-values.test.mjs` checks the ring contrast. Regression checks on
+`5f23fd8`: same suites as DEF-035. Keyboard walk 2026-10-16: ring visible on shared buttons, both
+tab sets, the builder toolbar and file picker, and on the course view and editor heroes; the arrow,
+Home, End and modal Tab/Escape checks are in the walkthrough. Remaining release checks: the learning
+video stage (Mux player) has no `data-surface="dark"` marker and could not be shown with demo data, so
+its ring on a dark background is unchecked; the hosted look after deployment; the final whole-branch
+review; not pushed yet.
 
 ## New defect record
 

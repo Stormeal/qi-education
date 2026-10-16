@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-P013 ([backlog](../user_stories.md#us-p013--use-one-shared-look-for-actions-views-and-progress))
-- State: In progress (spec approved by Alex 2026-10-15; execution: subagent-driven)
+- State: Done locally on the branch, in review (spec approved by Alex 2026-10-15; execution: subagent-driven; 0.1.195 on the branch, not pushed, no pull request yet)
 - Owner: Claude Code (frontend only; no API or storage change, so no Codex part)
 - Related defects: DEF-035 (primary buttons fail text contrast), DEF-036 (focus rings are
   inconsistent and partly too faint)
@@ -216,8 +216,8 @@ The component-local focus rings (about 20 rules in 13 stylesheets, including the
 amber input outlines) are removed, so the global ring is the only one; the quiz answer row
 is the one exception, because its input is hidden and the row re-draws the ring with the
 same colour. Inputs keep their border change on focus and also get the ring. On dark
-bands (`data-surface="dark"`: course view hero, editor hero, dashboard hero stat) the
-ring uses `--color-focus-inverse`. `scripts/ui-foundation/focus-ring.test.mjs` fails when
+bands (`data-surface="dark"`: course view hero, editor hero, dashboard hero stat) the ring uses `--color-focus-inverse` (`#ffd08e`, at least 3:1 on
+every hero gradient stop) through `[data-surface='dark'] :focus-visible { outline-color: var(--color-focus-inverse) }`. `scripts/ui-foundation/focus-ring.test.mjs` fails when
 any other stylesheet draws a focus outline.
 
 ## Shared components
@@ -252,6 +252,9 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 
 - `appIconButton`: `'default' | 'ghost' | 'danger'`, default `default`.
 - `label`: required. Sets `aria-label` and `title` (AC04). Compilation fails without it.
+- `hint`: optional. Replaces the tooltip (`title`) when it must say more than the name, for example why
+  a control is disabled. The `aria-label` always stays the `label`, so AC04 holds. Built for the
+  quiz answer-remove button, whose tooltip explains why the last answers cannot be removed.
 - `size`: `'sm' | 'md' | 'lg'` (28, 32, 40px square), default `md`.
 - The icon is projected. The `aria-label` names the button, so icon content is never read.
 
@@ -270,7 +273,10 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
 - Arrow keys move and select (automatic activation); Home and End jump to the ends.
 - `count` renders a neutral chip inside the tab, read as part of the tab's name.
 - `tabId()` and `tabPanelId()` are exported helpers so pages build matching ids.
-- Look: underline style, selected tab in ink with a 2px primary underline.
+- Look: underline style, selected tab in ink with a 2px primary underline. The focus ring is drawn
+  inside the tab (`[role='tab']:focus-visible { outline-offset: -4px }`) and the row line and the
+  underline are inset box-shadows, so the ring is never clipped by the row.
+- Alt, Ctrl and Meta with an arrow key are left to the browser (Alt+Left is Back).
 
 ### Progress bar — `<app-progress-bar>`
 
@@ -297,6 +303,9 @@ Old to new mapping: `variant="primary"` → `primary`; `variant="outline"` or no
   `curriculum-expand-button`, the draft-status actions, the editor's back and breadcrumb
   buttons, the rich-text toolbar buttons (→ icon button, ghost, small, inside a
   `role="toolbar"`), and the login page's password-visibility and inline text actions.
+- The editor step buttons stay text buttons (ghost or danger, small) with their `aria-label`s, because the
+  rule that a visible label never changes outranks the icon button mapping. They are shared buttons, not
+  icon buttons.
 - Their old class rules are deleted from the stylesheets.
 - Every changed button keeps its event, arguments, `type`, `disabled` condition and
   accessible name. Tests that select an old class are updated to select by role and name.
@@ -355,19 +364,39 @@ intended.
 
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
-| US-P013-AC01 | `scripts/ui-foundation/design-values.test.mjs` contrast test; browser walk of every page | Pending |
-| US-P013-AC02 | `scripts/ui-foundation/design-values.test.mjs` focus contrast; keyboard walk of every page | Pending |
-| US-P013-AC03 | `app/src/app/ui/button/button.spec.ts` loading cases | Pending |
-| US-P013-AC04 | `app/src/app/ui/icon-button/icon-button.spec.ts`; guard check finds no unnamed icon button | Pending |
-| US-P013-AC05 | `app/src/app/ui/tabs/tabs.spec.ts` keyboard cases; admin and catalog keyboard walk | Pending |
-| US-P013-AC06 | `app/src/app/ui/tabs/tabs.spec.ts` ARIA cases | Pending |
-| US-P013-AC07 | `app/src/app/ui/progress-bar/progress-bar.spec.ts` | Pending |
-| US-P013-AC08 | `scripts/ui-foundation/removed-patterns.test.mjs` plus `check-ui-foundation.mjs` | Pending |
-| US-P013-AC09 | `scripts/ui-foundation/colors.test.mjs` | Pending |
-| US-P013-AC10 | `npm run app:test`, `npm run api:test`, `npm run verify:journeys`, `npm run app:build:pages` | Pending |
+| US-P013-AC01 | `scripts/ui-foundation/design-values.test.mjs` contrast test; browser walk of every page | Pass. Contrast test in the 23 node guard tests (`ba43cac`, `89ff5d4`); all pages moved to the shared button in `03cd669` and later; green primary seen on every page in `docs/verification/2026-10-15/US-P013/` |
+| US-P013-AC02 | `scripts/ui-foundation/design-values.test.mjs` focus contrast; keyboard walk of every page | Pass. Focus contrast test and `focus-ring.test.mjs` (`ba43cac`, `d6c605e`); ring visible on shared buttons, tabs, file picker and toolbar, inverse ring on dark bands, see `walkthrough.md` |
+| US-P013-AC03 | `app/src/app/ui/button/button.spec.ts` loading cases | Pass (`89ff5d4`), in `npm run app:test`: 42 files, 311 tests |
+| US-P013-AC04 | `app/src/app/ui/icon-button/icon-button.spec.ts`; guard check finds no unnamed icon button | Pass (`2fb2d83`, `4fd6f56` for `hint`) |
+| US-P013-AC05 | `app/src/app/ui/tabs/tabs.spec.ts` keyboard cases; admin and catalog keyboard walk | Pass (`698ca69`, `ce01441`, `704ca8f`); arrows, wrap, Home and End and one Tab stop checked in the browser for both tab sets, `walkthrough.md` |
+| US-P013-AC06 | `app/src/app/ui/tabs/tabs.spec.ts` ARIA cases | Pass (`698ca69`); `aria-selected` and the panel's `aria-labelledby` read back in the browser walk |
+| US-P013-AC07 | `app/src/app/ui/progress-bar/progress-bar.spec.ts` | Pass (`a0a6ffc`, `704ca8f`) |
+| US-P013-AC08 | `scripts/ui-foundation/removed-patterns.test.mjs` plus `check-ui-foundation.mjs` | Pass (`cf47851`, `e478b94`); runs inside `npm run app:test` |
+| US-P013-AC09 | `scripts/ui-foundation/colors.test.mjs` | Pass (`cf47851`, `5f23fd8`) |
+| US-P013-AC10 | `npm run app:test`, `npm run api:test`, `npm run verify:journeys`, `npm run app:build:pages` | Pass on `5f23fd8`: app:test 23 node tests plus 42 files and 311 tests; api:build then api:test 50 files and 1281 tests; verify:journeys 1 file and 6 tests; Pages build succeeds (see limits below) |
 
-Browser evidence: before and after screenshots of every page at 1440px and 400px in
-`docs/verification/<date>/US-P013/`.
+Run on 2026-10-16 against `5f23fd8` (0.1.194), before this record commit:
+
+- `npm run app:test`: 23 of 23 node guard tests, then 42 of 42 Angular test files, 311 of 311 tests
+  (baseline on `ee1b660` was 283 tests in 36 files).
+- `npm run api:build && npm run api:test`: 50 files, 1281 tests, same as the baseline.
+- `npm run verify:journeys`: 1 file, 6 tests.
+- `npm run app:build:pages`: succeeds, with three component-style budget warnings (warnings, not
+  errors): `course-view-page-learning.scss` 13.59 kB, `career-path-page.scss` 13.91 kB, `app.scss` 12.31 kB,
+  against a 12 kB warning level. The first two files are smaller than on `ee1b660`; `app.scss` grew
+  about 500 bytes of source and may be new. Not compared against a base build.
+- Limit: Google Fonts cannot be reached from the build sandbox (403), so the Pages build was run with
+  `optimization.fonts: false` in the production configuration of `app/angular.json`, which was restored
+  afterwards (`git diff app/angular.json` empty). The font inlining step is therefore only proven by the
+  hosted workflow.
+- Browser walk: 63 screenshots and `walkthrough.md` in `docs/verification/2026-10-15/US-P013/`, all
+  without horizontal page scroll. Five visual findings are listed there; findings 1 (Feedback button stretched
+  in the page header) and 2 (editor "Next" button loses its font because `[appButton]` is property-bound) are
+  open for a decision. Not verifiable with demo data: catalog carousel arrows, the Mux player ring, admin
+  feedback rows.
+
+Browser evidence: screenshots of every page at 1440px and 400px, plus the 900px catalog, in
+`docs/verification/2026-10-15/US-P013/` (after only; there are no before shots).
 
 ## Later parts of the learning view redesign (not in this story)
 

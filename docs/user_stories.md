@@ -20,7 +20,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
-| US-P013 | Use one shared look for actions, views and progress | In progress | P2 | None | DEF-035, DEF-036 |
+| US-P013 | Use one shared look for actions, views and progress | In review | P2 | None | DEF-035, DEF-036 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -294,7 +294,7 @@ completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
 the same on every page, so that the app feels like one product and I can rely on what a
 control means.**
 
-State: In progress (2026-10-15) on `feat/US-P013-shared-ui-foundation`. Scope, decisions and the contract are in the
+State: In review (2026-10-16) on `feat/US-P013-shared-ui-foundation`, done locally and verified there (evidence in `docs/verification/2026-10-15/US-P013/`); it stays in this file until merged to `main`. Not pushed yet. Scope, decisions and the contract are in the
 [spec](specs/US-P013-shared-ui-foundation.md). Decided by Alex on 2026-10-15: one shared
 button and tab style on every page; primary actions are deep green, amber stays for focus
 and "you are here". Part 1 of 3 of the learning view redesign.
