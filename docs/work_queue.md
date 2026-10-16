@@ -1,8 +1,20 @@
 # Work queue
 
-Updated: 2026-10-15. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-16. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**Session 2026-10-16 — started by Alex with "pull down latest and start next job".** Branch:
+`main`. Base: `4018002` (US-P013 and the QI Academy rename merged through pull requests #47
+and #48, 0.1.199) plus the local Mux docs commit. Picked by the lead: the open confirmed
+defects DEF-037 to DEF-041 (confirmed defects before stories; feature work is paused, fixes
+only). They are all frontend, so Codex takes the next independent item: the lock release
+found in the hosted log on 2026-10-13, recorded as DEF-042.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | DEF-037 to DEF-041: library button gap, admin switch at 400px, builder modal header at 400px, catalog drafts tab fallback, section chevron `aria-expanded` | Everything under `app/` except the version lines, `docs/defect_management.md` | Started |
+| Codex | DEF-042: answer locked routes only after the course lock is released | See the [handoff](handoffs/DEF-042-course-lock-release-codex.md) | Not started |
 
 **Session 2026-10-15 — US-P013 shared UI foundation, selected by Alex.** Branch:
 `feat/US-P013-shared-ui-foundation` (Alex chose a branch and pull request for this story).
@@ -12,7 +24,7 @@ redesign; parts 2 and 3 are listed at the end of the [spec](specs/US-P013-shared
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-P013: design values, shared button, icon button, tabs, progress bar and chip; every page migrated; DEF-035, DEF-036 | Everything under `app/`, `scripts/check-ui-foundation.mjs`, `scripts/ui-foundation/`, `scripts/hardcoded-colors-baseline.json`, `design/course-ui-design-dna.md`, the US-P013 spec | Done locally and verified on the branch (0.1.199, not pushed). Tasks 1-13 committed; DEF-035 and DEF-036 Fixed. Checks on `7d91b07`: node guards 23/23, app 316/43, API 1281/50, journeys 6, Pages build passes (fonts off in this sandbox only). Browser walk: 40 screenshots in `docs/verification/2026-10-15/US-P013/`, two visual findings fixed in fix round 1, three low ones logged as DEF-037 to DEF-039 (DEF-040, DEF-041 also open); final fix wave after the whole-branch review done (`e803fa3`, `7d91b07`). Next: pull request review, then push and pull request to `main` (Alex says when) |
+| Claude Code | US-P013: design values, shared button, icon button, tabs, progress bar and chip; every page migrated; DEF-035, DEF-036 | Everything under `app/`, `scripts/check-ui-foundation.mjs`, `scripts/ui-foundation/`, `scripts/hardcoded-colors-baseline.json`, `design/course-ui-design-dna.md`, the US-P013 spec | Done locally and verified on the branch (0.1.199, not pushed). Tasks 1-13 committed; DEF-035 and DEF-036 Fixed. Checks on `7d91b07`: node guards 23/23, app 316/43, API 1281/50, journeys 6, Pages build passes (fonts off in this sandbox only). Browser walk: 40 screenshots in `docs/verification/2026-10-15/US-P013/`, two visual findings fixed in fix round 1, three low ones logged as DEF-037 to DEF-039 (DEF-040, DEF-041 also open); final fix wave after the whole-branch review done (`e803fa3`, `7d91b07`). Merged to `main` through pull request #47 (2026-10-16) |
 
 **Session 2026-10-13 — started by the user with "let's work on the next job".** Branch: `main`.
 Base: `63f4d25` (pushed, 0.1.166). No confirmed defect is open and no Active work is

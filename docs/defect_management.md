@@ -685,6 +685,14 @@ Expected: The view falls back to "Published", which is selected, and the panel i
 Found in the US-P013 browser walk, 2026-10-16. Environment: branch `feat/US-P013-shared-ui-foundation`, local in-memory API (`npm run app:dev`), Chromium. Steps: Sign in as a teacher, open a draft course in the editor, and inspect the section expand/collapse chevron in the builder with a screen reader or the accessibility tree.
 Expected: The chevron button exposes `aria-expanded` true or false for its section (WCAG 2.2 4.1.2). Actual: The button has no `aria-expanded`, so assistive technology cannot tell whether the section is open. Related story: US-P013 (not caused by it unless marked as new). Found, not fixed: left out of the story's scope.
 
+### DEF-042 - Course lock is released after the answer is sent
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-042 | Investigating, Codex, 2026-10-16 | P2 | `docs/course_operation_recovery.md` (the lock is held until the handler finishes and then released) | Hosted log 2026-10-13, course `1602e5b5`: `Course lock release requires verified recovery`, then `Unable to finish course operation coordination. CourseBusyError` |
+
+Found in the hosted API log on 2026-10-13 after two video upload requests. `withCourseLock` lets the handler answer inside the lock, so `MongoCourseMutationLock.run` releases it after the response; Vercel can pause the function in between and the release's five-second limit expires. Worst case: the course answers "This course is being updated" until the 31-minute expiry. Every locked route has this order. Fix default (lead, confirm or change): answer only after the release. See the [handoff](handoffs/DEF-042-course-lock-release-codex.md).
+
 ## New defect record
 
 Include the next unused DEF ID, title, severity, state, discovery date, tested
