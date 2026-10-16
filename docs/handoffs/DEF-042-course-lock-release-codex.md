@@ -71,3 +71,54 @@ release instead of before it.
   commit.
 - Update your row in `docs/work_queue.md` (state, commits, checks, what is not verified),
   then stop and summarize.
+
+## Outcome
+
+2026-10-16, Codex, `main`, base `0deff80` (required ancestor `926bb19`
+confirmed). Implementation: `953b534` (`fix(DEF-042): send course answers after
+lock release`, version 0.1.203). This delivery-record commit updates the queue
+and bumps the three authorized version lines again for the hook.
+
+**Confirm or change: confirm the lead's default.** The client receives the
+handler's finished answer only after release settles. If release fails, the
+existing recovery/coordination logs precede the handler's original answer.
+No dependency, frontend behavior, route path, status, response body, or header
+contract changed.
+
+Reproduced before implementation in `api/src/courseLockResponse.test.ts`: 12
+cases failed because HTTP headers had already been sent while owner deletion
+was paused. Tests use real local HTTP on ephemeral ports, isolated repositories,
+and `MongoCourseMutationLock` with an in-memory collection whose deletion is
+gated. Both route prefixes cover PUT thumbnail, POST Mux upload (201), PATCH
+price, DELETE video, and handler validation responses. Additional cases cover
+forwarded validation errors, failed release after success, failed acquisition,
+ambiguous writes retaining ownership, and missing courses without acquisition.
+
+Fix: `withCourseLock` temporarily holds the final Express `send` call. JSON is
+serialized by the existing handler, and the original `send` is restored before
+error middleware or delivery. Awaited coordination finishes before the saved
+answer is sent. All currently locked handlers use `json`; streaming asset reads
+use a separate wrapper. `courseMutationLock.ts` needed no change: its existing
+awaited release and conservative ambiguous-write behavior remain intact.
+The runbook's Normal behavior section now records this ordering.
+
+Verification before delivery:
+
+- Focused response/lock/recovery suites: 35 tests pass, including all 20 new
+  route cases and existing `courseMutationLock.test.ts` / `lockRecovery.test.ts`.
+- `npm run api:test`: 1,301 tests in 51 files pass.
+- `npm run api:build`: passes.
+- `npm run verify:journeys`: all six journeys pass.
+- Independent read-only review: no actionable findings; `git diff --check` clean.
+
+Not verified: hosted Vercel suspension behavior, real MongoDB majority writes,
+timeouts/recovery, or real Sheets/Mux integration. No shared services or ports
+3001/4200 were used. No push or deployment. Frontend tests/build were not rerun
+for this API-only behavior change. Claude must transfer the outcome to the
+read-only DEF-042 record; hosted release checks remain with the lead/Alex.
+
+Outside-file follow-up: `package-lock.json` is outside the assigned list. The
+delivery workflow asks that its root/top-level/app version entries match the
+package manifests; those entries remain at 0.1.202. The lead should align them
+with the final delivery version. No dependency or lockfile edit was needed for
+the fix, and no outside-owned file was changed.
