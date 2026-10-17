@@ -14,7 +14,7 @@ async function doctor(input: Record<string, string | undefined>, file: string, e
 }
 describe('US-P011 local script behavior over FS/child/health doubles', () => {
   it('US-P014 AC08 names MongoDB and passes with complete Mongo settings even without Sheets auth', async () => {
-    const file = complete.split('\n').filter(line => !line.startsWith('GOOGLE_')).join('\n');
+    const file = complete.split('\n').filter(line => !line.startsWith('GOOGLE_') && !line.startsWith('MONGODB_COURSE_ASSET_COLLECTION=')).join('\n');
     const result = await doctor({ NODE_ENV: 'development', USE_SHARED_SERVICES: '1', USER_STORE: 'mongodb', USER_STORE_READ_ONLY: '1' }, file);
     expect(result.code).toBeUndefined(); expect(result.text).toContain('User store: mongodb'); expect(result.text).toContain('Account writes: read-only');
     expect(result.text).not.toContain('Google Sheets auth storage is incomplete');
@@ -32,6 +32,12 @@ describe('US-P011 local script behavior over FS/child/health doubles', () => {
     const result = await doctor({ NODE_ENV: 'development', USE_SHARED_SERVICES: '1', USER_STORE: 'mongodb' }, complete, true,
       { status: 'ok', mode: 'shared', auth: { storage: 'mongodb', configured: true }, content: { configured: true }, assets: { configured: true }, corsOrigins: ['http://localhost:4200'] });
     expect(result.code).toBeUndefined(); expect(result.text).toContain('Local API is using MongoDB users.'); expect(result.fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('US-P014 AC08 accepts Mongo user-only settings and health without requiring asset storage', async () => {
+    const file = complete.split('\n').filter(line => !line.startsWith('GOOGLE_') && !line.startsWith('MONGODB_COURSE_ASSET_COLLECTION=')).join('\n');
+    const result = await doctor({ NODE_ENV: 'development', USE_SHARED_SERVICES: '1', USER_STORE: 'mongodb' }, file, true,
+      { status: 'ok', mode: 'shared', auth: { storage: 'mongodb', configured: true }, content: { configured: true }, assets: { configured: false }, corsOrigins: ['http://localhost:4200'] });
+    expect(result.code).toBeUndefined(); expect(result.text).toContain('Result: passed');
   });
   it.each([
     [{ NODE_ENV: 'development' }, '', false, 'isolated'],

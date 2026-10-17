@@ -8,6 +8,7 @@ import { InMemoryAuthRepository, GoogleSheetsAuthRepository, type AuthRepository
 import { MongoAuthRepository } from './mongoAuthRepository.js';
 import { InMemoryCourseRepository } from './courseRepository.js';
 import { createCourseSchema } from './course.js';
+import { updateCourseContentSchema } from './courseContent.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository } from './feedbackRepository.js';
@@ -35,8 +36,12 @@ async function setup(kind: string, sharedFake = fakeAuthCollection()) {
   sheets.rows = [[...authSheetHeaders], ...actual.map(authUserToSheetRow)]; sheets.reads = 0; sheets.writes = 0;
   const courses = new InMemoryCourseRepository();
   await courses.createCourse(createCourseSchema.parse({ title: 'Account query course', description: 'Isolated account route tests.', teacher: 'Teacher', level: 'Beginner', status: 'published' }), { id: 'course', ownerUserId: admin.id });
+  const content = new InMemoryCourseContentRepository();
+  await content.updateCourseContent('course', updateCourseContentSchema.parse({ sections: [{ id: 'section', title: 'Lessons', components: [
+    { id: 'lesson', type: 'text', title: 'Read this', content: 'Private instructions' },
+  ] }] }).sections);
   const tokens = new InMemoryPasswordResetRepository(), mail = new LocalMailSender(() => {}), changes = new InMemoryUserChangeRepository();
-  const server = createServer({ authRepository: auth, courseRepository: courses, courseContentRepository: new InMemoryCourseContentRepository(),
+  const server = createServer({ authRepository: auth, courseRepository: courses, courseContentRepository: content,
     courseAssetRepository: new InMemoryCourseAssetRepository(), feedbackRepository: new InMemoryFeedbackRepository(), passwordResetRepository: tokens,
     userChangeRepository: changes, mailSender: mail, muxVideoService: null, muxWebhookService: null,
     gitHubFeedbackService: { createIssueFromFeedback: async () => { throw new Error('No real GitHub'); } },
@@ -94,7 +99,7 @@ describe('US-P014 HTTP Mongo guarantees', () => {
     const { auth, student, request, fake } = await setup('mongodb');
     await auth.enrollUserInCourse(student.id, 'course');
     const list = vi.spyOn(auth, 'listUsers');
-    for (const path of ['/auth/me', '/courses', '/users/me/learning-progress', '/courses/course/learners/count']) {
+    for (const path of ['/auth/me', '/courses', '/users/me/learning-progress', '/courses/course/outline', '/courses/course/content', '/courses/course/notes', '/courses/course/learners/count']) {
       fake.calls.finds.length = 0;
       const response = await request(path, student); expect(response.status).toBe(200);
       if (path.endsWith('/count')) expect(await response.json()).toEqual({ enrolledLearners: 1 });

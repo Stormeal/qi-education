@@ -111,7 +111,8 @@ function checkEnv(env) {
     warn('MongoDB content storage is not configured; course content will use memory locally.');
   }
 
-  if (hasAnyValue(env, mongoAssetKeys) && !hasAllValues(env, mongoAssetKeys)) {
+  if (hasAnyValue(env, mongoAssetKeys) && !hasAllValues(env, mongoAssetKeys) &&
+      (selectedUserStore !== 'mongodb' || hasValue(env, 'MONGODB_COURSE_ASSET_COLLECTION'))) {
     fail('MongoDB asset storage is partially configured. Set all asset MongoDB variables or none.');
   } else if (hasAllValues(env, mongoAssetKeys)) {
     pass('MongoDB asset storage is configured.');
@@ -197,7 +198,7 @@ async function checkServer(env) {
     pass('Local API asset storage is configured.');
   } else if (expectsMongoAssets) {
     fail('api/.env has MongoDB asset values, but local API reports asset storage as unconfigured.');
-  } else if (expectsMongoContent) {
+  } else if (expectsMongoContent && selectedUserStore !== 'mongodb') {
     fail('Local API asset storage is not configured; thumbnail uploads will not survive a restart.');
   } else {
     warn('Local API asset storage is not configured; this is acceptable for auth-only testing.');
