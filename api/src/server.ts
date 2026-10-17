@@ -38,6 +38,8 @@ import {
 } from './careerPath.js';
 import { CareerPathConflictError, createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
 import { registerLearningProgressRoutes } from './learningProgress.js';
+import { registerLessonExtrasRoutes } from './lessonExtrasRoutes.js';
+import { createLessonNotesRepository, type LessonNotesRepository } from './lessonNotesRepository.js';
 import { registerInstructorProfileRoutes } from './instructorProfileRoutes.js';
 import { createInstructorProfileRepository, type InstructorProfileRepository } from './instructorProfileRepository.js';
 import { registerAccountProfileRoutes } from './accountProfileRoutes.js';
@@ -104,6 +106,7 @@ type ServerDependencies = {
   instructorProfileRepository?: InstructorProfileRepository;
   accountProfileRepository?: AccountProfileRepository;
   learningProgressRepository?: LearningProgressRepository;
+  lessonNotesRepository?: LessonNotesRepository;
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
   feedbackRepository?: FeedbackRepository;
@@ -131,6 +134,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
   const accountProfiles = dependencies.accountProfileRepository ?? createAccountProfileRepository();
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
+  const lessonNotes = dependencies.lessonNotesRepository ?? createLessonNotesRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
@@ -1290,6 +1294,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
     return expected;
   };
 
+  registerLessonExtrasRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
+    courses, content: courseContent, notes: lessonNotes });
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     courses, content: courseContent, progress: learningProgress });
 

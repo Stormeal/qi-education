@@ -13,7 +13,7 @@ between them is in the [US-L015 spec](specs/US-L015-learning-backend.md).
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Claude Code | US-L016: learning page, exercise type in the frontend models and builder, admin feedback lesson tags | Everything under `app/` except `services/lesson-extras.service*.ts` and the version lines; `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md` | Implemented locally (this commit). Until Codex commits `app/src/app/services/lesson-extras.service.ts`, `main` does not build: the learning page imports it. Checked in an isolated copy with a stub of the contract: app 330 tests, guards 23/23, dev build; browser on 3001/4200 (see the [spec](specs/US-L016-learning-view.md#verification-2026-10-17-claude-code)). Next: once US-L015 lands, rerun all checks in `main` and browser-check notes, lesson feedback, learner count and an exercise |
-| Codex | US-L015: notes, lesson feedback, learner count, exercise type in the API, `lesson-extras.service.ts` | See the [handoff](handoffs/US-L015-learning-backend-codex.md) | Handed over |
+| Codex | US-L015: notes, lesson feedback, learner count, exercise type in the API, `lesson-extras.service.ts` | See the [handoff](handoffs/US-L015-learning-backend-codex.md) | In progress on `main`, base `27ab0ec` (contains `ccdb6ca`). Plan: test and commit private notes/repository, then feedback/count/exercise API, then service and verification record. Isolated stores and ephemeral ports only. |
 
 **Session 2026-10-16 — started by Alex with "pull down latest and start next job".** Branch:
 `main`. Base: `4018002` (US-P013 and the QI Academy rename merged through pull requests #47
