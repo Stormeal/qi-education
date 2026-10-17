@@ -70,6 +70,7 @@ import {
   type CourseAssetRepository,
 } from './courseAssetRepository.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
+import { courseWriteFreeze, CourseReadOnlyError, CourseStoreUnavailableError } from './courseStore.js';
 import { canAuthorCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
 import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment.js';
 import { isQuestionImageContentType, questionImageIssue } from './questionImage.js';
@@ -129,7 +130,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
   const mailSender = dependencies.mailSender ?? createMailSender();
   const passwordResetTokens = dependencies.passwordResetRepository ?? createPasswordResetRepository();
-  const storedCourses = requestCachedCourses(dependencies.courseRepository ?? createCourseRepository());
+  const storedCourses = requestCachedCourses(courseWriteFreeze(dependencies.courseRepository ?? createCourseRepository(), apiConfig.COURSE_STORE_READ_ONLY === '1'));
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
@@ -138,7 +139,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
   const lessonNotes = dependencies.lessonNotesRepository ?? createLessonNotesRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
-  const { courses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
+  const { courses: reviewedCourses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
+  // Author metadata/thumbnail methods write review snapshots instead of the base
+  // repository. Apply the same freeze above that existing review projection.
+  const courses = courseWriteFreeze(reviewedCourses, storedCourses.readOnly === true);
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const signupWrites = new KeyedSerialQueue();
   const enrollmentWrites = new KeyedSerialQueue();
@@ -164,7 +168,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       return reviewScope.run({ author, user: (request as Partial<AuthenticatedRequest>).user }, async () => {
       let sendResponse: (() => void) | undefined;
       try {
-        if (courses.storageType === 'google-sheets' && courseContent.storageType !== 'mongodb') {
+        if (courses.storageType !== 'memory' && courseContent.storageType !== 'mongodb') {
           response.status(503).json({ message: 'Shared course operations require MongoDB content and coordination storage.' });
           return;
         }
@@ -204,6 +208,16 @@ export function createServer(dependencies: ServerDependencies = {}) {
     };
 
   app.use(cors({ origin: getCorsOrigins() }));
+  // Run before every route/parser, especially the raw thumbnail upload: frozen
+  // detail writes must not create assets, content documents or lock records.
+  app.use((request, response, next) => {
+    const path = request.path.toLowerCase().replace(/^\/api(?=\/|$)/, '');
+    const detailWrite = request.method === 'POST' && /^\/courses\/?$/.test(path) ||
+      request.method === 'PATCH' && /^\/courses\/[^/]+(?:\/(price|catalog-metadata))?\/?$/.test(path) ||
+      request.method === 'PUT' && /^\/courses\/[^/]+\/thumbnail\/?$/.test(path);
+    if (courses.readOnly && detailWrite) { response.status(503).json({ message: new CourseReadOnlyError().message }); return; }
+    next();
+  });
   app.post(
     ['/webhooks/mux', '/api/webhooks/mux'],
     withRequestBodyErrors(express.raw({ type: 'application/json' })),
@@ -468,6 +482,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     response.json({
       status: 'ok',
       mode: apiConfig.mode,
+      courses: { storage: courses.storageType, readOnly: courses.readOnly === true },
       auth: {
         configured: Boolean(apiConfig.AUTH_TOKEN_SECRET) && !auth.unavailableReason,
         storage: auth.storageType ?? 'memory',
@@ -1488,6 +1503,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       return;
     }
     if (error instanceof AuthReadOnlyError) { response.status(503).json({ message: error.message }); return; }
+    if (error instanceof CourseReadOnlyError || error instanceof CourseStoreUnavailableError) { response.status(503).json({ message: error.message }); return; }
     if (error instanceof DuplicateAccountError) { response.status(409).json({ message: error.message }); return; }
     if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.code ? { code: error.code } : {}), ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {
@@ -1552,14 +1568,14 @@ function hasUnsafeCourseCreationStorage(
   courses: CourseRepository,
   courseContent: CourseContentRepository,
 ) {
-  return courses.storageType === 'google-sheets' && courseContent.storageType === 'memory';
+  return courses.storageType !== 'memory' && courseContent.storageType === 'memory';
 }
 
 function hasUnsafeThumbnailStorage(
   courses: CourseRepository,
   courseAssets: CourseAssetRepository,
 ) {
-  return courses.storageType === 'google-sheets' && courseAssets.storageType === 'memory';
+  return courses.storageType !== 'memory' && courseAssets.storageType === 'memory';
 }
 
 function hasUnsafeAttachmentStorage(

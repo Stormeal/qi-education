@@ -132,7 +132,12 @@ and a rollback that restores the sheet first.
 
 ## Implementation checklist
 
-To be filled in by Codex.
+- [ ] AC01–AC03 Mongo course repository, all fields/order, atomic partial updates, uncached reads and default store selection; representative authoring/review/catalog journeys
+- [ ] AC04 strict settings, exact courses health config and doctor checks
+- [ ] AC05 repository and HTTP freeze before every detail-write side effect, both prefixes; reads/content saves remain available; shared-content safety guards include Mongo metadata
+- [ ] AC06–AC09 guarded dry-run/apply/two-way verify/restore, complete row validation and fake-provider retry/round-trip tests
+- [ ] Architecture, permitted INV-005/INV-017 notes, handoff Outcome and queue evidence
+- [ ] Required API tests/build, journeys and app tests pass; unverified hosted/provider cutover work recorded
 
 ## Verification and delivery
 

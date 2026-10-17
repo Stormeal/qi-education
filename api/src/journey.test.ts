@@ -8,6 +8,8 @@ import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.j
 import { InMemoryAuthRepository } from './authRepository.js';
 import { InMemoryCareerPathRepository } from './careerPathRepository.js';
 import { InMemoryCourseRepository } from './courseRepository.js';
+import { MongoCourseRepository } from './mongoCourseRepository.js';
+import { fakeCourseCollection } from '../test/fakeCourseCollection.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository } from './feedbackRepository.js';
@@ -21,7 +23,7 @@ const sections = [{ id: 'intro', title: 'Introduction', components: [
   { id: 'files', title: 'Files', type: 'resources' },
 ] }];
 
-describe('US-P001 release journey: author, review, enroll, learn', () => {
+describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, enroll, learn (%s)', store => {
   let server: Server, base: string, auth: InMemoryAuthRepository;
   let teacher: AuthUser, otherTeacher: AuthUser, admin: AuthUser, student: AuthUser;
   let courseId = '';
@@ -51,9 +53,12 @@ describe('US-P001 release journey: author, review, enroll, learn', () => {
     admin = (await auth.findByEmail('admin@qi-education.local'))!;
     student = (await auth.findByEmail('student@qi-education.local'))!;
     otherTeacher = await auth.createUser({ ...teacher, id: 'other-teacher', email: 'other-teacher@example.test' });
+    const content = new InMemoryCourseContentRepository(), assets = new InMemoryCourseAssetRepository();
+    if (store === 'mongodb') { Object.defineProperty(content, 'storageType', { value: 'mongodb' }); Object.defineProperty(assets, 'storageType', { value: 'mongodb' }); }
+    const collection = fakeCourseCollection().collection;
     server = createServer({ authRepository: auth, careerPathRepository: new InMemoryCareerPathRepository(),
-      courseRepository: new InMemoryCourseRepository(), courseContentRepository: new InMemoryCourseContentRepository(),
-      courseAssetRepository: new InMemoryCourseAssetRepository(), feedbackRepository: new InMemoryFeedbackRepository(),
+      courseRepository: store === 'mongodb' ? new MongoCourseRepository(async () => collection) : new InMemoryCourseRepository(), courseContentRepository: content,
+      courseAssetRepository: assets, feedbackRepository: new InMemoryFeedbackRepository(),
       muxVideoService: null, muxWebhookService: null,
       gitHubFeedbackService: { createIssueFromFeedback: async () => { throw new Error('The journey must never create a GitHub issue.'); } },
     }).listen(0);

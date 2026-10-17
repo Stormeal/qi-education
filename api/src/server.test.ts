@@ -204,6 +204,7 @@ describe('QI Academy API', () => {
     expect(body).toEqual({
       status: 'ok',
       mode: 'isolated',
+      courses: { storage: 'memory', readOnly: false },
       auth: {
         configured: true,
         storage: 'memory',

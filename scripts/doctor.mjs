@@ -54,6 +54,10 @@ function checkEnv(env) {
   if (!['0', '1'].includes(env.get('USER_STORE_READ_ONLY') ?? '0')) fail('USER_STORE_READ_ONLY must be 0 or 1.');
   pass(`User store: ${userStore}`);
   pass(`Account writes: ${readOnly ? 'read-only' : 'enabled'}`);
+  if (!['google-sheets', 'mongodb'].includes(selectedCourseStore)) fail('COURSE_STORE must be google-sheets or mongodb.');
+  if (!['0', '1'].includes(env.get('COURSE_STORE_READ_ONLY') ?? '0')) fail('COURSE_STORE_READ_ONLY must be 0 or 1.');
+  pass(`Course store: ${courseStore}`);
+  pass(`Course details writes: ${courseReadOnly ? 'read-only' : 'enabled'}`);
   if (!existsSync(envPath)) {
     if (mode === 'isolated') warn('api/.env is missing; isolated local defaults will be used.');
     else if (allowDemo) warn('api/.env is missing; --allow-demo permits demo auth checks.');
@@ -103,6 +107,11 @@ function checkEnv(env) {
   const mongoContentKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'];
   const mongoAssetKeys = ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_ASSET_COLLECTION'];
 
+  if (selectedCourseStore === 'mongodb') {
+    if (hasAllValues(env, mongoContentKeys)) pass('MongoDB course storage is configured.');
+    else fail('MongoDB course storage is incomplete. Set MONGODB_URI, MONGODB_DB_NAME, and MONGODB_COURSE_CONTENT_COLLECTION.');
+  }
+
   if (hasAnyValue(env, mongoContentKeys) && !hasAllValues(env, mongoContentKeys)) {
     fail('MongoDB content storage is partially configured. Set all MongoDB variables or none.');
   } else if (hasAllValues(env, mongoContentKeys)) {
@@ -112,11 +121,11 @@ function checkEnv(env) {
   }
 
   if (hasAnyValue(env, mongoAssetKeys) && !hasAllValues(env, mongoAssetKeys) &&
-      (selectedUserStore !== 'mongodb' || hasValue(env, 'MONGODB_COURSE_ASSET_COLLECTION'))) {
+      (selectedUserStore !== 'mongodb' && selectedCourseStore !== 'mongodb' || hasValue(env, 'MONGODB_COURSE_ASSET_COLLECTION'))) {
     fail('MongoDB asset storage is partially configured. Set all asset MongoDB variables or none.');
   } else if (hasAllValues(env, mongoAssetKeys)) {
     pass('MongoDB asset storage is configured.');
-  } else if (hasAnyValue(env, mongoContentKeys) && selectedUserStore !== 'mongodb') {
+  } else if (hasAnyValue(env, mongoContentKeys) && selectedUserStore !== 'mongodb' && selectedCourseStore !== 'mongodb') {
     fail(
       'MongoDB asset storage is missing. Set MONGODB_COURSE_ASSET_COLLECTION or thumbnail uploads will only persist in memory.',
     );
@@ -167,6 +176,11 @@ async function checkServer(env) {
   }
   if (authStorage !== userStore && !(allowDemo && authStorage === 'memory')) fail('Running API user store differs from USER_STORE; restart it with the intended settings.');
 
+  const runtimeCourses = configResponse.body?.courses;
+  if (runtimeCourses?.storage !== courseStore) fail('Running API course store differs from COURSE_STORE; restart it with the intended settings.');
+  else pass(`Running API course store: ${courseStore}`);
+  if (runtimeCourses?.readOnly !== courseReadOnly) fail('Running API course readOnly differs from COURSE_STORE_READ_ONLY; restart it with the intended settings.');
+
   if (configResponse.body?.auth?.configured) {
     pass('Local API auth is available.');
   } else {
@@ -198,7 +212,7 @@ async function checkServer(env) {
     pass('Local API asset storage is configured.');
   } else if (expectsMongoAssets) {
     fail('api/.env has MongoDB asset values, but local API reports asset storage as unconfigured.');
-  } else if (expectsMongoContent && selectedUserStore !== 'mongodb') {
+  } else if (expectsMongoContent && selectedUserStore !== 'mongodb' && selectedCourseStore !== 'mongodb') {
     fail('Local API asset storage is not configured; thumbnail uploads will not survive a restart.');
   } else {
     warn('Local API asset storage is not configured; this is acceptable for auth-only testing.');
@@ -263,6 +277,10 @@ const mode = servicesMode(env);
 const selectedUserStore = env.get('USER_STORE') ?? 'google-sheets';
 const userStore = mode === 'isolated' ? 'memory' : selectedUserStore;
 const readOnly = env.get('USER_STORE_READ_ONLY') === '1';
+const selectedCourseStore = env.get('COURSE_STORE') ?? 'google-sheets';
+const hasSheets = hasAnyValue(env, ['GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SHEET_ID']) && hasAllValues(env, ['GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_PRIVATE_KEY']);
+const courseStore = mode === 'isolated' ? 'memory' : selectedCourseStore === 'mongodb' ? 'mongodb' : hasSheets ? 'google-sheets' : 'memory';
+const courseReadOnly = env.get('COURSE_STORE_READ_ONLY') === '1';
 
 checkEnv(env);
 await checkServer(env);

@@ -1,7 +1,10 @@
 import { protectCourseWrite } from './courseMutationLock.js';
 import { InFlightRead } from './inFlightRead.js';
 import { randomUUID } from 'node:crypto';
-import { apiConfig, hasGoogleSheetsConfig } from './config.js';
+import { apiConfig, getServicesMode, hasGoogleSheetsConfig, hasMongoConfig } from './config.js';
+import { MongoCourseRepository } from './mongoCourseRepository.js';
+import { courseWriteFreeze, UnavailableCourseRepository } from './courseStore.js';
+export { MongoCourseRepository } from './mongoCourseRepository.js';
 import {
   type Course,
   type CreateCourseInput,
@@ -16,7 +19,8 @@ import {
 import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 
 export interface CourseRepository {
-  readonly storageType: 'memory' | 'google-sheets';
+  readonly storageType: 'memory' | 'google-sheets' | 'mongodb';
+  readonly readOnly?: boolean;
   /** recent: a read up to recentCatalogMs old may answer (GET requests only, INV-005). */
   listCourses(options?: { recent?: boolean }): Promise<Course[]>;
   createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course>;
@@ -354,6 +358,11 @@ export class InMemoryCourseRepository implements CourseRepository {
 }
 
 export function createCourseRepository(): CourseRepository {
+  return courseWriteFreeze(selectCourseRepository(), apiConfig.COURSE_STORE_READ_ONLY === '1');
+}
+function selectCourseRepository(): CourseRepository {
+  if (getServicesMode() === 'isolated') return new InMemoryCourseRepository();
+  if (apiConfig.COURSE_STORE === 'mongodb') return hasMongoConfig() ? new MongoCourseRepository() : new UnavailableCourseRepository();
   return hasGoogleSheetsConfig() ? new GoogleSheetsCourseRepository() : new InMemoryCourseRepository();
 }
 

@@ -12,7 +12,7 @@ takes the open US-L016 leftover (AC09 keyboard walk).
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Codex | US-P015 code: Mongo course repository, `COURSE_STORE` and `COURSE_STORE_READ_ONLY`, health, doctor, `courses:migrate` | See the [handoff](handoffs/US-P015-courses-in-mongodb-codex.md) | Handed over |
+| Codex | US-P015 code: Mongo course repository, `COURSE_STORE` and `COURSE_STORE_READ_ONLY`, health, doctor, `courses:migrate` | See the [handoff](handoffs/US-P015-courses-in-mongodb-codex.md) | In progress on `main`, base `751af29` (required ancestor verified). Plan: test repository/order/switch/freeze/shared-storage guards and commit; independent guarded course-copy/verify/restore implementation; diagnostics, representative Mongo journeys and final required checks. Preserve Claude's runbook/local-development changes; fake providers only. |
 | Claude Code | US-P015 cutover runbook and docs; US-L016-AC09 keyboard walk (fixes only in `pages/learning-page/`); lead check | `docs/release/US-P015-cutover.md`, `docs/local_development.md`, `docs/specs/US-P015-courses-in-mongodb.md` (except Codex's checklist), `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md`, `app/src/app/pages/learning-page/**` | Started |
 
 **Session 2026-10-17 (2) — started by Alex with "start US-P014".** Branch: `main`. Base:
