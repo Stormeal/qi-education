@@ -22,6 +22,7 @@ import {
   type AuthenticatedUser,
 } from './auth.js';
 import { AuthUnavailableError, createAuthRepository, type AuthRepository } from './authRepository.js';
+import { accountWriteFreeze, AuthReadOnlyError, DuplicateAccountError } from './authStore.js';
 import { createMailSender, hasMailConfig, type MailSender } from './mailSender.js';
 import { createPasswordResetRepository, type PasswordResetRepository } from './passwordResetRepository.js';
 import { registerPasswordResetRoutes, type PasswordResetOptions } from './passwordResetRoutes.js';
@@ -123,7 +124,7 @@ type AuthenticatedRequest = Request & {
 
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
-  const auth = dependencies.authRepository ?? createAuthRepository();
+  const auth = accountWriteFreeze(dependencies.authRepository ?? createAuthRepository(), apiConfig.USER_STORE_READ_ONLY === '1');
   const signInLimit = new SignInLimit(dependencies.signInAttemptRepository ?? createSignInAttemptRepository(), dependencies.signInLimitOptions);
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
   const mailSender = dependencies.mailSender ?? createMailSender();
@@ -428,7 +429,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
   app.use(withRequestBodyErrors(express.json()));
   app.use((_request, response, next) => {
-    response.setHeader('X-QI-Education-Auth-Storage', hasGoogleSheetsConfig() ? 'google-sheets' : 'memory');
+    response.setHeader('X-QI-Education-Auth-Storage', auth.storageType ?? 'memory');
     response.setHeader('X-QI-Education-Content-Storage', courseContent.storageType);
     response.setHeader('X-QI-Education-Asset-Storage', courseAssets.storageType);
     next();
@@ -440,6 +441,19 @@ export function createServer(dependencies: ServerDependencies = {}) {
       request.url = request.url.slice('/api'.length);
     }
 
+    next();
+  });
+
+  // Refuse entire account-write workflows before reset-token consumption,
+  // mail delivery, enrollment locks or change-log side effects. The repository
+  // wrapper is the second boundary for writers outside these HTTP workflows.
+  app.use((request, response, next) => {
+    const path = request.path.toLowerCase();
+    const accountWrite = request.method === 'POST' && (
+      ['/auth/signup', '/signup', '/users/me/password', '/auth/password-reset/request', '/auth/password-reset/confirm'].includes(path.replace(/\/$/, '')) ||
+      /^\/users\/me\/courses\/[^/]+\/?$/.test(path) || /^\/admin\/users\/[^/]+\/password-reset\/?$/.test(path)) ||
+      request.method === 'PATCH' && /^\/admin\/users\/[^/]+\/(role|status)\/?$/.test(path);
+    if (auth.readOnly && accountWrite) { response.status(503).json({ message: new AuthReadOnlyError().message }); return; }
     next();
   });
 
@@ -456,7 +470,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       mode: apiConfig.mode,
       auth: {
         configured: Boolean(apiConfig.AUTH_TOKEN_SECRET) && !auth.unavailableReason,
-        storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
+        storage: auth.storageType ?? 'memory',
       },
       mail: { configured: hasMailConfig(), provider: mailSender.provider },
       content: {
@@ -494,7 +508,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       return;
     }
 
-    response.json({ status: 'ok' });
+    response.json({ status: 'ok', store: auth.storageType ?? 'memory', readOnly: auth.readOnly === true });
   });
 
   app.get('/health/content', async (_request, response) => {
@@ -573,7 +587,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
 
-      const input = signupSchema.parse(request.body);
+      // The Mongo uniqueness contract accepts a padded normalized address.
+      // Keep the deployed Sheets/default validation behavior unchanged.
+      const body = auth.storageType === 'mongodb' && typeof request.body?.email === 'string'
+        ? { ...request.body, email: request.body.email.trim().toLowerCase() } : request.body;
+      const input = signupSchema.parse(body);
       await signupWrites.run(input.email, async () => {
         const existingUser = await auth.findByEmail(input.email);
 
@@ -1296,7 +1314,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   };
 
   registerLessonExtrasRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
-    authenticateWithUsers: authenticateRequest(auth, true), courses, content: courseContent, notes: lessonNotes, feedback });
+    authenticateWithUsers: authenticateRequest(auth, auth.storageType === 'google-sheets'),
+    countLearners: (courseId, request) => auth.countEnrolledUsers(courseId, (request as AuthenticatedRequest).users),
+    courses, content: courseContent, notes: lessonNotes, feedback });
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     courses, content: courseContent, progress: learningProgress });
 
@@ -1467,6 +1487,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
       response.status(503).json({ message: error.message });
       return;
     }
+    if (error instanceof AuthReadOnlyError) { response.status(503).json({ message: error.message }); return; }
+    if (error instanceof DuplicateAccountError) { response.status(409).json({ message: error.message }); return; }
     if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.code ? { code: error.code } : {}), ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {
       response.status(409).json({ message: error.message });

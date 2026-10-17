@@ -198,7 +198,13 @@ Feature: Accounts stored in MongoDB
 
 ## Implementation checklist
 
-To be written when the story is selected (handoff split per the start routine).
+- [ ] AC01–AC04 Mongo repository contract, uncached account reads, unique normalized email, atomic field writes and enrolled count query; two-instance regression tests
+- [ ] AC07 store selection defaults to Sheets; isolated memory and unavailable hosted-store behavior; strict setting validation
+- [ ] AC09 repository write freeze and every account-write HTTP route, including token/mail side effects; reads and sign-in remain available
+- [ ] AC05–AC06, AC10–AC12 guarded migration dry-run/apply/two-way verify/restore, validation before writes, safe output and fake-provider tests
+- [ ] AC08 exact health responses and doctor store/configuration checks
+- [ ] Architecture and permitted investigation notes updated; handoff Outcome and queue delivery evidence
+- [ ] Required API tests, API build, journey checks and app tests pass; remaining hosted cutover checks recorded
 
 ## Verification and delivery
 

@@ -28,6 +28,8 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default(defaultCorsOrigin),
   AUTH_TOKEN_SECRET: z.string().min(16).optional(),
   SESSION_SECRET: z.string().min(16).optional(),
+  USER_STORE: z.enum(['google-sheets', 'mongodb']).default('google-sheets'),
+  USER_STORE_READ_ONLY: z.enum(['0', '1']).default('0'),
   MONGODB_URI: z.string().min(1).optional(),
   MONGODB_DB_NAME: z.string().min(1).optional(),
   MONGODB_COURSE_CONTENT_COLLECTION: z.string().min(1).optional(),

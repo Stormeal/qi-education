@@ -50,6 +50,10 @@ function servicesMode(env) {
 
 function checkEnv(env) {
   pass(`Stores: ${mode}`);
+  if (!['google-sheets', 'mongodb'].includes(selectedUserStore)) fail('USER_STORE must be google-sheets or mongodb.');
+  if (!['0', '1'].includes(env.get('USER_STORE_READ_ONLY') ?? '0')) fail('USER_STORE_READ_ONLY must be 0 or 1.');
+  pass(`User store: ${userStore}`);
+  pass(`Account writes: ${readOnly ? 'read-only' : 'enabled'}`);
   if (!existsSync(envPath)) {
     if (mode === 'isolated') warn('api/.env is missing; isolated local defaults will be used.');
     else if (allowDemo) warn('api/.env is missing; --allow-demo permits demo auth checks.');
@@ -73,6 +77,9 @@ function checkEnv(env) {
 
   if (mode === 'isolated') {
     pass('Shared service settings are ignored; stores use local memory and video/issues are disabled.');
+  } else if (selectedUserStore === 'mongodb') {
+    if (hasAllValues(env, ['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'])) pass('MongoDB user storage is configured.');
+    else fail('MongoDB user storage is incomplete. Set MONGODB_URI, MONGODB_DB_NAME, and MONGODB_COURSE_CONTENT_COLLECTION.');
   } else if (googleSheetsConfigured) {
     pass('Google Sheets auth storage is configured.');
   } else if (allowDemo) {
@@ -108,7 +115,7 @@ function checkEnv(env) {
     fail('MongoDB asset storage is partially configured. Set all asset MongoDB variables or none.');
   } else if (hasAllValues(env, mongoAssetKeys)) {
     pass('MongoDB asset storage is configured.');
-  } else if (hasAnyValue(env, mongoContentKeys)) {
+  } else if (hasAnyValue(env, mongoContentKeys) && selectedUserStore !== 'mongodb') {
     fail(
       'MongoDB asset storage is missing. Set MONGODB_COURSE_ASSET_COLLECTION or thumbnail uploads will only persist in memory.',
     );
@@ -148,13 +155,16 @@ async function checkServer(env) {
 
   const authStorage = configResponse.body?.auth?.storage;
 
-  if (authStorage === 'google-sheets') {
+  if (authStorage === 'mongodb') {
+    pass('Local API is using MongoDB users.');
+  } else if (authStorage === 'google-sheets') {
     pass('Local API is using Google Sheets users.');
   } else if (mode === 'isolated' || allowDemo) {
     warn('Local API is using in-memory demo users.');
   } else {
     fail('Local API is using in-memory demo users, so shared/prod accounts will not work locally.');
   }
+  if (authStorage !== userStore && !(allowDemo && authStorage === 'memory')) fail('Running API user store differs from USER_STORE; restart it with the intended settings.');
 
   if (configResponse.body?.auth?.configured) {
     pass('Local API auth is available.');
@@ -198,6 +208,8 @@ async function checkServer(env) {
 
     if (authResponse.status === 200 && authResponse.body?.status === 'ok') {
       pass('Local API /health/auth is ready.');
+      if (authResponse.body.store !== authStorage) fail('/health/auth store differs from /health/config auth.storage.');
+      if (authResponse.body.readOnly !== readOnly) fail('Running API readOnly differs from USER_STORE_READ_ONLY; restart it with the intended settings.');
     } else {
       fail(`Local API /health/auth returned HTTP ${authResponse.status}.`);
     }
@@ -247,6 +259,9 @@ function printResults() {
 const env = process.env.NODE_ENV === 'test' ? new Map() : parseEnvFile(envPath);
 for (const [key, value] of Object.entries(process.env)) if (value !== undefined) env.set(key, value);
 const mode = servicesMode(env);
+const selectedUserStore = env.get('USER_STORE') ?? 'google-sheets';
+const userStore = mode === 'isolated' ? 'memory' : selectedUserStore;
+const readOnly = env.get('USER_STORE_READ_ONLY') === '1';
 
 checkEnv(env);
 await checkServer(env);

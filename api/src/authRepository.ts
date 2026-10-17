@@ -1,7 +1,11 @@
 import { protectCourseWrite } from './courseMutationLock.js';
 import { InFlightRead } from './inFlightRead.js';
 import { randomUUID } from 'node:crypto';
-import { apiConfig, hasGoogleSheetsConfig, isHostedApi } from './config.js';
+import { apiConfig, getServicesMode, hasGoogleSheetsConfig, hasMongoConfig, isHostedApi } from './config.js';
+import { MongoAuthRepository } from './mongoAuthRepository.js';
+import { accountWriteFreeze, DuplicateAccountError, type AuthStorageType } from './authStore.js';
+export { MongoAuthRepository } from './mongoAuthRepository.js';
+export { DuplicateAccountError, AuthReadOnlyError, ReadOnlyAuthRepository } from './authStore.js';
 import {
   type AuthUser,
   type UserRole,
@@ -16,10 +20,13 @@ import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 export type AuthAccessMutation = { user: AuthUser; previous: AuthUser | null };
 
 export interface AuthRepository {
+  readonly storageType?: AuthStorageType;
+  readonly readOnly?: boolean;
   readonly unavailableReason?: string;
   findByEmail(email: string, options?: { fresh?: boolean }): Promise<AuthUser | null>;
   findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null>;
   listUsers(options?: { fresh?: boolean }): Promise<AuthUser[]>;
+  countEnrolledUsers(courseId: string, users?: AuthUser[]): Promise<number>;
   updateRole(userId: string, role: UserRole): Promise<AuthUser | null>;
   updateStatus(userId: string, status: UserStatus): Promise<AuthUser | null>;
   updateRoleWithChange(userId: string, role: UserRole): Promise<AuthAccessMutation | null>;
@@ -30,6 +37,7 @@ export interface AuthRepository {
 }
 
 export class GoogleSheetsAuthRepository implements AuthRepository {
+  readonly storageType = 'google-sheets';
   private readonly usersRead = new InFlightRead<AuthUser[]>();
   private async write<T>(operation: () => Promise<T>): Promise<T> {
     this.usersRead.invalidate();
@@ -168,6 +176,9 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
   async listUsers(options?: { fresh?: boolean }): Promise<AuthUser[]> {
     return options?.fresh ? this.usersRead.runFresh(this.loadUsers) : this.usersRead.run(this.loadUsers);
   }
+  async countEnrolledUsers(courseId: string, users?: AuthUser[]): Promise<number> {
+    return (users ?? await this.listUsers()).filter(user => user.enrolledCourseIds.includes(courseId)).length;
+  }
 
   private readonly loadUsers = async (): Promise<AuthUser[]> => {
     {
@@ -185,6 +196,7 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
 }
 
 export class InMemoryAuthRepository implements AuthRepository {
+  readonly storageType = 'memory';
   private readonly users: AuthUser[] = [
     createDemoUser('student', 'student@qi-education.local', 'Student Demo'),
     createDemoUser('teacher', 'teacher@qi-education.local', 'Teacher Demo'),
@@ -192,7 +204,7 @@ export class InMemoryAuthRepository implements AuthRepository {
   ];
 
   async findByEmail(email: string): Promise<AuthUser | null> {
-    return this.users.find((user) => user.email === email) ?? null;
+    return this.users.find((user) => user.email === email.trim().toLowerCase()) ?? null;
   }
 
   async findById(id: string): Promise<AuthUser | null> {
@@ -200,6 +212,7 @@ export class InMemoryAuthRepository implements AuthRepository {
   }
 
   async listUsers(): Promise<AuthUser[]> { return [...this.users]; }
+  async countEnrolledUsers(courseId: string): Promise<number> { return this.users.filter(user => user.enrolledCourseIds.includes(courseId)).length; }
 
   async updateRole(userId: string, role: UserRole): Promise<AuthUser | null> {
     return (await this.updateRoleWithChange(userId, role))?.user ?? null;
@@ -225,6 +238,9 @@ export class InMemoryAuthRepository implements AuthRepository {
   }
 
   async createUser(user: AuthUser): Promise<AuthUser> {
+    const email = user.email.trim().toLowerCase();
+    if (this.users.some(existing => existing.email === email)) throw new DuplicateAccountError();
+    user = { ...user, email };
     this.users.push(user);
     return user;
   }
@@ -257,6 +273,11 @@ export class InMemoryAuthRepository implements AuthRepository {
 }
 
 export function createAuthRepository(): AuthRepository {
+  return accountWriteFreeze(selectAuthRepository(), apiConfig.USER_STORE_READ_ONLY === '1');
+}
+function selectAuthRepository(): AuthRepository {
+  if (getServicesMode() === 'isolated') return new InMemoryAuthRepository();
+  if (apiConfig.USER_STORE === 'mongodb') return hasMongoConfig() ? new MongoAuthRepository() : new UnavailableAuthRepository('mongodb');
   if (hasGoogleSheetsConfig()) return new GoogleSheetsAuthRepository();
   if (isHostedApi()) return new UnavailableAuthRepository();
   return new InMemoryAuthRepository();
@@ -271,10 +292,12 @@ export class AuthUnavailableError extends Error {
 // No seeded users and no writes when the production store is missing. Keep the
 // server running so existing health routes can explain the unavailable state.
 class UnavailableAuthRepository implements AuthRepository {
+  constructor(readonly storageType: AuthStorageType = 'memory') {}
   readonly unavailableReason = new AuthUnavailableError().message;
   async findByEmail(_email: string): Promise<AuthUser | null> { return null; }
   async findById(_id: string): Promise<AuthUser | null> { return null; }
   async listUsers(): Promise<AuthUser[]> { throw new AuthUnavailableError(); }
+  async countEnrolledUsers(_courseId: string): Promise<number> { throw new AuthUnavailableError(); }
   async updateRole(_userId: string, _role: UserRole): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async updateStatus(_userId: string, _status: UserStatus): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async updateRoleWithChange(_userId: string, _role: UserRole): Promise<AuthAccessMutation | null> { throw new AuthUnavailableError(); }

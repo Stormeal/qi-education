@@ -1,5 +1,5 @@
 import type { Express, NextFunction, Request, RequestHandler, Response } from 'express';
-import type { AuthenticatedUser, AuthUser } from './auth.js';
+import type { AuthenticatedUser } from './auth.js';
 import { canAuthorCourse, canLearnCourse } from './courseAccess.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { CourseContentRepository } from './courseContentRepository.js';
@@ -16,6 +16,7 @@ class ExtrasError extends Error {
 export function registerLessonExtrasRoutes(app: Express, dependencies: {
   authenticate: RequestHandler;
   authenticateWithUsers: RequestHandler;
+  countLearners: (courseId: string, request: Request) => Promise<number>;
   read: (handler: Handler) => RequestHandler;
   courses: CourseRepository;
   content: CourseContentRepository;
@@ -83,7 +84,6 @@ export function registerLessonExtrasRoutes(app: Express, dependencies: {
     const course = (await courses.listCourses()).find(course => course.id === courseId);
     if (!course) throw new ExtrasError(404, 'Course not found');
     if (course.status !== 'published' && !canAuthorCourse(course, user(request))) throw new ExtrasError(403, 'You do not have access to this course.');
-    const { users } = request as Request & { users: AuthUser[] };
-    response.json({ enrolledLearners: users.filter(user => user.enrolledCourseIds.includes(courseId)).length });
+    response.json({ enrolledLearners: await dependencies.countLearners(courseId, request) });
   }));
 }
