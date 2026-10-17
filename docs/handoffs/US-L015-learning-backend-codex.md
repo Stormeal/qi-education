@@ -16,7 +16,9 @@ US-L015-AC01 to AC08:
    returning them.
 3. Learner count: one route, counted from the users read the request already makes.
 4. The `exercise` lesson type in `api/src/courseContent.ts` and everywhere the content
-   types are listed (review/publish checks, outline, learning progress, fixtures).
+   types are listed (review/publish checks, outline, learning progress, fixtures), including the
+   attachment upload route (`server.ts` ~348), which must accept exercise lessons with the
+   resources file rules.
 5. `app/src/app/services/lesson-extras.service.ts` with its spec: a thin data service
    over the routes above, using `ApiClientService` like the existing services.
 

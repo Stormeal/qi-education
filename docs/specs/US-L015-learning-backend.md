@@ -90,6 +90,9 @@ of accounts whose enrolled courses include this course.
 The content schema accepts a fifth component type with only the base fields:
 `{ ...base fields, type: 'exercise' }`. The instructions live in the base `content` field.
 
+- The attachment upload route accepts exercise lessons with the same file rules as
+  resources lessons (ZIP, PDF, Word, PowerPoint, images), since exercises ship starter
+  files.
 - Saving, review, publishing, learning progress (completing an exercise lesson id) and
   the outline accept exercise lessons like text lessons.
 
