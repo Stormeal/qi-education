@@ -3,7 +3,9 @@
 ## Record
 
 - Story: US-L016 ([backlog](../user_stories.md#us-l016--learn-in-a-page-built-for-working-through-a-course))
-- State: In progress (selected by Alex 2026-10-17 after the first teacher session)
+- State: Implemented locally, waiting for US-L015 (selected by Alex 2026-10-17 after the first teacher session).
+  The app builds and its tests pass once Codex's `lesson-extras.service.ts` lands; until then they were run in an
+  isolated copy against a stub of the contract.
 - Owner: Claude Code (frontend pages, UI components, `AppStateService`, `app.models.ts`).
   Builds on the US-L015 contract (Codex, in parallel).
 - Part 3 of 3 of the learning view redesign. Layout: the approved
@@ -13,9 +15,14 @@
     details view only. The URL does not change.
   - A video is complete at 90% watched, counted from the player's position (seeking to
     the end counts too; there is no anti-skip check).
-  - "Up next" shows after any lesson completes while a next lesson exists; it starts the
-    next lesson after 5 seconds unless the learner presses "Stay here" or Escape.
+  - "Up next" shows when a video ends, or when a lesson is completed with its button, its
+    exercise check or a passed quiz, while a next lesson exists. Reaching 90% of a video
+    marks it complete without interrupting it. The next lesson starts after 5 seconds
+    unless the learner presses "Stay here" or Escape.
   - The sidebar can be hidden for a wider player; this is not remembered between visits.
+  - Exercise steps are plain text in the builder's description field (a line starting with
+    `-` becomes a list item), not the rich text editor, so the exercise reuses the
+    resources lesson's editor with a link field added.
   - Course facts: length, lessons, level, enrolled learners, last updated, and caption
     languages when any video has ready captions. No rating.
   - "Report a problem" categories: Video does not play, Mistake in the content, Hard to
@@ -88,16 +95,29 @@ Feature: Learning page
 
 ## Checklist
 
-- [ ] Learning page component, route switch, details page cleaned of the learning branch
-- [ ] AC01 sidebar progress and per-section progress
-- [ ] AC02 Previous / Next
-- [ ] AC03 90% video completion
-- [ ] AC04 Up next countdown
-- [ ] AC05 notes (uses `LessonExtrasService` from US-L015)
-- [ ] AC06 lesson feedback
-- [ ] AC07 lesson files, tabs, course facts with learner count
-- [ ] AC08 exercise type in models, builder and learning page
-- [ ] AC09 keyboard walk and 400px check
-- [ ] Admin feedback list shows lesson tags
-- [ ] App tests, Pages build, browser check on 3001/4200, screenshots in
-      `docs/verification/2026-10-17/US-L016/`
+- [x] Learning page component (`pages/learning-page/`), route switch, details page cleaned of the learning branch
+- [x] AC01 sidebar progress and per-section progress
+- [x] AC02 Previous / Next
+- [x] AC03 90% video completion (unit test; no Mux video in the isolated stores)
+- [x] AC04 Up next countdown
+- [x] AC05 notes (uses `LessonExtrasService` from US-L015; unit tests against the contract)
+- [x] AC06 lesson feedback (unit tests against the contract)
+- [x] AC07 lesson files, tabs, course facts with learner count
+- [x] AC08 exercise type in models, builder, details page and learning page
+- [ ] AC09 keyboard walk (400px checked: no sideways scroll, curriculum stacks under the lesson)
+- [x] Admin feedback list shows lesson tags
+- [ ] Browser check against Codex's API: notes, lesson feedback, learner count, an exercise saved and completed
+
+## Verification (2026-10-17, Claude Code)
+
+- App tests 330 passed, UI guards 23/23, colour baseline check and development build pass, run in an
+  isolated copy of `main` with my changes and a stub of the US-L015 service contract.
+- Browser on 3001/4200 with in-memory stores (the frontend served from that copy): progress
+  header and section rings, resume at the first unfinished lesson, Previous/Next, Mark complete
+  then up next and the 5-second advance, resources files, problem form, quiz scoring and
+  completion, 400px. Screenshots in `docs/verification/2026-10-17/US-L016/`.
+- Fixed during the check: lesson text lists and headings were unstyled (scoped styles do not
+  reach `innerHTML`; the old view had the same gap), and the up-next buttons were restyled for
+  the dark panel.
+- Not verified: notes, lesson feedback, learner count and exercises against the real API
+  (US-L015 not delivered yet); a real Mux video; a keyboard-only walk.

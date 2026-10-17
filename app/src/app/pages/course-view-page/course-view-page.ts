@@ -1,11 +1,8 @@
-import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
-import { DatePipe } from '@angular/common';
-import { DOCUMENT } from '@angular/common';
+import { DatePipe, DOCUMENT } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { inertHtml } from '../../utils/inert-html';
 import { plural } from '../../utils/plural';
+import { formatDuration, formatFileSize, lessonTypeLabel, renderLessonMarkdown } from '../../utils/lesson-content';
 import {
-  CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -14,64 +11,51 @@ import {
   input,
   output,
   signal,
-  untracked,
 } from '@angular/core';
 import {
   lucideBanknote,
-  lucideCheck,
-  lucideCircle,
-  lucideCircleCheck,
   lucideChevronDown,
   lucideChevronRight,
   lucideCircleHelp,
   lucideFileText,
+  lucidePackage,
   lucidePencil,
   lucideSlidersHorizontal,
   lucideVideo,
+  lucideWrench,
   lucideX,
 } from '@ng-icons/lucide';
-import '@mux/mux-player';
 import {
   COURSE_CATEGORIES,
   COURSE_LANGUAGES,
   CourseCategory,
-  CourseComponent,
   CourseComponentAttachment,
+  CourseComponentType,
   CourseCatalogMetadataDraft,
   CourseContentDocument,
   CourseLanguage,
   CourseListItem,
   FeedbackOption,
-  QuizQuestion,
-  QuizAssessmentResult,
   StudentSummary,
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
-import { ApiClientService } from '../../services/api-client.service';
-import { LearningProgressService } from '../../services/learning-progress.service';
 import { Button } from '../../ui/button/button';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
-import { ProgressBar } from '../../ui/progress-bar/progress-bar';
-
-type CourseViewMode = 'details' | 'learning';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader, ProgressBar],
+  imports: [Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class CourseViewPage {
-  private readonly apiClient = inject(ApiClientService);
   private readonly courseService = inject(CourseService);
   private readonly instructorProfiles = inject(InstructorProfileService);
-  private readonly learningProgress = inject(LearningProgressService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly document = inject(DOCUMENT);
 
@@ -84,9 +68,9 @@ export class CourseViewPage {
   protected readonly videoIcon = this.asSafeIcon(lucideVideo);
   protected readonly quizIcon = this.asSafeIcon(lucideCircleHelp);
   protected readonly textIcon = this.asSafeIcon(lucideFileText);
-  protected readonly checkIcon = this.asSafeIcon(lucideCheck);
-  protected readonly incompleteIcon = this.asSafeIcon(lucideCircle);
-  protected readonly completedIcon = this.asSafeIcon(lucideCircleCheck);
+  protected readonly resourcesIcon = this.asSafeIcon(lucidePackage);
+  protected readonly exerciseIcon = this.asSafeIcon(lucideWrench);
+  protected readonly formatFileSize = formatFileSize;
 
   protected readonly priceDraft = signal('');
   protected readonly priceDraftError = signal('');
@@ -106,71 +90,10 @@ export class CourseViewPage {
   protected readonly pendingEnrollment = signal(false);
   protected readonly expandedSectionIds = signal<string[]>([]);
   protected readonly expandedComponentIds = signal<string[]>([]);
-  protected readonly activeComponentId = signal('');
-  protected readonly completedComponentIds = computed(() =>
-    this.learningProgress.completedIds(this.userEmail(), this.courseContent()?._id ?? ''));
-  protected readonly progressSyncNotice = computed(() => this.learningProgress.accountSyncState() === 'pending' ? PROGRESS_SYNC_NOTICE : '');
-  protected readonly courseProgress = computed(() => {
-    const content = this.courseContent();
-    return content ? this.learningProgress.forContent(this.userEmail(), content) : null;
-  });
-  protected readonly quizSelectedAnswerIds = signal<Record<string, string[]>>({});
-  protected readonly submittedQuizQuestionIds = signal<string[]>([]);
-  protected readonly quizSubmitted = signal(false);
-  protected readonly quizScoring = signal(false);
-  protected readonly quizError = signal('');
-  private readonly quizResult = signal<QuizAssessmentResult | null>(null);
-  private quizAttemptGeneration = 0;
-  protected readonly activeQuizQuestionIndex = signal(0);
   protected readonly allSectionsExpanded = computed(() => {
     const content = this.courseContent();
     return !!content && content.sections.length > 0 && this.expandedSectionIds().length === content.sections.length;
   });
-  protected readonly orderedComponents = computed(() =>
-    this.courseContent()?.sections.flatMap((section) => section.components) ?? [],
-  );
-  protected readonly activeComponent = computed(() => {
-    const components = this.orderedComponents();
-    const activeId = this.activeComponentId();
-
-    return components.find((component) => component.id === activeId) ?? components[0] ?? null;
-  });
-  protected readonly activeComponentIndex = computed(() => {
-    const activeId = this.activeComponent()?.id;
-
-    return activeId ? this.orderedComponents().findIndex((component) => component.id === activeId) : -1;
-  });
-  protected readonly activeQuizQuestions = computed(() => {
-    const component = this.activeComponent();
-
-    return component?.type === 'quiz' ? component.quiz.questions : [];
-  });
-  protected readonly activeQuizQuestion = computed(
-    () => this.activeQuizQuestions()[this.activeQuizQuestionIndex()] ?? null,
-  );
-  protected readonly activeQuizQuestionNumber = computed(() =>
-    this.activeQuizQuestions().length > 0 ? this.activeQuizQuestionIndex() + 1 : 0,
-  );
-  protected readonly activeQuizPositionPercent = computed(() => {
-    const totalQuestions = this.activeQuizQuestions().length;
-
-    return totalQuestions > 0
-      ? Math.round((this.activeQuizQuestionNumber() / totalQuestions) * 100)
-      : 0;
-  });
-  protected readonly isLastActiveQuizQuestion = computed(
-    () => this.activeQuizQuestionIndex() >= this.activeQuizQuestions().length - 1,
-  );
-  protected readonly activeQuizScore = computed(() => this.quizResult()?.score ?? 0);
-  // Every question counts 1.
-  protected readonly activeQuizTotalPoints = computed(() => this.activeQuizQuestions().length);
-  protected readonly activeQuizPassed = computed(() => {
-    return this.quizResult()?.passed ?? false;
-  });
-  protected readonly canSubmitActiveQuiz = computed(
-    () => this.activeQuizQuestions().length > 0,
-  );
-
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();
@@ -180,7 +103,6 @@ export class CourseViewPage {
   readonly canAccessAdmin = input.required<boolean>();
   readonly canEditCourse = input.required<boolean>();
   readonly course = input.required<CourseListItem | null>();
-  protected readonly quizImageUrls = this.courseService.quizImageUrls;
   protected readonly instructorDescription = computed(() => this.instructorProfiles.descriptionFor([this.course()?.id ?? '']));
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();
@@ -193,7 +115,6 @@ export class CourseViewPage {
   readonly catalogSaving = input.required<boolean>();
   readonly catalogSaveNotice = input.required<string>();
   readonly catalogSaveNoticeError = input.required<boolean>();
-  readonly viewMode = input.required<CourseViewMode>();
   readonly isEnrolled = input.required<boolean>();
   readonly enrollmentSubmitting = input.required<boolean>();
   readonly enrollmentError = input.required<string>();
@@ -225,22 +146,17 @@ export class CourseViewPage {
 
   constructor() {
     void this.instructorProfiles.loadPublic();
-    effect(() => this.courseService.loadQuizImages(this.courseContent(), this.authToken()));
     effect(() => {
       const content = this.courseContent();
 
       if (!content || content.sections.length === 0) {
         this.expandedSectionIds.set([]);
         this.expandedComponentIds.set([]);
-        this.activeComponentId.set('');
-        this.resetQuizAttempt();
         return;
       }
 
       this.expandedSectionIds.set([content.sections[0].id]);
       this.expandedComponentIds.set([]);
-      this.activeComponentId.set(untracked(() => this.initialActiveComponentId(content)));
-      this.resetQuizAttempt();
     });
 
     effect(() => {
@@ -469,183 +385,25 @@ export class CourseViewPage {
     );
   }
 
-  protected selectLearningComponent(componentId: string): void {
-    if (this.activeComponentId() === componentId) {
-      return;
-    }
 
-    this.activeComponentId.set(componentId);
-    this.resetQuizAttempt();
-  }
 
-  protected completeActiveComponent(): void {
-    const component = this.activeComponent();
 
-    if (!component) {
-      return;
-    }
 
-    this.markComponentCompleted(component.id);
-    this.goToNextComponent();
-  }
 
-  protected isComponentCompleted(componentId: string): boolean {
-    return this.completedComponentIds().includes(componentId);
-  }
 
-  protected isActiveComponent(componentId: string): boolean {
-    return this.activeComponent()?.id === componentId;
-  }
 
-  protected muxPlaybackId(component: CourseComponent | null): string {
-    return component?.type === 'video' && component.mux?.status === 'ready'
-      ? component.mux.playbackId
-      : '';
-  }
 
-  protected videoStatusText(component: CourseComponent | null): string {
-    if (component?.type !== 'video' || !component.mux) {
-      return 'Course material is being prepared. Use the course content panel to review the available outline.';
-    }
 
-    switch (component.mux.status) {
-      case 'waiting':
-      case 'uploading':
-        return 'The video upload is still in progress.';
-      case 'processing':
-        return 'Mux is processing this video. It will appear here when it is ready.';
-      case 'errored':
-        return component.mux.errorMessage || 'This video could not be processed.';
-      default:
-        return component.content || 'Video lesson ready.';
-    }
-  }
 
-  // One correct answer: choosing replaces the choice. Several: each answer is ticked on or off.
-  protected selectQuizAnswer(question: QuizQuestion, answerId: string, checked: boolean): void {
-    if (this.quizSubmitted() || this.quizScoring() || this.isQuizQuestionSubmitted(question.id)) {
-      return;
-    }
 
-    this.quizSelectedAnswerIds.update((selected) => {
-      const current = selected[question.id] ?? [];
-      const next = !question.multiple ? [answerId] : checked ? [...current, answerId] : current.filter((id) => id !== answerId);
-      return { ...selected, [question.id]: [...new Set(next)] };
-    });
-  }
 
-  protected selectedQuizAnswerIds(questionId: string): string[] {
-    return this.quizSelectedAnswerIds()[questionId] ?? [];
-  }
 
-  protected activeQuizPassNeeded(passPoints: number): number {
-    return Math.max(1, Math.min(passPoints, this.activeQuizTotalPoints()));
-  }
 
-  protected activeQuizQuestionAnswered(): boolean {
-    const question = this.activeQuizQuestion();
 
-    return question ? this.selectedQuizAnswerIds(question.id).length > 0 : false;
-  }
 
-  protected activeQuizQuestionSubmitted(): boolean {
-    const question = this.activeQuizQuestion();
 
-    return question ? this.isQuizQuestionSubmitted(question.id) : false;
-  }
 
-  protected async submitActiveQuizAnswer(): Promise<void> {
-    const question = this.activeQuizQuestion();
 
-    if (!question || this.quizScoring() || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) {
-      return;
-    }
-
-    const submitted = [...this.submittedQuizQuestionIds(), question.id];
-    if (await this.scoreActiveQuiz(submitted)) this.submittedQuizQuestionIds.set(submitted);
-  }
-
-  protected goToNextQuizQuestion(): void {
-    if (this.quizSubmitted() || this.quizScoring()) {
-      return;
-    }
-
-    if (this.isLastActiveQuizQuestion()) {
-      this.finishActiveQuiz();
-      return;
-    }
-
-    this.activeQuizQuestionIndex.update((index) => index + 1);
-  }
-
-  protected skipActiveQuizQuestion(): void {
-    if (this.quizSubmitted() || this.quizScoring()) {
-      return;
-    }
-
-    this.goToNextQuizQuestion();
-  }
-
-  protected async finishActiveQuiz(): Promise<void> {
-    if (!this.canSubmitActiveQuiz() || this.quizScoring()) {
-      return;
-    }
-
-    if (!await this.scoreActiveQuiz(this.submittedQuizQuestionIds())) return;
-    this.quizSubmitted.set(true);
-
-    if (this.activeQuizPassed()) {
-      this.completeActiveComponent();
-    }
-  }
-
-  protected retryActiveQuiz(): void {
-    this.resetQuizAttempt();
-  }
-
-  private quizFeedback(questionId: string) {
-    return this.isQuizQuestionSubmitted(questionId) ? this.quizResult()?.feedback.find((item) => item.questionId === questionId) ?? null : null;
-  }
-
-  // The API says only whether the whole question was right. With several correct answers a wrong
-  // result does not say which tick was wrong, so single answers are not marked incorrect there.
-  protected answerState(question: QuizQuestion, answerId: string): 'correct' | 'incorrect' | '' {
-    const feedback = this.quizFeedback(question.id);
-    if (!feedback || !this.selectedQuizAnswerIds(question.id).includes(answerId)) return '';
-    return feedback.correct ? 'correct' : question.multiple ? '' : 'incorrect';
-  }
-
-  protected questionResult(question: QuizQuestion): { correct: boolean; text: string; explanation: string } | null {
-    const feedback = this.quizFeedback(question.id);
-    if (!feedback) return null;
-    return {
-      correct: feedback.correct,
-      text: feedback.correct ? 'Correct.' : question.multiple ? 'Not correct. Every correct answer must be ticked, and nothing else.' : 'Not correct.',
-      explanation: feedback.explanation || feedback.description || '',
-    };
-  }
-
-  private async scoreActiveQuiz(questionIds: string[]): Promise<boolean> {
-    const content = this.courseContent();
-    const component = this.activeComponent();
-    const section = content?.sections.find((item) => item.components.some((item) => item.id === component?.id));
-    if (!content || component?.type !== 'quiz' || !section) return false;
-    const generation = this.quizAttemptGeneration;
-    this.quizScoring.set(true);
-    this.quizError.set('');
-    try {
-      const answers = questionIds.map((questionId) => ({ questionId, answerIds: this.selectedQuizAnswerIds(questionId) }));
-      const result = await this.courseService.gradeQuiz(content._id, section.id, component.id, answers, this.authToken());
-      if (generation !== this.quizAttemptGeneration) return false;
-      this.quizResult.set(result);
-      return true;
-    } catch (error) {
-      if (generation === this.quizAttemptGeneration) this.quizError.set(error instanceof Error ? error.message : 'Unable to score this quiz. Please try again.');
-      return false;
-    } finally {
-      if (generation === this.quizAttemptGeneration) this.quizScoring.set(false);
-    }
-  }
 
   protected contentSummary(): string {
     if (this.courseContentLoading()) {
@@ -710,34 +468,27 @@ export class CourseViewPage {
     return this.expandedComponentIds().includes(componentId);
   }
 
-  protected componentTypeLabel(type: string): string {
-    switch (type) {
-      case 'video':
-        return 'Video';
-      case 'quiz':
-        return 'Quiz';
-      case 'resources':
-        return 'Resources';
-      default:
-        return 'Text';
-    }
+  protected componentTypeLabel(type: CourseComponentType): string {
+    return lessonTypeLabel(type);
   }
 
-  protected componentIcon(type: string): SafeHtml {
+  protected componentIcon(type: CourseComponentType): SafeHtml {
     switch (type) {
       case 'video':
         return this.videoIcon;
       case 'quiz':
         return this.quizIcon;
       case 'resources':
-        return this.textIcon;
+        return this.resourcesIcon;
+      case 'exercise':
+        return this.exerciseIcon;
       default:
         return this.textIcon;
     }
   }
 
   protected componentDurationLabel(durationMinutes: number): string {
-    return durationMinutes > 0 ? this.formatDurationShort(durationMinutes) : 'No duration';
+    return durationMinutes > 0 ? formatDuration(durationMinutes) : 'No duration';
   }
 
   protected componentHasDetails(component: CourseContentDocument['sections'][number]['components'][number]): boolean {
@@ -762,90 +513,8 @@ export class CourseViewPage {
     return component.content.trim() || 'No preview text available yet.';
   }
 
-  protected renderMarkdown(markdown: string): string {
-    if (this.looksLikeHtml(markdown)) {
-      // Attachment cards carry editor-only download/remove controls; learners use the list below the lesson.
-      const container = inertHtml(this.document, markdown);
-      container.querySelectorAll('.rich-attachment-actions').forEach((actions) => actions.remove());
-      return container.innerHTML;
-    }
 
-    const lines = markdown.split(/\r?\n/);
-    const html: string[] = [];
-    let listItems: string[] = [];
 
-    const flushList = () => {
-      if (listItems.length > 0) {
-        html.push(`<ul>${listItems.join('')}</ul>`);
-        listItems = [];
-      }
-    };
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      if (!trimmed) {
-        flushList();
-        continue;
-      }
-
-      const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
-      if (heading) {
-        flushList();
-        const level = heading[1].length;
-        html.push(`<h${level}>${this.renderInlineMarkdown(heading[2])}</h${level}>`);
-        continue;
-      }
-
-      const listItem = trimmed.match(/^[-*]\s+(.+)$/);
-      if (listItem) {
-        listItems.push(`<li>${this.renderInlineMarkdown(listItem[1])}</li>`);
-        continue;
-      }
-
-      flushList();
-      html.push(`<p>${this.renderInlineMarkdown(trimmed)}</p>`);
-    }
-
-    flushList();
-    return html.join('');
-  }
-
-  protected async downloadAttachment(courseId: string, attachment: CourseComponentAttachment): Promise<void> {
-    if (!this.authToken()) {
-      return;
-    }
-
-    const response = await this.apiClient.fetch(
-      `/courses/${encodeURIComponent(courseId)}/content/attachments/${encodeURIComponent(attachment.assetId)}`,
-      {
-        method: 'GET',
-        headers: {
-          authorization: `Bearer ${this.authToken()}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      return;
-    }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = attachment.fileName;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  protected formatFileSize(sizeBytes: number): string {
-    if (sizeBytes < 1024 * 1024) {
-      return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
-    }
-
-    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
 
   protected teacherInitials(name: string): string {
     return name
@@ -876,92 +545,29 @@ export class CourseViewPage {
     return this.courseService.thumbnailUrl(course);
   }
 
-  private formatDurationShort(durationMinutes: number): string {
-    if (durationMinutes < 60) {
-      return `${durationMinutes} min`;
-    }
 
-    const hours = Math.floor(durationMinutes / 60);
-    const minutes = durationMinutes % 60;
 
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  }
 
-  private renderInlineMarkdown(value: string): string {
-    return this.escapeHtml(value)
-      .replace(/\[([^\]]+)]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
-      .replace(/\+\+(.+?)\+\+/g, '<u>$1</u>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>');
-  }
-
-  private looksLikeHtml(content: string): boolean {
-    return /<\/?[a-z][\s\S]*>/i.test(content);
-  }
-
-  private escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
 
   protected formatDurationLong(durationMinutes: number): string {
-    if (durationMinutes <= 0) {
-      return '0 min';
-    }
+    return formatDuration(durationMinutes);
+  }
 
-    return this.formatDurationShort(durationMinutes);
+  protected renderMarkdown(markdown: string): string {
+    return renderLessonMarkdown(this.document, markdown);
+  }
+
+  protected downloadAttachment(courseId: string, attachment: CourseComponentAttachment): void {
+    void this.courseService.downloadAttachment(courseId, attachment, this.authToken());
   }
 
   private asSafeIcon(svg: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(svg);
   }
 
-  private markComponentCompleted(componentId: string): void {
-    if (this.isComponentCompleted(componentId)) {
-      return;
-    }
 
-    const content = this.courseContent();
-    if (content) this.learningProgress.complete(this.userEmail(), content, componentId);
-  }
 
-  private goToNextComponent(): void {
-    const components = this.orderedComponents();
-    const currentIndex = this.activeComponentIndex();
-    const nextComponent = currentIndex >= 0 ? components[currentIndex + 1] : null;
 
-    if (!nextComponent) {
-      return;
-    }
 
-    this.activeComponentId.set(nextComponent.id);
-    this.resetQuizAttempt();
-  }
-
-  private resetQuizAttempt(): void {
-    this.quizAttemptGeneration++;
-    this.quizResult.set(null);
-    this.quizScoring.set(false);
-    this.quizError.set('');
-    this.quizSelectedAnswerIds.set({});
-    this.submittedQuizQuestionIds.set([]);
-    this.quizSubmitted.set(false);
-    this.activeQuizQuestionIndex.set(0);
-  }
-
-  private isQuizQuestionSubmitted(questionId: string): boolean {
-    return this.submittedQuizQuestionIds().includes(questionId);
-  }
-
-  private initialActiveComponentId(content: CourseContentDocument): string {
-    const components = content.sections.flatMap((section) => section.components);
-    const completed = this.learningProgress.completedIds(this.userEmail(), content._id);
-
-    return components.find((component) => !completed.includes(component.id))?.id ?? components[0]?.id ?? '';
-  }
 
 }

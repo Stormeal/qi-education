@@ -280,6 +280,13 @@
   line-height: 1.45;
 }
 
+.admin-feedback-lesson {
+  color: var(--color-highlight-ink);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .admin-user-avatar {
   display: grid;
   width: 24px;

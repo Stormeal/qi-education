@@ -28,6 +28,7 @@ import {
   lucideLink,
   lucideList,
   lucidePackage,
+  lucideWrench,
   lucidePlus,
   lucideRedo2,
   lucideTrash2,
@@ -98,6 +99,7 @@ export class CourseBuilder {
   protected readonly italicIcon = this.asSafeIcon(lucideItalic);
   protected readonly linkIcon = this.asSafeIcon(lucideLink);
   protected readonly packageIcon = this.asSafeIcon(lucidePackage);
+  protected readonly exerciseIcon = this.asSafeIcon(lucideWrench);
   protected readonly plusIcon = this.asSafeIcon(lucidePlus);
   protected readonly redoIcon = this.asSafeIcon(lucideRedo2);
   protected readonly downloadIcon = this.asSafeIcon(lucideDownload);
@@ -284,6 +286,12 @@ export class CourseBuilder {
       subtitle: 'Embedded lessons and supporting video resources',
       icon: this.videoIcon,
     },
+    {
+      type: 'exercise',
+      title: 'Exercise',
+      subtitle: 'Hands-on task with steps, starter files and a link',
+      icon: this.exerciseIcon,
+    },
   ];
 
   protected contentSummary(): string {
@@ -305,6 +313,8 @@ export class CourseBuilder {
         return 'Quiz';
       case 'resources':
         return 'Resources';
+      case 'exercise':
+        return 'Exercise';
       default:
         return 'Text';
     }
@@ -318,6 +328,8 @@ export class CourseBuilder {
         return this.circleHelpIcon;
       case 'resources':
         return this.packageIcon;
+      case 'exercise':
+        return this.exerciseIcon;
       default:
         return this.fileTextIcon;
     }
@@ -343,6 +355,10 @@ export class CourseBuilder {
       return 'Resource description';
     }
 
+    if (component.type === 'exercise') {
+      return 'Exercise steps (start a line with - for a list)';
+    }
+
     if (component.type === 'quiz') {
       return 'Quiz notes';
     }
@@ -355,15 +371,15 @@ export class CourseBuilder {
   }
 
   protected hasSupportingUrl(component: CourseComponent): boolean {
-    return component.type === 'video';
+    return component.type === 'video' || component.type === 'exercise';
   }
 
   protected hasAttachmentPanel(component: CourseComponent): boolean {
-    return component.type === 'resources';
+    return component.type === 'resources' || component.type === 'exercise';
   }
 
   protected attachmentAccept(component: CourseComponent): string {
-    return component.type === 'resources'
+    return component.type === 'resources' || component.type === 'exercise'
       ? '.zip,.pdf,.doc,.docx,.ppt,.pptx,image/*'
       : '.pdf,.txt,.doc,.docx,.ppt,.pptx,image/*';
   }
@@ -373,11 +389,11 @@ export class CourseBuilder {
   }
 
   protected attachmentPanelTitle(component: CourseComponent): string {
-    return component.type === 'resources' ? 'Resource files' : 'Files';
+    return component.type === 'resources' ? 'Resource files' : component.type === 'exercise' ? 'Starter files' : 'Files';
   }
 
   protected attachmentPanelDescription(component: CourseComponent): string {
-    return component.type === 'resources'
+    return component.type === 'resources' || component.type === 'exercise'
       ? 'Upload ZIP, PDF, Word and PowerPoint files, and images. Learners can download them directly from the lesson.'
       : 'Upload documents, PDFs, images, and PowerPoint decks.';
   }
@@ -385,7 +401,7 @@ export class CourseBuilder {
   protected attachmentUploadLabel(component: CourseComponent): string {
     return this.attachmentUploadComponentId() === component.id
       ? `Uploading ${this.attachmentUploadProgressValue(component)}%`
-      : component.type === 'resources'
+      : component.type === 'resources' || component.type === 'exercise'
         ? 'Upload resource'
         : 'Upload documentation';
   }

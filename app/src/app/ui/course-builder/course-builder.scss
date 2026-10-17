@@ -180,6 +180,11 @@
   background: #f0f2f5;
 }
 
+.component-icon-exercise {
+  color: var(--color-highlight-ink);
+  background: var(--color-lesson-exercise);
+}
+
 .builder-component-copy {
   flex: 1 1 auto;
   flex-direction: column;

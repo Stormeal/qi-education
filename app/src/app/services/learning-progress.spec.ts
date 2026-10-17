@@ -48,6 +48,8 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
       if (url.pathname.endsWith('/users/me/learning-progress')) return json({ progress: [] });
+      if (url.pathname.endsWith('/notes')) return json({ notes: [] });
+      if (url.pathname.endsWith('/learners/count')) return json({ enrolledLearners: 1 });
       if (url.pathname.includes('/learning-progress/') && url.pathname.includes('/lessons/')) return json({ courseId: 'course', completedIds: [] });
       if (url.pathname.endsWith('/me')) return json(options.empty ? { ...restored, user: { ...restored.user, enrolledCourseIds: [] } } : restored);
       if (url.pathname.endsWith('/courses')) return failCatalog ? json({ message: 'Catalog unavailable' }, 503) : json([course]);
@@ -76,17 +78,21 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     expect(body().querySelector('app-courses-page')).not.toBeNull();
   });
 
-  it('RD-04 presents readable course overview without nonfunctional tabs', async () => {
+  it('RD-04 US-L016-AC07 presents the course overview with working tabs and no Q&A', async () => {
     const { body, button, harness } = await open('/library/course');
-    expect([...body().querySelectorAll('button')].some(item => /^(Q&A|Notes|Overview)$/.test(item.textContent?.trim() ?? ''))).toBe(false);
-    expect(body().querySelector('.learning-overview-body')?.textContent).toContain('Real enrolled course');
+    const tabs = [...body().querySelectorAll('[role=tab]')].map(item => item.textContent?.replace(/\s+/g, ' ').trim());
+    expect(tabs).toEqual(['Overview', 'Notes 0', 'Lesson files 0']);
+    expect(body().querySelector('.overview-panel')?.textContent).toContain('Learn from real lessons.');
+    expect(body().querySelector('.course-facts')?.textContent).not.toMatch(/rating/i);
     button('Mark complete').click(); harness.detectChanges();
+    button('Start now').click(); harness.detectChanges();
     expect(body().textContent).toContain('Question 1 of 1');
   });
 
   it('LP-01 shares explicit lesson completion across workspace, library, Home and resume', async () => {
     const { harness, body, button } = await open('/library/course');
     button('Mark complete').click(); harness.detectChanges();
+    button('Stay here').click(); harness.detectChanges();
     expect(localStorage.getItem(key)).toBe('["text"]');
     await harness.navigateByUrl('/library');
     await vi.waitFor(() => expect(body().querySelector('.library-course-side')?.textContent).toContain('50%'));
@@ -99,7 +105,7 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     (body().querySelector('input[type=radio]') as HTMLInputElement).click();
     button('Submit answer').click(); await harness.fixture.whenStable();
     button('Finish quiz').click(); await harness.fixture.whenStable();
-    expect(body().querySelector('.learning-complete-badge')).not.toBeNull();
+    expect(body().querySelector('.complete-badge')).not.toBeNull();
     await harness.navigateByUrl('/library');
     await vi.waitFor(() => expect(body().querySelector('.library-course-side')?.textContent).toContain('100%'));
     await harness.navigateByUrl('/');
@@ -117,10 +123,11 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
   it('LP-05 describes an untouched quiz as position without claiming completion', async () => {
     const { body, button, harness } = await open('/library/course');
     button('Mark complete').click(); harness.detectChanges();
+    button('Start now').click(); harness.detectChanges();
     expect(body().textContent).toContain('Question 1 of 1');
     expect(body().textContent).not.toContain('100% complete');
     expect(body().querySelector('[role=progressbar]')?.getAttribute('aria-label')).toBe('Question position');
-    expect(body().querySelector('.learning-complete-badge')).toBeNull();
+    expect(body().querySelector('.complete-badge')).toBeNull();
     expect(localStorage.getItem(key)).toBe('["text"]');
   });
 
@@ -165,7 +172,7 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     const { harness, body, button } = await open('/library/course');
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('Storage full', 'QuotaExceededError'); });
     button('Mark complete').click(); harness.detectChanges();
-    expect(body().textContent).toContain('1 of 2 completed');
+    expect(body().textContent).toContain('1 of 2 lessons complete');
     await harness.navigateByUrl('/library');
     await vi.waitFor(() => expect(body().querySelector('.library-course-side')?.textContent).toContain('50%'));
     await harness.navigateByUrl('/');

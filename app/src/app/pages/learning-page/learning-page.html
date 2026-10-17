@@ -1,0 +1,508 @@
+<main class="learning-page">
+  <div class="learning-nav-frame">
+    <app-page-header
+      activeSection="library"
+      aboutHref="#lesson-tabs"
+      otherPagesHref="#learning-curriculum"
+      [displayName]="student().name"
+      [email]="userEmail()"
+      [roleLabel]="userRoleLabel()"
+      [canAccessAdmin]="canAccessAdmin()"
+      (homeClicked)="homeClicked.emit()"
+      (coursesClicked)="coursesClicked.emit()"
+      (libraryClicked)="libraryClicked.emit()"
+      (feedbackOpened)="feedbackOpened.emit()"
+      (loggedOut)="loggedOut.emit()"
+      (adminClicked)="adminClicked.emit()"
+      (careerPathClicked)="careerPathClicked.emit()"
+    />
+  </div>
+
+  @if (coursesLoading()) {
+    <app-loading-skeleton variant="course-detail" />
+  } @else if (coursesError()) {
+    <section class="learning-empty"><p role="alert">{{ coursesError() }}</p></section>
+  } @else if (!course()) {
+    <section class="learning-empty">
+      <p>Course not found.</p>
+      <button appButton="primary" (click)="libraryClicked.emit()">Back to My Learning</button>
+    </section>
+  } @else if (!isEnrolled() && !canEditCourse()) {
+    <section class="learning-empty">
+      <p>This course is not available in My Learning yet.</p>
+      <button appButton="primary" (click)="libraryClicked.emit()">Back to My Learning</button>
+    </section>
+  } @else {
+    @let currentCourse = course()!;
+    @let lesson = activeComponent();
+
+    <div class="course-bar">
+      <nav class="course-bar-crumb" aria-label="Breadcrumb">
+        <button type="button" class="crumb-link" (click)="libraryClicked.emit()">My Learning</button>
+        <span aria-hidden="true">/</span>
+      </nav>
+      <p class="course-bar-title">{{ currentCourse.title }}</p>
+      <button appButton size="sm" class="course-bar-details" (click)="courseDetailsClicked.emit(currentCourse.id)">Course details</button>
+      <button
+        appIconButton
+        [label]="sidebarHidden() ? 'Show course content' : 'Hide course content'"
+        aria-controls="learning-curriculum"
+        [attr.aria-expanded]="!sidebarHidden()"
+        (click)="sidebarHidden.set(!sidebarHidden())"
+      >
+        <span class="icon" aria-hidden="true" [innerHTML]="icons.panel"></span>
+      </button>
+    </div>
+
+    <div class="workspace" [class.is-wide]="sidebarHidden()">
+      <div class="lesson-column">
+        @if (courseContentLoading()) {
+          <app-loading-skeleton variant="course-content" [count]="2" />
+        } @else if (courseContentError()) {
+          <p class="lesson-note" role="alert">{{ courseContentError() }}</p>
+        } @else if (!lesson) {
+          <div class="lesson-head"><h1>{{ currentCourse.title }}</h1></div>
+          <p class="lesson-note">This course doesn't have any course content yet.</p>
+        } @else {
+          <header class="lesson-head">
+            <div class="lesson-head-text">
+              <p class="lesson-position">{{ lessonPosition() }}</p>
+              <h1 id="lesson-title">{{ lesson.title }}</h1>
+            </div>
+            <div class="lesson-stepper">
+              <button appButton size="sm" [disabled]="!previousComponent()" (click)="goToPrevious()">
+                <span class="icon" aria-hidden="true" [innerHTML]="icons.previous"></span>
+                Previous
+              </button>
+              <button appButton size="sm" [disabled]="!nextComponent()" (click)="goToNext()">
+                Next
+                <span class="icon" aria-hidden="true" [innerHTML]="icons.next"></span>
+              </button>
+            </div>
+          </header>
+
+          <section class="lesson-stage" aria-labelledby="lesson-title">
+            @if (lesson.type === 'video' && muxPlaybackId(lesson)) {
+              <div class="video-frame">
+                <mux-player
+                  #player
+                  class="video-player"
+                  [attr.playback-id]="muxPlaybackId(lesson)"
+                  stream-type="on-demand"
+                  [attr.metadata-video-title]="lesson.title"
+                  [attr.metadata-viewer-user-id]="userEmail()"
+                  (timeupdate)="videoTimeUpdated()"
+                  (ended)="videoEnded()"
+                ></mux-player>
+              </div>
+            } @else if (lesson.type === 'video') {
+              <div class="video-frame video-frame-waiting"><p>{{ videoStatusText(lesson) }}</p></div>
+            } @else if (lesson.type === 'quiz') {
+              <div class="quiz-card">
+                <app-progress-bar
+                  [value]="activeQuizPositionPercent()"
+                  label="Question position"
+                  [valueText]="'Question ' + activeQuizQuestionNumber() + ' of ' + activeQuizQuestions().length"
+                />
+                @if (activeQuizQuestion(); as question) {
+                  <div class="quiz-meta">
+                    <span>Question {{ activeQuizQuestionNumber() }} of {{ activeQuizQuestions().length }}</span>
+                    <span>{{ activeQuizPassNeeded(lesson.quiz.passPoints) }} of {{ activeQuizTotalPoints() }} correct to pass</span>
+                    @if (question.multiple) { <span>Select all that apply</span> }
+                  </div>
+                  <h2 class="quiz-question">{{ question.question || 'Question text coming soon.' }}</h2>
+                  @if (question.image; as image) {
+                    @if (quizImageUrls()[image.assetId]; as imageUrl) {
+                      <img class="quiz-image" [src]="imageUrl" [alt]="image.alt" />
+                    }
+                  }
+                  <fieldset class="quiz-answers" [disabled]="activeQuizQuestionSubmitted() || quizSubmitted() || quizScoring()">
+                    <legend class="visually-hidden">{{ question.question || 'Quiz question' }}</legend>
+                    @for (answer of question.answers; track answer.id; let answerIndex = $index) {
+                      <label class="quiz-answer" [class.is-correct]="answerState(question, answer.id) === 'correct'" [class.is-incorrect]="answerState(question, answer.id) === 'incorrect'">
+                        <input
+                          [type]="question.multiple ? 'checkbox' : 'radio'"
+                          [name]="'quiz-' + question.id"
+                          [checked]="selectedQuizAnswerIds(question.id).includes(answer.id)"
+                          (change)="selectQuizAnswer(question, answer.id, $any($event.target).checked)"
+                        />
+                        <span class="quiz-letter" aria-hidden="true">{{ 'ABCDEF'[answerIndex] }}</span>
+                        <span>{{ answer.text || 'Answer option' }}</span>
+                      </label>
+                    }
+                  </fieldset>
+                  @if (questionResult(question); as result) {
+                    <p class="quiz-result" role="status" [class.is-correct]="result.correct">
+                      <strong>{{ result.text }}</strong>
+                      @if (result.explanation) { <span>{{ result.explanation }}</span> }
+                    </p>
+                  }
+                }
+                @if (quizError()) { <p class="form-error" role="alert">{{ quizError() }}</p> }
+                @if (quizScoring()) { <p role="status">Checking your answers…</p> }
+                <footer class="stage-actions">
+                  @if (isCompleted(lesson.id)) {
+                    <span class="complete-badge"><span class="icon" aria-hidden="true" [innerHTML]="icons.check"></span>Completed</span>
+                  }
+                  @if (quizSubmitted()) {
+                    <p class="quiz-score" [class.is-passed]="activeQuizPassed()">Score: {{ activeQuizScore() }} / {{ activeQuizTotalPoints() }}</p>
+                    @if (!activeQuizPassed()) { <button appButton (click)="retryActiveQuiz()">Try again</button> }
+                  } @else if (activeQuizQuestionSubmitted()) {
+                    <button appButton="primary" [disabled]="quizScoring()" (click)="goToNextQuizQuestion()">
+                      {{ isLastActiveQuizQuestion() ? 'Finish quiz' : 'Next question' }}
+                    </button>
+                  } @else {
+                    <button appButton [disabled]="quizScoring()" (click)="goToNextQuizQuestion()">Skip</button>
+                    <button appButton="primary" [disabled]="!activeQuizQuestionAnswered() || quizScoring()" (click)="submitActiveQuizAnswer()">Submit answer</button>
+                  }
+                </footer>
+              </div>
+            } @else if (lesson.type === 'exercise') {
+              <div class="reading-card">
+                <p class="exercise-kicker">
+                  <span class="icon" aria-hidden="true" [innerHTML]="typeIcon('exercise')"></span>
+                  Hands-on exercise{{ lesson.durationMinutes > 0 ? ', about ' + formatDuration(lesson.durationMinutes) : '' }}
+                </p>
+                <div class="lesson-markdown" [innerHTML]="renderMarkdown(lesson.content || 'No steps have been added yet.')"></div>
+                @if (lesson.attachments.length > 0 || lesson.resourceUrl) {
+                  <ul class="file-list" aria-label="Exercise files">
+                    @for (attachment of lesson.attachments; track attachment.assetId) {
+                      <li>
+                        <button type="button" class="file-row" (click)="downloadAttachment(attachment)">
+                          <span class="icon" aria-hidden="true" [innerHTML]="icons.download"></span>
+                          <span class="file-name">{{ attachment.fileName }}</span>
+                          <span class="file-size">{{ formatFileSize(attachment.sizeBytes) }}</span>
+                        </button>
+                      </li>
+                    }
+                    @if (lesson.resourceUrl) {
+                      <li>
+                        <a class="file-row" [href]="lesson.resourceUrl" target="_blank" rel="noreferrer">
+                          <span class="icon" aria-hidden="true" [innerHTML]="icons.link"></span>
+                          <span class="file-name">Open the exercise link</span>
+                          <span class="file-size">External site</span>
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
+                <label class="exercise-check">
+                  <input type="checkbox" [checked]="isCompleted(lesson.id)" [disabled]="isCompleted(lesson.id)" (change)="completeActiveLesson()" />
+                  <span>I've completed this exercise</span>
+                </label>
+              </div>
+            } @else {
+              <div class="reading-card">
+                <div class="lesson-markdown" [innerHTML]="renderMarkdown(lesson.content || (lesson.type === 'resources' ? 'Download the files for this lesson below.' : 'No lesson text has been added yet.'))"></div>
+                @if (lesson.attachments.length > 0) {
+                  <ul class="file-list" aria-label="Lesson files">
+                    @for (attachment of lesson.attachments; track attachment.assetId) {
+                      <li>
+                        <button type="button" class="file-row" (click)="downloadAttachment(attachment)">
+                          <span class="icon" aria-hidden="true" [innerHTML]="icons.download"></span>
+                          <span class="file-name">{{ attachment.fileName }}</span>
+                          <span class="file-size">{{ formatFileSize(attachment.sizeBytes) }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+                <footer class="stage-actions">
+                  @if (isCompleted(lesson.id)) {
+                    <span class="complete-badge"><span class="icon" aria-hidden="true" [innerHTML]="icons.check"></span>Completed</span>
+                  } @else {
+                    <button appButton="primary" (click)="completeActiveLesson()">Mark complete</button>
+                  }
+                </footer>
+              </div>
+            }
+
+            @if (upNextSeconds() !== null && nextComponent(); as next) {
+              <div class="up-next" role="dialog" aria-modal="false" aria-labelledby="up-next-title" aria-describedby="up-next-count">
+                <div class="up-next-box">
+                  <p id="up-next-count" aria-live="polite">Lesson complete. Up next in {{ upNextSeconds() }} {{ upNextSeconds() === 1 ? 'second' : 'seconds' }}</p>
+                  <svg class="countdown" viewBox="0 0 46 46" aria-hidden="true">
+                    <circle cx="23" cy="23" r="20" class="countdown-track" />
+                    <circle cx="23" cy="23" r="20" class="countdown-fill" [attr.stroke-dasharray]="countdownDash()" transform="rotate(-90 23 23)" />
+                    <text x="23" y="28" text-anchor="middle">{{ upNextSeconds() }}</text>
+                  </svg>
+                  <p id="up-next-title" class="up-next-title">{{ next.title }}</p>
+                  <p class="up-next-meta">{{ lessonMeta(next) }}</p>
+                  <div class="up-next-actions">
+                    <button appButton size="sm" class="up-next-stay" (click)="cancelUpNext()">Stay here</button>
+                    <button appButton size="sm" (click)="startNextNow()">Start now</button>
+                  </div>
+                </div>
+              </div>
+            }
+          </section>
+
+          <div class="action-bar" role="group" aria-label="Lesson actions">
+            <button appButton="ghost" size="sm" (click)="startNote()">
+              <span class="icon" aria-hidden="true" [innerHTML]="icons.note"></span>
+              @if (lesson.type === 'video' && muxPlaybackId(lesson)) {
+                Add note at <span class="timestamp">{{ formatVideoTime(videoSeconds()) }}</span>
+              } @else {
+                Add note
+              }
+            </button>
+            <button appButton="ghost" size="sm" (click)="activeTab.set('files')">
+              <span class="icon" aria-hidden="true" [innerHTML]="icons.download"></span>
+              Lesson files <span appChip>{{ lesson.attachments.length }}</span>
+            </button>
+            <span class="action-spacer"></span>
+            @if (isRated(lesson.id)) {
+              <p class="action-thanks" role="status">Thanks for rating this lesson.</p>
+            } @else {
+              <span class="action-label" id="helpful-label">Was this lesson helpful?</span>
+              <button appIconButton label="Yes, this lesson was helpful" (click)="rateLesson('helpful')">
+                <span class="icon" aria-hidden="true" [innerHTML]="icons.up"></span>
+              </button>
+              <button appIconButton label="No, this lesson was not helpful" (click)="rateLesson('not-helpful')">
+                <span class="icon" aria-hidden="true" [innerHTML]="icons.down"></span>
+              </button>
+            }
+            <button appButton="ghost" size="sm" aria-controls="problem-form" [attr.aria-expanded]="isProblemFormOpen()" (click)="toggleProblemForm()">
+              <span class="icon" aria-hidden="true" [innerHTML]="icons.flag"></span>
+              Report a problem
+            </button>
+          </div>
+          @if (ratingError()) { <p class="form-error" role="alert">{{ ratingError() }}</p> }
+          @if (problemSentComponentId() === lesson.id) {
+            <p class="form-success" role="status">Thanks, your report was sent to the course team.</p>
+          }
+          @if (isProblemFormOpen()) {
+            <form id="problem-form" class="problem-form" (submit)="$event.preventDefault(); sendProblem()">
+              <fieldset>
+                <legend>What is the problem with this lesson?</legend>
+                <div class="problem-options">
+                  @for (category of problemCategories; track category.value) {
+                    <label class="problem-option">
+                      <input type="radio" name="problem-category" [value]="category.value" [checked]="problemCategory() === category.value" (change)="problemCategory.set(category.value)" />
+                      <span>{{ category.label }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+              <label class="field">
+                <span>Details (optional)</span>
+                <textarea rows="3" maxlength="2000" [value]="problemMessage()" (input)="problemMessage.set(controlValue($event))"></textarea>
+              </label>
+              @if (problemError()) { <p class="form-error" role="alert">{{ problemError() }}</p> }
+              <div class="form-actions">
+                <button appButton type="button" (click)="toggleProblemForm()">Cancel</button>
+                <button appButton="primary" type="submit" [disabled]="problemSending()">{{ problemSending() ? 'Sending…' : 'Send report' }}</button>
+              </div>
+            </form>
+          }
+
+          <section id="lesson-tabs" class="lesson-tabs" aria-label="Lesson details">
+            <app-tabs groupId="lesson" label="Lesson details" [tabs]="lessonTabs()" [selected]="activeTab()" (selectedChange)="activeTab.set($any($event))" />
+
+            @if (activeTab() === 'overview') {
+              <div class="tab-panel overview-panel" role="tabpanel" [id]="tabPanelId('lesson', 'overview')" [attr.aria-labelledby]="tabId('lesson', 'overview')">
+                <div class="overview-text">
+                  @if (lesson.type === 'video' && lesson.content) {
+                    <div>
+                      <h2>About this lesson</h2>
+                      <div class="lesson-markdown" [innerHTML]="renderMarkdown(lesson.content)"></div>
+                    </div>
+                  }
+                  <div>
+                    <h2>About the course</h2>
+                    <p>{{ currentCourse.description }}</p>
+                  </div>
+                </div>
+                <dl class="course-facts" aria-label="Course facts">
+                  <div><dt>Length</dt><dd>{{ formatDuration(totalMinutes()) }}</dd></div>
+                  <div><dt>Lessons</dt><dd>{{ orderedComponents().length }}</dd></div>
+                  <div><dt>Level</dt><dd>{{ currentCourse.level }}</dd></div>
+                  @if (enrolledLearners() !== null) {
+                    <div><dt>Enrolled</dt><dd>{{ enrolledLearners() }} {{ enrolledLearners() === 1 ? 'learner' : 'learners' }}</dd></div>
+                  }
+                  @if (updatedAt()) {
+                    <div><dt>Updated</dt><dd>{{ updatedAt() | date: 'd MMM yyyy' }}</dd></div>
+                  }
+                  @if (captionLanguages().length > 0) {
+                    <div><dt>Captions</dt><dd>{{ captionLanguages().join(', ') }}</dd></div>
+                  }
+                </dl>
+              </div>
+            } @else if (activeTab() === 'notes') {
+              <div class="tab-panel notes-panel" role="tabpanel" [id]="tabPanelId('lesson', 'notes')" [attr.aria-labelledby]="tabId('lesson', 'notes')">
+                <form class="note-form" (submit)="$event.preventDefault(); saveNote()">
+                  <label class="field">
+                    <span>
+                      @if (lesson.type === 'video' && noteDraftSeconds() !== null) {
+                        Note at {{ formatVideoTime(noteDraftSeconds()!) }}
+                      } @else {
+                        Note for this lesson
+                      }
+                    </span>
+                    <textarea #noteInput rows="3" maxlength="2000" [value]="noteDraft()" (input)="noteDraft.set(controlValue($event))"></textarea>
+                  </label>
+                  <div class="form-actions">
+                    <span class="note-private">Private to you</span>
+                    <button appButton="primary" size="sm" type="submit" [disabled]="!noteDraft().trim() || noteSaving()">Save note</button>
+                  </div>
+                </form>
+                @if (notesError()) { <p class="form-error" role="alert">{{ notesError() }}</p> }
+                @if (sortedNotes().length === 0) {
+                  <p class="empty-note">No notes yet. Notes you write here are only visible to you.</p>
+                } @else {
+                  <ul class="note-list">
+                    @for (note of sortedNotes(); track note.id) {
+                      <li class="note">
+                        <div class="note-meta">
+                          @if (note.videoSeconds !== null) {
+                            <button type="button" class="timestamp-button" [attr.aria-label]="(isNoteOnActiveLesson(note) ? 'Play from ' : 'Open lesson at ') + formatVideoTime(note.videoSeconds)" (click)="openNote(note)">
+                              {{ formatVideoTime(note.videoSeconds) }}
+                            </button>
+                          }
+                          @if (isNoteOnActiveLesson(note)) {
+                            <span>This lesson</span>
+                          } @else {
+                            <button type="button" class="crumb-link" (click)="openNote(note)">{{ noteLessonTitle(note) }}</button>
+                          }
+                        </div>
+                        @if (editingNoteId() === note.id) {
+                          <label class="field">
+                            <span class="visually-hidden">Edit note</span>
+                            <textarea rows="3" maxlength="2000" [value]="editingNoteText()" (input)="editingNoteText.set(controlValue($event))"></textarea>
+                          </label>
+                          <div class="form-actions">
+                            <button appButton size="sm" (click)="cancelNoteEdit()">Cancel</button>
+                            <button appButton="primary" size="sm" [disabled]="!editingNoteText().trim() || noteSaving()" (click)="saveNoteEdit(note)">Save</button>
+                          </div>
+                        } @else {
+                          <p class="note-text">{{ note.text }}</p>
+                          <div class="note-actions">
+                            <button appButton="ghost" size="sm" [disabled]="noteSaving()" (click)="editNote(note)">Edit</button>
+                            <button appButton="ghost" size="sm" [disabled]="noteSaving()" (click)="deleteNote(note)">Delete</button>
+                          </div>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            } @else {
+              <div class="tab-panel" role="tabpanel" [id]="tabPanelId('lesson', 'files')" [attr.aria-labelledby]="tabId('lesson', 'files')">
+                @if (lesson.attachments.length === 0 && !lesson.resourceUrl) {
+                  <p class="empty-note">This lesson has no files.</p>
+                } @else {
+                  <ul class="file-list">
+                    @for (attachment of lesson.attachments; track attachment.assetId) {
+                      <li>
+                        <button type="button" class="file-row" (click)="downloadAttachment(attachment)">
+                          <span class="icon" aria-hidden="true" [innerHTML]="icons.download"></span>
+                          <span class="file-name">{{ attachment.fileName }}</span>
+                          <span class="file-size">{{ formatFileSize(attachment.sizeBytes) }}</span>
+                        </button>
+                      </li>
+                    }
+                    @if (lesson.resourceUrl) {
+                      <li>
+                        <a class="file-row" [href]="lesson.resourceUrl" target="_blank" rel="noreferrer">
+                          <span class="icon" aria-hidden="true" [innerHTML]="icons.link"></span>
+                          <span class="file-name">Open resource</span>
+                          <span class="file-size">External site</span>
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            }
+          </section>
+        }
+      </div>
+
+      <aside id="learning-curriculum" class="curriculum" aria-label="Course content" [hidden]="sidebarHidden()">
+        <div class="curriculum-head">
+          <div class="curriculum-head-row">
+            <h2>Your progress</h2>
+            @if (courseProgress(); as progress) { <span class="curriculum-percent">{{ progress.percent }}%</span> }
+          </div>
+          @if (courseProgress(); as progress) {
+            <app-progress-bar [value]="progress.percent ?? 0" label="Course progress" [valueText]="progress.completed + ' of ' + progress.total + ' lessons complete'" />
+            <p class="curriculum-sub">
+              <span>{{ progress.completed }} of {{ progress.total }} lessons complete</span>
+              @if (minutesLeft() > 0) { <span>{{ formatDuration(minutesLeft()) }} left</span> }
+            </p>
+          }
+          @if (progressSyncNotice()) { <p class="curriculum-sub" role="status">{{ progressSyncNotice() }}</p> }
+        </div>
+
+        @if (courseContentLoading()) {
+          <app-loading-skeleton variant="course-content" [count]="2" />
+        } @else if (courseContent(); as content) {
+          @for (section of content.sections; track section.id) {
+            <section class="curriculum-section">
+              <button type="button" class="section-head" [attr.aria-expanded]="isSectionExpanded(section.id)" (click)="toggleSection(section.id)">
+                <svg class="section-ring" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" class="ring-track" />
+                  <circle cx="12" cy="12" r="9" class="ring-fill" [attr.stroke-dasharray]="ringDash(section)" transform="rotate(-90 12 12)" />
+                </svg>
+                <span class="section-text">
+                  <strong>{{ section.title }}</strong>
+                  <small>{{ sectionCompletedCount(section) }} of {{ section.components.length }} complete{{ sectionMinutes(section) > 0 ? ', ' + formatDuration(sectionMinutes(section)) : '' }}</small>
+                </span>
+                <span class="icon section-chevron" aria-hidden="true" [innerHTML]="isSectionExpanded(section.id) ? icons.chevronDown : icons.chevronRight"></span>
+              </button>
+              @if (isSectionExpanded(section.id)) {
+                <ul class="section-lessons">
+                  @for (component of section.components; track component.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="lesson-item"
+                        [class.is-current]="lesson?.id === component.id"
+                        [class.is-done]="isCompleted(component.id)"
+                        [attr.aria-current]="lesson?.id === component.id ? 'step' : null"
+                        (click)="selectLesson(component.id)"
+                      >
+                        <span class="lesson-state" aria-hidden="true">
+                          @if (isCompleted(component.id)) { <span class="icon" [innerHTML]="icons.check"></span> }
+                        </span>
+                        <span class="lesson-type" [attr.data-type]="component.type" aria-hidden="true" [innerHTML]="typeIcon(component.type)"></span>
+                        <span class="lesson-text">
+                          <strong>{{ component.title }}</strong>
+                          <small>{{ lessonMeta(component) }}@if (isCompleted(component.id)) {<span class="visually-hidden">, completed</span>}</small>
+                        </span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          }
+        }
+      </aside>
+    </div>
+  }
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
+}

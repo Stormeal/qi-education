@@ -158,6 +158,11 @@
                   </div>
                 </div>
               </div>
+              @if (item.lessonFeedbackKind) {
+                <p class="admin-feedback-lesson">
+                  {{ lessonFeedbackLabel(item) }}. Course {{ item.courseId }}, lesson {{ item.componentId }}
+                </p>
+              }
               <p class="admin-feedback-message">
                 {{ item.message || 'No written message.' }}
               </p>

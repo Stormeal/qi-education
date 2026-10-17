@@ -109,6 +109,13 @@ export class AdminPage {
     this.activeTab() === 'current' ? this.currentFeedback() : this.archivedFeedback(),
   );
 
+  protected lessonFeedbackLabel(item: FeedbackEntry): string {
+    const kinds = { helpful: 'Lesson was helpful', 'not-helpful': 'Lesson was not helpful', problem: 'Problem with a lesson' };
+    const categories = { video: 'video does not play', 'content-error': 'mistake in the content', unclear: 'hard to understand', files: 'files or links', other: 'other' };
+    const kind = item.lessonFeedbackKind ? kinds[item.lessonFeedbackKind] : 'Lesson feedback';
+    return item.problemCategory ? `${kind}: ${categories[item.problemCategory]}` : kind;
+  }
+
   protected ratingLabel(rating: FeedbackEntry['rating']): string {
     switch (rating) {
       case 'great':

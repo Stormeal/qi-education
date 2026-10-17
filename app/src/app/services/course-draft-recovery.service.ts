@@ -16,7 +16,7 @@ const number = (value: unknown) => typeof value === 'number' && Number.isFinite(
 function validSections(value: unknown): value is CourseSection[] {
   return Array.isArray(value) && value.every(section => object(section) && strings(section, ['id', 'title']) && Array.isArray(section['components']) && section['components'].every(component => {
     if (!object(component) || !strings(component, ['id', 'title', 'content', 'resourceUrl']) || !number(component['durationMinutes']) ||
-      !['text', 'video', 'resources', 'quiz'].includes(String(component['type'])) || !Array.isArray(component['attachments']) ||
+      !['text', 'video', 'resources', 'quiz', 'exercise'].includes(String(component['type'])) || !Array.isArray(component['attachments']) ||
       !component['attachments'].every(attachment => object(attachment) && strings(attachment, ['id', 'assetId', 'fileName', 'contentType', 'createdAt']) && number(attachment['sizeBytes']))) return false;
     if (component['type'] === 'quiz') {
       const quiz = component['quiz'];

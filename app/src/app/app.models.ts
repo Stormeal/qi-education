@@ -123,7 +123,7 @@ export type CourseCreateDraft = {
   priceDkk: number | null;
 };
 
-export type CourseComponentType = 'video' | 'quiz' | 'text' | 'resources';
+export type CourseComponentType = 'video' | 'quiz' | 'text' | 'resources' | 'exercise';
 
 export type MuxPlaybackPolicy = 'public' | 'signed';
 
@@ -220,11 +220,17 @@ export type ResourcesCourseComponent = BaseCourseComponent & {
   type: 'resources';
 };
 
+// US-L016: instructions in `content`, starter files as attachments, an optional link; the learner ticks it complete.
+export type ExerciseCourseComponent = BaseCourseComponent & {
+  type: 'exercise';
+};
+
 export type CourseComponent =
   | VideoCourseComponent
   | TextCourseComponent
   | QuizCourseComponent
-  | ResourcesCourseComponent;
+  | ResourcesCourseComponent
+  | ExerciseCourseComponent;
 
 export type CourseSection = {
   id: string;
@@ -291,6 +297,11 @@ export type FeedbackEntry = {
   priority?: 'low' | 'medium' | 'high';
   githubIssueNumber?: number;
   githubIssueUrl?: string;
+  // US-L015: set on feedback sent from a lesson.
+  courseId?: string;
+  componentId?: string;
+  lessonFeedbackKind?: 'helpful' | 'not-helpful' | 'problem';
+  problemCategory?: 'video' | 'content-error' | 'unclear' | 'files' | 'other';
 };
 
 export type FeedbackTriageUpdate = {

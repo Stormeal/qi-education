@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CourseViewPage } from '../pages/course-view-page/course-view-page';
+import { LearningPage } from '../pages/learning-page/learning-page';
 import { LoginPage } from '../pages/login-page/login-page';
 import { AppStateService } from '../services/app-state.service';
 
 @Component({
   selector: 'app-course-view-route',
-  imports: [CourseViewPage, LoginPage],
+  imports: [CourseViewPage, LearningPage, LoginPage],
   templateUrl: './course-view-route.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

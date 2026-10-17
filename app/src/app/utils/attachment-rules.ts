@@ -14,7 +14,7 @@ export function attachmentProblem(type: CourseComponentType, file: File): string
   if (!isAllowedComponentAttachment(type, file)) {
     return type === 'text'
       ? 'Text documentation supports documents, PDFs, images, and PowerPoint files.'
-      : 'Resources supports ZIP, PDF, Word and PowerPoint files, and images.';
+      : `${type === 'exercise' ? 'Exercises support' : 'Resources supports'} ZIP, PDF, Word and PowerPoint files, and images.`;
   }
 
   return file.size > MAX_ATTACHMENT_BYTES ? 'Attachments must be 4 MB or smaller.' : '';
@@ -31,7 +31,7 @@ function isAllowedComponentAttachment(type: CourseComponentType, file: File): bo
       'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     ].includes(contentType) || ['ppt', 'pptx'].includes(extension);
 
-  if (type === 'resources') {
+  if (type === 'resources' || type === 'exercise') {
     return (
       isImage ||
       isPowerPoint ||

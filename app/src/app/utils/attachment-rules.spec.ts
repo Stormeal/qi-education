@@ -10,6 +10,11 @@ describe('attachment rules', () => {
     }
   });
 
+  it('US-L016-AC08 exercise lessons take starter files like resources lessons', () => {
+    expect(attachmentProblem('exercise', file('starter.zip', 'application/zip'))).toBe('');
+    expect(attachmentProblem('exercise', file('tool.exe', 'application/x-msdownload'))).toContain('Exercises support');
+  });
+
   it('refuses other types and anything over 4 MB, saying why', () => {
     expect(attachmentProblem('resources', file('tool.exe', 'application/x-msdownload'))).toContain('Resources supports');
     expect(attachmentProblem('text', file('a.zip', 'application/zip'))).toContain('Text documentation supports');

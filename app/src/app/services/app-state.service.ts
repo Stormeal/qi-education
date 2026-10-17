@@ -68,7 +68,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.208';
+  readonly appVersion = '0.1.209';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1143,6 +1143,18 @@ export class AppStateService {
         } as CourseComponent;
       }
 
+      if (nextType === 'exercise') {
+        return {
+          id: component.id,
+          title: component.title,
+          type: 'exercise',
+          durationMinutes: component.durationMinutes,
+          content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
+          resourceUrl: component.resourceUrl,
+          attachments: component.type === 'resources' || component.type === 'exercise' ? component.attachments : [],
+        } as CourseComponent;
+      }
+
       if (nextType === 'resources') {
         return {
           id: component.id,
@@ -1151,7 +1163,7 @@ export class AppStateService {
           durationMinutes: component.durationMinutes,
           content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
           resourceUrl: '',
-          attachments: component.type === 'resources' ? component.attachments : [],
+          attachments: component.type === 'resources' || component.type === 'exercise' ? component.attachments : [],
         } as CourseComponent;
       }
 
@@ -1224,9 +1236,9 @@ export class AppStateService {
       return;
     }
 
-    if (component.type !== 'text' && component.type !== 'resources' && !(component.type === 'quiz' && questionId)) {
+    if (component.type !== 'text' && component.type !== 'resources' && component.type !== 'exercise' && !(component.type === 'quiz' && questionId)) {
       dropPendingCard();
-      this.attachmentUploadError.set('Attachments are available for text and resources components.');
+      this.attachmentUploadError.set('Attachments are available for text, resources and exercise components.');
       return;
     }
 
@@ -2886,6 +2898,12 @@ export class AppStateService {
           ...base,
           type: 'resources',
           title: `Resources ${componentNumber}`,
+        };
+      case 'exercise':
+        return {
+          ...base,
+          type: 'exercise',
+          title: `Exercise ${componentNumber}`,
         };
       default:
         return {

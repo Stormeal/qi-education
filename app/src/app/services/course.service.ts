@@ -4,6 +4,7 @@ import {
   CourseReviewAction,
   CourseReviewState,
   CourseComponentAttachment,
+  CourseComponentType,
   CourseContentDocument,
   CourseCreateDraft,
   CourseListItem,
@@ -268,7 +269,7 @@ export class CourseService {
 
   async loadCourseOutline(courseId: string, token: string): Promise<CourseContentDocument> {
     type Outline = { _id: string; sections: { id: string; title: string; components: {
-      id: string; title: string; type: 'text' | 'video' | 'quiz' | 'resources'; durationMinutes: number;
+      id: string; title: string; type: CourseComponentType; durationMinutes: number;
     }[] }[] };
     const { ok, body } = await this.apiClient.fetchJson<Outline>(`/courses/${encodeURIComponent(courseId)}/outline`, {
       headers: { authorization: `Bearer ${token}` },
@@ -278,9 +279,25 @@ export class CourseService {
       ...section, components: section.components.map((component) => {
         const base = { ...component, content: '', resourceUrl: '', attachments: [] };
         return component.type === 'quiz' ? { ...base, type: 'quiz' as const, quiz: { passPoints: 1, questions: [] } } :
-          { ...base, type: component.type as 'text' | 'video' | 'resources' };
+          { ...base, type: component.type as Exclude<CourseComponentType, 'quiz'> };
       }),
     })) };
+  }
+
+  /** Saves a lesson attachment through the browser; does nothing when the API refuses it. */
+  async downloadAttachment(courseId: string, attachment: CourseComponentAttachment, token: string): Promise<void> {
+    if (!token) return;
+    const response = await this.apiClient.fetch(
+      `/courses/${encodeURIComponent(courseId)}/content/attachments/${encodeURIComponent(attachment.assetId)}`,
+      { method: 'GET', headers: { authorization: `Bearer ${token}` } },
+    );
+    if (!response.ok) return;
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = attachment.fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   async gradeQuiz(courseId: string, sectionId: string, componentId: string,
