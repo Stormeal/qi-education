@@ -132,12 +132,12 @@ and a rollback that restores the sheet first.
 
 ## Implementation checklist
 
-- [ ] AC01–AC03 Mongo course repository, all fields/order, atomic partial updates, uncached reads and default store selection; representative authoring/review/catalog journeys
-- [ ] AC04 strict settings, exact courses health config and doctor checks
-- [ ] AC05 repository and HTTP freeze before every detail-write side effect, both prefixes; reads/content saves remain available; shared-content safety guards include Mongo metadata
-- [ ] AC06–AC09 guarded dry-run/apply/two-way verify/restore, complete row validation and fake-provider retry/round-trip tests
-- [ ] Architecture, permitted INV-005/INV-017 notes, handoff Outcome and queue evidence
-- [ ] Required API tests/build, journeys and app tests pass; unverified hosted/provider cutover work recorded
+- [x] AC01–AC03 Mongo course repository, all fields/order, atomic partial updates, uncached reads and default store selection; representative authoring/review/catalog journeys
+- [x] AC04 strict settings, exact courses health config and doctor checks
+- [x] AC05 repository and HTTP freeze before every detail-write side effect, both prefixes; reads/content saves remain available; shared-content safety guards include Mongo metadata
+- [x] AC06–AC09 guarded dry-run/apply/two-way verify/restore, complete row validation and fake-provider retry/round-trip tests, including lossless restore of rating precision and list separators/duplicates
+- [x] Architecture, permitted INV-005/INV-017 notes, [handoff Outcome](../handoffs/US-P015-courses-in-mongodb-codex.md#outcome) and queue evidence
+- [x] Required checks on `ba3ff83`: 1,589 API tests, API build, 12 journey checks, 343 app tests plus 23 UI guard tests and foundation scan pass; real-provider/hosted cutover remains unverified
 
 ## Verification and delivery
 

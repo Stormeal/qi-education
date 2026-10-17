@@ -83,3 +83,55 @@ the reason in your summary. Do not stop before writing the code.
 - Update your row in `docs/work_queue.md` (state, commits, checks, what is not verified), then
   stop and summarize.
 
+## Outcome
+
+Implemented US-P015-AC01 to AC09 on `main`, required ancestor `751af29` verified.
+Working commits: `abc1958` (repository, selection, freeze, diagnostics and Mongo
+journeys; 0.1.225), `ba3ff83` (guarded migration, lossless restore and row preservation;
+0.1.226). The final documentation/version commit records delivery. No push or
+provider cutover was performed; the default course store remains Google Sheets.
+
+| Scenarios | Implementation and isolated evidence |
+| --- | --- |
+| AC01–AC03 | `mongoCourseRepository.test.ts` runs the memory/fake-Mongo repository contract over all 21 fields, order, uncached reads, immutable identity/owner/date and atomic input-only majority writes. `courseStoreConfig.test.ts` covers default/shared/hosted/isolated selection and missing Mongo configuration. `courseStoreRoutes.test.ts` exercises metadata/price/catalog/thumbnail, review/publication, authorization, enrollment, learning content/outline/notes/count and confirms no Sheets reads. `journey.test.ts` runs the complete six-step author/review/enroll/learn flow with both memory and fake Mongo. Existing default suites, including `platformLoad.test.ts`, remain in the full suite. |
+| AC04 | Strict settings, exact effective `courses: { storage, readOnly }` health object and doctor checks, including missing each of the three Mongo settings, invalid values and runtime mismatch, in `courseStoreConfig.test.ts`, `courseStoreRoutes.test.ts` and `localScripts.test.ts`. Account settings and diagnostics remain independent. |
+| AC05 | Both HTTP prefixes plus ordinary case/trailing-slash variants return the exact 503 before assets, content creation or locks. Memory/fake-Sheets/fake-Mongo cases prove zero side effects, available reads/content saves and safe review actions. Both raw and reviewed repository writers are wrapped; shared Mongo metadata also requires durable content/asset coordination. |
+| AC06–AC09 | `coursesMigration.test.ts` covers exact flags/guards/output/exit codes, full A:U reads, all 21 field comparisons, both-direction missing records, missing/duplicate IDs, malformed rows/documents, no writes on failed preflight, idempotent apply, majority upserts/index, restore in place with extra cells/order preserved, sorted append, source preservation and retry after lost acknowledgements. Entry-point tests mock all provider access and assert sanitized errors and connection cleanup. `courseRollback.test.ts` covers default mapping compatibility, lossless cells and every subsequent Sheets update method. |
+
+Detail-write trace: `POST /courses`, `PATCH /courses/:id`,
+`PATCH /courses/:id/price`, `PATCH /courses/:id/catalog-metadata`,
+`PUT /courses/:id/thumbnail`, and each `/api` alias. Author metadata and thumbnail
+methods write private review snapshots, so the freeze also wraps the review
+projection. `POST /courses/:id/review` actions write content/review snapshots and
+never base details; start/submit/return/publish/archive, lesson-content saves and
+reads remain available. The Accounts freeze and US-P014 operator contract are
+unchanged; account migration regression tests pass with the new migration tests.
+
+Review found and fixed a rollback gap in the legacy sheet mapper: legal Mongo
+ratings can have more than one decimal, and lists can contain their own sheet
+separator or duplicate languages. Restore now opts into lossless serialization
+using typed `qi-course-cell:v1:` base64url JSON cells only where needed. All six
+affected fields survive restore → verify → apply unchanged, and later Sheets
+edits preserve them. Literal marker prefixes are safely escaped on new writes;
+ordinary reads preserve malformed legacy literals, while migration preflight
+refuses malformed/ambiguous encodings before writes. Independent review of the
+final fixes found no remaining actionable issues (152 focused tests passed).
+
+Operator note for the lead: a rollback changes `COURSE_STORE` back to Sheets while
+keeping this API version deployed. Lossless restored cells require its reader;
+rolling application code back to a version before US-P015 would not decode them.
+The owned architecture documentation records this representation; the cutover
+runbook remains Claude's file.
+
+Final required checks on `ba3ff83` (2026-10-17): `npm run api:test` passed 1,589
+tests in 63 files; `npm run api:build` passed; `npm run verify:journeys` passed 12
+checks (memory and fake Mongo); `npm run app:test` passed 343 tests in 45 files,
+23 UI guard tests and the foundation scan. Existing Angular test-setup and jsdom
+scrollTo warnings remain; no failed checks or changes to Claude's files.
+
+Not verified: real MongoDB/Sheets durability, provider concurrency/failure behavior,
+actual course data/order, hosted health, live browser/API integration, deployment,
+forward migration or hosted rollback. All exercised stores/providers are isolated
+memory implementations or fakes. No migration command ran against real settings;
+no ports 3001 or 4200 were used. No files outside the assigned ownership were edited.
+

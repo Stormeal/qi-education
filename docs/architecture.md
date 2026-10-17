@@ -103,8 +103,8 @@ The UI uses those IDs for draft filtering, Edit actions, and direct editor entry
 Angular routes -> page/UI components -> AppStateService + focused services
   -> ApiClientService / attachment XMLHttpRequest
   -> Express createServer() -> repository interfaces
-  -> Google Sheets (accounts/course metadata/feedback)
-  -> MongoDB (course content/binary assets)
+  -> Google Sheets (default accounts/course metadata, feedback)
+  -> MongoDB (selected accounts/course metadata, course content/binary assets)
 
 Video: browser -> Mux direct upload -> signed webhook -> course content repository
 Feedback: admin triage -> GitHub service -> feedback repository stores issue link
@@ -447,7 +447,7 @@ the [account profile spec](specs/US-L003-account-profile.md).
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
 | Accounts and enrollments | Default `USER_STORE=google-sheets`: GoogleSheetsAuthRepository; `mongodb`: MongoAuthRepository, `${MONGODB_COURSE_CONTENT_COLLECTION}_users` | InMemoryAuthRepository with three demo accounts in isolated/test; default Sheets retains unconfigured shared fallback; selected Mongo missing configuration is unavailable, including hosted mode |
-| Identity, owner, admin catalog/price | GoogleSheetsCourseRepository | InMemoryCourseRepository with one published demo course |
+| Identity, owner, admin catalog/price | Default `COURSE_STORE=google-sheets`: GoogleSheetsCourseRepository; `mongodb`: MongoCourseRepository, `${MONGODB_COURSE_CONTENT_COLLECTION}_courses` | InMemoryCourseRepository with one published demo course in isolated/test or unconfigured default Sheets mode; selected Mongo missing configuration is unavailable |
 | Reviewed author metadata, live/working snapshots, review history | Mongo course-content document | InMemoryCourseContentRepository |
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
@@ -460,12 +460,13 @@ the [account profile spec](specs/US-L003-account-profile.md).
 
 Within shared/hosted mode, factories choose these independently. Mixed configuration
 is possible. Course
-creation is blocked when metadata uses Sheets but content uses memory; thumbnails
-are blocked for Sheets metadata with memory assets; attachments are blocked for
+creation is blocked when shared metadata uses Sheets or Mongo but content uses memory;
+thumbnails are blocked for either shared metadata store with memory assets; attachments are blocked for
 Mongo content with memory assets. These guards reduce references that would be
 lost on process restart, but are not a transaction across all stores.
 
-Base course metadata writes use full row updates. Courses have 21 columns
+Sheets base course metadata writes use full row updates; Mongo uses atomic partial updates.
+Courses have 21 columns
 (`A:U`), Users eight (`A:H`), Feedback 17 (`A:Q`). Feedback appends Course ID,
 Component ID, Lesson Feedback Kind and Problem Category after the original 13 columns;
 old shorter rows read with those fields absent. Site-wide feedback is unchanged and
@@ -561,7 +562,8 @@ changed outline. No API shape or storage migration is introduced. See the
 
 Course operations pair lifecycle reads/content under per-course coordination.
 Memory uses its repository lock; Mongo uses a separate nonexpiring owner record.
-Sheets operations require Mongo coordination. Acquisition/deletion have bounded
+Shared Sheets and Mongo metadata operations require Mongo coordination.
+Acquisition/deletion have bounded
 waits, while actual uncertain provider writes retain ownership for verified
 recovery. Pre-write reads release normally. Publication is one Mongo document write, not a cross-store transaction. Review
 actions and full authoring saves use revision/version checks (US-T005). See [recovery runbook](course_operation_recovery.md).
@@ -569,11 +571,12 @@ actions and full authoring saves use revision/version checks (US-T005). See [rec
 ## Course review storage and views
 
 `CourseReviewService` composes public course metadata from live snapshots and
-selects working metadata/content inside authoring operations. Raw Sheet records
+selects working metadata/content inside authoring operations. Base course records
+in the selected store
 remain authoritative for identity/owner and admin price/catalog controls. Legacy
 courses are initialized lazily. The first and subsequent authoring edits write
 the private snapshot and its version together in one course-content write, without
-first changing raw Sheet metadata or raw lesson sections. No headers or shared rows are
+first changing base metadata or raw lesson sections. No headers or shared rows are
 migrated. Stored `sections` and live snapshots change in the publication write.
 
 Review events store action, revision ID, authenticated actor ID/name, date and
@@ -660,8 +663,9 @@ Session lookups read one Mongo document by ID without a process cache. Creation
 uses insert/unique enforcement (duplicate signup returns the existing 409 body),
 enrollment uses `$addToSet`, and password/role/status writes set only their field.
 Data writes await majority acknowledgement; role/status atomically return the
-previous snapshot to the existing change-log workflow. Course metadata and feedback
-continue to use Sheets. The per-instance signup/enrollment queues remain for the
+previous snapshot to the existing change-log workflow. Course metadata has its own
+independent switch (US-P015); feedback continues to use Sheets. The per-instance
+signup/enrollment queues remain for the
 Sheets path, while Mongo enforces account guarantees across instances.
 
 `USER_STORE_READ_ONLY` accepts only `0` (default) or `1`. When frozen, a repository
@@ -688,6 +692,57 @@ no password hashes or differing field values. The CLI uses the normal dotenv/she
 precedence, opens providers lazily after guards and closes its Mongo connection.
 See the [operator contract](specs/US-P014-users-in-mongodb.md#operator-contract-the-runbook-relies-on-this-exactly)
 and [cutover runbook](release/US-P014-cutover.md); no hosted cutover was performed here.
+
+## Course details cutover and rollback (US-P015)
+
+`COURSE_STORE` accepts only `google-sheets` (default) or `mongodb` and applies in
+shared/hosted mode; isolated/test runs retain memory. Invalid settings stop startup.
+The Mongo collection is `${MONGODB_COURSE_CONTENT_COLLECTION}_courses`, with `_id`
+replacing `id` and the other 20 Course fields unchanged. Reads query Mongo on every
+call, ignoring `recent`, sorted by `createdAt`, then `_id`; the catalog index uses
+that pair. Create uses `insertOne`; updates `$set` only their input fields with
+majority acknowledgement, preserving identity, owner and creation date. Review
+projections and all existing route contracts remain above the repository. Default
+Sheets behavior, including the recent GET read window, remains unchanged.
+
+`COURSE_STORE_READ_ONLY` accepts only `0` (default) or `1`. The repository wrapper
+and HTTP boundary refuse detail writes with 503 and
+`{ message: 'Course details are briefly read-only for maintenance. Try again in a few minutes.' }`.
+The boundary runs before uploads, content creation and locks on both prefixes:
+`POST /courses`, `PATCH /courses/:id`, `PATCH /courses/:id/price`,
+`PATCH /courses/:id/catalog-metadata` and `PUT /courses/:id/thumbnail`.
+The review projection is also wrapped because metadata/thumbnail edits write
+private snapshots. Review actions themselves write content snapshots, not base
+details, and stay available, as do reads, lesson notes and content saves.
+`/health/config` adds `courses: { storage, readOnly }` naming the effective store.
+Doctor names the store/freeze, checks the three Mongo settings when selected and
+compares runtime health. Accounts retain their separate settings and contract.
+
+`npm --prefix api run courses:migrate -- <mode>` requires `USE_SHARED_SERVICES=1`
+for every mode. `--dry-run` validates the full A:U sheet without Mongo writes or
+connections. `--apply` requires Sheets selection and freeze `1`, confirms the
+catalog index and upserts all 21 fields by ID without deleting destination-only
+courses or changing the sheet. `--verify` compares every field in both directions,
+prints only IDs/field names for differences and succeeds only with
+`Verified: N courses identical`. `--restore-sheet` requires Mongo selection and
+freeze `1`; it updates existing A:U rows by ID, preserving order and extra cells,
+then appends new courses sorted by creation date and ID, never deleting rows.
+Missing/duplicate IDs and malformed fields block writes. Restore preflights every
+Mongo course through the existing sheet mapper in its lossless mode. Cells whose
+legacy delimiter/rounding format would change a value use `qi-course-cell:v1:`
+plus a base64url JSON `{ field, value }` escape: only career goals, requirements,
+learning outcomes, rating, languages and owner ID can need it. Typed decoding
+preserves precision, separators, whitespace and duplicate languages; literal
+marker prefixes are escaped too. Ordinary serialization/rows stay unchanged.
+Subsequent Sheets edits retain lossless serialization for already escaped rows;
+malformed escapes block migration writes. Source data remains intact after partial
+failures; retry while frozen
+and verify before switching. Extra courses in either store block verification.
+Configuration/provider failures are sanitized. The CLI opens providers lazily
+after guards and closes Mongo. A rollback to Sheets keeps this API version deployed
+because older readers cannot decode lossless cells. See the
+[operator contract](specs/US-P015-courses-in-mongodb.md#operator-contract-the-runbook-relies-on-this-exactly)
+and [runbook](release/US-P015-cutover.md); real provider cutover remains unverified.
 
 ## Per-account sign-in attempt limits (US-P008-AC02)
 
