@@ -539,7 +539,7 @@ Hosted clocks, durability and uncertain provider outcomes require release checks
 | INV-002 | Confirmed with isolated route/SDK stubs: removal never calls provider cleanup; signed configuration is accepted without token flow | Promoted to DEF-T006-CLEANUP and DEF-T006-PUBLIC; live rehearsal remains separate | US-T006 |
 | INV-003 | Signup checks email then appends; Sheets enrollment reads then rewrites a user row. No atomic uniqueness/update protection is evident | Concurrent operations against a dedicated test spreadsheet | US-P003 |
 | INV-004 | Feedback triage creates an issue before persisting the link | Fail persistence after stub issue creation, retry, and inspect duplicates | US-P003 |
-| INV-005 | Sheets read volume: `listUsers` runs a two-read header check plus a data read on every authenticated request; course routes list the Courses sheet up to six more times; a new Google client is built per call. Default quota is about 60 reads/minute per service account | Count Sheets calls per route with a counting stub; then load-test a disposable spreadsheet with 5–10 concurrent learners and record 429s | US-P006 |
+| INV-005 | Sheets read volume: `listUsers` runs a two-read header check plus a data read on every authenticated request; course routes list the Courses sheet up to six more times; a new Google client is built per call. Default quota is about 60 reads/minute per service account | Count Sheets calls per route with a counting stub; then load-test a disposable spreadsheet with 5–10 concurrent learners and record 429s. Hosted exhaustion reproduced 2026-10-17 as DEF-045 (fixed: GET routes reuse a catalog read up to 10 s) | US-P006 |
 | INV-006 | A provider write error inside the course lock (including a quota 429 during enrollment) or a terminated function leaves the lock record forever; read routes then return 409 too | Fake-collection test: fail a Sheets write under the lock, then issue a learner read; confirm host max duration to judge whether an expiry longer than it is safe | US-P005 |
 | INV-007 | Read routes (thumbnail, outline, content, attachment, quiz attempt) take the exclusive course lock and give up after 5 seconds | 20 concurrent learner reads of one course against isolated stores with realistic Sheets latency; count 409s | US-P006 |
 | INV-008 | Course builder assigns stored lesson HTML to `innerHTML` (`course-builder.ts` 509, 780, 822, 1274) outside Angular sanitization; the API stores `content` unfiltered. A teacher-authored payload would run when an admin opens the editor | Isolated stores: save `<img src=x onerror=...>` as a teacher via the API, open the editor as admin, observe execution | US-P007 |
@@ -725,6 +725,26 @@ Fixed 2026-10-17: learner content now gets the same `attachments` default; learn
 
 Found by Alex, 2026-10-17. Expected: the header looks and sits the same on the details page and the learning page. Actual: the learning page used a flat page colour instead of the app's cream gradient, put a 16px gap above the course bar, and aligned the course bar and workspace to a 1408/1440px frame, so the breadcrumb did not line up with the logo.
 Fixed 2026-10-17: the app's page gradient is the `--gradient-page` token (used by `app.scss`, the details page and the learning page); the course bar starts right under the header and both it and the workspace use the header's 1240px frame. Verified at 1600px: header position and height, breadcrumb alignment and the band's bottom edge (82px) are identical on both pages; 400px has no sideways scroll.
+
+### DEF-045 - One visit exhausts the hosted Sheets read quota
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-045 | Fixed, Claude Code, 2026-10-17 (follows INV-005, new load from US-L016) | P1 | US-P006, DEF-027/DEF-032 freshness | Hosted Vercel log 2026-10-17 15:21-15:23, one admin visit: `GaxiosError: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user'` on `/api/courses`, `/outline`, `/content`, `/users/me/learning-progress`, `/notes`, `/learners/count`; the learning page lost content and progress |
+
+Reproduction (isolated counting stub, `platformLoad.test.ts` "INV-005 counts Sheets reads for one learner session"): a learner enrolled in 3 of 6 published courses opens Home (14 requests: `/auth/me`, `/courses`, `/career-paths`, `/users/me/career-path`, learning progress, 3 outlines, 6 thumbnails), My Learning (5: `/courses`, progress, 3 outlines) and `/library/:id` (5: `/courses`, content, progress, notes, learner count).
+Cause: every authenticated request reads the Users sheet fresh (DEF-027, deliberate) and every course route reads the whole Courses sheet again; reads were shared only while one was in flight. Requests one at a time (separate Vercel instances, or no overlap) cost one Users plus one Courses read each, so the default 60 reads/minute lasts about one and a half such sessions.
+
+| Page | Before, one at a time (Users + Courses) | Before, page burst on one warm instance | After, one at a time | After, burst |
+| --- | --- | --- | --- | --- |
+| Home | 25 (13 + 12) | 4 | 14 (13 + 1) | 2-4 Users, 0 Courses |
+| My Learning | 10 (5 + 5) | 4 | 5 (5 + 0) | 2-5 Users, 0 Courses |
+| Lesson page | 10 (5 + 5) | 4 | 5 (5 + 0) | 2-5 Users, 0 Courses |
+| Session | 45 | 12 | 24 | Users only |
+
+Fix 2026-10-17 (lead default, Alex to confirm or change: the 10 seconds): GET requests may reuse a Courses sheet read up to `recentCatalogMs` (10 s) old on the same instance, so each instance reads the catalog at most about six times a minute for GETs. Mutations (POST/PATCH/PUT/DELETE), reads after taking the course lock and reads after a write in the same request still read fresh; this instance's own course writes clear the reused read at once. The Users read is unchanged, so DEF-027/DEF-032 hold: a disabled or demoted account is refused on its next request (the AC02 revocation assertions still pass). Tradeoff: a course change made on another instance (unpublish, archive, owner move, new course) can take up to 10 s to show on GET routes of this instance; mutations always see it.
+Regression: `platformLoad.test.ts` session count (exact one-at-a-time counts; burst counts depend on overlap, so only their catalog reads are exact), "a reused catalog is at most recentCatalogMs old" (another instance's unpublish visible after 10 s, POST refused at once, own write read fresh) and AC02 per-route counts (later GETs 1 read, quiz POST 2). API 1328/54, six journeys and API build pass.
+Not fixed, remaining reads per session (frontend or product decisions, not this API change): the Users read per authenticated request (24 of the 24); outlines are fetched by both `LearningProgressService.loadCourses` and `CareerPathService.loadOutlines` with the cache bypassed; thumbnails are fetched with the bearer token, so each costs a Users read on a cold browser cache. Not verified: real Sheets latency, Vercel instance reuse and the hosted quota after deploy. Check after the next deploy: the hosted log should show no `Quota exceeded` during a normal visit.
 
 ## New defect record
 

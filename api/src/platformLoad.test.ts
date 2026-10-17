@@ -4,7 +4,7 @@ import { createServer } from './server.js';
 import { apiConfig } from './config.js';
 import { createSessionToken, authSheetHeaders, authUserToSheetRow, type AuthUser, toAuthenticatedUser } from './auth.js';
 import { GoogleSheetsAuthRepository, InMemoryAuthRepository } from './authRepository.js';
-import { GoogleSheetsCourseRepository, InMemoryCourseRepository } from './courseRepository.js';
+import { GoogleSheetsCourseRepository, InMemoryCourseRepository, recentCatalogMs } from './courseRepository.js';
 import { courseSheetHeaders, courseToSheetRow, createCourseSchema } from './course.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
@@ -67,8 +67,9 @@ describe('US-P006 isolated route costs', () => {
       expect(response.status).toBe(200);
     }
     console.log('Sheets reads per route', counts);
-    expect(counts).toEqual({ '/auth/me': 1, '/courses': 2, '/courses/course/outline': 2, '/courses/course/content': 2,
-      '/courses/course/thumbnail': 2, '/courses/course/learners/count': 2, '/courses/course/content/components/quiz/quiz-attempts': 2 });
+    // INV-005: later GET routes reuse the first catalog read; the POST reads the catalog fresh.
+    expect(counts).toEqual({ '/auth/me': 1, '/courses': 2, '/courses/course/outline': 1, '/courses/course/content': 1,
+      '/courses/course/thumbnail': 1, '/courses/course/learners/count': 1, '/courses/course/content/components/quiz/quiz-attempts': 2 });
 
     // One warm instance, synchronous class burst, simulated 5ms provider latency.
     fixture.reads.length = 0;
@@ -76,20 +77,87 @@ describe('US-P006 isolated route costs', () => {
     await Promise.all(burst.map(response => response.arrayBuffer()));
     expect(burst.every(response => response.status === 200)).toBe(true);
     // DEF-027: every authentication read must start after its request, rather than
-    // reuse a pre-revocation snapshot. Catalog reads can still share in-flight work.
+    // reuse a pre-revocation snapshot. Catalog reads can still share recent work.
     // Fresh does not mean one read each: callers arriving during a read share the next one.
     const userReads = fixture.reads.filter(range => range.startsWith('Users!')).length;
     expect(userReads).toBeGreaterThan(0);
     expect(userReads).toBeLessThan(20);
     const catalogReads = fixture.reads.filter(range => range.startsWith('Courses!')).length;
-    expect(catalogReads).toBeGreaterThan(0);
-    expect(catalogReads).toBeLessThan(20);
+    expect(catalogReads).toBeLessThanOrEqual(1); // INV-005: GETs reuse the recent catalog read.
     expect(fixture.reads.length).toBeLessThan(40);
 
     // A later request must see a revoked account, not a retained auth result.
     fixture.rows.get('Users')![2][5] = 'disabled';
     expect((await fetch(base + '/courses/course/content', { headers: headers(student) })).status).toBe(401);
     expect((await fetch(base + '/courses/course/learners/count', { headers: headers(student) })).status).toBe(401);
+  });
+
+  it('INV-005 counts Sheets reads for one learner session (Home, My Learning, lesson page)', async () => {
+    const users = new InMemoryAuthRepository();
+    const courses = new InMemoryCourseRepository(), content = new InMemoryCourseContentRepository(), assets = new InMemoryCourseAssetRepository();
+    const ids = Array.from({ length: 6 }, (_, i) => `course-${i}`), enrolled = ids.slice(0, 3);
+    const student = { ...(await users.findByEmail('student@qi-education.local'))!, enrolledCourseIds: enrolled };
+    const rows = [];
+    for (const id of ids) {
+      const course = await courses.createCourse(createCourseSchema.parse({ title: 'Session course', description: 'Session description', teacher: 'Teacher', level: 'Beginner', status: 'published' }), { id, createdAt: '2026-10-17' });
+      course.thumbnailAssetId = (await assets.saveThumbnail({ courseId: id, contentType: 'image/png', fileName: 'thumb.png', binary: Buffer.from('thumbnail') }))._id;
+      await content.updateCourseContent(id, sections); rows.push(courseToSheetRow(course));
+    }
+    fixture.rows.set('Users', [[...authSheetHeaders], authUserToSheetRow(student)]);
+    fixture.rows.set('Courses', [[...courseSheetHeaders], ...rows]);
+    Object.defineProperty(content, 'storageType', { value: 'mongodb' });
+    const base = start({ authRepository: new GoogleSheetsAuthRepository(), courseRepository: new GoogleSheetsCourseRepository(), courseContentRepository: content, courseAssetRepository: assets });
+    // Requests the frontend sends per page (AppStateService, LearningProgressService, CareerPathService, LessonExtrasService).
+    const home = ['/auth/me', '/courses', '/career-paths', '/users/me/career-path', '/users/me/learning-progress',
+      ...enrolled.map(id => `/courses/${id}/outline`), ...rows.map(row => `/courses/${row[0]}/thumbnail?v=${row[courseSheetHeaders.indexOf('thumbnailAssetId')]}`)];
+    const library = ['/courses', '/users/me/learning-progress', ...enrolled.map(id => `/courses/${id}/outline`)];
+    const lesson = ['/courses', '/courses/course-0/content', '/users/me/learning-progress', '/courses/course-0/notes', '/courses/course-0/learners/count'];
+    const count = async (paths: string[], burst: boolean) => {
+      fixture.reads.length = 0;
+      const get = async (path: string) => { const response = await fetch(base + path, { headers: headers(student) }); await response.arrayBuffer(); expect(response.status, path).toBe(200); };
+      if (burst) await Promise.all(paths.map(get)); else for (const path of paths) await get(path);
+      return { users: fixture.reads.filter(range => range.startsWith('Users!')).length, courses: fixture.reads.filter(range => range.startsWith('Courses!')).length, total: fixture.reads.length };
+    };
+    const result: Record<string, unknown> = {};
+    for (const [page, paths] of Object.entries({ home, library, lesson })) {
+      result[page] = { requests: paths.length, oneAtATime: await count(paths, false), burst: await count(paths, true) };
+    }
+    console.log('INV-005 learner session Sheets reads', JSON.stringify(result));
+    // Before INV-005 catalog reuse, one request at a time: home 25 (13 Users + 12 Courses), library 10, lesson 10.
+    // Bursts depend on how requests overlap, so only their catalog reads are exact.
+    const oneAtATime = Object.fromEntries(Object.entries(result).map(([page, value]) => [page, (value as { oneAtATime: unknown }).oneAtATime]));
+    expect(oneAtATime).toEqual({ home: { users: 13, courses: 1, total: 14 }, library: { users: 5, courses: 0, total: 5 }, lesson: { users: 5, courses: 0, total: 5 } });
+    for (const value of Object.values(result) as { requests: number; burst: { users: number; courses: number } }[]) {
+      expect(value.burst.courses).toBe(0); expect(value.burst.users).toBeLessThanOrEqual(value.requests);
+    }
+  });
+
+  it('INV-005 a reused catalog is at most recentCatalogMs old for GETs; mutations and own writes read fresh', async () => {
+    const auth = new InMemoryAuthRepository();
+    const student = { ...(await auth.findByEmail('student@qi-education.local'))!, enrolledCourseIds: ['course'] };
+    const course = await new InMemoryCourseRepository().createCourse(createCourseSchema.parse({ title: 'Archived later', description: 'Archived description', teacher: 'Teacher', level: 'Beginner', status: 'published' }), { id: 'course', createdAt: '2026-10-17' });
+    fixture.rows.set('Courses', [[...courseSheetHeaders], courseToSheetRow(course)]);
+    const content = new InMemoryCourseContentRepository(); await content.updateCourseContent('course', sections);
+    const repository = new GoogleSheetsCourseRepository();
+    const base = start({ authRepository: { ...auth, unavailableReason: undefined, findById: async () => student } as never, courseRepository: repository, courseContentRepository: content });
+    const visible = async () => ((await (await fetch(base + '/courses')).json()) as { id: string }[]).some(item => item.id === 'course');
+    expect(await visible()).toBe(true);
+    // Another instance unpublishes the course: this instance may answer from its read for recentCatalogMs.
+    fixture.rows.get('Courses')![1][courseSheetHeaders.indexOf('status')] = 'draft';
+    expect(await visible()).toBe(true);
+    const quiz = () => fetch(base + '/courses/course/content/components/quiz/quiz-attempts', { method: 'POST',
+      headers: { ...headers(student), 'Content-Type': 'application/json' }, body: JSON.stringify({ sectionId: 's', answers: [{ questionId: 'q', answerId: 'a' }] }) });
+    expect((await quiz()).status).toBe(403);
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now + recentCatalogMs);
+    expect(await visible()).toBe(false);
+    vi.mocked(Date.now).mockReturnValue(now);
+    // This instance's own write is visible at once.
+    fixture.rows.get('Courses')![1][courseSheetHeaders.indexOf('status')] = 'published';
+    fixture.reads.length = 0;
+    await repository.updateCoursePrice('course', { price: 1 } as never).catch(() => undefined);
+    fixture.reads.length = 0;
+    expect(await visible()).toBe(true);
+    expect(fixture.reads.filter(range => range.startsWith('Courses!'))).toHaveLength(1);
   });
 
   it('AC01/03 allows 20 course content readers to enter together', async () => {

@@ -148,7 +148,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
-  app.use((_request, _response, next) => courseRequestReads.run(new Map(), next));
+  app.use((request, _response, next) => courseRequestReads.run({ reads: new Map(), reuseRecent: request.method === 'GET' }, next));
 
   const withCourseRead = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     (request: Request, response: Response, next: NextFunction) => reviewScope.run({

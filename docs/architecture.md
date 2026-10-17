@@ -343,7 +343,8 @@ pre-revocation read. Every authenticated request costs one fresh Users fetch;
 non-security user/catalog reads retain coalescing. The isolated 20-reader burst
 measured 22 Sheets reads (20 Users, two catalog), with unchanged one/two single-route
 budgets. This supersedes the earlier shared-auth burst budget; hosted quotas remain
-unverified. Password D and enrollment H writes preserve
+unverified. GET requests reuse a Courses sheet read up to 10 seconds old on the same
+instance (DEF-045); mutations, locked and post-write reads stay fresh. Password D and enrollment H writes preserve
 roles even when they read an earlier snapshot. Same-role requests do not write.
 Memory preserves independent account fields as well. Existing sessions use the
 new role on their next request, without a new token or browser push. Demoted

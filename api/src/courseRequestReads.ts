@@ -3,16 +3,20 @@ import type { CourseRepository } from './courseRepository.js';
 
 // Results live only for this HTTP request. Refresh after acquiring a write lock
 // and after a write so pre-lock authorization never supplies a stale snapshot.
-export const courseRequestReads = new AsyncLocalStorage<Map<object, Promise<unknown>>>();
-export function clearCourseRequestReads() { courseRequestReads.getStore()?.clear(); }
+// GET requests may also reuse a recent catalog read (INV-005); a lock or write ends that.
+export const courseRequestReads = new AsyncLocalStorage<{ reads: Map<object, Promise<unknown>>; reuseRecent: boolean }>();
+export function clearCourseRequestReads() {
+  const store = courseRequestReads.getStore();
+  if (store) { store.reads.clear(); store.reuseRecent = false; }
+}
 export function requestCachedCourses(repository: CourseRepository): CourseRepository {
   return new Proxy(repository, {
     get(target, property) {
       if (property === 'listCourses') return () => {
-        const cache = courseRequestReads.getStore();
-        if (!cache) return target.listCourses();
-        if (!cache.has(target)) cache.set(target, target.listCourses());
-        return cache.get(target);
+        const store = courseRequestReads.getStore();
+        if (!store) return target.listCourses();
+        if (!store.reads.has(target)) store.reads.set(target, target.listCourses({ recent: store.reuseRecent }));
+        return store.reads.get(target);
       };
       const value = Reflect.get(target, property);
       if (typeof value !== 'function') return value;
