@@ -3,6 +3,15 @@ import { z } from 'zod';
 export const feedbackRatingSchema = z.enum(['great', 'okay', 'needs-work']);
 export const feedbackWorkStatusSchema = z.enum(['work', 'completed', 'wont-do']);
 export const feedbackPrioritySchema = z.enum(['low', 'medium', 'high']);
+export const lessonFeedbackKindSchema = z.enum(['helpful', 'not-helpful', 'problem']);
+export const problemCategorySchema = z.enum(['video', 'content-error', 'unclear', 'files', 'other']);
+export const createLessonFeedbackSchema = z.object({
+  componentId: z.string().trim().min(1).max(120),
+  kind: lessonFeedbackKindSchema,
+  category: problemCategorySchema.optional(),
+  message: z.string().trim().max(2000).default(''),
+}).refine(input => input.kind === 'problem' ? input.category !== undefined : input.category === undefined,
+  { message: 'A category is required only for problem reports.', path: ['category'] });
 
 export const createFeedbackSchema = z.object({
   page: z.string().trim().min(1).max(120),
@@ -19,7 +28,12 @@ export const updateFeedbackTriageSchema = z.object({
 export type FeedbackRating = z.infer<typeof feedbackRatingSchema>;
 export type FeedbackWorkStatus = z.infer<typeof feedbackWorkStatusSchema>;
 export type FeedbackPriority = z.infer<typeof feedbackPrioritySchema>;
-export type CreateFeedbackInput = z.infer<typeof createFeedbackSchema>;
+export type CreateFeedbackInput = z.infer<typeof createFeedbackSchema> & {
+  courseId?: string;
+  componentId?: string;
+  lessonFeedbackKind?: z.infer<typeof lessonFeedbackKindSchema>;
+  problemCategory?: z.infer<typeof problemCategorySchema>;
+};
 export type UpdateFeedbackTriageInput = z.infer<typeof updateFeedbackTriageSchema>;
 
 export type FeedbackEntry = CreateFeedbackInput & {
@@ -48,6 +62,10 @@ export const feedbackSheetHeaders = [
   'Priority',
   'GitHub Issue Number',
   'GitHub Issue URL',
+  'Course ID',
+  'Component ID',
+  'Lesson Feedback Kind',
+  'Problem Category',
 ] as const;
 
 export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
@@ -65,6 +83,10 @@ export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
     feedback.priority ?? '',
     feedback.githubIssueNumber?.toString() ?? '',
     feedback.githubIssueUrl ?? '',
+    feedback.courseId ?? '',
+    feedback.componentId ?? '',
+    feedback.lessonFeedbackKind ?? '',
+    feedback.problemCategory ?? '',
   ];
 }
 
@@ -83,6 +105,10 @@ export function feedbackFromSheetRow(row: string[]): FeedbackEntry {
     priority: feedbackPrioritySchema.optional().catch(undefined).parse(row[10] || undefined),
     githubIssueNumber: parseGithubIssueNumber(row[11]),
     githubIssueUrl: row[12] || undefined,
+    courseId: row[13] || undefined,
+    componentId: row[14] || undefined,
+    lessonFeedbackKind: lessonFeedbackKindSchema.optional().catch(undefined).parse(row[15] || undefined),
+    problemCategory: problemCategorySchema.optional().catch(undefined).parse(row[16] || undefined),
   };
 }
 

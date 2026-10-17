@@ -83,6 +83,9 @@ export const courseContentComponentSchema = z.discriminatedUnion('type', [
   baseCourseContentComponentSchema.extend({
     type: z.literal('resources'),
   }),
+  baseCourseContentComponentSchema.extend({
+    type: z.literal('exercise'),
+  }),
 ]);
 
 export const courseContentSectionSchema = z.object({

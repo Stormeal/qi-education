@@ -58,7 +58,7 @@ describe('US-P006 isolated route costs', () => {
     await content.updateCourseContent('course', sections);
     const base = start({ authRepository: new GoogleSheetsAuthRepository(), courseRepository: new GoogleSheetsCourseRepository(), courseContentRepository: content, courseAssetRepository: assets });
     const counts: Record<string, number> = {};
-    for (const path of ['/auth/me', '/courses', '/courses/course/outline', '/courses/course/content', '/courses/course/thumbnail', '/courses/course/content/components/quiz/quiz-attempts']) {
+    for (const path of ['/auth/me', '/courses', '/courses/course/outline', '/courses/course/content', '/courses/course/thumbnail', '/courses/course/learners/count', '/courses/course/content/components/quiz/quiz-attempts']) {
       fixture.reads.length = 0;
       const quiz = path.endsWith('quiz-attempts');
       const response = await fetch(base + path, { headers: { ...headers(student), 'Content-Type': 'application/json' },
@@ -68,7 +68,7 @@ describe('US-P006 isolated route costs', () => {
     }
     console.log('Sheets reads per route', counts);
     expect(counts).toEqual({ '/auth/me': 1, '/courses': 2, '/courses/course/outline': 2, '/courses/course/content': 2,
-      '/courses/course/thumbnail': 2, '/courses/course/content/components/quiz/quiz-attempts': 2 });
+      '/courses/course/thumbnail': 2, '/courses/course/learners/count': 2, '/courses/course/content/components/quiz/quiz-attempts': 2 });
 
     // One warm instance, synchronous class burst, simulated 5ms provider latency.
     fixture.reads.length = 0;
@@ -89,6 +89,7 @@ describe('US-P006 isolated route costs', () => {
     // A later request must see a revoked account, not a retained auth result.
     fixture.rows.get('Users')![2][5] = 'disabled';
     expect((await fetch(base + '/courses/course/content', { headers: headers(student) })).status).toBe(401);
+    expect((await fetch(base + '/courses/course/learners/count', { headers: headers(student) })).status).toBe(401);
   });
 
   it('AC01/03 allows 20 course content readers to enter together', async () => {

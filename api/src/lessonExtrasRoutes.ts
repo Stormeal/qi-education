@@ -1,10 +1,12 @@
 import type { Express, NextFunction, Request, RequestHandler, Response } from 'express';
-import type { AuthenticatedUser } from './auth.js';
-import { canLearnCourse } from './courseAccess.js';
+import type { AuthenticatedUser, AuthUser } from './auth.js';
+import { canAuthorCourse, canLearnCourse } from './courseAccess.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { CourseContentRepository } from './courseContentRepository.js';
 import { createLessonNoteSchema, updateLessonNoteSchema, LessonNoteLimitError } from './lessonNotes.js';
 import type { LessonNotesRepository } from './lessonNotesRepository.js';
+import { createLessonFeedbackSchema } from './feedback.js';
+import type { FeedbackRepository } from './feedbackRepository.js';
 
 type Handler = (request: Request, response: Response, next: NextFunction) => Promise<unknown>;
 const user = (request: Request) => (request as Request & { user: AuthenticatedUser }).user;
@@ -13,10 +15,12 @@ class ExtrasError extends Error {
 }
 export function registerLessonExtrasRoutes(app: Express, dependencies: {
   authenticate: RequestHandler;
+  authenticateWithUsers: RequestHandler;
   read: (handler: Handler) => RequestHandler;
   courses: CourseRepository;
   content: CourseContentRepository;
   notes: LessonNotesRepository;
+  feedback: FeedbackRepository;
 }): void {
   const { courses, content, notes } = dependencies;
   const root = '/courses/:courseId';
@@ -63,5 +67,23 @@ export function registerLessonExtrasRoutes(app: Express, dependencies: {
     const courseId = await entitled(request);
     if (!await notes.delete(user(request).id, courseId, String(request.params.noteId))) throw new ExtrasError(404, 'Note not found');
     response.status(204).end();
+  }));
+  app.post(`${root}/lesson-feedback`, dependencies.authenticate, handle(async (request, response) => {
+    const courseId = await entitled(request);
+    const input = createLessonFeedbackSchema.parse(request.body);
+    await requireLesson(courseId, input.componentId);
+    const feedback = await dependencies.feedback.createFeedback({ page: 'lesson',
+      rating: input.kind === 'helpful' ? 'great' : 'needs-work', message: input.message,
+      courseId, componentId: input.componentId, lessonFeedbackKind: input.kind, problemCategory: input.category,
+    }, user(request));
+    response.status(201).json({ id: feedback.id });
+  }));
+  app.get(`${root}/learners/count`, dependencies.authenticateWithUsers, handle(async (request, response) => {
+    const courseId = String(request.params.courseId);
+    const course = (await courses.listCourses()).find(course => course.id === courseId);
+    if (!course) throw new ExtrasError(404, 'Course not found');
+    if (course.status !== 'published' && !canAuthorCourse(course, user(request))) throw new ExtrasError(403, 'You do not have access to this course.');
+    const { users } = request as Request & { users: AuthUser[] };
+    response.json({ enrolledLearners: users.filter(user => user.enrolledCourseIds.includes(courseId)).length });
   }));
 }

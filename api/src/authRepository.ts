@@ -19,7 +19,7 @@ export interface AuthRepository {
   readonly unavailableReason?: string;
   findByEmail(email: string, options?: { fresh?: boolean }): Promise<AuthUser | null>;
   findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null>;
-  listUsers(): Promise<AuthUser[]>;
+  listUsers(options?: { fresh?: boolean }): Promise<AuthUser[]>;
   updateRole(userId: string, role: UserRole): Promise<AuthUser | null>;
   updateStatus(userId: string, status: UserStatus): Promise<AuthUser | null>;
   updateRoleWithChange(userId: string, role: UserRole): Promise<AuthAccessMutation | null>;
@@ -165,8 +165,8 @@ export class GoogleSheetsAuthRepository implements AuthRepository {
     return { user: { ...existing, status }, previous: existing };
   }
 
-  async listUsers(): Promise<AuthUser[]> {
-    return this.usersRead.run(this.loadUsers);
+  async listUsers(options?: { fresh?: boolean }): Promise<AuthUser[]> {
+    return options?.fresh ? this.usersRead.runFresh(this.loadUsers) : this.usersRead.run(this.loadUsers);
   }
 
   private readonly loadUsers = async (): Promise<AuthUser[]> => {

@@ -118,6 +118,7 @@ type ServerDependencies = {
 
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
+  users?: AuthUser[];
 };
 
 export function createServer(dependencies: ServerDependencies = {}) {
@@ -349,8 +350,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         const component = findCourseComponent(content.sections, sectionId, componentId);
 
-        if (!component || (component.type !== 'text' && component.type !== 'resources' && component.type !== 'quiz')) {
-          response.status(404).json({ message: 'Attachment uploads are only available for text and resources components.' });
+        if (!component || (component.type !== 'text' && component.type !== 'resources' && component.type !== 'exercise' && component.type !== 'quiz')) {
+          response.status(404).json({ message: 'Attachment uploads are only available for text, resources, exercise and quiz components.' });
           return;
         }
 
@@ -1295,7 +1296,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   };
 
   registerLessonExtrasRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
-    courses, content: courseContent, notes: lessonNotes });
+    authenticateWithUsers: authenticateRequest(auth, true), courses, content: courseContent, notes: lessonNotes, feedback });
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     courses, content: courseContent, progress: learningProgress });
 
@@ -1909,7 +1910,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function authenticateRequest(authRepository: AuthRepository) {
+function authenticateRequest(authRepository: AuthRepository, includeUsers = false) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
       const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
@@ -1936,7 +1937,10 @@ function authenticateRequest(authRepository: AuthRepository) {
 
       // A later request must not join a snapshot captured before another instance
       // revoked this account or changed its role (DEF-027).
-      const user = await authRepository.findById(session.sub, { fresh: true });
+      // Learner count uses the same fresh snapshot for authentication and the
+      // count, rather than adding a second Sheets read after authentication.
+      const users = includeUsers ? await authRepository.listUsers({ fresh: true }) : undefined;
+      const user = users ? users.find(user => user.id === session.sub) : await authRepository.findById(session.sub, { fresh: true });
 
       if (!user || user.status !== 'active') {
         response.status(401).json({ message: 'Authentication required' });
@@ -1944,6 +1948,7 @@ function authenticateRequest(authRepository: AuthRepository) {
       }
 
       (request as AuthenticatedRequest).user = toAuthenticatedUser(user);
+      if (users) (request as AuthenticatedRequest).users = users;
       next();
     } catch (error) {
       next(error);
