@@ -154,5 +154,12 @@ Mongo), app 343/45 with guards 23/23, API build, Pages build. Browser on 3001/42
 isolated API and `COURSE_STORE_READ_ONLY=1`: an admin price change shows the read-only message,
 keeps the dialog and value, and writes nothing (`docs/verification/2026-10-17/US-P015/`). Not
 verified: real MongoDB and Sheets, the real catalog order, whether Vercel lets the production keys
-be pulled, and the forward and rollback rehearsal. Next: push, then Alex runs the
-[runbook](../release/US-P015-cutover.md) after the US-P014 cutover.
+be pulled, and the forward and rollback rehearsal. Pushed 2026-10-17 (`530a0a1`); the hosted
+API reports `courses: { storage: google-sheets, readOnly: false }`.
+
+Production dry run 2026-10-17 (Alex, from his machine): `Sheet rows: 11; valid: 11; invalid: 0;
+duplicate ids: 0`. The production Google and MongoDB keys can be pulled (three other settings
+are Sensitive and stay local; the copy does not use them). Found on the way: in Windows
+PowerShell `npm` drops the `--` before the mode, so the runbooks now call `npm.cmd`. Not yet
+known: whether MongoDB Atlas accepts a connection from Alex's machine (the dry run does not
+connect; `--apply` will). Next: the [runbook](../release/US-P015-cutover.md) from step 4.

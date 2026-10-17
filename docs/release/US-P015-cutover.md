@@ -16,7 +16,9 @@ still browse, learn, enroll and save lesson content; creating a course, changing
 thumbnail, price or catalog settings says "try again in a few minutes").
 Pick a quiet moment.
 
-All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
+All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`. The copy commands use
+`npm.cmd`, not `npm`: in Windows PowerShell, `npm` swallows the `--` that passes the mode
+(`--dry-run` and so on) to the script, which then refuses with "choose exactly one of ...".
 
 ## Before you start (any day)
 
@@ -40,7 +42,7 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
 3. Dry run. It reads the sheet and writes nothing. Paste:
 
    ```powershell
-   npm --prefix api run courses:migrate -- --dry-run
+   npm.cmd --prefix api run courses:migrate -- --dry-run
    ```
 
    Finished when it prints `Sheet rows: N; valid: N; invalid: 0; duplicate ids: 0`.
@@ -72,7 +74,7 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
 
    ```powershell
    npx vercel env pull api/.env --environment=production --yes
-   npm --prefix api run courses:migrate -- --apply
+   npm.cmd --prefix api run courses:migrate -- --apply
    ```
 
    Finished when it prints `inserted: N; updated: 0; unchanged: 0` with the same N as step 3
@@ -82,7 +84,7 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
 8. **Verify.** Paste:
 
    ```powershell
-   npm --prefix api run courses:migrate -- --verify
+   npm.cmd --prefix api run courses:migrate -- --verify
    ```
 
    You must see `Verified: N courses identical`. If it lists differences, run step 7's
@@ -136,8 +138,8 @@ Use this only if course details misbehave on MongoDB. It copies everything Mongo
    ```powershell
    npx vercel env pull api/.env --environment=production --yes
    $env:USE_SHARED_SERVICES = '1'
-   npm --prefix api run courses:migrate -- --restore-sheet
-   npm --prefix api run courses:migrate -- --verify
+   npm.cmd --prefix api run courses:migrate -- --restore-sheet
+   npm.cmd --prefix api run courses:migrate -- --verify
    ```
 
    You must see `Verified: N courses identical`. Existing rows are updated in place and new

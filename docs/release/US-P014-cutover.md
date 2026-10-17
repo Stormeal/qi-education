@@ -13,7 +13,9 @@ Time needed: about 20 minutes, of which 5 to 10 with accounts read-only (people 
 in and learn; signup, enrolling and password changes say "try again in a few minutes").
 Pick a quiet moment.
 
-All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
+All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`. The copy commands use
+`npm.cmd`, not `npm`: in Windows PowerShell, `npm` swallows the `--` that passes the mode
+(`--dry-run` and so on) to the script, which then refuses with "choose exactly one of ...".
 
 ## Before you start (any day)
 
@@ -37,7 +39,7 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
 3. Dry run. It reads the sheet and writes nothing. Paste:
 
    ```powershell
-   npm --prefix api run users:migrate -- --dry-run
+   npm.cmd --prefix api run users:migrate -- --dry-run
    ```
 
    Finished when it prints `Sheet rows: N; valid: N; invalid: 0; duplicate emails: 0`.
@@ -70,7 +72,7 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
 
    ```powershell
    npx vercel env pull api/.env --environment=production --yes
-   npm --prefix api run users:migrate -- --apply
+   npm.cmd --prefix api run users:migrate -- --apply
    ```
 
    Finished when it prints `inserted: N; updated: 0; unchanged: 0` with the same N as step 3
@@ -80,7 +82,7 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
 8. **Verify.** Paste:
 
    ```powershell
-   npm --prefix api run users:migrate -- --verify
+   npm.cmd --prefix api run users:migrate -- --verify
    ```
 
    You must see `Verified: N accounts identical`. If it lists differences, run step 7's
@@ -132,8 +134,8 @@ accounts and enrollments created after the cutover) back into the sheet before s
    ```powershell
    npx vercel env pull api/.env --environment=production --yes
    $env:USE_SHARED_SERVICES = '1'
-   npm --prefix api run users:migrate -- --restore-sheet
-   npm --prefix api run users:migrate -- --verify
+   npm.cmd --prefix api run users:migrate -- --restore-sheet
+   npm.cmd --prefix api run users:migrate -- --verify
    ```
 
    You must see `Verified: N accounts identical`. Existing rows are updated in place and new

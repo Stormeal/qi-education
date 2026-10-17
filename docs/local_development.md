@@ -78,7 +78,8 @@ The legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, an
 accounts between the Users sheet and `<MONGODB_COURSE_CONTENT_COLLECTION>_users`. It needs
 `USE_SHARED_SERVICES=1`, refuses `--apply` and `--restore-sheet` unless account writes are
 frozen and the store points the right way, and never prints password hashes. Isolated runs
-cannot use it. The hosted procedure, with every command, is the
+cannot use it. In Windows PowerShell call it as `npm.cmd ...`: plain `npm` drops the `--`, so
+the script sees no mode and refuses. The hosted procedure, with every command, is the
 [cutover runbook](release/US-P014-cutover.md).
 
 `npm --prefix api run courses:migrate` does the same for course details (US-P015), with the
