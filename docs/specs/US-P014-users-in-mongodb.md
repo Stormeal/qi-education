@@ -3,7 +3,8 @@
 ## Record
 
 - Story: US-P014 ([backlog](../user_stories.md#us-p014--keep-accounts-in-mongodb-instead-of-google-sheets))
-- State: In progress (selected by Alex 2026-10-17: "start US-P014")
+- State: Code done locally and lead-checked 2026-10-17 (not pushed); cutover not run. Selected by
+  Alex 2026-10-17: "start US-P014"
 - Owner: Codex (all code: `api/**`, `scripts/doctor.mjs`; see the
   [handoff](../handoffs/US-P014-users-in-mongodb-codex.md)); Claude Code (cutover runbook,
   local development docs, lead check); Alex runs the hosted cutover
@@ -208,4 +209,14 @@ Feature: Accounts stored in MongoDB
 
 ## Verification and delivery
 
-Not started.
+Lead check 2026-10-17 (Claude Code) on `7a402d7`: Codex's commits `5ee6ba0`, `a728130`, `7a402d7`
+stay within the handoff's files. Reviewed: single-document writes (`insertOne` with the
+duplicate key mapped to 409, `$addToSet`, field-only `$set`), reads by id on every request, the
+freeze at the HTTP boundary (both route prefixes, before token or mail side effects) and in a
+repository wrapper, copy guards and output lines (match the runbook). Checks: API 1424/58,
+journeys 6, app 339/45 with guards 23/23, API build, Pages build. Browser on 3001/4200 with an
+isolated API and `USER_STORE_READ_ONLY=1`: sign-in works; enrolling shows the read-only message
+in the dialog and writes nothing (`docs/verification/2026-10-17/US-P014/`). Not verified: real
+MongoDB and Sheets, indexes on Atlas, whether Vercel lets the production keys be pulled (runbook
+step 3 covers it), and the forward and rollback rehearsal. Next: push, then Alex runs the
+[runbook](../release/US-P014-cutover.md).

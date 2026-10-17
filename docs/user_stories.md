@@ -20,7 +20,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
-| US-P014 | Keep accounts in MongoDB instead of Google Sheets | Proposed | P1 | None | INV-005; closes the multi-instance part of DEF-023/024/026 |
+| US-P014 | Keep accounts in MongoDB instead of Google Sheets | Code done locally; cutover pending | P1 | None | INV-005; closes the multi-instance part of DEF-023/024/026 |
 | US-P015 | Keep course details in MongoDB instead of Google Sheets | Proposed | P2 | P014 | INV-005, INV-017 |
 | US-P016 | Retire the Google Sheets code for accounts and courses | Proposed | P3 | P014, P015 | None |
 
@@ -296,7 +296,7 @@ completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
 when several people use the platform at once, so that a class session does not fail because
 a spreadsheet's read limit ran out.**
 
-State: Proposed (2026-10-17). Priority P1: on 2026-10-17 one admin's visit exhausted the
+State: Code done locally and lead-checked (2026-10-17); the hosted cutover is Alex's step, see the [runbook](release/US-P014-cutover.md). Priority P1: on 2026-10-17 one admin's visit exhausted the
 Google Sheets read quota and most hosted routes answered 500 for two minutes; every
 signed-in request reads the whole Users sheet. Step 1 of the
 [Sheets to MongoDB plan](superpowers/plans/2026-10-17-sheets-to-mongodb.md); decided with

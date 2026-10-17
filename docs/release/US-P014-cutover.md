@@ -1,7 +1,8 @@
 # US-P014 cutover: move accounts from Google Sheets to MongoDB
 
 For Alex. Written 2026-10-17 from the [US-P014 spec](../specs/US-P014-users-in-mongodb.md)
-("Operator contract"). Run it only after the US-P014 release is pushed and deployed.
+("Operator contract") and checked against the delivered script (`a728130`): its refusal,
+summary and verify lines are quoted exactly. Run it only after the US-P014 release is pushed and deployed.
 
 **Nothing is lost:** account writes are frozen while data moves, every copy is checked field
 by field in both directions before switching, and the sheet is never changed by the forward
@@ -40,6 +41,9 @@ All commands are PowerShell, run in `C:\Users\Alex\source\qi-education`.
    ```
 
    Finished when it prints `Sheet rows: N; valid: N; invalid: 0; duplicate emails: 0`.
+   If it prints `Migration failed: configuration could not be loaded`, the production
+   Google or MongoDB keys did not come down with the pull. Vercel never hands out variables
+   marked **Sensitive**: stop and tell me, and we decide how to supply them for this one run.
    If it lists invalid rows or duplicate emails, stop and send me the list (it shows sheet row
    numbers and, for duplicates, the email only). Decide per row which account to keep before
    going on; nothing is merged automatically.
