@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-L015 ([backlog](../user_stories.md#us-l015--keep-notes-rate-lessons-and-practise-in-a-course))
-- State: In progress (selected by Alex 2026-10-17 after the first teacher session)
+- State: Delivered, pushed to `main` 2026-10-17 (`8788d78`, `93f7d21`, `5171341`; lead-checked) (selected by Alex 2026-10-17 after the first teacher session)
 - Owner: Codex (API, storage and the frontend data service). Runs in parallel with
   US-L016 (Claude, the learning page), which builds on the contract below.
 - Part 2 of 3 of the learning view redesign (part 1 was US-P013; decided with Alex on

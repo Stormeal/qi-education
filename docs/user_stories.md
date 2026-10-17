@@ -13,8 +13,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
-| US-L015 | Keep notes, rate lessons and practise in a course | Done locally | P2 | None | None |
-| US-L016 | Learn in a page built for working through a course | Done locally | P2 | L015 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | In progress | P2 | Distributed coordination decision | DEF-023/024/025; multi-instance/restart work remains |
@@ -22,6 +20,9 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
+| US-P014 | Keep accounts in MongoDB instead of Google Sheets | Proposed | P1 | None | INV-005; closes the multi-instance part of DEF-023/024/026 |
+| US-P015 | Keep course details in MongoDB instead of Google Sheets | Proposed | P2 | P014 | INV-005, INV-017 |
+| US-P016 | Retire the Google Sheets code for accounts and courses | Proposed | P3 | P014, P015 | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -115,43 +116,6 @@ Feature: Email confirmation
     When I use the site
     Then the agreed limits for unconfirmed accounts apply
     And I can ask for the confirmation mail again
-```
-
-### US-L015 — Keep notes, rate lessons and practise in a course
-
-**As a learner, I want to keep private notes at a point in a lesson, tell the teacher how a
-lesson went, see how many people take the course, and practise with exercises, so that
-the learning page is somewhere I can work.**
-
-State: Done locally, not pushed (2026-10-17, Codex; lead-checked). It stays in this file until pushed. Part 2 of 3 of the learning view redesign: the
-API, storage and frontend data service. Contract, defaults and scenarios AC01–AC08 are in
-the [spec](specs/US-L015-learning-backend.md).
-
-```gherkin
-Feature: Learning backend
-  Scenario: US-L015-AC01 Keep a private note at a video time
-    Given I am enrolled in a course
-    When I add a note on a video lesson at 95 seconds
-    Then listing my notes returns it with videoSeconds 95
-    And another learner listing notes for the course does not see it
-```
-
-### US-L016 — Learn in a page built for working through a course
-
-**As a learner, I want one page where I see where I am, move between lessons, keep notes,
-get the lesson's files and tell the teacher how a lesson went, so that I can work through
-a course without hunting for controls.**
-
-State: Done locally, not pushed (2026-10-17, Claude Code). It stays in this file until pushed. Part 3 of 3 of the learning view redesign,
-built on US-L015. Defaults and scenarios AC01–AC09 are in the
-[spec](specs/US-L016-learning-view.md).
-
-```gherkin
-Feature: Learning page
-  Scenario: US-L016-AC03 A video completes at 90%
-    Given I am watching a video lesson
-    When the position passes 90% of its length
-    Then the lesson is marked complete in the sidebar once
 ```
 
 ## Platform reliability
@@ -325,6 +289,88 @@ Per-account sign-in now permits ten failures in a rolling 15-minute window,
 then refuses that address for 15 minutes. Signup and per-client limits remain
 outside that increment. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
+
+### US-P014 — Keep accounts in MongoDB instead of Google Sheets
+
+**As a learner, teacher or admin, I want signing in and every signed-in page to keep working
+when several people use the platform at once, so that a class session does not fail because
+a spreadsheet's read limit ran out.**
+
+State: Proposed (2026-10-17). Priority P1: on 2026-10-17 one admin's visit exhausted the
+Google Sheets read quota and most hosted routes answered 500 for two minutes; every
+signed-in request reads the whole Users sheet. Step 1 of the
+[Sheets to MongoDB plan](superpowers/plans/2026-10-17-sheets-to-mongodb.md); decided with
+Alex: users first, courses second, feedback stays in Sheets. Contract, defaults and the
+cutover runbook are in the [spec](specs/US-P014-users-in-mongodb.md) (AC01–AC08).
+
+```gherkin
+Feature: Accounts stored in MongoDB
+  Scenario: US-P014-AC01 Signed-in requests make no Sheets reads
+    Given the hosted API runs with USER_STORE=mongodb
+    When a learner opens the catalog, My Learning and a course's learning page
+    Then no request reads the Users sheet
+    And each authenticated request reads the account once, by id
+
+  Scenario: US-P014-AC03 One account per email across instances
+    Given no account exists for "Ada@Example.test"
+    When two signups for " ada@example.test " arrive at the same time on different instances
+    Then exactly one account exists and the other request receives the existing 409 answer
+
+  Scenario: US-P014-AC05 The copy moves every account unchanged
+    Given the Users sheet has N valid rows with distinct normalized emails
+    When the copy script runs with --apply twice
+    Then MongoDB holds exactly N accounts identical to the sheet rows
+    And the script never prints a password hash
+```
+
+### US-P015 — Keep course details in MongoDB instead of Google Sheets
+
+**As a learner or teacher, I want the catalog and course pages to load without depending on
+a spreadsheet, so that they stay available in a class session and show the title and status
+the course actually has.**
+
+State: Proposed (2026-10-17). Depends on US-P014 (same pattern: repository behind
+`CourseRepository`, a hosted `COURSE_STORE` switch defaulting to `google-sheets`, a dry-run
+and apply copy script, a cutover in a quiet moment). Course routes read the Courses sheet up
+to twice per request today (INV-005), and reviewed titles and statuses already live in
+MongoDB, so the sheet goes stale (INV-017). Spec to be written when US-P014 is delivered.
+
+```gherkin
+Feature: Course details stored in MongoDB
+  Scenario: US-P015-AC01 Course routes make no Sheets reads
+    Given the hosted API runs with COURSE_STORE=mongodb
+    When anyone opens the catalog or a course
+    Then no request reads the Courses sheet
+
+  Scenario: US-P015-AC02 The copy keeps every course field
+    Given the Courses sheet has N valid rows
+    When the copy script runs with --apply twice
+    Then MongoDB holds exactly N courses with all 21 fields, owner and created date unchanged
+
+  Scenario: US-P015-AC03 One source for title and status
+    Given an admin publishes a revised title
+    When the catalog and the course page load
+    Then both show the published title and status from MongoDB
+```
+
+### US-P016 — Retire the Google Sheets code for accounts and courses
+
+**As the team maintaining QI Academy, I want accounts and courses to have one storage path,
+so that there is less code to keep correct and nothing reads the old sheets by mistake.**
+
+State: Proposed (2026-10-17). Depends on US-P014 and US-P015 running on MongoDB for one
+release with a clean hosted log. Removes the Sheets repositories for users and courses, the
+`USER_STORE`/`COURSE_STORE` switches and their health and doctor checks, and updates the
+architecture and local development docs. Feedback keeps its Google Sheets store; the old
+sheets stay in Google Drive as a read-only backup.
+
+```gherkin
+Feature: One storage path for accounts and courses
+  Scenario: US-P016-AC01 Only feedback uses Google Sheets
+    Given the API source after this story
+    When a reviewer searches it for Google Sheets clients
+    Then only the feedback repository and its configuration use them
+```
 
 ## Adding a story
 

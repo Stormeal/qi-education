@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-L016 ([backlog](../user_stories.md#us-l016--learn-in-a-page-built-for-working-through-a-course))
-- State: Done locally, not pushed (selected by Alex 2026-10-17 after the first teacher session). Commit `27ab0ec`;
+- State: Delivered, pushed to `main` 2026-10-17 (`04b4d26`; DEF-043/DEF-044 follow-up `4531565`) (selected by Alex 2026-10-17 after the first teacher session). Commit `27ab0ec`;
   lead check with US-L015 on `5171341` recorded in the work queue.
 - Owner: Claude Code (frontend pages, UI components, `AppStateService`, `app.models.ts`).
   Builds on the US-L015 contract (Codex, in parallel).

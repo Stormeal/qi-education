@@ -651,10 +651,12 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-All documented confirmed defects remain Fixed. The first teacher session is over (Alex,
-2026-10-17); the learning view redesign (US-L015, US-L016) is active.
-Await the user's next selected story or investigation; no Proposed enhancement is authorized by
-this delivery. Shared-provider/hosted release checks require a separate release.
+US-P014 (accounts in MongoDB, P1), the first step of the
+[Sheets to MongoDB plan](superpowers/plans/2026-10-17-sheets-to-mongodb.md) written on
+2026-10-17 at Alex's request: users first, then courses (US-P015), then retiring the Sheets
+code (US-P016); feedback stays in Google Sheets. Proposed, not selected: Alex starts it with
+"start US-P014". The quota session `cut-sheets-reads-behind` (2026-10-17) is measuring Sheets
+reads per page; its numbers are the before figures for the US-P014 cutover.
 
 ## Defect order
 
