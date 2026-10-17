@@ -2,7 +2,7 @@
   display: block;
   min-height: 100vh;
   color: var(--color-text);
-  background: var(--color-surface-page);
+  background: var(--gradient-page);
   font-family: var(--font-body);
   font-size: var(--text-body);
   line-height: 1.55;
@@ -84,10 +84,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 16px;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
-  padding: 12px max(16px, calc((100% - 1408px) / 2));
+  /* Same 1240px frame as the header, so the breadcrumb lines up with the logo as on the details page. */
+  padding: 12px max(16px, calc((100% - 1240px) / 2));
   background: var(--color-surface-card);
 }
 
@@ -130,8 +130,7 @@
 
 .workspace {
   display: grid;
-  width: 100%;
-  max-width: 1440px;
+  width: min(1240px, calc(100% - 32px));
   flex: 1;
   grid-template-columns: minmax(0, 1fr) 360px;
   margin: 0 auto;
@@ -146,7 +145,7 @@
   min-width: 0;
   align-content: start;
   gap: 16px;
-  padding: 24px 28px 40px;
+  padding: 24px 28px 40px 0;
 }
 
 .lesson-head {
@@ -967,6 +966,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .lesson-column {
+    padding: 24px 0 40px;
+  }
+
   .curriculum {
     border-top: 1px solid var(--color-border);
     border-left: 0;
@@ -979,7 +982,7 @@
 
 @media (max-width: 640px) {
   .lesson-column {
-    padding: 16px 16px 32px;
+    padding: 16px 0 32px;
   }
 
   .lesson-head {

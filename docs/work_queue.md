@@ -15,6 +15,14 @@ between them is in the [US-L015 spec](specs/US-L015-learning-backend.md).
 | Claude Code | US-L016: learning page, exercise type in the frontend models and builder, admin feedback lesson tags | Everything under `app/` except `services/lesson-extras.service*.ts` and the version lines; `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md` | Done locally (`27ab0ec`, not pushed). Checked with US-L015 in `main`, see the lead check below and the [spec](specs/US-L016-learning-view.md#verification-2026-10-17-claude-code). Not verified: a real Mux video, a keyboard-only walk |
 | Codex | US-L015: notes, lesson feedback, learner count, exercise type in the API, `lesson-extras.service.ts` | See the [handoff](handoffs/US-L015-learning-backend-codex.md) | Done locally 2026-10-17 on `main`, base `27ab0ec` (contains `ccdb6ca`). API commits `8788d78` (notes) and `93f7d21` (feedback/count/exercises); service, tests and delivery record in this commit. Required checks: API 1326/54, API build, journeys 6/6, lesson-extras service 8/8 pass; additional full app 338/45, guards 23/23 and UI foundation check pass. Review found no correctness/security changes needed. Not verified: live providers/multi-host, hosted deployment, combined browser flow; extra live/working-revision extras route regression deferred. Isolated stores/ephemeral ports only; no push. Lead owns backlog closure and US-L016 browser checks. See [Outcome](specs/US-L015-learning-backend.md#outcome). |
 
+Follow-up 2026-10-17 after the push (Alex's hosted screenshots): DEF-043 (P1, the learning page
+stopped rendering for video lessons stored without `attachments`) and DEF-044 (header did not
+match the details page) fixed locally by Claude Code, not pushed. INV-019 (a hosted video keeps
+spinning) not reproduced locally; check after deploy. Also seen in the hosted log 15:21-15:23:
+Google Sheets "Read requests per minute" quota exceeded on most routes during Alex's visit
+(US-P006 / INV-005); the learning page adds two authenticated requests per open (notes, learner
+count), each with a fresh users read. Checks: app 339/45, guards 23/23, Pages build.
+
 Lead check 2026-10-17 on `5171341`: Codex stayed within its files; routes, bodies, status
 codes and the service match the US-L015 contract; existing routes unchanged (the attachment
 route only adds `exercise`). The learner count reuses the fresh users read of authentication

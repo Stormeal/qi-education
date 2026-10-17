@@ -33,7 +33,7 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); vi.spyOn(window, 'scrollTo').mockImplementation(() => {}); });
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  async function open(path: string, options: { empty?: boolean; saved?: unknown; outlineFailure?: boolean; catalogFailure?: boolean; otherAccount?: boolean; emptyCourse?: boolean; delayedOutline?: boolean; manyLessons?: boolean } = {}) {
+  async function open(path: string, options: { empty?: boolean; saved?: unknown; outlineFailure?: boolean; catalogFailure?: boolean; otherAccount?: boolean; emptyCourse?: boolean; delayedOutline?: boolean; manyLessons?: boolean; legacy?: boolean } = {}) {
     const restored = options.otherAccount ? { ...login, user: { ...login.user, email: 'other@example.test', id: 'other' } } : login;
     localStorage.setItem('qiEducationSession', JSON.stringify(restored));
     if (options.saved !== undefined) localStorage.setItem(key, typeof options.saved === 'string' ? options.saved : JSON.stringify(options.saved));
@@ -44,7 +44,8 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     const document = options.emptyCourse ? { ...content, sections: [] } : options.manyLessons ? { ...content,
       sections: [0, 1].map(section => ({ id: `s${section}`, title: 'Lessons', components: Array.from({ length: 100 }, (_, index) => ({
         ...content.sections[0].components[0], id: `lesson-${section * 100 + index}`, title: `Lesson ${section * 100 + index + 1}`,
-      })) })) } : content;
+      })) })) } : options.legacy ? { ...content, sections: content.sections.map(section => ({ ...section,
+        components: section.components.map(({ attachments: _attachments, ...component }) => component) })) } : content;
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input));
       if (url.pathname.endsWith('/users/me/learning-progress')) return json({ progress: [] });
@@ -87,6 +88,14 @@ describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
     button('Mark complete').click(); harness.detectChanges();
     button('Start now').click(); harness.detectChanges();
     expect(body().textContent).toContain('Question 1 of 1');
+  });
+
+  it('DEF-043 renders the whole learning page for stored lessons that have no attachments field', async () => {
+    const { body } = await open('/library/course', { legacy: true });
+    const tabs = [...body().querySelectorAll('[role=tab]')].map(item => item.textContent?.replace(/\s+/g, ' ').trim());
+    expect(tabs).toEqual(['Overview', 'Notes 0', 'Lesson files 0']);
+    expect(body().querySelector('.curriculum-head')?.textContent).toContain('0 of 2 lessons complete');
+    expect(body().querySelectorAll('.lesson-item')).toHaveLength(2);
   });
 
   it('LP-01 shares explicit lesson completion across workspace, library, Home and resume', async () => {

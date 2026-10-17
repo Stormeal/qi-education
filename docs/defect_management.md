@@ -553,6 +553,7 @@ Hosted clocks, durability and uncertain provider outcomes require release checks
 | INV-016 | CI event configuration reproduced locally: pull requests only, no push trigger | Main push trigger added under US-P008-AC04; actual GitHub run/host gating unverified (no push authorized) | US-P008 |
 | INV-017 | US-T002 code (`86196cf`): status branches in `PATCH /courses/:id` are unreachable because the review service rejects status changes; reviewed title/status live only in MongoDB so the Courses sheet goes stale | Route tests for each legacy status transition; publish a revision and compare the sheet row | US-T002 |
 | INV-018 | Reproduced in isolated memory stores as DEF-021 on 2026-10-11: course thumbnails are served `Cache-Control: private, no-store` even when the URL carries the asset id as a version | Matching-version HTTP requests, anonymous and authenticated, both route prefixes: four RED header assertions | US-P006-AC06 |
+| INV-019 | Alex 2026-10-17: a hosted video lesson keeps spinning on the new learning page. Not reproduced locally: Mux's public demo video plays, with and without DEF-043's missing `attachments`. Uploads are public playback only (DEF-T006-PUBLIC), so a signed ID is unlikely. Possibly a side effect of DEF-043 | After the DEF-043 fix is deployed, open the same hosted lesson; if it still spins, copy the browser console and the `mux-player` network requests | US-L016 |
 
 INV-005–INV-018 come from the [2026-10-09 code audit](audits/2026-10-09/code_audit.md).
 They began as code readings; reproduced entries above link their confirmed defects. That audit also re-observed INV-002,
@@ -704,6 +705,26 @@ Fixed 2026-10-16: `[attr.aria-expanded]` on the section toggle (`course-builder.
 Found in the hosted API log on 2026-10-13 after two video upload requests. `withCourseLock` lets the handler answer inside the lock, so `MongoCourseMutationLock.run` releases it after the response; Vercel can pause the function in between and the release's five-second limit expires. Worst case: the course answers "This course is being updated" until the 31-minute expiry. Every locked route has this order. Fix default (lead, confirm or change): answer only after the release. See the [handoff](handoffs/DEF-042-course-lock-release-codex.md).
 
 Fixed 2026-10-16 in `953b534` (Codex): `withCourseLock` holds the handler's final `send` until the lock release has settled, then sends the unchanged answer; a failed release is logged first. Default confirmed by Codex; Alex may still change it. Reproduced first: 12 route cases in `api/src/courseLockResponse.test.ts` failed with the release paused; 20 route cases now pass (both route prefixes, PUT, POST, PATCH, DELETE, failure paths). Lead check: the two `response.end` calls in `server.ts` are in unlocked read routes, so no locked answer bypasses the hold. API 1301/51, app 317/43, six journeys, Pages build pass. Not verified: hosted Vercel behaviour and real MongoDB. Check after the next deploy: the hosted log should no longer show `Course lock release requires verified recovery` after a video upload.
+
+### DEF-043 - Learning page stops rendering for video lessons stored without attachments
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-043 | Fixed, Claude Code, 2026-10-17 (new in US-L016) | P1 | US-L016-AC01, AC07 | Alex's hosted screenshot 2026-10-17 (ISTQB Foundation 4.0): empty sidebar, full-width progress fill; local console `TypeError: Cannot read properties of undefined (reading 'length')` in `LearningPage` |
+
+Found by Alex on the hosted site right after the US-L016 push, 2026-10-17. Steps: open a course whose first lesson is a video uploaded before attachments existed (stored without an `attachments` field, e.g. written by the Mux webhook) at `/library/:id`. Expected: the action bar, tabs and curriculum sidebar render. Actual: the template throws on `lesson.attachments.length` in the action bar on every change detection, so the rest of the page never updates: no rating buttons or tabs, and the sidebar shows only "Your progress" with an unbound progress bar drawn full width. The old learning view read `attachments` only inside text lessons, so video lessons never reached it.
+Root cause: `AppStateService.normalizeCourseContent` returned learner content unchanged, so the `attachments: []` default it gives author content never applied to learners. The API keeps stored lessons as they are (it already guards `attachments ?? []` in four places).
+
+Fixed 2026-10-17: learner content now gets the same `attachments` default; learner quizzes still skip the legacy quiz migration. Regression: `learning-progress.spec.ts` "DEF-043" (failed with the TypeError before the fix). Verified in a browser on 3001/4200 with an in-memory course whose video lesson has no `attachments`: action bar, tabs and sidebar render, console clean. Not verified: the hosted course after deploy.
+
+### DEF-044 - Learning page header does not match the course details page
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-044 | Fixed, Claude Code, 2026-10-17 (new in US-L016) | P3 (Low) | US-P013 shared look | Alex's screenshots 2026-10-17 comparing `/courses/:id` and `/library/:id` |
+
+Found by Alex, 2026-10-17. Expected: the header looks and sits the same on the details page and the learning page. Actual: the learning page used a flat page colour instead of the app's cream gradient, put a 16px gap above the course bar, and aligned the course bar and workspace to a 1408/1440px frame, so the breadcrumb did not line up with the logo.
+Fixed 2026-10-17: the app's page gradient is the `--gradient-page` token (used by `app.scss`, the details page and the learning page); the course bar starts right under the header and both it and the workspace use the header's 1240px frame. Verified at 1600px: header position and height, breadcrumb alignment and the band's bottom edge (82px) are identical on both pages; 400px has no sideways scroll.
 
 ## New defect record
 

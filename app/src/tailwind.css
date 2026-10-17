@@ -29,6 +29,7 @@
   --color-lesson-exercise: #fbe7d2;
   --color-lesson-resources: #eeeaf6;
   --gradient-hero: linear-gradient(135deg, #16241f, #29463c 55%, #80592f);
+  --gradient-page: linear-gradient(135deg, #fff7e8, #fbfaf7 45%, #e0e0d0);
 
   /* Fonts */
   --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;

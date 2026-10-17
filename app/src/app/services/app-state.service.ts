@@ -68,7 +68,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.213';
+  readonly appVersion = '0.1.214';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2995,7 +2995,12 @@ export class AppStateService {
   }
 
   private normalizeCourseContent(content: CourseContentDocument): CourseContentDocument {
-    if (content.view === 'outline' || content.view === 'learner') return content;
+    if (content.view === 'outline') return content;
+    // DEF-043: lessons stored before attachments existed (e.g. written by the Mux webhook) have no list.
+    // Learner quizzes are already safe to show, so they skip the legacy quiz migration below.
+    if (content.view === 'learner') return { ...content, sections: content.sections.map((section) => ({ ...section,
+      components: section.components.map((component) => ({ ...component, attachments: Array.isArray(component.attachments) ? component.attachments : [] })),
+    })) };
     return {
       ...content,
       sections: content.sections.map((section) => ({
