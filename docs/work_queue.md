@@ -12,8 +12,16 @@ between them is in the [US-L015 spec](specs/US-L015-learning-backend.md).
 
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
-| Claude Code | US-L016: learning page, exercise type in the frontend models and builder, admin feedback lesson tags | Everything under `app/` except `services/lesson-extras.service*.ts` and the version lines; `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md` | Implemented locally (this commit). Until Codex commits `app/src/app/services/lesson-extras.service.ts`, `main` does not build: the learning page imports it. Checked in an isolated copy with a stub of the contract: app 330 tests, guards 23/23, dev build; browser on 3001/4200 (see the [spec](specs/US-L016-learning-view.md#verification-2026-10-17-claude-code)). Next: once US-L015 lands, rerun all checks in `main` and browser-check notes, lesson feedback, learner count and an exercise |
+| Claude Code | US-L016: learning page, exercise type in the frontend models and builder, admin feedback lesson tags | Everything under `app/` except `services/lesson-extras.service*.ts` and the version lines; `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md` | Done locally (`27ab0ec`, not pushed). Checked with US-L015 in `main`, see the lead check below and the [spec](specs/US-L016-learning-view.md#verification-2026-10-17-claude-code). Not verified: a real Mux video, a keyboard-only walk |
 | Codex | US-L015: notes, lesson feedback, learner count, exercise type in the API, `lesson-extras.service.ts` | See the [handoff](handoffs/US-L015-learning-backend-codex.md) | Done locally 2026-10-17 on `main`, base `27ab0ec` (contains `ccdb6ca`). API commits `8788d78` (notes) and `93f7d21` (feedback/count/exercises); service, tests and delivery record in this commit. Required checks: API 1326/54, API build, journeys 6/6, lesson-extras service 8/8 pass; additional full app 338/45, guards 23/23 and UI foundation check pass. Review found no correctness/security changes needed. Not verified: live providers/multi-host, hosted deployment, combined browser flow; extra live/working-revision extras route regression deferred. Isolated stores/ephemeral ports only; no push. Lead owns backlog closure and US-L016 browser checks. See [Outcome](specs/US-L015-learning-backend.md#outcome). |
+
+Lead check 2026-10-17 on `5171341`: Codex stayed within its files; routes, bodies, status
+codes and the service match the US-L015 contract; existing routes unchanged (the attachment
+route only adds `exercise`). The learner count reuses the fresh users read of authentication
+(`authenticateRequest(auth, true)`), so it adds no Sheets read. API 1326/54, journeys 6, app
+338/45 with guards 23/23, and the Pages build pass. Browser on 3001/4200 with in-memory stores:
+notes, a rating in admin triage, learner count and an exercise work end to end. Not verified:
+hosted MongoDB/Sheets, a real Mux video. Next: Alex decides on the push.
 
 **Session 2026-10-16 — started by Alex with "pull down latest and start next job".** Branch:
 `main`. Base: `4018002` (US-P013 and the QI Academy rename merged through pull requests #47

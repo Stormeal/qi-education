@@ -13,8 +13,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
-| US-L015 | Keep notes, rate lessons and practise in a course | In progress | P2 | None | None |
-| US-L016 | Learn in a page built for working through a course | In progress | P2 | L015 | None |
+| US-L015 | Keep notes, rate lessons and practise in a course | Done locally | P2 | None | None |
+| US-L016 | Learn in a page built for working through a course | Done locally | P2 | L015 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | In progress | P2 | Distributed coordination decision | DEF-023/024/025; multi-instance/restart work remains |
@@ -123,7 +123,7 @@ Feature: Email confirmation
 lesson went, see how many people take the course, and practise with exercises, so that
 the learning page is somewhere I can work.**
 
-State: In progress (2026-10-17, Codex). Part 2 of 3 of the learning view redesign: the
+State: Done locally, not pushed (2026-10-17, Codex; lead-checked). It stays in this file until pushed. Part 2 of 3 of the learning view redesign: the
 API, storage and frontend data service. Contract, defaults and scenarios AC01–AC08 are in
 the [spec](specs/US-L015-learning-backend.md).
 
@@ -142,7 +142,7 @@ Feature: Learning backend
 get the lesson's files and tell the teacher how a lesson went, so that I can work through
 a course without hunting for controls.**
 
-State: In progress (2026-10-17, Claude Code). Part 3 of 3 of the learning view redesign,
+State: Done locally, not pushed (2026-10-17, Claude Code). It stays in this file until pushed. Part 3 of 3 of the learning view redesign,
 built on US-L015. Defaults and scenarios AC01–AC09 are in the
 [spec](specs/US-L016-learning-view.md).
 

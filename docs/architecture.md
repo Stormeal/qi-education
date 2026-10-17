@@ -131,6 +131,7 @@ future organization, not paths a fresh contributor can navigate today.
 | `app/src/app/app.routes.ts` | Lazy routes; unsaved-change `canDeactivate` guards on new/edit course routes |
 | `app/src/app/routes/` | Thin wrappers bind shared state to pages and session/login states |
 | `app/src/app/pages/` | Login, dashboard, catalog, course/editor, library, profile, admin, terms |
+| `pages/learning-page/` | `/library/:id`: curriculum progress, Previous/Next, video complete at 90%, 5-second up-next, notes, lesson feedback, lesson files, course facts (US-L016). `/courses/:id` stays on `course-view-page` |
 | `app/src/app/ui/` | CourseBuilder, header, profile menu, feedback dialog, skeletons/buttons |
 | `app/src/app/app.models.ts` | Shared frontend types and catalog constants |
 | `services/app-state.service.ts` | Signals, session/navigation, authoring drafts, uploads, feedback |

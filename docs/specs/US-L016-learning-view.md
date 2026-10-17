@@ -3,9 +3,8 @@
 ## Record
 
 - Story: US-L016 ([backlog](../user_stories.md#us-l016--learn-in-a-page-built-for-working-through-a-course))
-- State: Implemented locally, waiting for US-L015 (selected by Alex 2026-10-17 after the first teacher session).
-  The app builds and its tests pass once Codex's `lesson-extras.service.ts` lands; until then they were run in an
-  isolated copy against a stub of the contract.
+- State: Done locally, not pushed (selected by Alex 2026-10-17 after the first teacher session). Commit `27ab0ec`;
+  lead check with US-L015 on `5171341` recorded in the work queue.
 - Owner: Claude Code (frontend pages, UI components, `AppStateService`, `app.models.ts`).
   Builds on the US-L015 contract (Codex, in parallel).
 - Part 3 of 3 of the learning view redesign. Layout: the approved
@@ -106,7 +105,7 @@ Feature: Learning page
 - [x] AC08 exercise type in models, builder, details page and learning page
 - [ ] AC09 keyboard walk (400px checked: no sideways scroll, curriculum stacks under the lesson)
 - [x] Admin feedback list shows lesson tags
-- [ ] Browser check against Codex's API: notes, lesson feedback, learner count, an exercise saved and completed
+- [x] Browser check against Codex's API: notes, lesson feedback, learner count, an exercise saved and completed
 
 ## Verification (2026-10-17, Claude Code)
 
@@ -119,5 +118,10 @@ Feature: Learning page
 - Fixed during the check: lesson text lists and headings were unstyled (scoped styles do not
   reach `innerHTML`; the old view had the same gap), and the up-next buttons were restyled for
   the dark panel.
-- Not verified: notes, lesson feedback, learner count and exercises against the real API
-  (US-L015 not delivered yet); a real Mux video; a keyboard-only walk.
+- Lead check on `5171341` (US-L015 delivered): API 1326, journeys 6, app 338, guards 23/23, Pages build pass in
+  `main`. Browser on 3001/4200 against the real isolated API: a note saved and still listed after a reload, a
+  helpful rating shown in the admin feedback list with its course and lesson, learner count "1 learner", an
+  exercise with a ZIP starter file saved by the API, shown, ticked complete (progress write 200) and followed by up
+  next.
+- Not verified: a real Mux video (90% and note timestamps are unit-tested only); a keyboard-only walk; hosted
+  MongoDB and Sheets.
