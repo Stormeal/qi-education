@@ -1,7 +1,8 @@
 # US-P015 cutover: move course details from Google Sheets to MongoDB
 
 For Alex. Written 2026-10-17 from the [US-P015 spec](../specs/US-P015-courses-in-mongodb.md)
-("Operator contract"); checked against the delivered script in the lead check. Run it only
+("Operator contract") and checked against the delivered script (`ba3ff83`): its refusal,
+summary and verify lines are quoted exactly. Run it only
 after the US-P015 release is deployed **and the US-P014 accounts cutover is done** (one
 change at a time keeps a rollback simple).
 
@@ -145,3 +146,9 @@ Use this only if course details misbehave on MongoDB. It copies everything Mongo
 3. In Vercel set `COURSE_STORE` to `google-sheets` and `COURSE_STORE_READ_ONLY` to `0`, redeploy,
    and check the courses health line shows `storage: google-sheets`, `readOnly: False`.
 4. Put the development settings back as in step 13 and tell me "rolled back".
+
+**After a rollback, keep the API code at this release or later.** The restore writes a few
+cells in a special form (they start with `qi-course-cell:v1:`) when the sheet format cannot
+hold the exact value, for example a rating like 4.75 or a list item that contains a comma.
+This release and later ones read those cells; an older API version would not. Leave those
+cells as they are in the sheet.

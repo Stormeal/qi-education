@@ -21,7 +21,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
 | US-P014 | Keep accounts in MongoDB instead of Google Sheets | Code done locally; cutover pending | P1 | None | INV-005; closes the multi-instance part of DEF-023/024/026 |
-| US-P015 | Keep course details in MongoDB instead of Google Sheets | In progress | P2 | P014 | INV-005, INV-017 |
+| US-P015 | Keep course details in MongoDB instead of Google Sheets | Code done locally; cutover pending | P2 | P014 | INV-005, INV-017 |
 | US-P016 | Retire the Google Sheets code for accounts and courses | Proposed | P3 | P014, P015 | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
@@ -329,7 +329,7 @@ Feature: Accounts stored in MongoDB
 a spreadsheet, so that they stay available in a class session and show the title and status
 the course actually has.**
 
-State: In progress (2026-10-17, Codex; [spec](specs/US-P015-courses-in-mongodb.md) AC01–AC09 with the same no-data-loss contract as US-P014). Its cutover follows US-P014's (same pattern: repository behind
+State: Code done locally and lead-checked (2026-10-17); cutover after US-P014's, see the [runbook](release/US-P015-cutover.md) ([spec](specs/US-P015-courses-in-mongodb.md) AC01–AC09 with the same no-data-loss contract as US-P014). Its cutover follows US-P014's (same pattern: repository behind
 `CourseRepository`, a hosted `COURSE_STORE` switch defaulting to `google-sheets`, a dry-run
 and apply copy script, a cutover in a quiet moment). Course routes read the Courses sheet up
 to twice per request today (INV-005), and reviewed titles and statuses already live in

@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-P015 ([backlog](../user_stories.md#us-p015--keep-course-details-in-mongodb-instead-of-google-sheets))
-- State: In progress (picked by the lead 2026-10-17 on "Proceed with the next task": next step
+- State: Code done locally and lead-checked 2026-10-17 (not pushed); cutover not run (picked by the lead 2026-10-17 on "Proceed with the next task": next step
   of the agreed plan; its code ships switched off, so it does not wait for the US-P014 cutover)
 - Owner: Codex (all code: `api/**`, `scripts/doctor.mjs`; see the
   [handoff](../handoffs/US-P015-courses-in-mongodb-codex.md)); Claude Code (cutover runbook,
@@ -141,4 +141,17 @@ and a rollback that restores the sheet first.
 
 ## Verification and delivery
 
-Not started.
+Lead check 2026-10-17 (Claude Code) on `3bd1dae`: Codex's commits `abc1958`, `ba3ff83`, `3bd1dae`
+stay within the handoff's files; the accounts contract is unchanged. Reviewed: single-document
+Mongo writes, the freeze at the HTTP boundary (both prefixes, before thumbnail and content side
+effects) and around both course writers, copy guards and output lines (match the runbook), and
+the lossless restore cells (`qi-course-cell:v1:`): used only by the restore when the sheet format
+would lose a value (ratings with more than one decimal, list items containing the separator);
+default sheet reads and writes are unchanged. The runbook now says not to roll the API code back
+below this release after a course rollback. Checks: API 1589/63, journeys 12 (memory and fake
+Mongo), app 343/45 with guards 23/23, API build, Pages build. Browser on 3001/4200 with an
+isolated API and `COURSE_STORE_READ_ONLY=1`: an admin price change shows the read-only message,
+keeps the dialog and value, and writes nothing (`docs/verification/2026-10-17/US-P015/`). Not
+verified: real MongoDB and Sheets, the real catalog order, whether Vercel lets the production keys
+be pulled, and the forward and rollback rehearsal. Next: push, then Alex runs the
+[runbook](../release/US-P015-cutover.md) after the US-P014 cutover.
