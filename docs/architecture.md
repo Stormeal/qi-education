@@ -190,7 +190,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 
 | Routes | Current permission |
 | --- | --- |
-| `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes |
+| `GET /health`, `/health/config`, `/health/auth`, `/health/content` | Public diagnostic routes; auth.storage in config names actual memory/google-sheets/mongodb store; auth success is `{ status: 'ok', store, readOnly }` |
 | `POST /auth/login`, `/auth/signup` (also `/login`, `/signup`) | Public |
 | `POST /auth/password-reset/request`, `/check`, `/confirm` | Public; both normal and /api prefixes; no-store; 202 privacy-preserving request (400 invalid email, 503 mail unavailable), 204 check/confirm, 410 reset-link-invalid, 400 signup password validation |
 | `POST /users/me/password` | Active session, every role; no-store; current proof first, wrong current 400 current-password-incorrect (never 401), signup policy/different password 400, changed 204, invalid session 401, unavailable storage 503; notice failure is harmless |
@@ -212,7 +212,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /courses/:courseId/notes`, `POST /courses/:courseId/notes` | Same course-content access; caller's private notes only, oldest first; 200 `{ notes }`, 201 `{ note }`; lesson ID required, trimmed text 1..2000 and integer videoSeconds 0..86400 or null; 500 notes per account/course; private/no-store |
 | `PATCH /courses/:courseId/notes/:noteId`, `DELETE /courses/:courseId/notes/:noteId` | Same content access, own account/course only (including admins); text replacement 200 `{ note }`, deletion 204; missing and foreign note IDs both 404 |
 | `POST /courses/:courseId/lesson-feedback` | Same content access; valid lesson ID, helpful/not-helpful/problem, category required only for problem; 201 `{ id }`; existing feedback store and admin triage receive lesson context |
-| `GET /courses/:courseId/learners/count` | Any active signed-in account for published courses; owner teacher/admin for all other statuses; 200 `{ enrolledLearners }`, missing course 404, forbidden 403; one fresh Users read serves both authentication and count |
+| `GET /courses/:courseId/learners/count` | Any active signed-in account for published courses; owner teacher/admin for all other statuses; 200 `{ enrolledLearners }`, missing course 404, forbidden 403; Mongo authenticates by ID then counts with an indexed enrollment query; Sheets shares its fresh authentication snapshot with the count |
 | `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
 | `GET /users/me/learning-progress`, `PUT /users/me/learning-progress/:courseId/lessons/:componentId` | Own account and entitled current lessons only; atomic union; quizzes require passing evidence |
 | `POST /users/me/learning-progress/:courseId/components/:componentId/quiz-attempts` | Same server grading with account passing proof persisted before success; does not complete until Finish |
@@ -339,7 +339,7 @@ without logging private provider details; existing other routes are unchanged.
 Sheets role changes read the current account and write only E using RAW, then
 invalidate in-flight local user reads. DEF-027 makes session authentication use a
 fresh snapshot, so another instance cannot authorize a new request from a
-pre-revocation read. Every authenticated request costs one fresh Users fetch;
+pre-revocation read. With the default Sheets store every authenticated request costs one fresh Users fetch;
 non-security user/catalog reads retain coalescing. The isolated 20-reader burst
 measured 22 Sheets reads (20 Users, two catalog), with unchanged one/two single-route
 budgets. This supersedes the earlier shared-auth burst budget; hosted quotas remain
@@ -446,7 +446,7 @@ the [account profile spec](specs/US-L003-account-profile.md).
 
 | Domain | With configuration | Without configuration / tests |
 | --- | --- | --- |
-| Accounts and enrollments | GoogleSheetsAuthRepository | InMemoryAuthRepository with three demo accounts in isolated/test or unconfigured shared mode; unavailable in unconfigured hosted mode |
+| Accounts and enrollments | Default `USER_STORE=google-sheets`: GoogleSheetsAuthRepository; `mongodb`: MongoAuthRepository, `${MONGODB_COURSE_CONTENT_COLLECTION}_users` | InMemoryAuthRepository with three demo accounts in isolated/test; default Sheets retains unconfigured shared fallback; selected Mongo missing configuration is unavailable, including hosted mode |
 | Identity, owner, admin catalog/price | GoogleSheetsCourseRepository | InMemoryCourseRepository with one published demo course |
 | Reviewed author metadata, live/working snapshots, review history | Mongo course-content document | InMemoryCourseContentRepository |
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
@@ -637,17 +637,57 @@ checks. The workflow publishes `app/dist/qi-academy-app/browser`, with a generat
 serve the frontend using `vercel.json` routing.
 
 Hosted is NODE_ENV=production or a defined VERCEL marker, with NODE_ENV=test
-always isolated. Hosted mode ignores USE_SHARED_SERVICES. Complete resolved Sheets
-settings select the configured user repository; otherwise no demo store is constructed
+always isolated. Hosted mode ignores USE_SHARED_SERVICES. Complete settings for the
+selected `USER_STORE` select its repository; otherwise no demo store is constructed
 and login/signup/protected routes answer 503 with the existing message shape. Isolated
 local development and NODE_ENV=test retain demo users; only exact opt-in selects
 configured shared users in a nonhosted local run. `/health/auth` checks the session
 secret and the selected user store's
 configuration availability; `/health/config` marks auth unconfigured when either
-is absent. Existing health fields/storage labels are retained for compatibility.
-Hosted health checks do not prove Google Sheets reads/writes or an entire login
+is absent. Auth config storage names `mongodb`, `google-sheets` or `memory`;
+auth success is `{ status: 'ok', store, readOnly }`. Other health fields/statuses
+remain unchanged. Hosted health checks do not prove provider reads/writes or an entire login
 journey. Follow the release
 checklist and record actual integration verification separately.
+
+## Account store cutover and rollback (US-P014)
+
+`USER_STORE` accepts only `google-sheets` (default) and `mongodb`; invalid values
+stop startup. It selects accounts in shared/hosted modes; isolated runs retain
+memory. Mongo uses the same eight account fields, with `_id` replacing `id`, and
+stores normalized email behind a unique index plus an `enrolledCourseIds` index.
+Session lookups read one Mongo document by ID without a process cache. Creation
+uses insert/unique enforcement (duplicate signup returns the existing 409 body),
+enrollment uses `$addToSet`, and password/role/status writes set only their field.
+Data writes await majority acknowledgement; role/status atomically return the
+previous snapshot to the existing change-log workflow. Course metadata and feedback
+continue to use Sheets. The per-instance signup/enrollment queues remain for the
+Sheets path, while Mongo enforces account guarantees across instances.
+
+`USER_STORE_READ_ONLY` accepts only `0` (default) or `1`. When frozen, a repository
+wrapper rejects every account writer. The HTTP boundary also refuses signup,
+enrollment, password reset issuance/confirmation, password change, admin role/status
+and reset issuance before token, mail, change-log or account writes. Both prefixes
+and ordinary case-insensitive/trailing-slash route variants return 503 with
+`{ message: 'Accounts are briefly read-only for maintenance. Try again in a few minutes.' }`.
+Sign-in, reset-link checks and other reads remain available. Doctor names the store
+and freeze state, validates Mongo account settings, and checks runtime health agrees.
+
+`npm --prefix api run users:migrate -- <mode>` requires explicit
+`USE_SHARED_SERVICES=1` for every mode. `--dry-run` validates the full Users sheet
+without writes. `--apply` requires Sheets selection and read-only `1`, creates the
+two Mongo indexes and upserts by ID without deleting documents or changing Sheets.
+`--verify` compares every account field in both directions, reports only IDs/field
+names and succeeds only with `Verified: N accounts identical`. `--restore-sheet`
+requires Mongo selection and read-only `1`; it updates A:H in the existing row by
+ID, preserves row order/extra cells and appends new accounts, never deleting rows.
+All modes reject invalid/ambiguous rows and duplicate normalized emails; mutations
+preflight destination conflicts. Source data survives partial provider failures;
+operators keep writes frozen, retry and verify before switching. Output contains
+no password hashes or differing field values. The CLI uses the normal dotenv/shell
+precedence, opens providers lazily after guards and closes its Mongo connection.
+See the [operator contract](specs/US-P014-users-in-mongodb.md#operator-contract-the-runbook-relies-on-this-exactly)
+and [cutover runbook](release/US-P014-cutover.md); no hosted cutover was performed here.
 
 ## Per-account sign-in attempt limits (US-P008-AC02)
 

@@ -198,13 +198,13 @@ Feature: Accounts stored in MongoDB
 
 ## Implementation checklist
 
-- [ ] AC01–AC04 Mongo repository contract, uncached account reads, unique normalized email, atomic field writes and enrolled count query; two-instance regression tests
-- [ ] AC07 store selection defaults to Sheets; isolated memory and unavailable hosted-store behavior; strict setting validation
-- [ ] AC09 repository write freeze and every account-write HTTP route, including token/mail side effects; reads and sign-in remain available
-- [ ] AC05–AC06, AC10–AC12 guarded migration dry-run/apply/two-way verify/restore, validation before writes, safe output and fake-provider tests
-- [ ] AC08 exact health responses and doctor store/configuration checks
-- [ ] Architecture and permitted investigation notes updated; handoff Outcome and queue delivery evidence
-- [ ] Required API tests, API build, journey checks and app tests pass; remaining hosted cutover checks recorded
+- [x] AC01–AC04 Mongo repository contract, uncached account reads, unique normalized email, atomic field writes and enrolled count query; two-instance regression tests
+- [x] AC07 store selection defaults to Sheets; isolated memory and unavailable hosted-store behavior; strict setting validation
+- [x] AC09 repository write freeze and every account-write HTTP route, including token/mail side effects; reads and sign-in remain available
+- [x] AC05–AC06, AC10–AC12 guarded migration dry-run/apply/two-way verify/restore, validation before writes, safe output and fake-provider tests
+- [x] AC08 exact health responses and doctor store/configuration checks
+- [x] Architecture and permitted investigation notes updated; [handoff Outcome](../handoffs/US-P014-users-in-mongodb-codex.md#outcome) and queue delivery evidence
+- [x] Required API tests (1424/58 files), API build, journey checks (6) and app tests (339/45 files plus 23 guards) pass; remaining hosted cutover checks recorded in the handoff
 
 ## Verification and delivery
 

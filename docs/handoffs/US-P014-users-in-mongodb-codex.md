@@ -86,3 +86,54 @@ the reason in your summary. Do not stop before writing the code.
 - Commit locally, do not push.
 - Update your row in `docs/work_queue.md` (state, commits, checks, what is not verified), then
   stop and summarize.
+
+## Outcome
+
+Implemented locally on `main` on 2026-10-17 from `ff56f42`, with required ancestor
+`d72d374` verified. Working commits: `5ee6ba0` (Mongo account repository, selection,
+freeze, learner count query, health and doctor; 0.1.219) and `a728130` (guarded
+migration/verification/rollback, retry tests and doctor correction; 0.1.220).
+The commit containing this Outcome records delivery and the final version bump.
+The Operator contract, setting names, mode flags, output lines and exit codes
+remain unchanged. Default selection remains `google-sheets`; no hosted store
+switch or migration was performed.
+
+Scenario evidence (isolated memory/fakes and ephemeral HTTP ports only):
+
+| Scenarios | Tests and behavior |
+| --- | --- |
+| AC01–AC04 | `mongoAuthRepository.test.ts` runs the account contract against memory and a fake Mongo collection, then two Mongo repository instances against one collection. Normalized email uniqueness, fresh ID/email reads, indexed count, independent password/enrollment updates and role/status snapshots are covered. `userStoreRoutes.test.ts` uses two Express instances for signup, existing tokens after access changes, existing change-log records, and one ID lookup/no Users Sheets reads for catalog, progress, outline, content, notes and count. |
+| AC05–AC06 | `usersMigration.test.ts`: all eight mapped fields, apply twice/idempotent counts, preservation of Mongo-only accounts, full-source validation before writes, duplicate normalized email/ID rows, missing fields, safe diagnostics, provider error redaction and lost-acknowledgement apply retry. |
+| AC07–AC08 | `userStoreConfig.test.ts`: default Sheets, explicit Mongo in shared/hosted modes, isolated memory, missing selected Mongo configuration unavailable, strict enum values. `userStoreRoutes.test.ts`: exact health bodies/store/freeze state and unchanged default signup validation. `localScripts.test.ts`: doctor store/freeze output, all three required Mongo settings, account-only config without Sheets/assets and running API agreement. |
+| AC09 | All account writes in memory, fake Sheets and fake Mongo, both URL prefixes, trailing slashes/case-insensitive routes: exact 503 maintenance message, no account/reset-token/mail/change-log side effects. Sign-in, reset-link checks, course/progress reads and health remain available. Repository wrapper directly refuses all seven mutation methods before provider access. |
+| AC10–AC12 | Migration tests cover shared-service/freeze/direction guards before opening providers; all-field two-way verify including malformed fields, both missing-account directions and no printed values; rollback after post-cutover enrollment/password/new-account changes, stable existing rows/extra cells, appended accounts, no deletion, and verify afterwards. Lost update/append acknowledgements are retried without data loss or duplicate accounts. |
+
+Independent read-only review found no account-data-loss/security defect and one
+operator-contract issue: doctor incorrectly required the asset collection when
+the three account-store settings were complete. Reproduced with two regressions
+(settings-only and running health), fixed, and both now pass. No deferred minor
+review findings.
+
+Final checks on `a728130` plus this documentation, before the delivery commit:
+
+- `npm run api:test`: 58 files, 1,424 tests passed (including 58 migration tests
+  and 33 local-script tests).
+- `npm run api:build`: passed.
+- `npm run verify:journeys`: all six teacher/admin/learner journey checks passed.
+- `npm run app:test`: 45 files, 339 tests passed; 23 UI guard tests and the UI
+  foundation check passed. Existing non-failing `src/test-setup.ts` compilation
+  warning and jsdom `scrollTo` notices remain; no frontend configuration was changed.
+- `git diff --check` and `git merge-base --is-ancestor d72d374 HEAD`: passed.
+
+Live
+MongoDB/Sheets persistence, indexes/permissions and real multi-host behavior,
+hosted deployment/freeze convergence, actual forward/rollback rehearsal and the
+combined browser flow remain unverified. Operator settings must reflect the
+actual deployed freeze; partial provider failures leave the authoritative source
+intact, return failure and require staying frozen, retrying and verifying before
+switching. No real provider was contacted, no real-settings migration was run,
+no reserved port was used, and nothing was pushed.
+
+Only assigned files were edited. The lead owns the runbook/local-development
+review, the spec's separate verification/status sections and backlog closure;
+no implementation file outside Codex's allowed list was needed.
