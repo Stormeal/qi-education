@@ -20,7 +20,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
-| US-P014 | Keep accounts in MongoDB instead of Google Sheets | Code done locally; cutover pending | P1 | None | INV-005; closes the multi-instance part of DEF-023/024/026 |
 | US-P015 | Keep course details in MongoDB instead of Google Sheets | Code done locally; cutover pending | P2 | P014 | INV-005, INV-017 |
 | US-P016 | Retire the Google Sheets code for accounts and courses | Proposed | P3 | P014, P015 | None |
 
@@ -289,39 +288,6 @@ Per-account sign-in now permits ten failures in a rolling 15-minute window,
 then refuses that address for 15 minutes. Signup and per-client limits remain
 outside that increment. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
-
-### US-P014 — Keep accounts in MongoDB instead of Google Sheets
-
-**As a learner, teacher or admin, I want signing in and every signed-in page to keep working
-when several people use the platform at once, so that a class session does not fail because
-a spreadsheet's read limit ran out.**
-
-State: Code done locally and lead-checked (2026-10-17); the hosted cutover is Alex's step, see the [runbook](release/US-P014-cutover.md). Priority P1: on 2026-10-17 one admin's visit exhausted the
-Google Sheets read quota and most hosted routes answered 500 for two minutes; every
-signed-in request reads the whole Users sheet. Step 1 of the
-[Sheets to MongoDB plan](superpowers/plans/2026-10-17-sheets-to-mongodb.md); decided with
-Alex: users first, courses second, feedback stays in Sheets. Contract, defaults and the
-cutover runbook are in the [spec](specs/US-P014-users-in-mongodb.md) (AC01–AC08).
-
-```gherkin
-Feature: Accounts stored in MongoDB
-  Scenario: US-P014-AC01 Signed-in requests make no Sheets reads
-    Given the hosted API runs with USER_STORE=mongodb
-    When a learner opens the catalog, My Learning and a course's learning page
-    Then no request reads the Users sheet
-    And each authenticated request reads the account once, by id
-
-  Scenario: US-P014-AC03 One account per email across instances
-    Given no account exists for "Ada@Example.test"
-    When two signups for " ada@example.test " arrive at the same time on different instances
-    Then exactly one account exists and the other request receives the existing 409 answer
-
-  Scenario: US-P014-AC05 The copy moves every account unchanged
-    Given the Users sheet has N valid rows with distinct normalized emails
-    When the copy script runs with --apply twice
-    Then MongoDB holds exactly N accounts identical to the sheet rows
-    And the script never prints a password hash
-```
 
 ### US-P015 — Keep course details in MongoDB instead of Google Sheets
 

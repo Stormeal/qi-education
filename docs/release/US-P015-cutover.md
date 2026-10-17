@@ -154,3 +154,20 @@ cells in a special form (they start with `qi-course-cell:v1:`) when the sheet fo
 hold the exact value, for example a rating like 4.75 or a list item that contains a comma.
 This release and later ones read those cells; an older API version would not. Leave those
 cells as they are in the sheet.
+
+## Lessons from the accounts cutover (2026-10-18)
+
+- **Sensitive settings.** Vercel pulls them as `[SENSITIVE]`, including `AUTH_TOKEN_SECRET` and the
+  store settings themselves. Remove those lines (and empty ones) from the pulled file before
+  running the script, and pass the store setting explicitly once `/health/auth` (or the courses
+  health line) has confirmed the live value, for example `COURSE_STORE=google-sheets
+  COURSE_STORE_READ_ONLY=1` for `--apply`.
+- **VPN.** ProtonVPN blocks MongoDB's port 27017. Exclude `C:\Program Files\nodejs\node.exe` in
+  ProtonVPN split tunneling (turning the VPN off triggers its kill switch). Excluded Node then has
+  no DNS for the `mongodb+srv://` lookup, so use the classic connection string with the three
+  servers written out (`mongodb://…@ac-1y3kasg-shard-00-00…,-01…,-02….yr9i6rm.mongodb.net:27017/?tls=true&authSource=admin&replicaSet=atlas-okwt1w-shard-0`)
+  as `MONGODB_URI` for the script run only.
+- **Settings changes** can be made with the Vercel CLI instead of the dashboard:
+  `printf 'mongodb' | npx vercel env add COURSE_STORE production` (no trailing newline), and
+  `npx vercel redeploy <current production deployment URL> --target production`.
+- Atlas Network Access already contains `0.0.0.0/0`; no address needs adding.

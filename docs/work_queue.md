@@ -4,6 +4,14 @@ Updated: 2026-10-17. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
+**2026-10-18 — US-P014 accounts cutover done (Alex: "Begin the freeze", "Switch now").** Hosted
+accounts run on MongoDB: 12 copied and verified identical, `/health/auth` `store: mongodb`,
+Alex's sign-in, Admin user list and enrollments confirmed. Record in the
+[spec](specs/US-P014-users-in-mongodb.md#verification-and-delivery). Next: the US-P015 course
+cutover with the same [runbook](release/US-P015-cutover.md) steps, then US-P016 after a clean
+release. The Atlas entry `159.26.114.53` expires by itself; `0.0.0.0/0` stays (Vercel has no fixed
+addresses).
+
 **Session 2026-10-17 (3) — started by Alex with "Proceed with the next task".** Branch: `main`.
 Base: `5c214fd` (everything pushed; US-P014 code live but switched off, its cutover is Alex's
 step). Picked by the lead: US-P015 (course details to MongoDB), the next step of the agreed

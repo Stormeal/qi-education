@@ -144,3 +144,20 @@ accounts and enrollments created after the cutover) back into the sheet before s
 3. In Vercel set `USER_STORE` to `google-sheets` and `USER_STORE_READ_ONLY` to `0`, redeploy,
    and check `/health/auth` shows `store: google-sheets`, `readOnly: False`.
 4. Put the development settings back as in step 13 and tell me "rolled back".
+
+## Lessons from the accounts cutover (2026-10-18)
+
+- **Sensitive settings.** Vercel pulls them as `[SENSITIVE]`, including `AUTH_TOKEN_SECRET` and the
+  store settings themselves. Remove those lines (and empty ones) from the pulled file before
+  running the script, and pass the store setting explicitly once `/health/auth` (or the courses
+  health line) has confirmed the live value, for example `USER_STORE=google-sheets
+  USER_STORE_READ_ONLY=1` for `--apply`.
+- **VPN.** ProtonVPN blocks MongoDB's port 27017. Exclude `C:\Program Files\nodejs\node.exe` in
+  ProtonVPN split tunneling (turning the VPN off triggers its kill switch). Excluded Node then has
+  no DNS for the `mongodb+srv://` lookup, so use the classic connection string with the three
+  servers written out (`mongodb://…@ac-1y3kasg-shard-00-00…,-01…,-02….yr9i6rm.mongodb.net:27017/?tls=true&authSource=admin&replicaSet=atlas-okwt1w-shard-0`)
+  as `MONGODB_URI` for the script run only.
+- **Settings changes** can be made with the Vercel CLI instead of the dashboard:
+  `printf 'mongodb' | npx vercel env add USER_STORE production` (no trailing newline), and
+  `npx vercel redeploy <current production deployment URL> --target production`.
+- Atlas Network Access already contains `0.0.0.0/0`; no address needs adding.

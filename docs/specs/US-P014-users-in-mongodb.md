@@ -3,8 +3,8 @@
 ## Record
 
 - Story: US-P014 ([backlog](../user_stories.md#us-p014--keep-accounts-in-mongodb-instead-of-google-sheets))
-- State: Code done locally and lead-checked 2026-10-17 (not pushed); cutover not run. Selected by
-  Alex 2026-10-17: "start US-P014"
+- State: Delivered and cut over 2026-10-18: hosted accounts run on MongoDB. Selected by Alex
+  2026-10-17: "start US-P014"
 - Owner: Codex (all code: `api/**`, `scripts/doctor.mjs`; see the
   [handoff](../handoffs/US-P014-users-in-mongodb-codex.md)); Claude Code (cutover runbook,
   local development docs, lead check); Alex runs the hosted cutover
@@ -220,3 +220,15 @@ in the dialog and writes nothing (`docs/verification/2026-10-17/US-P014/`). Not 
 MongoDB and Sheets, indexes on Atlas, whether Vercel lets the production keys be pulled (runbook
 step 3 covers it), and the forward and rollback rehearsal. Next: push, then Alex runs the
 [runbook](../release/US-P014-cutover.md).
+
+Cutover 2026-10-18 (Claude Code ran the steps from Alex's machine with his go-ahead at each stage):
+dry run 12 rows (one sheet date, row 3 `createdAt`, fixed by Alex first, then 12 valid); freeze
+`USER_STORE_READ_ONLY=1` and redeploy, `/health/auth` `readOnly: true`; `--apply` inserted 12 and
+created the indexes; `--verify` "Verified: 12 accounts identical"; switch `USER_STORE=mongodb`,
+`USER_STORE_READ_ONLY=0` and redeploy, `/health/auth` `store: mongodb, readOnly: false`; catalog
+200, `/auth/me` 401 without a token, no errors in the hosted log; Alex signed in, the Admin user list
+shows every account and his enrollments are intact. Lessons (now in the runbooks): Windows
+PowerShell needs `npm.cmd`; ProtonVPN blocks port 27017, so Node was split-tunnelled and connected
+with the classic connection string; Vercel pulls Sensitive settings as `[SENSITIVE]`, so the copy
+ran without them and with the freeze setting passed explicitly after `/health/auth` confirmed it.
+The Users sheet is now a read-only backup (no account data was lost; rollback in the runbook).
