@@ -1,8 +1,7 @@
 # Plan: move users and courses from Google Sheets to MongoDB
 
 Decided with Alex on 2026-10-17: users move first, then courses. Feedback stays in Google
-Sheets for now. Nobody edits the Users or Courses sheet by hand as part of normal work
-(confirm or change). Stories: [US-P014](../../specs/US-P014-users-in-mongodb.md) (users, P1),
+Sheets for now. Nobody edits the Users or Courses sheet by hand (Alex confirmed 2026-10-17). Stories: [US-P014](../../specs/US-P014-users-in-mongodb.md) (users, P1),
 US-P015 (courses, P2), US-P016 (retire the Sheets code for users and courses, P3), in
 [user_stories.md](../../user_stories.md).
 

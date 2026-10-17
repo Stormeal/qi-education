@@ -11,7 +11,8 @@
 - Related: INV-005, INV-017, DEF-045 (stopgap that shares recent Courses reads), US-P014 (same
   pattern). Plan: [Sheets to MongoDB](../superpowers/plans/2026-10-17-sheets-to-mongodb.md)
 - Product decisions (Alex, 2026-10-17): users first, courses second, feedback stays in Google
-  Sheets. **No data may be lost during the migration, including a rollback.**
+  Sheets. **No data may be lost during the migration, including a rollback.** Nobody edits the
+  Courses sheet by hand (confirmed 2026-10-17).
 - Defaults taken by the lead (confirm or change):
   - Same shape as US-P014: `COURSE_STORE` (`google-sheets` default, `mongodb`) in shared and
     hosted mode only; isolated runs keep the in-memory demo course. `COURSE_STORE_READ_ONLY=1`

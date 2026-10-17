@@ -12,9 +12,9 @@
   DEF-023, DEF-024, DEF-026, DEF-027, DEF-032. Plan:
   [Sheets to MongoDB](../superpowers/plans/2026-10-17-sheets-to-mongodb.md)
 - Product decisions (Alex, 2026-10-17): users move first, courses second, feedback stays in
-  Google Sheets. **No account data may be lost during the migration, including a rollback.**
+  Google Sheets. **No account data may be lost during the migration, including a rollback.** Nobody edits
+  the Users sheet by hand (confirmed 2026-10-17); after the cutover it is a read-only backup.
 - Defaults taken by the lead (confirm or change):
-  - Nobody edits the Users sheet by hand; after the cutover it is a read-only backup.
   - A hosted setting `USER_STORE` chooses the store and defaults to `google-sheets`, so the
     release that ships the code changes nothing until Alex flips it.
   - No dual writes. Account writes are frozen while data moves between stores
