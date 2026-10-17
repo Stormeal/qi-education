@@ -4,6 +4,17 @@ Updated: 2026-10-17. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
+**Session 2026-10-17 (3) — started by Alex with "Proceed with the next task".** Branch: `main`.
+Base: `5c214fd` (everything pushed; US-P014 code live but switched off, its cutover is Alex's
+step). Picked by the lead: US-P015 (course details to MongoDB), the next step of the agreed
+plan; its code ships switched off, so it does not wait for the US-P014 cutover. Claude also
+takes the open US-L016 leftover (AC09 keyboard walk).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Codex | US-P015 code: Mongo course repository, `COURSE_STORE` and `COURSE_STORE_READ_ONLY`, health, doctor, `courses:migrate` | See the [handoff](handoffs/US-P015-courses-in-mongodb-codex.md) | Handed over |
+| Claude Code | US-P015 cutover runbook and docs; US-L016-AC09 keyboard walk (fixes only in `pages/learning-page/`); lead check | `docs/release/US-P015-cutover.md`, `docs/local_development.md`, `docs/specs/US-P015-courses-in-mongodb.md` (except Codex's checklist), `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md`, `app/src/app/pages/learning-page/**` | Started |
+
 **Session 2026-10-17 (2) — started by Alex with "start US-P014".** Branch: `main`. Base:
 `599eceb` (DEF-045 stopgap; `4531565` pushed, `4c215a0` and `599eceb` local). First step of the
 [Sheets to MongoDB plan](superpowers/plans/2026-10-17-sheets-to-mongodb.md). Alex added during
