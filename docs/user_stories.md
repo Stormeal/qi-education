@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-13. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-17. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -13,6 +13,8 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
+| US-L015 | Keep notes, rate lessons and practise in a course | In progress | P2 | None | None |
+| US-L016 | Learn in a page built for working through a course | In progress | P2 | L015 | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | In progress | P2 | Distributed coordination decision | DEF-023/024/025; multi-instance/restart work remains |
@@ -20,7 +22,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
-| US-P013 | Use one shared look for actions, views and progress | In review | P2 | None | DEF-035, DEF-036 |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
 high-impact access or release concern; P2 affects a core journey; P3 improves
@@ -114,6 +115,43 @@ Feature: Email confirmation
     When I use the site
     Then the agreed limits for unconfirmed accounts apply
     And I can ask for the confirmation mail again
+```
+
+### US-L015 — Keep notes, rate lessons and practise in a course
+
+**As a learner, I want to keep private notes at a point in a lesson, tell the teacher how a
+lesson went, see how many people take the course, and practise with exercises, so that
+the learning page is somewhere I can work.**
+
+State: In progress (2026-10-17, Codex). Part 2 of 3 of the learning view redesign: the
+API, storage and frontend data service. Contract, defaults and scenarios AC01–AC08 are in
+the [spec](specs/US-L015-learning-backend.md).
+
+```gherkin
+Feature: Learning backend
+  Scenario: US-L015-AC01 Keep a private note at a video time
+    Given I am enrolled in a course
+    When I add a note on a video lesson at 95 seconds
+    Then listing my notes returns it with videoSeconds 95
+    And another learner listing notes for the course does not see it
+```
+
+### US-L016 — Learn in a page built for working through a course
+
+**As a learner, I want one page where I see where I am, move between lessons, keep notes,
+get the lesson's files and tell the teacher how a lesson went, so that I can work through
+a course without hunting for controls.**
+
+State: In progress (2026-10-17, Claude Code). Part 3 of 3 of the learning view redesign,
+built on US-L015. Defaults and scenarios AC01–AC09 are in the
+[spec](specs/US-L016-learning-view.md).
+
+```gherkin
+Feature: Learning page
+  Scenario: US-L016-AC03 A video completes at 90%
+    Given I am watching a video lesson
+    When the position passes 90% of its length
+    Then the lesson is marked complete in the sidebar once
 ```
 
 ## Platform reliability
@@ -287,33 +325,6 @@ Per-account sign-in now permits ten failures in a rolling 15-minute window,
 then refuses that address for 15 minutes. Signup and per-client limits remain
 outside that increment. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
-
-### US-P013 — Use one shared look for actions, views and progress
-
-**As a learner, teacher or admin, I want buttons, tabs and progress to look and behave
-the same on every page, so that the app feels like one product and I can rely on what a
-control means.**
-
-State: In review (2026-10-16) on `feat/US-P013-shared-ui-foundation`, done locally and verified there (evidence in `docs/verification/2026-10-15/US-P013/`); it stays in this file until merged to `main`. Not pushed yet. Scope, decisions and the contract are in the
-[spec](specs/US-P013-shared-ui-foundation.md). Decided by Alex on 2026-10-15: one shared
-button and tab style on every page; primary actions are deep green, amber stays for focus
-and "you are here". Part 1 of 3 of the learning view redesign.
-
-```gherkin
-Feature: Shared look for actions, views and progress
-  Scenario: US-P013-AC01 Primary actions look the same and are readable everywhere
-    Given any page with a primary action
-    When the page is shown
-    Then the primary action is a deep green button with white text
-    And its text contrast is at least 4.5:1 in its normal, hover and pressed states
-
-  Scenario: US-P013-AC08 No page keeps its own button or tab system
-    Given the frontend source
-    When the shared-UI guard test runs
-    Then no template uses the removed classes or the old app-button element
-```
-
-The full scenario list (AC01–AC10) is in the spec.
 
 ## Adding a story
 

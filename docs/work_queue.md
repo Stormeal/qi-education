@@ -1,8 +1,19 @@
 # Work queue
 
-Updated: 2026-10-16. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-17. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**Session 2026-10-17 — started by Alex: "start the learning view redesign: you take part 3,
+Codex takes part 2".** Branch: `main`. Base: `40739ba` (DEF-037 to DEF-042 pushed, 0.1.206).
+The first teacher session is over, so feature work resumes. Parts 2 and 3 of the redesign
+decided with Alex on 2026-10-15 become US-L015 (Codex) and US-L016 (Claude); the contract
+between them is in the [US-L015 spec](specs/US-L015-learning-backend.md).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Claude Code | US-L016: learning page, exercise type in the frontend models and builder, admin feedback lesson tags | Everything under `app/` except `services/lesson-extras.service*.ts` and the version lines; `docs/specs/US-L016-learning-view.md`, `docs/user_stories.md` | Started |
+| Codex | US-L015: notes, lesson feedback, learner count, exercise type in the API, `lesson-extras.service.ts` | See the [handoff](handoffs/US-L015-learning-backend-codex.md) | Handed over |
 
 **Session 2026-10-16 — started by Alex with "pull down latest and start next job".** Branch:
 `main`. Base: `4018002` (US-P013 and the QI Academy rename merged through pull requests #47
@@ -624,8 +635,8 @@ and hosted behavior remain pending. No push, deployment, or legacy owner mapping
 
 ## Next candidate
 
-All documented confirmed defects remain Fixed. Feature work is paused until the first
-teacher session is over; only fixes found in rehearsal go in.
+All documented confirmed defects remain Fixed. The first teacher session is over (Alex,
+2026-10-17); the learning view redesign (US-L015, US-L016) is active.
 Await the user's next selected story or investigation; no Proposed enhancement is authorized by
 this delivery. Shared-provider/hosted release checks require a separate release.
 
