@@ -1,8 +1,28 @@
 # Work queue
 
-Updated: 2026-10-17. Working branch: `main`. Original audited base: `6e19213`.
+Updated: 2026-10-18. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
+
+**2026-10-18 — Career milestone trees: feature definition and stories (Codex).**
+Selected by Alex after reviewing the career-path mockup. Documentation only;
+feature implementation is not selected. Owner: Codex. Branch/base: `main` /
+`34ba889`. Scope: `docs/specs/US-L017-L023-A004-career-milestone-trees.md`, the
+new US-L017–US-L023 / US-A004 backlog entries, documentation index, and the
+approved prototype under `design/career-path/`; normal version files for the
+documentation commit. Claude's MongoDB cutover work continues independently.
+Documentation package prepared for review: US-A004 and US-L017–US-L022 cover
+the first release; US-L023 is future CV recognition. Alex's latest correction is
+included: several careers may be followed, one route is displayed, and shared
+milestones can be prerequisites across paths (future Test Architect example).
+The stored prototype's exclusive switch controls are explicitly superseded.
+Checks: 139 local Markdown links, eight unique new story IDs and 39 unique new
+BDD scenarios; acyclic story dependencies, prototype script syntax and six
+aligned version locations (0.1.232). Scenario-to-verification map recorded;
+product checks Pending. Documentation has no application test/build claim.
+Next: Alex reviews the written spec and the candidate curriculum; only after
+written-spec review should implementation planning be selected. All new stories
+stay Proposed. No implementation, shared-data change, push or deployment.
 
 **2026-10-18 — US-P014 accounts cutover done (Alex: "Begin the freeze", "Switch now").** Hosted
 accounts run on MongoDB: 12 copied and verified identical, `/health/auth` `store: mongodb`,

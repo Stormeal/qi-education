@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-17. Priority order chosen by the user: **teachers, learners,
+Updated: 2026-10-18. Priority order chosen by the user: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. Story status
 and evidence distinguish desired changes from delivered behavior. Current behavior
 is documented in [architecture.md](architecture.md).
@@ -13,6 +13,14 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
+| US-A004 | Curate career milestone graphs and map TestHuset courses | Proposed | P2 | Curriculum review; existing T008/A003 | None |
+| US-L017 | See a focused milestone tree for my career | Proposed | P2 | A004, L019, L020, L021 | None |
+| US-L018 | Understand how to achieve a milestone | Proposed | P2 | A004, L017 | None |
+| US-L019 | Record my own learning and certification achievements | Proposed | P2 | A004; release with L020 | None |
+| US-L020 | Unlock milestones through shared prerequisites | Proposed | P2 | A004, L019 | None |
+| US-L021 | Pursue several careers and focus on one route | Proposed | P2 | A004, L019; legacy selection mapping | None |
+| US-L022 | Get consistent career guidance on Home and my tree | Proposed | P2 | L017, L018, L020, L021 | None |
+| US-L023 | Recognise relevant achievements from my CV | Proposed (future) | P3 | L019, L020; extraction and review policy | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |
 | US-P003 | Retry account/feedback operations safely | In progress | P2 | Distributed coordination decision | DEF-023/024/025; multi-instance/restart work remains |
@@ -35,8 +43,73 @@ numbering are delivered work. Their contracts and evidence remain in `specs/`,
 
 ## Teacher journey
 
-No open teacher or admin story. US-A002 (category warning) was delivered 2026-10-13;
-see its [spec](specs/US-A002-missing-category.md).
+US-A002 (category warning) was delivered 2026-10-13; see its
+[spec](specs/US-A002-missing-category.md).
+
+### US-A004 — Curate career milestone graphs and map TestHuset courses
+
+**As an admin, I want to curate job routes using milestones, learning options and
+explicit requirements, so learners see a credible route through our courses.**
+
+State: Proposed, selected for feature definition only. Source: Alex's career-tree
+brainstorm and approved visual direction, 2026-10-18, including multiple careers
+and cross-path requirements. Spec:
+[career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: existing admin draft/publish/withdrawal contracts (US-T008/US-A003).
+Scope: the initial Test Analyst, Technical Tester and Test Manager routes,
+shared milestone identities, course/action mappings, cross-path graph validation
+and publication. Implementation owner: unassigned. Priority: P2.
+Decisions before Ready: review the complete current TestHuset inventory, decide
+equivalent options and actual role criteria/prerequisites, and approve legacy
+path/schema migration. The mockup's course edges are illustrative. A composite
+Test Architect route is future curriculum; the graph must support it.
+
+```gherkin
+Feature: Credible career milestone curation
+  Scenario: US-A004-AC01 Curate the three initial careers
+    Given I am an admin editing a draft career route
+    When I define its stages, milestone references and prerequisite relationships
+    Then I can prepare Test Analyst, Technical Tester and Test Manager routes
+    And all three reference the same Foundation milestone identity
+    And a milestone can reference prerequisites used by another career
+    And learners see only published definitions
+
+  Scenario: US-A004-AC02 Separate preparation from completion requirements
+    Given a milestone has courses, actions and alternative learning options
+    When I configure its completion requirement
+    Then I explicitly distinguish recommendations from required actions
+    And I can require every action in one of several accepted bundles
+    And a preparation course alone cannot satisfy a required external exam
+
+  Scenario: US-A004-AC03 Refuse an invalid published graph
+    Given a draft has a missing prerequisite, a cycle across careers, conflicting shared identities, or no course or action for a milestone
+    When I publish it
+    Then publication is refused with the affected milestone and a useful explanation
+    And the previous published definitions and learner records remain unchanged
+
+  Scenario: US-A004-AC04 Map real catalogue offerings honestly
+    Given the current TestHuset course inventory and the three proposed routes
+    When the curriculum mapping is reviewed for publication
+    Then every inventoried course is mapped or explicitly deferred with a reason
+    And equivalent formats are not confused with different qualifications
+    And external courses are distinguished from available Academy courses
+    And planned on-demand courses are labelled unavailable until published
+
+  Scenario: US-A004-AC05 Preserve permissions, privacy and concurrent edits
+    Given a non-admin caller, a stale admin draft, or a reference to private course metadata
+    When the caller reads or changes career definitions
+    Then only an authorized current admin may change the draft or publication
+    And a stale write cannot erase a newer edit
+    And public references disclose only approved public labels and availability
+
+  Scenario: US-A004-AC06 Revise content without losing achievements
+    Given learners follow a published route and have recorded achievements
+    When I publish a layout change or a material change to milestone criteria
+    Then layout changes retain stable achievement identities
+    And changed criteria use explicit requirement versions and an update explanation
+    And historical evidence, goals and enrollments remain stored
+    And an old editor cannot silently strip the new milestone fields
+```
 
 ## Learner journey
 
@@ -115,6 +188,345 @@ Feature: Email confirmation
     When I use the site
     Then the agreed limits for unconfirmed accounts apply
     And I can ask for the confirmation mail again
+```
+
+### US-L017 — See a focused milestone tree for my career
+
+**As a learner, I want a compact milestone tree for the career I am viewing,
+so I understand my current position and next development choices.**
+
+State: Proposed. Priority: P2. Owner: unassigned. Source: Alex, 2026-10-18.
+Spec: [career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: US-A004, US-L019, US-L020 and US-L021. Scope: replace the roadmap
+presentation using the current UI foundation; retain the setup flow and honest
+CV preview. Decisions: reviewed curriculum and legacy career mapping. Other
+trees are hidden by default; several followed careers are allowed.
+
+```gherkin
+Feature: Focused career milestone tree
+  Scenario: US-L017-AC01 Open my focused career
+    Given my account follows several careers and has a saved focus
+    When I open Career Path
+    Then I see that career's published tree starting at ISTQB Foundation
+    And milestones are grouped into understandable stages
+    And other careers' trees are hidden until I explore them
+    And my other followed careers remain available through a compact selector
+
+  Scenario: US-L017-AC02 Show honest milestone states
+    Given a new account has no achievements or an existing account has recorded achievements
+    When the tree loads successfully
+    Then nodes distinguish achieved, ready and locked states in words as well as color
+    And the achieved count comes from the account's actual qualifying evidence
+    And no qualification is inferred from my CV preview or account role
+
+  Scenario: US-L017-AC03 Inspect a milestone without completing it
+    Given a ready or locked milestone appears in the tree
+    When I select it
+    Then its requirements and learning options appear in a detail area
+    And selecting the node alone changes no achievement or enrollment
+
+  Scenario: US-L017-AC04 Recover from missing data or a failed load
+    Given career data is loading, failed, genuinely unselected, or withdrawn
+    When I open the page
+    Then I see the matching loading, retry, career-choice or unavailable-career state
+    And a failed load is not presented as zero progress or no followed careers
+    And saved goals and achievements remain intact
+
+  Scenario: US-L017-AC05 Use the route with a keyboard or narrow screen
+    Given I navigate by keyboard or use a narrow viewport
+    When I explore milestones and their details
+    Then all milestones, prerequisite explanations and actions are reachable
+    And an ordered narrow-screen view preserves the tree's dependency meaning
+    And focus remains visible and meaningful after updates
+```
+
+### US-L018 — Understand how to achieve a milestone
+
+**As a learner, I want each milestone to explain its learning options and required
+actions, so I can choose a suitable way to achieve it.**
+
+State: Proposed. Priority: P2. Owner: unassigned. Source: Alex, 2026-10-18.
+Spec: [career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: US-A004 and US-L017. Scope: course/action details, alternatives,
+required exams and availability. Decisions: curriculum approval of each accepted
+bundle. Course access and enrollment keep their current rules.
+
+```gherkin
+Feature: Milestone learning options
+  Scenario: US-L018-AC01 Compare learning routes
+    Given a milestone offers classroom and on-demand preparation or other approved alternatives
+    When I inspect its details
+    Then I see each option's course or action, format and availability
+    And the milestone clearly distinguishes preparation from completion requirements
+    And choosing an option does not enroll me or complete the milestone
+
+  Scenario: US-L018-AC02 Require an exam separately from preparation
+    Given Foundation requires passing its exam
+    When a preparation course is completed or declared completed
+    Then the exam action remains outstanding until it is declared passed
+    And classroom attendance alone does not claim the qualification
+    And an already-qualified learner may declare the passed exam without retaking a course
+
+  Scenario: US-L018-AC03 Explain all required actions and alternatives
+    Given a milestone accepts alternative bundles containing required actions
+    When I review my remaining work
+    Then the UI says which actions in a bundle are required together
+    And it says when satisfying one accepted bundle is enough
+    And unrelated alternatives are not all counted as mandatory
+
+  Scenario: US-L018-AC04 Explain unavailable options without leaking data
+    Given a recommended course is planned, withdrawn, external, or unavailable in the Academy
+    When I inspect the milestone
+    Then its availability and any published alternatives are explained
+    And unavailable Academy options have no enabled start or enrollment action
+    And public details reveal no private draft title or content
+```
+
+### US-L019 — Record my own learning and certification achievements
+
+**As a learner, I want to record completed courses, passed certifications and
+other milestone actions, so my career progress reflects what I have achieved.**
+
+State: Proposed. Priority: P2. Owner: unassigned. Source: Alex, 2026-10-18.
+Spec: [career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependency: US-A004. Release with US-L020 before exposing declaration writes.
+Scope: account-owned, explicitly self-reported declarations; persistent recovery
+and isolation; separate evidence from platform lesson/quiz completion.
+Decisions: approve the spec's requirement identities, add-only first-release
+policy and handling of existing real course completion. No certificate upload
+or administrator verification is required in the first release.
+
+```gherkin
+Feature: Self-reported career achievements
+  Scenario: US-L019-AC01 Start without invented qualifications
+    Given I am a new learner without saved achievements
+    When I open a career tree
+    Then no exam, course or milestone is already declared achieved
+    And the CV preview does not populate qualifications
+
+  Scenario: US-L019-AC02 Confirm an achievement
+    Given an eligible published course, exam or action is shown in a followed career
+    When I confirm that I completed or passed it
+    Then one declaration is saved to my authenticated account
+    And it is labelled self-reported rather than independently verified
+    And an exam declaration does not claim the platform awarded a certification
+
+  Scenario: US-L019-AC03 Restore and reuse the same achievement
+    Given my account has a saved declaration used by several careers
+    When I reload or open another device or career
+    Then that declaration remains available wherever its identity qualifies
+    And repeating the same save produces no duplicate achievement
+    And another account cannot read or write it
+
+  Scenario: US-L019-AC04 Retry without false success
+    Given saving my declaration fails or its reply is interrupted
+    When I inspect the result and retry
+    Then the UI explains the failure and retains my chosen action
+    And no unconfirmed save is shown as a persisted achievement
+    And retry reconciles to one saved outcome
+
+  Scenario: US-L019-AC05 Preserve real learning progress
+    Given a course has incomplete lessons or an unpassed platform quiz
+    When I declare that course completed for a career milestone
+    Then the declaration is separate from platform lesson and grading records
+    And those lesson records and quiz results remain unchanged
+    And the declaration grants no course enrollment or content access
+
+  Scenario: US-L019-AC06 Protect session and evidence boundaries
+    Given an anonymous caller, an unknown action, or a response pending during an account change
+    When a declaration is requested or its response arrives
+    Then unauthorized or unknown declarations are refused without mutation
+    And account identity comes from authentication rather than request-supplied identity
+    And an old-session reply cannot populate the new account's achievements
+```
+
+### US-L020 — Unlock milestones through shared prerequisites
+
+**As a learner, I want milestones to unlock when I meet their prerequisites,
+so progression is meaningful while different career branches remain open.**
+
+State: Proposed. Priority: P2. Owner: unassigned. Source: Alex, 2026-10-18.
+Spec: [career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: US-A004 and US-L019. Scope: shared/cross-path prerequisite and
+completion evaluation, with API enforcement. Decisions: final curriculum edges
+and criteria versions. Course access remains independent. Test Architect is a
+future composite-route example, not an additional launch career.
+
+```gherkin
+Feature: Meaningful and nonexclusive milestone progression
+  Scenario: US-L020-AC01 Enforce prerequisites for achievement
+    Given a milestone has an unachieved prerequisite
+    When I inspect it or directly request an achievement declaration for its actions
+    Then I can see what is required but cannot complete the locked milestone through the tree or API
+    And the API explains the missing prerequisites without saving the forbidden declaration
+    And existing course access rules are unchanged
+
+  Scenario: US-L020-AC02 Keep sibling branches available
+    Given the prerequisites for Test Automation Engineer and Technical Test Analyst are achieved
+    When I pursue or achieve Test Automation Engineer
+    Then Technical Test Analyst remains available
+    And only downstream milestones whose prerequisites are met become eligible
+
+  Scenario: US-L020-AC03 Reuse shared achievements across careers
+    Given Foundation is referenced by several careers
+    When I record the qualifying Foundation exam declaration
+    Then that one achievement satisfies Foundation in each applicable career
+    And changing the displayed route does not require repeating it
+    And it is not duplicated in the account's achievement records
+
+  Scenario: US-L020-AC04 Evaluate prerequisites across career boundaries
+    Given an isolated published composite-career fixture requires management, technical and analyst milestones
+    When I have achieved only two of those required milestones
+    Then its dependent milestone remains locked and explains the remaining prerequisite
+    When I achieve the remaining prerequisite in its contributing route
+    Then the dependent milestone becomes eligible without copying or re-entering any achievement
+    And I need not keep every contributing career followed to reuse that evidence
+
+  Scenario: US-L020-AC05 Continue beyond a role milestone
+    Given I achieve a published role milestone
+    When the route has further development milestones
+    Then those milestones remain visible and use their own prerequisite rules
+    And the UI recognises the milestone without declaring my whole career finished or awarding a job title
+```
+
+### US-L021 — Pursue several careers and focus on one route
+
+**As a learner, I want to follow several careers while viewing one route at a
+time, so I can combine career directions without a crowded tree or lost progress.**
+
+State: Proposed. Priority: P2. Owner: unassigned. Source: Alex's explicit
+multiple-career correction, 2026-10-18. Spec:
+[career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: US-A004, US-L019 and reviewed legacy selection mapping.
+Scope: followed-career set, saved display focus, nonmutating exploration,
+add/remove controls and preservation. This supersedes the prototype's exclusive
+switching behavior. Decisions: review compatibility/migration for existing paths
+outside the three launch roles; do not erase them or invent replacements.
+
+```gherkin
+Feature: Several career goals with one focused tree
+  Scenario: US-L021-AC01 Follow another career without replacing a goal
+    Given I follow Technical Tester
+    When I follow Test Manager
+    Then my account follows both careers
+    And each followed career can be opened from the career selector
+    And repeated follows do not create duplicates
+    And no course enrollment is created by following either career
+
+  Scenario: US-L021-AC02 Focus and explore independently
+    Given I follow several careers
+    When I focus one followed career or preview another published career
+    Then the page displays only the selected route's tree
+    And viewing a followed route preserves the followed-career set
+    And previewing an unfollowed career changes no saved goal, focus or achievement
+    And recording a new achievement through that preview requires following the career first
+
+  Scenario: US-L021-AC03 Preserve achievements when stopping following
+    Given I follow two careers and have achievements shared by their routes
+    When I stop following one career
+    Then the other career remains followed
+    And all achievements and course enrollments remain stored
+    And removing the focused career offers the remaining goals or a career-choice state
+
+  Scenario: US-L021-AC04 Restore goals without lost concurrent additions
+    Given two devices add different career goals to my account
+    When both additions succeed and I reload
+    Then both goals remain followed without duplicates
+    And the saved focus identifies a followed career or the page offers a focus choice
+    And a failed add or remove preserves the last confirmed state and offers retry
+
+  Scenario: US-L021-AC05 Preserve an existing single-career selection
+    Given an account already has a legacy selected career
+    When the reviewed compatibility mapping is applied
+    Then a supported existing career becomes a followed goal and initial focus
+    And an unsupported or withdrawn selection is retained with a recovery explanation
+    And existing completion, enrollment and evidence are not reset
+    And a legacy selection write cannot erase the new followed-career set
+
+  Scenario: US-L021-AC06 Keep goals private and controls accessible
+    Given I use keyboard navigation or an account request completes after logout
+    When I explore, follow, focus or remove a career
+    Then dialogs and updated views preserve meaningful visible focus
+    And goals can only be read or mutated for the authenticated account
+    And the old response cannot alter the next session's goals or focus
+```
+
+### US-L022 — Get consistent career guidance on Home and my tree
+
+**As a learner, I want Home and Career Path to use the same focus and achievement
+rules, so I can trust the next step they recommend.**
+
+State: Proposed. Priority: P2. Owner: unassigned. Source: integration consequence
+of Alex's approved feature, 2026-10-18. Spec:
+[career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: US-L017, US-L018, US-L020 and US-L021. Scope: adapt existing Home
+career guidance to multiple goals, focused route and real milestone evidence;
+no unrelated Home redesign. Proposed default: achieved counts, not a whole-tree
+percentage that would treat every alternative branch as mandatory.
+
+```gherkin
+Feature: Consistent next-step guidance
+  Scenario: US-L022-AC01 Recommend an eligible next action
+    Given my focused career has an incomplete eligible milestone
+    When Home and Career Path load
+    Then they agree on the focused career and eligible next milestone
+    And the action opens the relevant milestone, course or exam details
+    And a locked milestone is not presented as ready to achieve
+
+  Scenario: US-L022-AC02 Update guidance after a shared achievement
+    Given my account follows several careers that share a prerequisite
+    When the qualifying achievement is successfully saved
+    Then guidance uses it wherever applicable
+    And changing focus updates the displayed recommendation without deleting another goal
+
+  Scenario: US-L022-AC03 Keep counts and completion claims honest
+    Given the tree has alternative branches and separately recorded exam actions
+    When I inspect Home and Career Path
+    Then both use the same qualifying achievement counts
+    And neither fabricates a whole-career percentage or assumes every branch is required
+    And course preparation alone does not imply a passed exam
+
+  Scenario: US-L022-AC04 Preserve existing recovery and session protection
+    Given career goals or achievements cannot be loaded or an old-account response is pending
+    When the page renders or I change accounts
+    Then failed freshness is shown as unknown or unavailable with recovery guidance
+    And cached information is not represented as newly confirmed
+    And no previous account's private career information enters the new session
+```
+
+### US-L023 — Recognise relevant achievements from my CV
+
+**As a learner, I want relevant certifications and courses from my CV to become
+reviewable career achievements, so I do not have to enter them all manually.**
+
+State: Proposed, future scope; excluded from the first milestone-tree release.
+Priority: P3. Implementation owner: unassigned; Alex plans the later CV reader.
+Source: Alex, 2026-10-18. Spec boundary:
+[career milestone trees](specs/US-L017-L023-A004-career-milestone-trees.md).
+Dependencies: US-L019 and US-L020. Decisions before Ready: upload/consent and
+retention policy, supported CV formats, extraction interface, exact/ambiguous
+matching rules, recognition provenance, learner review, and treatment of
+out-of-order evidence. Do not implement the CV reader or imply it already works.
+
+```gherkin
+Feature: Future CV achievement recognition
+  Scenario: US-L023-AC01 Recognise a matching certification or course
+    Given the future CV reader has extracted a certification or course
+    When it matches a canonical qualification or course under the reviewed matching policy
+    Then the result identifies the existing achievement action rather than creating a duplicate milestone
+    And the result has explicit recognition provenance
+
+  Scenario: US-L023-AC02 Handle ambiguity and existing declarations
+    Given a CV entry is ambiguous or matches an achievement I already recorded
+    When the proposed results are reviewed under the agreed learner-review policy
+    Then ambiguous text is not silently treated as a passed qualification
+    And existing declarations and lesson evidence are not erased or duplicated
+
+  Scenario: US-L023-AC03 Keep release-one CV behavior honest
+    Given the CV recognition feature has not been implemented and released
+    When I use the existing CV preview in career setup
+    Then no file is uploaded, read or interpreted as achievement evidence
+    And manual achievement recording remains available
 ```
 
 ## Platform reliability
