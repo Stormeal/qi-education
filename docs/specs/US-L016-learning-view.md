@@ -103,7 +103,7 @@ Feature: Learning page
 - [x] AC06 lesson feedback (unit tests against the contract)
 - [x] AC07 lesson files, tabs, course facts with learner count
 - [x] AC08 exercise type in models, builder, details page and learning page
-- [ ] AC09 keyboard walk (400px checked: no sideways scroll, curriculum stacks under the lesson)
+- [x] AC09 keyboard walk 2026-10-17 (found and fixed DEF-046, focus lost after actions); 400px checked: no sideways scroll, curriculum stacks under the lesson
 - [x] Admin feedback list shows lesson tags
 - [x] Browser check against Codex's API: notes, lesson feedback, learner count, an exercise saved and completed
 
@@ -123,5 +123,5 @@ Feature: Learning page
   helpful rating shown in the admin feedback list with its course and lesson, learner count "1 learner", an
   exercise with a ZIP starter file saved by the API, shown, ticked complete (progress write 200) and followed by up
   next.
-- Not verified: a real Mux video (90% and note timestamps are unit-tested only); a keyboard-only walk; hosted
-  MongoDB and Sheets.
+- Not verified: a real Mux video (90% and note timestamps are unit-tested only); hosted MongoDB and Sheets.
+  The keyboard-only walk was done on 2026-10-17 (DEF-046).

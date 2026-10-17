@@ -51,6 +51,7 @@ Never commit `.env` or log credentials.
 | --- | --- |
 | Auth | `AUTH_TOKEN_SECRET` (required in production) |
 | Account store (US-P014) | `USER_STORE`: `google-sheets` (default) or `mongodb`, in shared and hosted mode only; isolated runs always use the demo users. `USER_STORE_READ_ONLY=1` freezes account writes (503 with a retry message) while accounts are copied. Any other value stops start-up |
+| Course store (US-P015) | `COURSE_STORE`: `google-sheets` (default) or `mongodb`, in shared and hosted mode only; isolated runs keep the demo course. `COURSE_STORE_READ_ONLY=1` freezes course-detail writes (503 with a retry message) while courses are copied. Any other value stops start-up |
 | Sheets | `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY` |
 | Sheet tabs | `GOOGLE_SHEETS_COURSES_RANGE`, `GOOGLE_SHEETS_USERS_RANGE`, `GOOGLE_SHEETS_FEEDBACK_RANGE` |
 | Mongo content | `MONGODB_URI`, `MONGODB_DB_NAME`, `MONGODB_COURSE_CONTENT_COLLECTION` |
@@ -62,8 +63,8 @@ Never commit `.env` or log credentials.
 | HTTP | `PORT`, comma-separated `CORS_ORIGIN` |
 
 Use the header order exported in `api/src/course.ts`, `auth.ts`, and `feedback.ts`.
-Current sheet widths: Courses `A:U`, Users `A:H` (until the US-P014 cutover; afterwards a
-read-only backup), Feedback `A:Q`. Column U is
+Current sheet widths: Courses `A:U` (until the US-P015 cutover), Users `A:H` (until the US-P014
+cutover); afterwards each is a read-only backup. Feedback `A:Q` stays in use. Column U is
 `ownerUserId`; old rows default to an empty owner and admin-only editing. Share a test sheet
 with the service account before running integration checks. Shared Sheets plus
 memory content/assets will block some authoring operations by design.
@@ -71,7 +72,7 @@ memory content/assets will block some authoring operations by design.
 The legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and
 `SESSION_SECRET` aliases are accepted; use the preferred names for new setup.
 
-## Moving accounts between Google Sheets and MongoDB (US-P014)
+## Moving accounts and courses between Google Sheets and MongoDB (US-P014, US-P015)
 
 `npm --prefix api run users:migrate -- --dry-run|--apply|--verify|--restore-sheet` copies
 accounts between the Users sheet and `<MONGODB_COURSE_CONTENT_COLLECTION>_users`. It needs
@@ -79,6 +80,10 @@ accounts between the Users sheet and `<MONGODB_COURSE_CONTENT_COLLECTION>_users`
 frozen and the store points the right way, and never prints password hashes. Isolated runs
 cannot use it. The hosted procedure, with every command, is the
 [cutover runbook](release/US-P014-cutover.md).
+
+`npm --prefix api run courses:migrate` does the same for course details (US-P015), with the
+same modes and guards for `COURSE_STORE` and `COURSE_STORE_READ_ONLY`. Its hosted procedure is
+the [course cutover runbook](release/US-P015-cutover.md); run it after the accounts cutover.
 
 ## Account mail and password recovery
 

@@ -7,6 +7,8 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -79,7 +81,7 @@ const VIDEO_COMPLETE_SHARE = 0.9;
   styleUrl: './learning-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  host: { '(document:keydown.escape)': 'cancelUpNext()' },
+  host: { '(document:keydown.escape)': 'stayHere()' },
 })
 export class LearningPage {
   private readonly courseService = inject(CourseService);
@@ -87,6 +89,8 @@ export class LearningPage {
   private readonly lessonExtras = inject(LessonExtrasService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly document = inject(DOCUMENT);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
@@ -328,11 +332,13 @@ export class LearningPage {
   protected goToPrevious(): void {
     const previous = this.previousComponent();
     if (previous) this.selectLesson(previous.id);
+    this.keepFocus('#lesson-title');
   }
 
   protected goToNext(): void {
     const next = this.nextComponent();
     if (next) this.selectLesson(next.id);
+    this.keepFocus('#lesson-title');
   }
 
   protected toggleSection(sectionId: string): void {
@@ -390,6 +396,7 @@ export class LearningPage {
     if (!component) return;
     this.markCompleted(component.id);
     this.startUpNext();
+    this.keepFocus(this.upNextSeconds() !== null ? '.up-next-start' : '#lesson-title');
   }
 
   protected videoTimeUpdated(): void {
@@ -410,6 +417,13 @@ export class LearningPage {
   protected startNextNow(): void {
     this.cancelUpNext();
     this.goToNext();
+  }
+
+  /** "Stay here" or Escape while the up-next panel shows. */
+  protected stayHere(): void {
+    if (this.upNextSeconds() === null) return;
+    this.cancelUpNext();
+    this.keepFocus('#lesson-title');
   }
 
   protected cancelUpNext(): void {
@@ -471,6 +485,7 @@ export class LearningPage {
       this.notes.update((notes) => [...notes, note]);
       this.noteDraft.set('');
       this.noteDraftSeconds.set(null);
+      this.keepFocus('#note-input');
     } catch (error) {
       this.notesError.set(this.message(error, 'Your note could not be saved. Please try again.'));
     } finally {
@@ -484,6 +499,7 @@ export class LearningPage {
   }
 
   protected cancelNoteEdit(): void {
+    this.keepFocus(`#note-${this.editingNoteId()}`);
     this.editingNoteId.set('');
   }
 
@@ -497,6 +513,7 @@ export class LearningPage {
       const saved = await this.lessonExtras.updateNote(courseId, note.id, text, this.authToken());
       this.notes.update((notes) => notes.map((item) => item.id === saved.id ? saved : item));
       this.editingNoteId.set('');
+      this.keepFocus(`#note-${saved.id}`);
     } catch (error) {
       this.notesError.set(this.message(error, 'Your note could not be changed. Please try again.'));
     } finally {
@@ -512,6 +529,7 @@ export class LearningPage {
     try {
       await this.lessonExtras.deleteNote(courseId, note.id, this.authToken());
       this.notes.update((notes) => notes.filter((item) => item.id !== note.id));
+      this.keepFocus('#note-input');
     } catch (error) {
       this.notesError.set(this.message(error, 'Your note could not be deleted. Please try again.'));
     } finally {
@@ -549,6 +567,7 @@ export class LearningPage {
     if (!component || !courseId || this.isRated(component.id)) return;
     this.ratedComponentIds.update((ids) => [...ids, component.id]);
     this.ratingError.set('');
+    this.keepFocus('#rating-thanks');
     try {
       await this.lessonExtras.sendLessonFeedback(courseId, { componentId: component.id, kind }, this.authToken());
     } catch (error) {
@@ -558,6 +577,7 @@ export class LearningPage {
   }
 
   protected toggleProblemForm(): void {
+    if (this.isProblemFormOpen()) this.keepFocus('#problem-toggle');
     this.isProblemFormOpen.update((open) => !open);
     this.problemCategory.set('');
     this.problemMessage.set('');
@@ -581,6 +601,7 @@ export class LearningPage {
         { componentId: component.id, kind: 'problem', category, message: this.problemMessage().trim() }, this.authToken());
       this.isProblemFormOpen.set(false);
       this.problemSentComponentId.set(component.id);
+      this.keepFocus('#problem-toggle');
     } catch (error) {
       this.problemError.set(this.message(error, 'Your report could not be sent. Please try again.'));
     } finally {
@@ -657,7 +678,9 @@ export class LearningPage {
     const question = this.activeQuizQuestion();
     if (!question || this.quizScoring() || !this.activeQuizQuestionAnswered() || this.activeQuizQuestionSubmitted()) return;
     const submitted = [...this.submittedQuizQuestionIds(), question.id];
-    if (await this.scoreActiveQuiz(submitted)) this.submittedQuizQuestionIds.set(submitted);
+    if (!await this.scoreActiveQuiz(submitted)) return;
+    this.submittedQuizQuestionIds.set(submitted);
+    this.keepFocus('.quiz-card .stage-actions button[data-variant=primary]');
   }
 
   protected goToNextQuizQuestion(): void {
@@ -667,6 +690,7 @@ export class LearningPage {
       return;
     }
     this.activeQuizQuestionIndex.update((index) => index + 1);
+    this.keepFocus('.quiz-answers input');
   }
 
   protected async finishActiveQuiz(): Promise<void> {
@@ -674,10 +698,12 @@ export class LearningPage {
     if (!await this.scoreActiveQuiz(this.submittedQuizQuestionIds())) return;
     this.quizSubmitted.set(true);
     if (this.activeQuizPassed()) this.completeActiveLesson();
+    else this.keepFocus('.quiz-card .stage-actions button');
   }
 
   protected retryActiveQuiz(): void {
     this.resetQuizAttempt();
+    this.keepFocus('.quiz-answers input');
   }
 
   // The API says only whether the whole question was right. With several correct answers a wrong
@@ -743,6 +769,18 @@ export class LearningPage {
     const components = content.sections.flatMap((section) => section.components);
     const completed = this.learningProgress.completedIds(this.userEmail(), content._id);
     return components.find((component) => !completed.includes(component.id))?.id ?? components[0]?.id ?? '';
+  }
+
+  /**
+   * US-L016-AC09: when the control that had keyboard focus is removed or disabled, move focus to
+   * `selector` after the next render instead of letting it fall to the top of the page.
+   */
+  private keepFocus(selector: string): void {
+    afterNextRender(() => {
+      const active = this.document.activeElement;
+      if (active && active !== this.document.body && !active.matches(':disabled')) return;
+      this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus();
+    }, { injector: this.injector });
   }
 
   private message(error: unknown, fallback: string): string {

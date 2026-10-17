@@ -296,6 +296,46 @@ describe('learning page', () => {
     expect(body.textContent).toContain('Thanks, your report was sent to the course team.');
   });
 
+  describe('US-L016-AC09 keyboard focus stays on the page when the focused control goes away', () => {
+    const focused = () => document.activeElement as HTMLElement;
+
+    it('keeps the note field focused after saving a note', async () => {
+      extras.addNote.mockImplementation(async (_course: string, input: { componentId: string; text: string; videoSeconds: number | null }) =>
+        note({ id: 'n2', ...input }));
+      const { body, button, settle } = await setup();
+      button('Notes 0').click(); await settle();
+      const textarea = body.querySelector<HTMLTextAreaElement>('.note-form textarea')!;
+      textarea.value = 'Roles first'; textarea.dispatchEvent(new Event('input')); await settle();
+      const save = button('Save note'); save.focus(); save.click(); await settle();
+      expect(focused()).toBe(body.querySelector('.note-form textarea'));
+    });
+
+    it('moves focus to the thanks message after rating', async () => {
+      const { body, button, settle } = await setup();
+      const up = button('Yes, this lesson was helpful'); up.focus(); up.click(); await settle();
+      expect(focused()).toBe(body.querySelector('#rating-thanks'));
+    });
+
+    it('returns focus to "Report a problem" after sending or cancelling the form', async () => {
+      const { body, button, settle } = await setup();
+      button('Report a problem').click(); await settle();
+      const cancel = button('Cancel'); cancel.focus(); cancel.click(); await settle();
+      expect(focused()).toBe(body.querySelector('#problem-toggle'));
+      button('Report a problem').click(); await settle();
+      body.querySelector<HTMLInputElement>('input[name=problem-category]')!.click(); await settle();
+      const send = button('Send report'); send.focus(); send.click(); await settle();
+      expect(focused()).toBe(body.querySelector('#problem-toggle'));
+    });
+
+    it('focuses "Start now" after Mark complete, and the lesson title after Stay here', async () => {
+      const { body, button, settle } = await setup(courseContent, ['video']);
+      const complete = button('Mark complete'); complete.focus(); complete.click(); await settle();
+      expect(focused()).toBe(button('Start now'));
+      button('Stay here').click(); await settle();
+      expect(focused()).toBe(body.querySelector('#lesson-title'));
+    });
+  });
+
   it('US-L016-AC07 lists lesson files and shows course facts without a rating', async () => {
     const { body, button, text, settle } = await setup();
     const facts = [...body.querySelectorAll('.course-facts > div')].map((fact) => `${text(fact.querySelector('dt'))}: ${text(fact.querySelector('dd'))}`);

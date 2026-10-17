@@ -67,7 +67,7 @@
           <header class="lesson-head">
             <div class="lesson-head-text">
               <p class="lesson-position">{{ lessonPosition() }}</p>
-              <h1 id="lesson-title">{{ lesson.title }}</h1>
+              <h1 id="lesson-title" tabindex="-1">{{ lesson.title }}</h1>
             </div>
             <div class="lesson-stepper">
               <button appButton size="sm" [disabled]="!previousComponent()" (click)="goToPrevious()">
@@ -229,8 +229,8 @@
                   <p id="up-next-title" class="up-next-title">{{ next.title }}</p>
                   <p class="up-next-meta">{{ lessonMeta(next) }}</p>
                   <div class="up-next-actions">
-                    <button appButton size="sm" class="up-next-stay" (click)="cancelUpNext()">Stay here</button>
-                    <button appButton size="sm" (click)="startNextNow()">Start now</button>
+                    <button appButton size="sm" class="up-next-stay" (click)="stayHere()">Stay here</button>
+                    <button appButton size="sm" class="up-next-start" (click)="startNextNow()">Start now</button>
                   </div>
                 </div>
               </div>
@@ -252,7 +252,7 @@
             </button>
             <span class="action-spacer"></span>
             @if (isRated(lesson.id)) {
-              <p class="action-thanks" role="status">Thanks for rating this lesson.</p>
+              <p id="rating-thanks" class="action-thanks" role="status" tabindex="-1">Thanks for rating this lesson.</p>
             } @else {
               <span class="action-label" id="helpful-label">Was this lesson helpful?</span>
               <button appIconButton label="Yes, this lesson was helpful" (click)="rateLesson('helpful')">
@@ -262,7 +262,7 @@
                 <span class="icon" aria-hidden="true" [innerHTML]="icons.down"></span>
               </button>
             }
-            <button appButton="ghost" size="sm" aria-controls="problem-form" [attr.aria-expanded]="isProblemFormOpen()" (click)="toggleProblemForm()">
+            <button id="problem-toggle" appButton="ghost" size="sm" aria-controls="problem-form" [attr.aria-expanded]="isProblemFormOpen()" (click)="toggleProblemForm()">
               <span class="icon" aria-hidden="true" [innerHTML]="icons.flag"></span>
               Report a problem
             </button>
@@ -339,7 +339,7 @@
                         Note for this lesson
                       }
                     </span>
-                    <textarea #noteInput rows="3" maxlength="2000" [value]="noteDraft()" (input)="noteDraft.set(controlValue($event))"></textarea>
+                    <textarea #noteInput id="note-input" rows="3" maxlength="2000" [value]="noteDraft()" (input)="noteDraft.set(controlValue($event))"></textarea>
                   </label>
                   <div class="form-actions">
                     <span class="note-private">Private to you</span>
@@ -352,7 +352,7 @@
                 } @else {
                   <ul class="note-list">
                     @for (note of sortedNotes(); track note.id) {
-                      <li class="note">
+                      <li class="note" [id]="'note-' + note.id" tabindex="-1">
                         <div class="note-meta">
                           @if (note.videoSeconds !== null) {
                             <button type="button" class="timestamp-button" [attr.aria-label]="(isNoteOnActiveLesson(note) ? 'Play from ' : 'Open lesson at ') + formatVideoTime(note.videoSeconds)" (click)="openNote(note)">

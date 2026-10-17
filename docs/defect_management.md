@@ -746,6 +746,15 @@ Fix 2026-10-17 (lead default, Alex to confirm or change: the 10 seconds): GET re
 Regression: `platformLoad.test.ts` session count (exact one-at-a-time counts; burst counts depend on overlap, so only their catalog reads are exact), "a reused catalog is at most recentCatalogMs old" (another instance's unpublish visible after 10 s, POST refused at once, own write read fresh) and AC02 per-route counts (later GETs 1 read, quiz POST 2). API 1328/54, six journeys and API build pass.
 Not fixed, remaining reads per session (frontend or product decisions, not this API change): the Users read per authenticated request (24 of the 24); outlines are fetched by both `LearningProgressService.loadCourses` and `CareerPathService.loadOutlines` with the cache bypassed; thumbnails are fetched with the bearer token, so each costs a Users read on a cold browser cache. Not verified: real Sheets latency, Vercel instance reuse and the hosted quota after deploy. Check after the next deploy: the hosted log should show no `Quota exceeded` during a normal visit.
 
+### DEF-046 - Learning page drops keyboard focus to the top of the page
+
+| ID | State | Severity | Contract | Evidence |
+| --- | --- | --- | --- | --- |
+| DEF-046 | Fixed, Claude Code, 2026-10-17 (new in US-L016) | P2 | US-L016-AC09; WCAG 2.2 2.4.3 focus order | Keyboard walk on 3001/4200: after "Save note" `document.activeElement` was `<body>` |
+
+Found in the US-L016-AC09 keyboard walk, 2026-10-17 (isolated stores, Chromium, real key presses). Expected: after an action, keyboard focus stays on or near the control that was used. Actual: focus fell to the top of the page whenever the focused control was removed or disabled: Save note (the button disables once the field clears), the rating buttons (replaced by the thanks text), sending or cancelling the problem form, saving, cancelling or deleting a note, Mark complete and the exercise check (replaced by the up-next panel or badge), Stay here and Escape, Next on the last lesson, and the quiz's Submit, Finish and Try again. A keyboard user then had to tab back from the header.
+Fixed 2026-10-17: after those actions the page moves focus, only if it was lost, to the next sensible control (the note field, the thanks text, "Report a problem", the note, "Start now", the lesson title, the quiz's next button or first answer). Regression: four focus cases in `learning-page.spec.ts` (all failed first). Verified by a full keyboard walk in a browser: header, course bar, lesson, action bar, tabs (arrow keys), curriculum; a note added and saved; a problem report sent; up next started with Enter and cancelled with Escape; the exercise ticked with Space; the quiz answered, submitted and finished; every stop shows the shared focus ring.
+
 ## New defect record
 
 Include the next unused DEF ID, title, severity, state, discovery date, tested
