@@ -99,7 +99,46 @@ export type Course = CreateCourseInput & {
   ownerUserId: string;
 };
 
+// Restore can encounter values that the original delimiter/rounding format
+// cannot represent. Only those cells use a versioned, typed escape. Ordinary
+// rows and default serialization keep their historical representation.
+const losslessCellPrefix = 'qi-course-cell:v1:';
+const losslessCellSchemas = {
+  careerGoals: z.array(z.string()), requirements: z.array(z.string()),
+  whatYoullLearn: z.array(z.string()), rating: z.number().min(0).max(5),
+  languages: z.array(courseLanguageSchema), ownerUserId: z.string(),
+};
+type LosslessField = keyof typeof losslessCellSchemas;
+export function decodeCourseSheetCell(field: string, cell: unknown, options: { strict?: boolean } = {}): { value: unknown } | undefined {
+  if (typeof cell !== 'string' || !cell.startsWith(losslessCellPrefix)) return undefined;
+  if (!Object.hasOwn(losslessCellSchemas, field)) return undefined;
+  try {
+    const payload = cell.slice(losslessCellPrefix.length);
+    const json = Buffer.from(payload, 'base64url').toString('utf8');
+    if (Buffer.from(json).toString('base64url') !== payload) throw new Error('Invalid course sheet escape.');
+    const parsed = z.object({ field: z.literal(field), value: losslessCellSchemas[field as LosslessField] }).strict().parse(JSON.parse(json));
+    return { value: parsed.value };
+  } catch (error) {
+    // Old rows may contain a literal prefix. Keep their ordinary read behavior;
+    // migration validation is strict and refuses ambiguous/malformed cells.
+    if (options.strict) throw error;
+    return undefined;
+  }
+}
 export function courseFromSheetRow(row: string[]): Course {
+  const course = legacyCourseFromSheetRow(row);
+  for (const field of Object.keys(losslessCellSchemas) as LosslessField[]) {
+    const decoded = decodeCourseSheetCell(field, row[courseSheetHeaders.indexOf(field)]);
+    if (decoded) Object.assign(course, { [field]: decoded.value });
+  }
+  return course;
+}
+export function courseSheetRowUsesEscapes(row: unknown[]): boolean {
+  return (Object.keys(losslessCellSchemas) as LosslessField[]).some(field =>
+    typeof row[courseSheetHeaders.indexOf(field)] === 'string' &&
+    (row[courseSheetHeaders.indexOf(field)] as string).startsWith(losslessCellPrefix));
+}
+function legacyCourseFromSheetRow(row: string[]): Course {
   return {
     id: row[0] ?? '',
     title: row[1] ?? '',
@@ -125,8 +164,8 @@ export function courseFromSheetRow(row: string[]): Course {
   };
 }
 
-export function courseToSheetRow(course: Course): string[] {
-  return [
+export function courseToSheetRow(course: Course, options: { lossless?: boolean } = {}): string[] {
+  const row = [
     course.id,
     course.title,
     course.description,
@@ -149,6 +188,15 @@ export function courseToSheetRow(course: Course): string[] {
     course.languages.join(', '),
     course.ownerUserId,
   ];
+  const legacy = legacyCourseFromSheetRow(row);
+  for (const field of Object.keys(losslessCellSchemas) as LosslessField[]) {
+    const index = courseSheetHeaders.indexOf(field);
+    if (options.lossless && JSON.stringify(course[field]) !== JSON.stringify(legacy[field]) || row[index].startsWith(losslessCellPrefix)) {
+      const value = losslessCellSchemas[field].parse(course[field]);
+      row[index] = losslessCellPrefix + Buffer.from(JSON.stringify({ field, value })).toString('base64url');
+    }
+  }
+  return row;
 }
 
 function parsePriceDkk(value: string | undefined): number | null {

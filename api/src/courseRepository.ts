@@ -13,6 +13,7 @@ import {
   type UpdateCoursePriceInput,
   type UpdateCourseThumbnailInput,
   courseFromSheetRow,
+  courseSheetRowUsesEscapes,
   courseSheetHeaders,
   courseToSheetRow,
 } from './course.js';
@@ -122,7 +123,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [courseToSheetRow(course)]
+        values: [courseToSheetRow(course, { lossless: courseSheetRowUsesEscapes(rows[rowIndex + 1]) })]
       }
     }));
 
@@ -158,7 +159,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [courseToSheetRow(updated)],
+        values: [courseToSheetRow(updated, { lossless: courseSheetRowUsesEscapes(rows[rowIndex + 1]) })],
       },
     }));
 
@@ -197,7 +198,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [courseToSheetRow(updated)],
+        values: [courseToSheetRow(updated, { lossless: courseSheetRowUsesEscapes(rows[rowIndex + 1]) })],
       },
     }));
 
@@ -233,7 +234,7 @@ export class GoogleSheetsCourseRepository implements CourseRepository {
       range: `${sheetTitle}!A${sheetRowNumber}:${rowColumn}${sheetRowNumber}`,
       valueInputOption: 'RAW',
       requestBody: {
-        values: [courseToSheetRow(updated)],
+        values: [courseToSheetRow(updated, { lossless: courseSheetRowUsesEscapes(rows[rowIndex + 1]) })],
       },
     }));
 
