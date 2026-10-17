@@ -182,7 +182,7 @@ Feature: Accounts stored in MongoDB
 - Collection `${MONGODB_COURSE_CONTENT_COLLECTION}_users`; unique index on `email`, index on
   `enrolledCourseIds`; `--apply` creates both before copying.
 
-## Cutover runbook (outline; exact commands in `docs/release/US-P014-cutover.md`, Claude)
+## Cutover runbook (outline; exact commands in the [runbook](../release/US-P014-cutover.md))
 
 1. Deploy the release; `/health/auth` says `store: google-sheets`, `readOnly: false`.
 2. `--dry-run`; decide on every listed duplicate or invalid row before going on.

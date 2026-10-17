@@ -50,6 +50,7 @@ Never commit `.env` or log credentials.
 | Area | Configuration |
 | --- | --- |
 | Auth | `AUTH_TOKEN_SECRET` (required in production) |
+| Account store (US-P014) | `USER_STORE`: `google-sheets` (default) or `mongodb`, in shared and hosted mode only; isolated runs always use the demo users. `USER_STORE_READ_ONLY=1` freezes account writes (503 with a retry message) while accounts are copied. Any other value stops start-up |
 | Sheets | `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY` |
 | Sheet tabs | `GOOGLE_SHEETS_COURSES_RANGE`, `GOOGLE_SHEETS_USERS_RANGE`, `GOOGLE_SHEETS_FEEDBACK_RANGE` |
 | Mongo content | `MONGODB_URI`, `MONGODB_DB_NAME`, `MONGODB_COURSE_CONTENT_COLLECTION` |
@@ -61,13 +62,23 @@ Never commit `.env` or log credentials.
 | HTTP | `PORT`, comma-separated `CORS_ORIGIN` |
 
 Use the header order exported in `api/src/course.ts`, `auth.ts`, and `feedback.ts`.
-Current sheet widths: Courses `A:U`, Users `A:H`, Feedback `A:M`. Column U is
+Current sheet widths: Courses `A:U`, Users `A:H` (until the US-P014 cutover; afterwards a
+read-only backup), Feedback `A:Q`. Column U is
 `ownerUserId`; old rows default to an empty owner and admin-only editing. Share a test sheet
 with the service account before running integration checks. Shared Sheets plus
 memory content/assets will block some authoring operations by design.
 
 The legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and
 `SESSION_SECRET` aliases are accepted; use the preferred names for new setup.
+
+## Moving accounts between Google Sheets and MongoDB (US-P014)
+
+`npm --prefix api run users:migrate -- --dry-run|--apply|--verify|--restore-sheet` copies
+accounts between the Users sheet and `<MONGODB_COURSE_CONTENT_COLLECTION>_users`. It needs
+`USE_SHARED_SERVICES=1`, refuses `--apply` and `--restore-sheet` unless account writes are
+frozen and the store points the right way, and never prints password hashes. Isolated runs
+cannot use it. The hosted procedure, with every command, is the
+[cutover runbook](release/US-P014-cutover.md).
 
 ## Account mail and password recovery
 
@@ -89,10 +100,9 @@ and provider under mail, without keys/addresses, alongside its new store mode.
 Real acceptance, delivery and
 spam placement remain Alex's post-deployment check; no test sends real mail.
 
-Shared/hosted password writes use the configured Sheets store; hashed reset tokens
+Shared/hosted password writes use the configured account store (`USER_STORE`); hashed reset tokens
 use configured Mongo and
-`<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. There is no spreadsheet
-migration and no raw token persisted. Links last 60 minutes and one use; checks
+`<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. No raw token is persisted. Links last 60 minutes and one use; checks
 do not consume them. The three-per-account rolling-hour limit includes pending
 or failed sends because a timeout can follow delivery. A failed password write
 after claiming a token leaves it consumed; request a fresh link. Existing signed

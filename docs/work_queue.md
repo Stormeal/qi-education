@@ -13,7 +13,7 @@ has a write freeze, direction guards, a two-way verify and a restore (AC09 to AC
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Codex | US-P014 code: Mongo user repository, `USER_STORE` and `USER_STORE_READ_ONLY`, health, doctor, learner count, `users:migrate` | See the [handoff](handoffs/US-P014-users-in-mongodb-codex.md) | Handed over |
-| Claude Code | Cutover and rollback runbook with exact commands, local development docs, lead check | `docs/release/US-P014-cutover.md`, `docs/local_development.md`, `docs/specs/US-P014-users-in-mongodb.md` (except Codex's checklist), `docs/user_stories.md` | Started |
+| Claude Code | Cutover and rollback runbook with exact commands, local development docs, lead check | `docs/release/US-P014-cutover.md`, `docs/local_development.md`, `docs/specs/US-P014-users-in-mongodb.md` (except Codex's checklist), `docs/user_stories.md` | Runbook and docs done locally: [cutover runbook](release/US-P014-cutover.md) (freeze, apply, two-way verify, switch, rollback with restore; exact PowerShell commands and Vercel clicks) and `docs/local_development.md`. Written from the spec's operator contract; to be checked against Codex's real output in the lead check. Next: check Codex |
 
 **Session 2026-10-17 — started by Alex: "start the learning view redesign: you take part 3,
 Codex takes part 2".** Branch: `main`. Base: `40739ba` (DEF-037 to DEF-042 pushed, 0.1.206).
