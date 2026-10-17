@@ -4,6 +4,17 @@ Updated: 2026-10-17. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
+**Session 2026-10-17 (2) — started by Alex with "start US-P014".** Branch: `main`. Base:
+`599eceb` (DEF-045 stopgap; `4531565` pushed, `4c215a0` and `599eceb` local). First step of the
+[Sheets to MongoDB plan](superpowers/plans/2026-10-17-sheets-to-mongodb.md). Alex added during
+the start: no account data may be lost during the migration, including a rollback; the spec now
+has a write freeze, direction guards, a two-way verify and a restore (AC09 to AC12).
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Codex | US-P014 code: Mongo user repository, `USER_STORE` and `USER_STORE_READ_ONLY`, health, doctor, learner count, `users:migrate` | See the [handoff](handoffs/US-P014-users-in-mongodb-codex.md) | Handed over |
+| Claude Code | Cutover and rollback runbook with exact commands, local development docs, lead check | `docs/release/US-P014-cutover.md`, `docs/local_development.md`, `docs/specs/US-P014-users-in-mongodb.md` (except Codex's checklist), `docs/user_stories.md` | Started |
+
 **Session 2026-10-17 — started by Alex: "start the learning view redesign: you take part 3,
 Codex takes part 2".** Branch: `main`. Base: `40739ba` (DEF-037 to DEF-042 pushed, 0.1.206).
 The first teacher session is over, so feature work resumes. Parts 2 and 3 of the redesign

@@ -43,14 +43,14 @@ US-P015 (courses, P2), US-P016 (retire the Sheets code for users and courses, P3
 3. **Copy script.** `npm --prefix api run users:migrate -- --dry-run|--apply` reads the
    sheet once, maps rows with the existing row parser, and upserts by id. It is idempotent
    and prints counts, skipped rows and conflicts (for users: two rows with the same
-   normalized email are reported, never merged). It never writes to the sheet.
-4. **Cutover in a quiet moment.** Dry run, apply, compare counts, set the switch to
-   `mongodb` in Vercel and redeploy, then sign in and check. No dual writes: the sheet is
-   the source until the switch flips and a frozen backup after. Changes made in the minute
-   between the last copy and the flip are the accepted risk (announce a short window).
-5. **Rollback.** Set the switch back to `google-sheets`. Anything written to MongoDB after
-   the cutover (new accounts, enrollments, password changes) would be missing from the
-   sheet, so roll back only within the cutover window; after that, fix forward.
+   normalized email are reported, never merged). Only the rollback copy writes to the sheet.
+4. **Cutover with a write freeze (no data loss, Alex 2026-10-17).** Dry run; freeze account
+   (later course) writes with a read-only setting, so reads keep working and writes answer
+   503 with a retry message; apply; verify field by field in both directions until identical;
+   switch the store and lift the freeze. Nothing can change between the copy and the switch.
+5. **Rollback without loss.** Freeze, copy MongoDB back into the sheet (rows updated in place,
+   new ones appended, nothing deleted), verify, switch back. Copies refuse to run unfrozen or
+   in the wrong direction, so a stray rerun cannot overwrite newer data.
 6. **Retire later.** After one release with the switch on `mongodb` and a clean log, US-P016
    removes the Sheets users/courses code, the switch and their health/doctor checks. The
    sheets stay in Google Drive as a read-only backup.
