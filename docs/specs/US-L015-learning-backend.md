@@ -159,10 +159,51 @@ Feature: Learning backend
 
 ## Checklist
 
-- [ ] AC01–AC03 notes routes, repository (memory and Mongo) and tests
-- [ ] AC04–AC05 lesson feedback route, feedback fields and Sheets columns, tests
-- [ ] AC06 learner count route and tests
-- [ ] AC07 exercise type in the content schema, review/publish, progress, tests
-- [ ] AC08 `lesson-extras.service.ts` and its spec
-- [ ] `docs/architecture.md` lists the new routes and storage
-- [ ] API tests, API build, journeys pass
+- [x] AC01–AC03 notes routes, repository (memory and Mongo) and tests
+- [x] AC04–AC05 lesson feedback route, feedback fields and Sheets columns, tests
+- [x] AC06 learner count route and tests
+- [x] AC07 exercise type in the content schema, review/publish, progress, tests
+- [x] AC08 `lesson-extras.service.ts` and its spec
+- [x] `docs/architecture.md` lists the new routes and storage
+- [x] API tests, API build, journeys pass
+
+## Outcome
+
+Implemented locally on `main` on 2026-10-17, based on `27ab0ec` (history contains
+`ccdb6ca`). API steps: `8788d78` (private notes) and `93f7d21` (feedback, count,
+exercises). The service and delivery record are in the commit containing this Outcome.
+The Contract is unchanged; every new course route works with and without `/api`.
+
+Scenario evidence:
+
+| Scenarios | Evidence |
+| --- | --- |
+| AC01–AC03 | `api/src/lessonExtras.test.ts`: real HTTP on both prefixes, private notes including admin isolation, edit/delete ownership, access/validation, concurrent cap and failed writes. `lessonNotesRepository.test.ts`: memory and isolated Mongo-operation semantics, cross-account/course isolation, atomic 500-note cap, slot reuse, cloned snapshots, duplicate retry and provider failure propagation. |
+| AC04–AC05 | `lessonExtras.test.ts`: all feedback kinds, category rules, lesson/access validation and admin list, unchanged site feedback. `lessonFeedback.test.ts`: appended Sheets columns, legacy short rows and triage preserving the lesson fields. |
+| AC06 | `lessonExtras.test.ts`: three enrolled accounts, unrelated signed-in caller, duplicate enrollments, draft/review/archived access, missing course. `platformLoad.test.ts`: two total Sheets reads (Users and Courses), with authentication and counting sharing one fresh Users snapshot; disabled session refused. |
+| AC07 | `lessonExtras.test.ts`: teacher saves exercise instructions/link, uploads ZIP/PDF/Word/PowerPoint/image files, rejects executable MIME, saves file references, submits, admin publishes, learner reads, public outline retains type without instructions, learner completes and downloads the file. Both prefixes. |
+| AC08 | `app/src/app/services/lesson-extras.service.spec.ts`: eight tests covering all six exact methods, paths/bodies/tokens/results, encoded IDs, empty 204, fresh account reads, API messages and fallback Errors. |
+
+Read-only independent review found no correctness/security changes required. Its minor
+follow-up is additional route regression coverage with a simultaneous live course and
+working revision; current selection/access was inspected, but that overlap has not
+been tested specifically for notes/lesson feedback/count.
+
+Final checks on 2026-10-17 before the delivery commit:
+
+- `npm run api:test`: 54 files, 1,326 tests passed.
+- `npm run api:build`: passed.
+- `npm run verify:journeys`: all six teacher/admin/learner journey checks passed.
+- `cd app && npx ng test --watch=false --include src/app/services/lesson-extras.service.spec.ts`:
+  eight tests passed.
+- Additional full `npm run app:test`: 45 files, 338 tests passed, plus 23 UI guard tests
+  and the UI foundation check. Non-failing existing test output includes the
+  `src/test-setup.ts` compilation warning and jsdom `scrollTo` notices; no outside-scope
+  configuration or frontend files were changed to silence them.
+- `git diff --check` and the required ancestor check passed.
+
+No real MongoDB, Sheets,
+Mux, GitHub or Vercel operations were used. Real provider persistence/multi-host
+behavior, hosted deployment and the combined learning-page browser flow remain
+unverified. No push or deployment is part of this task. The lead owns the backlog
+update in `docs/user_stories.md`, which is outside Codex's permitted files.

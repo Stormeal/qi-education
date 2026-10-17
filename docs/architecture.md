@@ -84,7 +84,7 @@ TypeScript API. Node 22 is the repository's configured runtime.
 | Journey | Current capabilities | Important limitations |
 | --- | --- | --- |
 | Account | Student signup, login, remembered session, role permissions; account email, hashed single-use password reset and signed-in password change API | Existing sessions survive password changes; shared-store concurrency and new profile/browser flow remain release checks; missing hosted user store disables auth |
-| Teacher | Create a draft, author owned courses, text/resources/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
+| Teacher | Create a draft, author owned courses, text/resources/exercises/quizzes/video, thumbnails, quiz readiness, private revisions and full review history | Legacy unowned courses require admin editing |
 | Admin | Authoring, price/catalog fields, feedback triage, user search/role/reset/status and recent change log | Feedback triage may create a real GitHub issue |
 | Learner | Catalog filters/sort/search, details, enrollment, library, learning workspace | Published-only enrollment; no payment system or persisted quiz attempts |
 | Progress/profile | Account completion union/cache; selected paths, roadmap/Home milestones and next-course guidance; private account profile and separate public instructor description APIs | Legacy quizzes need fresh passing evidence; hosted Mongo and combined profile browser checks pending |
@@ -137,6 +137,7 @@ future organization, not paths a fresh contributor can navigate today.
 | `services/api-client.service.ts` | Fetch, response cache, base URL selection/fallback, 401 notifications |
 | `services/course.service.ts` | Course requests, thumbnail warmup, attachment XMLHttpRequest |
 | `services/learning-progress.service.ts` | Account completion union/retry, local cache, synchronous current-outline summaries and session boundaries |
+| `services/lesson-extras.service.ts` | Private lesson note CRUD, lesson feedback and enrolled learner count; exact course API DTOs, fresh reads and Error messages |
 | `services/auth.service.ts`, `session.service.ts` | Auth requests and stored token/session restoration |
 | `services/profile.service.ts` | Private profile account API and user-ID browser cache; instructor description has separate account API storage |
 
@@ -207,6 +208,10 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `GET /users/me/career-path`, `PUT /users/me/career-path` | Own goal selection; withdrawal retains selections without granting course access |
 | `GET /courses`, `/courses/:id/thumbnail`, `/courses/:id/outline` | Public published metadata/title outlines; owner/admin private access; enrolled archived access |
 | `GET /courses/:id/content` | Authenticated owner/admin or enrolled published/archived learner; learner DTO by default; owner/admin-only `?view=author` |
+| `GET /courses/:courseId/notes`, `POST /courses/:courseId/notes` | Same course-content access; caller's private notes only, oldest first; 200 `{ notes }`, 201 `{ note }`; lesson ID required, trimmed text 1..2000 and integer videoSeconds 0..86400 or null; 500 notes per account/course; private/no-store |
+| `PATCH /courses/:courseId/notes/:noteId`, `DELETE /courses/:courseId/notes/:noteId` | Same content access, own account/course only (including admins); text replacement 200 `{ note }`, deletion 204; missing and foreign note IDs both 404 |
+| `POST /courses/:courseId/lesson-feedback` | Same content access; valid lesson ID, helpful/not-helpful/problem, category required only for problem; 201 `{ id }`; existing feedback store and admin triage receive lesson context |
+| `GET /courses/:courseId/learners/count` | Any active signed-in account for published courses; owner teacher/admin for all other statuses; 200 `{ enrolledLearners }`, missing course 404, forbidden 403; one fresh Users read serves both authentication and count |
 | `POST .../components/:componentId/quiz-attempts` | Same learning entitlement; server scoring without exposing unsubmitted answer keys |
 | `GET /users/me/learning-progress`, `PUT /users/me/learning-progress/:courseId/lessons/:componentId` | Own account and entitled current lessons only; atomic union; quizzes require passing evidence |
 | `POST /users/me/learning-progress/:courseId/components/:componentId/quiz-attempts` | Same server grading with account passing proof persisted before success; does not complete until Finish |
@@ -215,7 +220,7 @@ Mux webhooks register explicit aliases before JSON middleware.
 | `PATCH /courses/:id`, `PATCH /courses/:id/content` | Owner teacher/admin; editable working draft only; required loaded revision; no direct status/price changes |
 | `POST /courses/:id/review` | Owner/admin start and submit revisions; admin return/publish/archive; loaded revision ID and version required |
 | `PUT /courses/:id/thumbnail` | Owner teacher/admin; JPEG/PNG/WebP, 2 MB |
-| `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 4 MB; quiz accepts JPEG/PNG/WebP only, text/resources MIME rules unchanged, video upload unavailable |
+| `PUT /courses/:id/content/components/:componentId/attachments` | Owner teacher/admin; 4 MB; quiz accepts JPEG/PNG/WebP only, exercises use resources rules (ZIP, PDF, Word, PowerPoint and images), text/resources MIME rules unchanged, video upload unavailable |
 | `GET /courses/:id/content/attachments/:assetId` | Owner/admin or entitled learner; asset must belong to the requested course |
 | `DELETE /courses/:id/content/components/:componentId/attachments/:assetId` | Owner teacher/admin |
 | `POST .../components/:componentId/mux-upload`, `DELETE .../mux-video` | Owner teacher/admin |
@@ -445,6 +450,7 @@ the [account profile spec](specs/US-L003-account-profile.md).
 | Content | MongoCourseContentRepository | InMemoryCourseContentRepository |
 | Thumbnails and attachments | MongoCourseAssetRepository | InMemoryCourseAssetRepository |
 | Feedback | GoogleSheetsFeedbackRepository | InMemoryFeedbackRepository |
+| Private lesson notes | MongoLessonNotesRepository, `${MONGODB_COURSE_CONTENT_COLLECTION}_lesson_notes`, one bounded document per account/course | InMemoryLessonNotesRepository in isolated/test or unconfigured mode, selected like course content |
 | Instructor descriptions | MongoInstructorProfileRepository in a separate per-user collection | InMemoryInstructorProfileRepository in isolated/test or unconfigured shared mode; operations unavailable in unconfigured hosted mode |
 | Private account profiles | MongoAccountProfileRepository, separate per-user collection in hosted mode | InMemoryAccountProfileRepository for all nonhosted local/test runs; operations unavailable in unconfigured hosted mode |
 | Password reset token hashes and rolling-hour reservations | MongoPasswordResetRepository, per-user versioned token document in shared/hosted mode | InMemoryPasswordResetRepository in isolated/test or unconfigured shared mode; missing hosted Mongo refuses operations |
@@ -458,7 +464,10 @@ Mongo content with memory assets. These guards reduce references that would be
 lost on process restart, but are not a transaction across all stores.
 
 Base course metadata writes use full row updates. Courses have 21 columns
-(`A:U`), Users eight (`A:H`), Feedback 13 (`A:M`). Column U holds `ownerUserId`;
+(`A:U`), Users eight (`A:H`), Feedback 17 (`A:Q`). Feedback appends Course ID,
+Component ID, Lesson Feedback Kind and Problem Category after the original 13 columns;
+old shorter rows read with those fields absent. Site-wide feedback is unchanged and
+triage still updates only J:M, preserving lesson context. Column U holds `ownerUserId`;
 missing legacy values default to empty, allowing only admins to edit those courses.
 Creation sets the authenticated ID; general edits cannot transfer ownership.
 Asset deletion uses both asset and course ID. Authoring rejects existing foreign
@@ -468,8 +477,19 @@ Header lists in `course.ts`,
 strings still say `Courses!A:R`; the course repository derives the width from its
 headers. Do not treat the config string as the complete data schema.
 
-Course content contains sections of discriminated `text`, `resources`, `quiz`,
-and `video` components. Quizzes contain questions with two to six answer options,
+Private lesson notes never use the course authoring lock. Each Mongo note document
+uses the account/course pair as its unique key; bounded atomic appends enforce the
+500-note cap across hosts and positional updates/deletes preserve concurrent notes.
+Only note DTOs (no account ID or internal document key) leave the API. The Angular
+`LessonExtrasService` uses `ApiClientService` directly for fresh notes/counts and
+the four mutations; it retains no private cache and rejects failures as `Error`
+with the API message or a plain fallback sentence. Both course URL prefixes work.
+
+Course content contains sections of discriminated `text`, `resources`, `exercise`,
+`quiz` and `video` components. Exercises use the base lesson fields: rich instructions
+in `content`, optional `resourceUrl` and file attachments; no solution or grading.
+They pass the ordinary save/review/publish/outline flow and complete like text lessons.
+Quizzes contain questions with two to six answer options,
 one or more correctness flags, fixed one-point scoring and an optional question
 explanation (at most 1000 characters, default empty). Content saves ignore sent
 weights and store points 1; author reads normalize old weights/default explanations

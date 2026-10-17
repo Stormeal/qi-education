@@ -69,3 +69,33 @@ the file and the reason in your summary. Do not stop before writing the code.
 - Commit locally, do not push.
 - Update your row in `docs/work_queue.md` (state, commits, checks, what is not verified),
   then stop and summarize.
+
+## Outcome
+
+Completed locally on `main` on 2026-10-17 from `27ab0ec`, with `ccdb6ca` verified
+as an ancestor. Working API commits: `8788d78` (private notes, 0.1.210) and
+`93f7d21` (lesson feedback, learner count and exercises, 0.1.211). The commit
+containing this Outcome delivers the real `LessonExtrasService`, its eight tests,
+architecture/scenario evidence and queue status. The spec's Contract is unchanged;
+Claude's learning page now compiles against the real service.
+
+All requested scenarios are implemented and locally verified on both course
+prefixes. Mongo notes use a bounded per-account/course document and atomic writes
+outside the course lock. Feedback adds four trailing Sheets columns and retains
+legacy/site feedback. Count authentication and counting share one fresh Users
+snapshot. Exercises accept resources files and pass save/review/publication,
+outline and account completion checks.
+
+Final required checks: API 1,326 tests/54 files passed; API build passed;
+`verify:journeys` 6/6 passed; targeted lesson-extras service spec 8/8 passed.
+Additional complete frontend suite: 338 tests/45 files, 23 guard tests and UI
+foundation check passed. Independent read-only review found no correctness or
+security changes required. Its deferred minor is extra route coverage during
+simultaneous live/working revisions (selection was inspected).
+
+No real external services were contacted, no reserved ports were used and nothing
+was pushed. Live Mongo/Sheets persistence, multi-host behavior, hosted deployment
+and the combined learning-page browser flow remain unverified. The full evidence
+and remaining coverage are in the [spec Outcome](../specs/US-L015-learning-backend.md#outcome).
+No implementation file outside the assigned list was needed; the lead still owns
+closing the backlog record in `docs/user_stories.md` and the US-L016 browser checks.
