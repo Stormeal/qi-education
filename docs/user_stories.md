@@ -16,7 +16,7 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | Product decisions | Below |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | None | Below, GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | None | Below |
-| US-L023 | Recognise relevant achievements from my CV | Proposed (future) | P3 | Extraction and review policy | Below |
+| US-L023 | Recognise relevant achievements from my CV | Ready | P3 | None | [stories/US-L023](stories/US-L023-cv-recognition.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | Error code decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
@@ -137,31 +137,60 @@ Feature: Email confirmation
 **As a learner, I want relevant certifications and courses from my CV to become reviewable career
 achievements, so I do not have to enter them all manually.**
 
-State: Proposed, future scope. Alex plans the later CV reader. Builds on
-[milestones and achievements](specs/career-paths/milestones-and-achievements.md). Decisions before
-Ready: upload/consent and retention policy, supported CV formats, extraction interface,
-exact/ambiguous matching rules, recognition provenance, learner review, and out-of-order evidence.
-Do not implement the CV reader or imply it already works.
+State: Ready. Design agreed 2026-10-18: the CV is read in the browser and never leaves the device;
+PDF and .docx; admin-curated CV keywords per action; the learner confirms every match; saved with
+`cv` provenance, also out of order. Years of experience is later scope. Contract:
+[stories/US-L023-cv-recognition.md](stories/US-L023-cv-recognition.md).
 
 ```gherkin
-Feature: Future CV achievement recognition
-  Scenario: US-L023-AC01 Recognise a matching certification or course
-    Given the future CV reader has extracted a certification or course
-    When it matches a canonical qualification or course under the reviewed matching policy
-    Then the result identifies the existing achievement action rather than creating a duplicate milestone
-    And the result has explicit recognition provenance
+Feature: CV achievement recognition
+  Scenario: US-L023-AC01 Recognise a certification from my CV
+    Given a published career has an action with the CV keyword "Certified Tester Foundation Level"
+    When I choose a PDF or Word CV containing that phrase
+    Then the results list that action once, with its milestone and the matched CV text
+    And the row is ticked
 
-  Scenario: US-L023-AC02 Handle ambiguity and existing declarations
-    Given a CV entry is ambiguous or matches an achievement I already recorded
-    When the proposed results are reviewed under the agreed learner-review policy
-    Then ambiguous text is not silently treated as a passed qualification
-    And existing declarations and lesson evidence are not erased or duplicated
+  Scenario: US-L023-AC02 Confirm before anything is saved
+    Given the results list two matches
+    When I untick one and press Save
+    Then only the ticked action is saved, labelled "From your CV"
+    And pressing Cancel instead saves nothing
 
-  Scenario: US-L023-AC03 Keep release-one CV behavior honest
-    Given the CV recognition feature has not been implemented and released
-    When I use the existing CV preview in career setup
-    Then no file is uploaded, read or interpreted as achievement evidence
+  Scenario: US-L023-AC03 My CV stays on my device
+    When I scan a CV and save the results
+    Then no request contains the file, its text, its name or a matched snippet
+    And nothing of the CV remains after the results show, I cancel, leave or reload
+
+  Scenario: US-L023-AC04 Existing achievements are not duplicated
+    Given I already recorded the Foundation exam myself
+    When my CV also mentions it
+    Then it is shown as already recorded without a checkbox
+    And its self-reported label is unchanged
+
+  Scenario: US-L023-AC05 Out-of-order evidence counts
+    Given a milestone is locked because its prerequisite is not achieved
+    When I confirm a CV match for that milestone's requirement
+    Then it is saved and the milestone shows as achieved
+    And its prerequisite keeps its own state
+    And a manual declaration on a locked milestone is still refused
+
+  Scenario: US-L023-AC06 Unreadable or empty CV
+    Given my file is the wrong type, over 10 MB, protected, a scanned image or has no matches
+    When I choose it
+    Then I see the message for that case and nothing is saved
     And manual achievement recording remains available
+
+  Scenario: US-L023-AC07 Curate CV keywords
+    Given I am an admin editing a milestone-format career
+    When I add CV keywords to an action and publish
+    Then learners' CV scans match those keywords
+    And keywords outside the agreed limits are refused
+
+  Scenario: US-L023-AC08 Save fails
+    Given the save request fails
+    When I press Save
+    Then the results stay on screen with a retry
+    And nothing is shown as saved
 ```
 
 ## Platform reliability
