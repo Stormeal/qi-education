@@ -1,5 +1,5 @@
 import {
-  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, afterRenderEffect, computed, inject, input, output, signal, viewChild,
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, afterRenderEffect, computed, effect, inject, input, output, signal, viewChild,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CareerPath, CareerPathAction, CareerPathStep, MilestoneState } from '../../app.models';
@@ -8,6 +8,10 @@ import { ConfirmService } from '../../services/confirm.service';
 import { Button } from '../button/button';
 
 const STATE_LABEL: Record<MilestoneState, string> = { achieved: 'Achieved', ready: 'Ready to start', locked: 'Locked' };
+// Old-format paths: prerequisites only suggest an order, so a later step is never called locked.
+const OLD_FORMAT_LABEL: Record<MilestoneState, string> = { achieved: 'Completed', ready: 'Ready to start', locked: 'Recommended later' };
+// Stage names for steps without one, by how many prerequisites deep they sit.
+const DEPTH_STAGES = ['Start here', 'Build your base', 'Develop further', 'Keep developing'];
 const DECLARE_LABEL: Record<CareerPathAction['kind'], string> = {
   exam: 'Mark exam as passed', course: 'Mark course as completed', activity: 'Mark as done',
 };
@@ -31,7 +35,7 @@ export class CareerTree {
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   private readonly map = viewChild<ElementRef<HTMLElement>>('map');
   private readonly lines = viewChild<ElementRef<SVGSVGElement>>('lines');
-  protected readonly stateLabel = STATE_LABEL;
+  protected readonly milestoneFormat = computed(() => this.path().schemaVersion === 2);
   protected readonly declareLabel = DECLARE_LABEL;
 
   // Home links to a milestone with ?milestone=<id>; the tree opens on it.
@@ -49,14 +53,28 @@ export class CareerTree {
       this.selected();
       this.draw();
     });
+    // Old-format states need the course outlines behind the learner's progress.
+    effect(() => { if (!this.milestoneFormat()) void this.careerPath.loadOutlines(this.path()); });
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => this.draw());
     afterNextRender(() => { const map = this.map()?.nativeElement; if (map) observer.observe(map); });
     inject(DestroyRef).onDestroy(() => observer.disconnect());
   }
 
+  // Old-format states come from course completion; milestone states come from the API.
+  private readonly oldFormatStates = computed(() => {
+    if (this.milestoneFormat()) return null;
+    const done = this.careerPath.progressFor(this.path()).doneStepIds;
+    return Object.fromEntries(this.path().steps.map((step): [string, MilestoneState] => [step.id, done.has(step.id) ? 'achieved'
+      : step.prerequisiteStepIds.every((id) => done.has(id)) ? 'ready' : 'locked']));
+  });
+
   protected state(stepId: string): MilestoneState {
-    return this.careerPath.careers()?.milestoneStates[stepId] ?? 'locked';
+    return this.oldFormatStates()?.[stepId] ?? this.careerPath.careers()?.milestoneStates[stepId] ?? 'locked';
+  }
+
+  protected label(state: MilestoneState): string {
+    return (this.milestoneFormat() ? STATE_LABEL : OLD_FORMAT_LABEL)[state];
   }
 
   // Every published milestone by ID, with the career that defines it, so cross-career prerequisites can be named.
@@ -72,7 +90,7 @@ export class CareerTree {
   protected readonly stages = computed(() => {
     const stages: { label: string; steps: CareerPathStep[] }[] = [];
     for (const step of this.path().steps) {
-      const label = step.stage || 'Milestones';
+      const label = step.stage || DEPTH_STAGES[Math.min(this.depth(step.id), DEPTH_STAGES.length - 1)];
       const stage = stages.find((item) => item.label === label);
       if (stage) stage.steps.push(step);
       else stages.push({ label, steps: [step] });
@@ -93,6 +111,19 @@ export class CareerTree {
       const otherPath = found && found.path.id !== this.path().id ? found.path : null;
       return { id, title: found?.step.title ?? 'A milestone that is no longer published', otherPath };
     });
+  }
+
+  protected stageOf(step: CareerPathStep): string {
+    return this.stages().find((stage) => stage.steps.includes(step))?.label ?? '';
+  }
+
+  // Longest prerequisite chain inside this path; a loop or unknown ID counts as no further depth.
+  private depth(stepId: string, seen = new Set<string>()): number {
+    const step = this.path().steps.find((item) => item.id === stepId);
+    if (!step || seen.has(stepId)) return 0;
+    seen.add(stepId);
+    const inPath = step.prerequisiteStepIds.filter((id) => this.path().steps.some((item) => item.id === id));
+    return inPath.length ? 1 + Math.max(...inPath.map((id) => this.depth(id, new Set(seen)))) : 0;
   }
 
   protected missingTitles(step: CareerPathStep): string {

@@ -19,7 +19,7 @@
               >
                 <span class="ct-node-title">{{ step.title }}</span>
                 <span class="ct-node-state">
-                  {{ stateLabel[nodeState] }}@if (nodeState === 'locked' && missing(step).length) {: needs {{ missing(step)[0].title }}@if (missing(step).length > 1) { and {{ missing(step).length - 1 }} more }}
+                  {{ label(nodeState) }}@if (milestoneFormat() && nodeState === 'locked' && missing(step).length) {: needs {{ missing(step)[0].title }}@if (missing(step).length > 1) { and {{ missing(step).length - 1 }} more }}
                 </span>
                 @if (step.prerequisiteStepIds.length) {
                   <span class="ct-node-after">After {{ prerequisiteTitles(step) }}</span>
@@ -40,7 +40,7 @@
   <div class="ct-legend" aria-hidden="true">
     <span><i data-state="achieved"></i>Achieved</span>
     <span><i data-state="ready"></i>Ready to start</span>
-    <span><i data-state="locked"></i>Locked</span>
+    <span><i data-state="locked"></i>{{ label('locked') }}</span>
   </div>
   <p>Branches stay open. You do not need to finish every branch, and achieving one never closes another.</p>
 </div>
@@ -54,11 +54,13 @@
   @let routes = bundles(step);
   <section class="ct-detail" id="ct-detail" aria-labelledby="ct-detail-title">
     <div>
-      <p class="ct-detail-stage">{{ step.stage || 'Milestone' }}@if (step.roleMilestone) { &middot; Role milestone } &middot; {{ stateLabel[detailState] }}</p>
+      <p class="ct-detail-stage">{{ stageOf(step) }}@if (step.roleMilestone) { &middot; Role milestone } &middot; {{ label(detailState) }}</p>
       <h3 id="ct-detail-title">{{ step.title }}</h3>
       @if (step.description) { <p class="ct-detail-description">{{ step.description }}</p> }
 
-      @if (detailState === 'locked') {
+      @if (detailState === 'locked' && !milestoneFormat()) {
+        <p class="ct-prerequisite">Recommended after {{ missingTitles(step) }}. You can start it now if you prefer.</p>
+      } @else if (detailState === 'locked') {
         <div class="ct-prerequisite">
           <p>First achieve {{ missingTitles(step) }}.</p>
           @for (item of missing(step); track item.id) {
@@ -72,7 +74,9 @@
         </div>
       }
 
-      @if (routes.length) {
+      @if (!milestoneFormat()) {
+        <p class="ct-requirement">Finish any one of the courses under Ways to get there to complete this step.</p>
+      } @else if (routes.length) {
         <p class="ct-requirement">{{ routes.length > 1 ? 'Complete any one of these routes:' : 'To achieve this milestone:' }}</p>
         <ol class="ct-routes">
           @for (route of routes; track $index) {
@@ -106,7 +110,9 @@
       }
 
       <p class="ct-note">
-        @if (detailState === 'achieved') {
+        @if (!milestoneFormat()) {
+          {{ detailState === 'achieved' ? 'Completed through your course progress.' : 'Your progress comes from the lessons you complete.' }}
+        } @else if (detailState === 'achieved') {
           Self-reported achievements are kept when you explore or follow other careers.
         } @else if (detailState === 'locked') {
           You can explore this milestone while it is locked.
@@ -132,7 +138,8 @@
             <li [class.is-planned]="!course.available">
               @if (course.available) {
                 <a [routerLink]="['/courses', course.courseId]">{{ course.title }}</a>
-                <small>Available in QI Academy</small>
+                @let percent = careerPath.coursePercent(course.courseId);
+                <small>{{ percent === 100 ? 'Completed' : percent ? percent + '% complete' : 'Available in QI Academy' }}</small>
               } @else {
                 <strong>{{ course.title }}</strong>
                 <small>{{ course.placeholder ? 'Not available in QI Academy yet' : 'Not currently available' }}</small>
@@ -141,7 +148,11 @@
           }
         </ul>
         <p class="ct-note">
-          {{ step.courses.length > 1 ? 'Choose a learning option. The milestone requirement still applies.' : 'This prepares you for the milestone. The requirement still applies.' }}
+          @if (!milestoneFormat()) {
+            Finishing any one of these completes the step.
+          } @else {
+            {{ step.courses.length > 1 ? 'Choose a learning option. The milestone requirement still applies.' : 'This prepares you for the milestone. The requirement still applies.' }}
+          }
         </p>
       } @else {
         <p class="ct-note">No learning options are listed for this milestone yet.</p>

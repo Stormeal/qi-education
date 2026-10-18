@@ -167,6 +167,29 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(text()).toContain('Choose which career to view');
   });
 
+  it('US-L017 an old-format career is drawn as the same tree, from course progress, without locks or recording', async () => {
+    const step = (id: string, title: string, prerequisiteStepIds: string[], courseId: string) => ({ id, title, description: '',
+      required: true, prerequisiteStepIds, courses: [{ courseId, title: courseId, placeholder: false, available: true }] });
+    const old: CareerPath = { id: 'ai', revision: 1, title: 'AI Testing Specialist', summary: '', outcomes: [], estimatedHours: 0,
+      steps: [step('base', 'Foundation Level', [], 'done-course'), step('ai', 'AI Testing', ['base'], 'c2'), step('auto', 'AI in automation', ['ai'], 'c3')] };
+    const service = TestBed.inject(CareerPathService) as unknown as { paths: ReturnType<typeof signal<CareerPath[]>>;
+      progressFor: (path: CareerPath) => unknown };
+    service.progressFor = () => ({ doneStepIds: new Set(['base']), completed: 1, total: 3, percent: 33, finished: false, nextStepId: 'ai' });
+    service.paths.set([...PATHS, old]);
+    careers.set(account(['ai'], 'ai', []));
+    await settle();
+
+    expect(text()).toContain('1 of 3 steps completed');
+    expect(node('base').textContent).toContain('Completed');
+    expect(node('ai').textContent).toContain('Ready to start');
+    expect(node('auto').textContent).toContain('Recommended later');
+    expect(text()).toContain('Start here');
+    expect(text()).not.toContain('Mark exam as passed');
+    node('auto').click();
+    await settle();
+    expect(text()).toContain('Recommended after AI Testing. You can start it now if you prefer.');
+  });
+
   it('US-L017-AC04 a failed load offers a retry and is not shown as zero progress', async () => {
     state.set('error');
     await settle();

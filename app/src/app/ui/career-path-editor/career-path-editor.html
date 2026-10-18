@@ -38,6 +38,12 @@
         </label>
       </div>
 
+      @if (path.schemaVersion !== 2) {
+        <div class="cpe-convert">
+          <p class="cpe-hint">This career uses the old step format. Learners see it without milestones, actions or recording.</p>
+          <button type="button" appButton size="sm" [disabled]="busy()" (click)="convert(path)">Convert to milestone format</button>
+        </div>
+      }
       <div class="cpe-steps-head">
         <h3>Steps</h3>
         <span>Learners follow them in this order. Open a step to edit it.</span>

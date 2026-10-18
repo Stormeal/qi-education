@@ -135,4 +135,27 @@ describe('career milestone editing (US-A004)', () => {
     expect(own.actions!.map((action) => action.id)).toEqual(['test-lead-step-2-a1', 'test-lead-step-2-a2']);
     expect(own.requirementBundles).toEqual([['test-lead-step-2-a1', 'test-lead-step-2-a2']]);
   });
+
+  it('US-A004 converting an old-format career reuses shared milestones and turns linked courses into course actions', async () => {
+    const old: CareerPathDraft = { title: 'Old Tester', summary: '', outcomes: [], estimatedHours: 0, steps: [
+      { id: 'foundation', title: 'Foundation', description: '', required: true, prerequisiteStepIds: [], courses: [{ courseId: '', title: 'Preview' }] },
+      { id: 'design', title: 'Design', description: '', required: true, prerequisiteStepIds: ['foundation'],
+        courses: [{ courseId: 'c1', title: 'Design course' }, { courseId: 'c2', title: 'Other design course' }] },
+      { id: 'soft', title: 'Soft skills', description: '', required: false, prerequisiteStepIds: [], courses: [{ courseId: '', title: 'Planned' }] },
+    ] };
+    (TestBed.inject(CareerPathService).adminPaths as ReturnType<typeof signal<AdminCareerPath[]>>)
+      .update((paths) => [...paths, { id: 'old-tester', revision: 1, learners: 0, published: old, draft: old, updatedAt: 'y' }]);
+    fixture.detectChanges();
+    await click('Old Tester');
+    await click('Convert to milestone format');
+    await click('Save draft');
+
+    const draft = saveDraft.mock.calls[0][1];
+    expect(draft.schemaVersion).toBe(2);
+    expect(draft.steps[0]).toEqual(foundation);
+    expect(draft.steps[1]).toMatchObject({ prerequisiteStepIds: ['foundation'], requirementBundles: [['design-a1'], ['design-a2']],
+      actions: [{ id: 'design-a1', kind: 'course', title: 'Completed Design course', courseId: 'c1' },
+        { id: 'design-a2', kind: 'course', title: 'Completed Other design course', courseId: 'c2' }] });
+    expect(draft.steps[2].actions).toEqual([{ id: 'soft-a1', kind: 'activity', title: 'Soft skills', courseId: '' }]);
+  });
 });

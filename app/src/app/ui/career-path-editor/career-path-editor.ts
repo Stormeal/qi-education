@@ -115,15 +115,18 @@ export class CareerPathEditor {
 
   /** Published milestones of other careers that this draft does not contain yet, for prerequisites and reuse. */
   protected otherMilestones(draft: CareerPathDraft) {
+    return [...this.sharedMilestones().values()].filter((item) => !draft.steps.some((own) => own.id === item.step.id));
+  }
+
+  // Every milestone of the other milestone-format careers, by ID.
+  private sharedMilestones() {
     const found = new Map<string, { step: EditableStep; career: string }>();
     for (const path of this.paths()) {
       const content = path.published ?? path.draft;
       if (path.id === this.editingId() || content?.schemaVersion !== 2) continue;
-      for (const step of content.steps) {
-        if (!found.has(step.id) && !draft.steps.some((own) => own.id === step.id)) found.set(step.id, { step, career: content.title });
-      }
+      for (const step of content.steps) if (!found.has(step.id)) found.set(step.id, { step, career: content.title });
     }
-    return [...found.values()];
+    return found;
   }
 
   /** Careers other than this one that contain the same milestone ID. */
@@ -141,6 +144,34 @@ export class CareerPathEditor {
     draft.steps.push(step);
     this.openStep.set(step);
     select.value = '';
+  }
+
+  /**
+   * Turns an old-format draft into milestones: a milestone another career already defines (such as Foundation)
+   * is reused as it is; otherwise each linked course becomes a course action and any one of them completes it,
+   * as before. Nothing reaches learners until the admin checks the draft and publishes it.
+   */
+  protected async convert(draft: CareerPathDraft): Promise<void> {
+    if (!await this.confirm.ask({ title: `Convert "${draft.title}" to the milestone format?`, confirmLabel: 'Convert',
+      message: 'Shared milestones are reused and linked courses become course actions. Steps without a course get '
+        + 'an activity to check. Learners keep seeing the published version until you publish.' })) return;
+    const shared = this.sharedMilestones();
+    const courseTitle = (id: string) => this.careerPath.adminCourses().find((course) => course.id === id)?.title ?? id;
+    draft.schemaVersion = 2;
+    draft.steps = draft.steps.map((step) => {
+      const reused = shared.get(step.id)?.step;
+      if (reused) return structuredClone(reused);
+      const linked = step.courses.filter((course) => course.courseId);
+      const actions: EditableAction[] = (linked.length ? linked : [null]).map((course, index) => ({
+        id: `${step.id.slice(0, 50)}-a${index + 1}`,
+        kind: course ? 'course' : 'activity',
+        title: course ? `Completed ${course.title || courseTitle(course.courseId)}` : step.title,
+        courseId: course?.courseId ?? '',
+      }));
+      return { ...step, stage: '', roleMilestone: false, actions, requirementBundles: actions.map((action) => [action.id]) };
+    });
+    this.openStep.set(null);
+    this.message.set('Converted. Check each milestone, then save or publish.');
   }
 
   protected addAction(step: EditableStep): void {

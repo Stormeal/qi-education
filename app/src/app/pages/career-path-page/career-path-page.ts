@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
 import { CareerTree } from '../../ui/career-tree/career-tree';
 import { CareerPathService } from '../../services/career-path.service';
@@ -28,7 +27,7 @@ const SUGGESTED_PATH_BY_ANSWER: [string, string][] = [
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, CareerTree, FeedbackDialog, PageHeader, RouterLink],
+  imports: [Button, CareerTree, FeedbackDialog, PageHeader],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -103,21 +102,6 @@ export class CareerPathPage {
   protected readonly orderedPaths = computed(() => {
     const suggested = this.suggestedPathId();
     return [...this.careerPath.paths()].sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested));
-  });
-
-  protected readonly milestones = computed(() => {
-    const path = this.viewedPath();
-    if (!path) return [];
-    const progress = this.careerPath.progressFor(path);
-
-    return path.steps.map((step) => ({
-      ...step,
-      status: progress.doneStepIds.has(step.id) ? 'complete' : step.id === progress.nextStepId ? 'current' : 'upcoming',
-      courses: step.courses.map((course) => ({
-        ...course,
-        percent: course.available ? this.careerPath.coursePercent(course.courseId) : null,
-      })),
-    }));
   });
 
   constructor() {
@@ -224,6 +208,7 @@ export class CareerPathPage {
   }
 
   protected achievedCount(path: CareerPath): number {
+    if (path.schemaVersion !== 2) return this.careerPath.progressFor(path).doneStepIds.size;
     const states = this.careerPath.careers()?.milestoneStates ?? {};
     return path.steps.filter((step) => states[step.id] === 'achieved').length;
   }

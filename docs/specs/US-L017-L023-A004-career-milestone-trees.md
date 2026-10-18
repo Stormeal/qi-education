@@ -314,6 +314,27 @@ Pages build. Browser on 3001/4200: 1366 and 390 wide, record through the dialog,
 redrawn. Not verified: a screen reader and very wide trees (more than five stages scroll
 sideways).
 
+### Old-format careers, 2026-10-18 (Claude Code; Alex chose "Both")
+
+Alex's hosted screenshot showed the old roadmap inside the new panel: all three hosted careers
+(Technical Tester, Test Manager, AI Testing Specialist) were published before the milestone format.
+
+- Old-format careers now use the same tree layout. Stage names follow prerequisite depth
+  ("Start here", "Build your base", "Develop further", "Keep developing"). A step is Completed when
+  any of its courses is complete. A later step reads "Recommended later", never "Locked", because
+  old-format prerequisites only suggest an order. There is nothing to record. The old roadmap
+  markup and its styles are removed; the page stylesheet is back under its 12 kB budget.
+- The admin editor offers "Convert to milestone format" for an old-format draft. A milestone ID
+  another milestone-format career already uses (such as `foundation`) is replaced by that shared
+  milestone. Other steps turn linked courses into course actions (any one completes it, as
+  before), and a step without a course gets one activity to check. Learners see nothing until
+  the admin publishes.
+- Checks: app 350/45 plus 23 guards, Pages build. Browser on 3001/4200: an old-format career shown
+  as a tree, then converted and published by the admin with the shared Foundation.
+- For the hosted site: an admin opens each of the three careers, clicks Convert, checks the
+  actions and stages, and publishes. Converted step IDs keep their old names; two converted
+  careers that both use a generic ID like `step-3` would be refused at publish as conflicting.
+
 ## Story sequence and implementation handoff
 
 This is a feature/story package, not an implementation plan or an authorization
