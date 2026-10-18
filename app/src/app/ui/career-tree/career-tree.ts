@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, afterRenderEffect, computed, inject, input, output, signal, viewChild,
+} from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CareerPath, CareerPathAction, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { Button } from '../button/button';
-import { Chip } from '../chip/chip';
 
 const STATE_LABEL: Record<MilestoneState, string> = { achieved: 'Achieved', ready: 'Ready to start', locked: 'Locked' };
 const DECLARE_LABEL: Record<CareerPathAction['kind'], string> = {
@@ -13,7 +15,7 @@ const DECLARE_LABEL: Record<CareerPathAction['kind'], string> = {
 /** A career's milestones by stage, with the selected milestone's requirements, learning options and declarations. */
 @Component({
   selector: 'app-career-tree',
-  imports: [Button, Chip, RouterLink],
+  imports: [Button, RouterLink],
   templateUrl: './career-tree.html',
   styleUrl: './career-tree.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,16 +27,33 @@ export class CareerTree {
   readonly explore = output<string>();
 
   protected readonly careerPath = inject(CareerPathService);
+  private readonly confirm = inject(ConfirmService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
+  private readonly map = viewChild<ElementRef<HTMLElement>>('map');
+  private readonly lines = viewChild<ElementRef<SVGSVGElement>>('lines');
   protected readonly stateLabel = STATE_LABEL;
   protected readonly declareLabel = DECLARE_LABEL;
 
   // Home links to a milestone with ?milestone=<id>; the tree opens on it.
   private readonly selectedId = signal(inject(ActivatedRoute, { optional: true })?.snapshot.queryParamMap.get('milestone') ?? '');
-  protected readonly confirmingActionId = signal('');
+  protected readonly failedActionId = signal('');
   protected readonly saving = signal(false);
   protected readonly saveError = signal('');
   protected readonly announcement = signal('');
+
+  constructor() {
+    // Connector lines follow the rendered nodes, so they are redrawn after each render and on resize.
+    afterRenderEffect(() => {
+      this.path();
+      this.careerPath.careers();
+      this.selected();
+      this.draw();
+    });
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => this.draw());
+    afterNextRender(() => { const map = this.map()?.nativeElement; if (map) observer.observe(map); });
+    inject(DestroyRef).onDestroy(() => observer.disconnect());
+  }
 
   protected state(stepId: string): MilestoneState {
     return this.careerPath.careers()?.milestoneStates[stepId] ?? 'locked';
@@ -61,9 +80,6 @@ export class CareerTree {
     return stages;
   });
 
-  protected readonly achievedCount = computed(() =>
-    this.path().steps.filter((step) => this.state(step.id) === 'achieved').length);
-
   protected readonly selected = computed((): CareerPathStep | null => {
     const steps = this.path().steps;
     return steps.find((step) => step.id === this.selectedId())
@@ -77,6 +93,10 @@ export class CareerTree {
       const otherPath = found && found.path.id !== this.path().id ? found.path : null;
       return { id, title: found?.step.title ?? 'A milestone that is no longer published', otherPath };
     });
+  }
+
+  protected missingTitles(step: CareerPathStep): string {
+    return this.missing(step).map((item) => item.title).join(' and ');
   }
 
   protected prerequisiteTitles(step: CareerPathStep): string {
@@ -100,39 +120,39 @@ export class CareerTree {
     if (step.id === this.selected()?.id) return;
     this.selectedId.set(step.id);
     this.announcement.set('');
-    this.confirmingActionId.set('');
+    this.failedActionId.set('');
     this.saveError.set('');
   }
 
-  protected askToDeclare(action: CareerPathAction): void {
-    this.saveError.set('');
-    this.confirmingActionId.set(action.id);
-    this.focusAfterRender('.ct-confirm');
-  }
-
-  protected cancelDeclare(): void {
-    const actionId = this.confirmingActionId();
-    this.confirmingActionId.set('');
-    this.saveError.set('');
-    this.focusAfterRender(`[data-action="${actionId}"]`);
+  protected async askToDeclare(action: CareerPathAction): Promise<void> {
+    if (!await this.confirm.ask({
+      title: 'Record your achievement',
+      message: `I confirm that I have met this requirement: ${action.title}. This is self-reported. It is saved to your account `
+        + 'and does not mark lessons complete or enroll you in a course.',
+      confirmLabel: 'Confirm achievement',
+    })) return;
+    await this.declare(action);
   }
 
   protected async declare(action: CareerPathAction): Promise<void> {
     if (this.saving()) return;
     const step = this.selected();
+    // Keep this milestone open after saving; the default would move on to the next ready one.
+    if (step) this.selectedId.set(step.id);
     const before = new Map(this.path().steps.map((item) => [item.id, this.state(item.id)]));
     this.saving.set(true);
     this.saveError.set('');
     const result = await this.careerPath.declare(action.id);
     this.saving.set(false);
     if (!result.ok) {
-      // The choice stays open so the learner can retry; nothing is shown as saved.
+      // The choice stays offered as a retry; nothing is shown as saved.
+      this.failedActionId.set(action.id);
       this.saveError.set(result.code === 'milestone-locked'
         ? 'Not saved. This milestone is locked until its prerequisites are achieved.'
         : `Not saved. ${result.message}`);
       return;
     }
-    this.confirmingActionId.set('');
+    this.failedActionId.set('');
     const unlocked = this.path().steps.filter((item) => before.get(item.id) === 'locked' && this.state(item.id) === 'ready');
     const achieved = step && before.get(step.id) !== 'achieved' && this.state(step.id) === 'achieved';
     this.announcement.set([
@@ -141,6 +161,26 @@ export class CareerTree {
       unlocked.length ? `Now ready: ${unlocked.map((item) => item.title).join(', ')}.` : '',
     ].filter(Boolean).join(' '));
     this.focusAfterRender('.ct-announcement');
+  }
+
+  // Elbow lines from each prerequisite to its milestone; none when stages stack on a narrow screen.
+  private draw(): void {
+    const map = this.map()?.nativeElement;
+    const svg = this.lines()?.nativeElement;
+    if (!map || !svg) return;
+    const base = map.getBoundingClientRect();
+    const box = (id: string) => map.querySelector(`[data-step="${id}"]`)?.getBoundingClientRect();
+    svg.innerHTML = this.path().steps.flatMap((step) => step.prerequisiteStepIds.flatMap((id) => {
+      const from = box(id);
+      const to = box(step.id);
+      if (!from || !to || from.right > to.left) return [];
+      const x1 = from.right - base.left;
+      const y1 = from.top + from.height / 2 - base.top;
+      const x2 = to.left - base.left;
+      const y2 = to.top + to.height / 2 - base.top;
+      const mid = (x1 + x2) / 2;
+      return [`<path data-state="${this.state(step.id)}" d="M${x1},${y1} H${mid} V${y2} H${x2}" />`];
+    })).join('');
   }
 
   // A replaced control drops keyboard focus to the top of the page; move it to what replaced it.

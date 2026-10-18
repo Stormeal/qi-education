@@ -18,11 +18,20 @@
   <div class="cp-canvas">
     <div class="cp-canvas-inner">
       <header class="cp-welcome">
-        <p class="cp-eyebrow"><span class="cp-eyebrow-dot" aria-hidden="true"></span>career_path.sys</p>
-        <h1>Chart the route from where you are to <span class="cp-accent">where you're headed</span>.</h1>
-        <p class="cp-welcome-sub">
-          Answer a few quick questions, compare the paths, and follow the courses that get you there.
-        </p>
+        <div>
+          <h1>Your career path</h1>
+          <p class="cp-welcome-sub">A clear next step. A bigger picture of where it can take you.</p>
+        </div>
+        @if (careerPath.state() === 'ready' && careerPath.paths().length && wizardStep() !== 'intro') {
+          <ol class="cp-wizard-steps" aria-label="Career path setup">
+            @for (item of setupSteps; track item.id; let i = $index) {
+              <li [class.is-current]="wizardStep() === item.id" [class.is-done]="i < setupIndex()"
+                [attr.aria-current]="wizardStep() === item.id ? 'step' : null">
+                <span class="cp-wizard-step-index">{{ i + 1 }}</span>{{ item.label }}
+              </li>
+            }
+          </ol>
+        }
       </header>
 
       <section class="cp-content" id="career-path-content">
@@ -42,35 +51,6 @@
             <button type="button" appButton="primary" (click)="coursesClicked.emit()">Browse courses</button>
           </div>
         } @else {
-        @if (wizardStep() !== 'intro') {
-          <ol class="cp-wizard-steps" aria-label="Career path setup progress">
-            <li
-              [class.is-current]="wizardStep() === 'upload'"
-              [class.is-done]="wizardStep() === 'questions' || wizardStep() === 'choose-career' || wizardStep() === 'roadmap'"
-            >
-              <span class="cp-wizard-step-index">01</span>
-              <span class="cp-wizard-step-label">Upload CV</span>
-            </li>
-            <li
-              [class.is-current]="wizardStep() === 'questions'"
-              [class.is-done]="wizardStep() === 'choose-career' || wizardStep() === 'roadmap'"
-            >
-              <span class="cp-wizard-step-index">02</span>
-              <span class="cp-wizard-step-label">Quick questions</span>
-            </li>
-            <li
-              [class.is-current]="wizardStep() === 'choose-career'"
-              [class.is-done]="wizardStep() === 'roadmap'"
-            >
-              <span class="cp-wizard-step-index">03</span>
-              <span class="cp-wizard-step-label">Choose career</span>
-            </li>
-            <li [class.is-current]="wizardStep() === 'roadmap'">
-              <span class="cp-wizard-step-index">04</span>
-              <span class="cp-wizard-step-label">Your path</span>
-            </li>
-          </ol>
-        }
 
         @switch (wizardStep()) {
           @case ('intro') {
@@ -237,17 +217,6 @@
 
           @case ('roadmap') {
             <div class="cp-step cp-step-roadmap">
-              <p class="cp-step-kicker">Stage 04</p>
-              @if (followedPaths().length > 1) {
-                <nav class="cp-career-switch" aria-label="Your careers">
-                  @for (followed of followedPaths(); track followed.id) {
-                    <button type="button" appButton="secondary" size="sm" [disabled]="saving()"
-                      [attr.aria-current]="followed.id === viewedPath()?.id ? 'true' : null" (click)="view(followed.id)">
-                      {{ followed.title }}
-                    </button>
-                  }
-                </nav>
-              }
               @if (saveError()) {
                 <p class="cp-notice is-error" role="alert">{{ saveError() }}</p>
               }
@@ -257,39 +226,52 @@
                 <p class="cp-step-intro">Your achievements, completed courses and enrollments are kept. Choose another career to view.</p>
               } @else if (viewedPath(); as path) {
                 @let followed = isFollowed(path.id);
-                <div class="cp-career-head">
-                  <div>
-                    <p class="cp-milestone-courses-label">{{ followed ? 'Your career' : 'Previewing a career you do not follow' }}</p>
-                    <h2>{{ path.title }}</h2>
-                  </div>
-                  <div class="cp-card-actions">
-                    @if (!followed) {
-                      <button type="button" appButton="primary" [disabled]="saving()" (click)="follow(path.id)">
-                        {{ saving() ? 'Saving…' : 'Follow this career' }}
+                <section class="cp-panel" aria-labelledby="cp-career-title">
+                  <div class="cp-panel-head">
+                    <div>
+                      <p class="cp-panel-label">{{ followed ? 'Your career' : 'Exploring another career' }}</p>
+                      <div class="cp-panel-title">
+                        <h2 id="cp-career-title">{{ path.title }}</h2>
+                        @if (path.schemaVersion === 2) {
+                          <span>{{ achievedCount(path) }} {{ achievedCount(path) === 1 ? 'milestone' : 'milestones' }} achieved</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="cp-card-actions">
+                      @if (!followed) {
+                        <button type="button" appButton="primary" size="sm" [disabled]="saving()" (click)="follow(path.id)">
+                          {{ saving() ? 'Saving…' : 'Follow this career' }}
+                        </button>
+                      }
+                      <button type="button" appButton size="sm" (click)="continueToCareerChoice()">
+                        Explore other careers <span aria-hidden="true">&nearr;</span>
                       </button>
-                    } @else if (!confirmingUnfollow()) {
-                      <button type="button" appButton="ghost" class="cp-unfollow-button" (click)="askToUnfollow()">Stop following</button>
-                    }
-                  </div>
-                </div>
-                @if (confirmingUnfollow() && followed) {
-                  <div class="cp-switch cp-unfollow" role="group" [attr.aria-label]="'Stop following ' + path.title">
-                    <strong>Stop following {{ path.title }}?</strong>
-                    <p>Your achievements, completed courses and enrollments are kept. You can follow it again at any time.</p>
-                    <div class="cp-switch-actions">
-                      <button type="button" appButton="primary" [disabled]="saving()" (click)="unfollow(path.id)">
-                        {{ saving() ? 'Saving…' : 'Stop following' }}
-                      </button>
-                      <button type="button" appButton="secondary" [disabled]="saving()" (click)="cancelUnfollow()">Keep following</button>
+                      @if (followed) {
+                        <button type="button" appButton="ghost" size="sm" class="cp-unfollow-button" [disabled]="saving()" (click)="unfollow(path)">Stop following</button>
+                      }
                     </div>
                   </div>
-                }
+                  @if (followedPaths().length > 1) {
+                    <nav class="cp-career-switch" aria-label="Your careers">
+                      @for (item of followedPaths(); track item.id) {
+                        <button type="button" appButton="secondary" size="sm" [disabled]="saving()"
+                          [attr.aria-current]="item.id === path.id ? 'true' : null" (click)="view(item.id)">
+                          {{ item.title }}
+                        </button>
+                      }
+                    </nav>
+                  }
+                  @if (!followed) {
+                    <p class="cp-exploring">
+                      You're exploring. Your followed careers have not changed.
+                      @if (careerPath.focusedPath(); as focus) {
+                        <button type="button" (click)="view(focus.id)">Back to {{ focus.title }}</button>
+                      }
+                    </p>
+                  }
 
                 @if (path.schemaVersion === 2) {
                   <app-career-tree [path]="path" [canDeclare]="followed" (explore)="view($event)" />
-                  <p class="cp-notice">
-                    CV recognition is coming later. For now you record achievements yourself; they are saved as self-reported.
-                  </p>
                 } @else {
               @if (viewedPath(); as path) {
                   @let progress = careerPath.progressFor(path);
@@ -394,6 +376,12 @@
                   </div>
                 }
                   }
+                </section>
+                @if (path.schemaVersion === 2) {
+                  <p class="cp-below">
+                    CV recognition is coming later. For now, record your achievements yourself. They are saved as self-reported.
+                  </p>
+                }
               } @else if (followedPaths().length) {
                 <h2>Choose which career to view</h2>
                 <p class="cp-step-intro">You follow {{ followedPaths().length }} {{ followedPaths().length === 1 ? 'career' : 'careers' }}.</p>
@@ -407,9 +395,11 @@
                 <p class="cp-step-intro">Your achievements are kept. Choose a career to follow.</p>
               }
 
-              <div class="cp-roadmap-actions">
-                <button type="button" appButton="secondary" (click)="continueToCareerChoice()">Explore other careers</button>
-              </div>
+              @if (!viewedPath()) {
+                <div class="cp-roadmap-actions">
+                  <button type="button" appButton="secondary" (click)="continueToCareerChoice()">Explore other careers</button>
+                </div>
+              }
             </div>
           }
         }

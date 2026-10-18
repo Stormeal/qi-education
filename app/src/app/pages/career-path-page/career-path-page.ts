@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
 import { CareerTree } from '../../ui/career-tree/career-tree';
 import { CareerPathService } from '../../services/career-path.service';
+import { ConfirmService } from '../../services/confirm.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { Button } from '../../ui/button/button';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -60,7 +61,13 @@ export class CareerPathPage {
   readonly feedbackSubmittedClicked = output<void>();
   protected readonly careerPath = inject(CareerPathService);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
+  private readonly confirm = inject(ConfirmService);
   protected readonly careerQuestions = CAREER_QUESTIONS;
+  protected readonly setupSteps: { id: CareerPathWizardStep; label: string }[] = [
+    { id: 'upload', label: 'CV preview' }, { id: 'questions', label: 'Questions' },
+    { id: 'choose-career', label: 'Choose career' }, { id: 'roadmap', label: 'Your path' },
+  ];
+  protected readonly setupIndex = computed(() => this.setupSteps.findIndex((item) => item.id === this.wizardStep()));
 
   protected readonly wizardStep = signal<CareerPathWizardStep>('intro');
   protected readonly isDraggingOverDropzone = signal(false);
@@ -69,7 +76,6 @@ export class CareerPathPage {
   protected readonly draftPathId = signal('');
   protected readonly saving = signal(false);
   protected readonly saveError = signal('');
-  protected readonly confirmingUnfollow = signal(false);
   // A career being previewed without following it; empty means the saved focus is shown.
   protected readonly previewPathId = signal('');
 
@@ -211,8 +217,15 @@ export class CareerPathPage {
     await this.save(pathId, () => this.careerPath.focus(pathId));
   }
 
-  protected async unfollow(pathId: string): Promise<void> {
-    await this.save(pathId, () => this.careerPath.unfollow(pathId), false);
+  protected async unfollow(path: CareerPath): Promise<void> {
+    if (!await this.confirm.ask({ title: `Stop following ${path.title}?`, confirmLabel: 'Stop following',
+      message: 'Your achievements, completed courses and enrollments are kept. You can follow it again at any time.' })) return;
+    await this.save(path.id, () => this.careerPath.unfollow(path.id), false);
+  }
+
+  protected achievedCount(path: CareerPath): number {
+    const states = this.careerPath.careers()?.milestoneStates ?? {};
+    return path.steps.filter((step) => states[step.id] === 'achieved').length;
   }
 
   private async save(pathId: string, write: () => Promise<{ ok: boolean; message?: string }>, show = true): Promise<void> {
@@ -227,20 +240,9 @@ export class CareerPathPage {
       return;
     }
     this.previewPathId.set('');
-    this.confirmingUnfollow.set(false);
     this.draftPathId.set('');
     if (show || this.wizardStep() !== 'roadmap') this.showStep('roadmap');
     else this.focusAfterRender('.cp-step h2');
   }
 
-  protected askToUnfollow(): void {
-    this.saveError.set('');
-    this.confirmingUnfollow.set(true);
-    this.focusAfterRender('.cp-unfollow');
-  }
-
-  protected cancelUnfollow(): void {
-    this.confirmingUnfollow.set(false);
-    this.focusAfterRender('.cp-unfollow-button');
-  }
 }

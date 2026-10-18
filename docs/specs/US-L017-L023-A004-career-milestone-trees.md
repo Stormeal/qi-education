@@ -301,6 +301,19 @@ needs `app/` changes and US-P016 waits for a clean hosted release.
   curriculum owner). US-L022-AC02/AC04 rely on the existing service guards and are not
   separately browser-checked.
 
+### Prototype layout, 2026-10-18 (Claude Code; Alex: "let's make the actual career path more like this")
+
+The Career Path page now follows the approved prototype: a "Your career path" title with
+numbered setup steps, a panel with the career header and actions, numbered stage columns with
+dashed guides and drawn connector lines (green to achieved, blue to ready, dashed to locked),
+a legend, the two-column milestone detail ("Ways to get there"), and the app's modal dialog
+for recording an achievement and for stopping following. The prototype's single-career
+switch stays superseded. Phones keep the ordered list without lines, as this spec requires.
+After a save, the milestone just recorded stays selected. Checks: app 348/45 plus 23 guards,
+Pages build. Browser on 3001/4200: 1366 and 390 wide, record through the dialog, lines
+redrawn. Not verified: a screen reader and very wide trees (more than five stages scroll
+sideways).
+
 ## Story sequence and implementation handoff
 
 This is a feature/story package, not an implementation plan or an authorization

@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AccountCareers, CareerPath, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
+import { ConfirmOptions, ConfirmService } from '../../services/confirm.service';
+import { vi } from 'vitest';
 import { CareerPathPage } from './career-path-page';
 
 const milestone = (id: string, title: string, stage: string, prerequisiteStepIds: string[] = []): CareerPathStep => ({
@@ -23,6 +25,7 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
   let fixture: ComponentFixture<CareerPathPage>;
   let writes: string[];
   let failNext: boolean;
+  let asked: ConfirmOptions[];
   const state = signal<'loading' | 'ready' | 'error'>('ready');
   const careers = signal<AccountCareers | null>(null);
 
@@ -37,6 +40,8 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     const button = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((item) => item.textContent?.trim().startsWith(label));
     if (!button) throw new Error(`No button "${label}" in: ${text()}`);
     button.click();
+    // A confirmation answers asynchronously before the save starts; let that chain finish.
+    await new Promise((resolve) => setTimeout(resolve));
     await settle();
   }
 
@@ -65,6 +70,7 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     sessionStorage.clear();
     writes = [];
     failNext = false;
+    asked = [];
     state.set('ready');
     careers.set(account(['test-analyst', 'test-manager'], 'test-analyst', []));
     const paths = signal(PATHS);
@@ -83,6 +89,8 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
         [...current().satisfiedActionIds, actionId]))(),
     };
     TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: CareerPathService, useValue: service }] });
+    // The app-root dialog is not rendered here; record each question and answer yes.
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockImplementation(async (options) => { asked.push(options); return true; });
     fixture = TestBed.createComponent(CareerPathPage);
     const inputs: Record<string, unknown> = {
       appVersion: '0', currentYear: 2026, student: { name: 'Learner', currentRole: 'Student' }, userEmail: 'learner@example.test',
@@ -98,7 +106,7 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(node('foundation').textContent).toContain('Ready to start');
     expect(node('test-design').textContent).toContain('Locked: needs ISTQB Foundation');
     expect(node('architect')).toBeNull();
-    expect(text()).toContain('0 of 2 milestones achieved');
+    expect(text()).toContain('0 milestones achieved');
     const selector = (fixture.nativeElement as HTMLElement).querySelector('nav[aria-label="Your careers"]')!;
     expect(selector.textContent).toContain('Test Manager');
   });
@@ -106,26 +114,24 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
   it('US-L017-AC03/US-L019-AC02 selecting a node writes nothing; a confirmed declaration is self-reported and unlocks', async () => {
     node('test-design').click();
     await settle();
-    expect(text()).toContain('Locked until these are achieved: ISTQB Foundation');
+    expect(text()).toContain('First achieve ISTQB Foundation.');
     expect(text()).not.toContain('Mark exam as passed');
     node('foundation').click();
     await settle();
     expect(writes).toEqual([]);
 
     await click('Mark exam as passed');
-    expect(text()).toContain('saved to your account as self-reported');
-    expect(writes).toEqual([]);
-    await click('Confirm');
+    expect(asked[0].message).toContain('This is self-reported. It is saved to your account');
     expect(writes).toEqual(['declare foundation-exam']);
     expect(text()).toContain('ISTQB Foundation achieved. Now ready: Test design.');
+    expect(node('foundation').getAttribute('aria-current')).toBe('true');
     expect(node('foundation').textContent).toContain('Achieved');
-    expect(text()).toContain('1 of 2 milestones achieved');
+    expect(text()).toContain('1 milestone achieved');
   });
 
   it('US-L019-AC04 a failed declaration shows no success and keeps the choice for a retry', async () => {
-    await click('Mark exam as passed');
     failNext = true;
-    await click('Confirm');
+    await click('Mark exam as passed');
     expect(text()).toContain('Not saved.');
     expect(node('foundation').textContent).toContain('Ready to start');
     expect(node('test-design').textContent).toContain('Locked');
@@ -138,10 +144,10 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(writes).toEqual(['focus test-manager']);
     node('architect').click();
     await settle();
-    expect(text()).toContain('Test design (from the Test Analyst career)');
+    expect(text()).toContain('Test design is part of the Test Analyst career.');
     careers.set(account(['test-manager'], 'test-manager', []));
     await click('Explore prerequisite');
-    expect(text()).toContain('Previewing a career you do not follow');
+    expect(text()).toContain("You're exploring. Your followed careers have not changed.");
     expect(text()).toContain('Follow this career to record achievements on it.');
     expect(text()).not.toContain('Mark exam as passed');
     expect(writes).toEqual(['focus test-manager']);
@@ -155,9 +161,7 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     careers.set(account(['test-analyst', 'test-manager'], 'test-analyst', ['foundation-exam']));
     await settle();
     await click('Stop following');
-    expect(text()).toContain('Your achievements, completed courses and enrollments are kept.');
-    expect(writes).toEqual([]);
-    await click('Stop following');
+    expect(asked[0].message).toContain('Your achievements, completed courses and enrollments are kept.');
     expect(writes).toEqual(['unfollow test-analyst']);
     expect(careers()?.satisfiedActionIds).toEqual(['foundation-exam']);
     expect(text()).toContain('Choose which career to view');
