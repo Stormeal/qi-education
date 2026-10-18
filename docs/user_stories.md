@@ -13,12 +13,12 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | T001, T002 | DEF-003, DEF-004, DEF-010 |
 | US-L007 | Present the primary recommendation first | Proposed | P3 | L002 | GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | P009 | None |
-| US-A004 | Curate career milestone graphs and map TestHuset courses | Proposed | P2 | Curriculum review; existing T008/A003 | None |
-| US-L017 | See a focused milestone tree for my career | Proposed | P2 | A004, L019, L020, L021 | None |
-| US-L018 | Understand how to achieve a milestone | Proposed | P2 | A004, L017 | None |
-| US-L019 | Record my own learning and certification achievements | Proposed | P2 | A004; release with L020 | None |
-| US-L020 | Unlock milestones through shared prerequisites | Proposed | P2 | A004, L019 | None |
-| US-L021 | Pursue several careers and focus on one route | Proposed | P2 | A004, L019; legacy selection mapping | None |
+| US-A004 | Curate career milestone graphs and map TestHuset courses | In progress | P2 | Curriculum review; existing T008/A003 | None |
+| US-L017 | See a focused milestone tree for my career | In progress | P2 | A004, L019, L020, L021 | None |
+| US-L018 | Understand how to achieve a milestone | In progress | P2 | A004, L017 | None |
+| US-L019 | Record my own learning and certification achievements | In progress | P2 | A004; release with L020 | None |
+| US-L020 | Unlock milestones through shared prerequisites | In progress | P2 | A004, L019 | None |
+| US-L021 | Pursue several careers and focus on one route | In progress | P2 | A004, L019; legacy selection mapping | None |
 | US-L022 | Get consistent career guidance on Home and my tree | Proposed | P2 | L017, L018, L020, L021 | None |
 | US-L023 | Recognise relevant achievements from my CV | Proposed (future) | P3 | L019, L020; extraction and review policy | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |

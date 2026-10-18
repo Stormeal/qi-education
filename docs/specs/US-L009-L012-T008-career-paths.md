@@ -143,6 +143,10 @@ hosted environment.
 
 ### US-L011 delivered 2026-10-10 (version 0.1.77)
 
+Superseded 2026-10-18 by US-L021: following a career adds it and never replaces another, so the
+switch confirmation and its tests were removed (see the
+[milestone tree spec](US-L017-L023-A004-career-milestone-trees.md)).
+
 | Scenario | Check |
 | --- | --- |
 | US-L011-AC01 | `career-path-page.spec.ts` (preview names kept and new steps, nothing saved); browser: "1 of 2 required steps are already complete ... Still to do: Second step" |

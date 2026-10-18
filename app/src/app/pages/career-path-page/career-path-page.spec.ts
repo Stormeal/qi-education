@@ -1,52 +1,86 @@
 import { computed, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { CareerPath, CareerPathSelection } from '../../app.models';
+import { AccountCareers, CareerPath, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
-import { careerPathProgress } from '../../utils/career-path-progress';
 import { CareerPathPage } from './career-path-page';
 
-const path = (id: string, title: string, courseIds: string[]): CareerPath => ({
-  id, revision: 1, title, summary: '', outcomes: [], estimatedHours: 0,
-  steps: courseIds.map((courseId, index) => ({ id: `${id}-${index}`, title: `${title} step ${index + 1}`, description: '', required: true,
-    prerequisiteStepIds: [], courses: [{ courseId, title: courseId, placeholder: false, available: true }] })),
+const milestone = (id: string, title: string, stage: string, prerequisiteStepIds: string[] = []): CareerPathStep => ({
+  id, title, stage, description: '', required: true, prerequisiteStepIds,
+  courses: [{ courseId: '', title: `${title} preparation`, placeholder: true, available: false }],
+  actions: [{ id: `${id}-exam`, kind: 'exam', title: `${title} exam`, courseId: '', available: false }],
+  requirementBundles: [[`${id}-exam`]],
 });
+const foundation = milestone('foundation', 'ISTQB Foundation', 'Foundation');
+const career = (id: string, title: string, steps: CareerPathStep[]): CareerPath =>
+  ({ id, revision: 1, schemaVersion: 2, title, summary: '', outcomes: [], estimatedHours: 0, steps });
+const PATHS = [
+  career('test-analyst', 'Test Analyst', [foundation, milestone('test-design', 'Test design', 'Build your base', ['foundation'])]),
+  career('test-manager', 'Test Manager', [foundation, milestone('architect', 'Test architecture', 'Specialise', ['test-design'])]),
+];
 
-describe('deliberate career path changes (US-L011)', () => {
+describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
   let fixture: ComponentFixture<CareerPathPage>;
-  let saved: string[];
-  let failNextSave: boolean;
-  const selection = signal<CareerPathSelection | null>(null);
+  let writes: string[];
+  let failNext: boolean;
+  const state = signal<'loading' | 'ready' | 'error'>('ready');
+  const careers = signal<AccountCareers | null>(null);
 
-  const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
+  const text = () => (fixture.nativeElement as HTMLElement).textContent?.replace(/\s+/g, ' ') ?? '';
+  const node = (stepId: string) => (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(`.ct-node[data-step="${stepId}"]`)!;
+  async function settle(): Promise<void> {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
   async function click(label: string): Promise<void> {
     const button = [...(fixture.nativeElement as HTMLElement).querySelectorAll('button')].find((item) => item.textContent?.trim().startsWith(label));
     if (!button) throw new Error(`No button "${label}" in: ${text()}`);
     button.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
+    await settle();
   }
+
+  // Mirrors the API rule: achieved needs achieved prerequisites and a satisfied bundle; ready needs the prerequisites.
+  function account(followedPathIds: string[], focusPathId: string | null, declared: string[]): AccountCareers {
+    const milestoneStates: Record<string, MilestoneState> = {};
+    const stateOf = (step: CareerPathStep): MilestoneState => {
+      const prerequisitesMet = step.prerequisiteStepIds.every((id) =>
+        stateOf(PATHS.flatMap((path) => path.steps).find((item) => item.id === id)!) === 'achieved');
+      if (!prerequisitesMet) return 'locked';
+      return step.requirementBundles!.some((bundle) => bundle.every((id) => declared.includes(id))) ? 'achieved' : 'ready';
+    };
+    for (const step of PATHS.flatMap((path) => path.steps)) milestoneStates[step.id] = stateOf(step);
+    return { followedPathIds, focusPathId, satisfiedActionIds: declared, milestoneStates,
+      achievements: declared.map((actionId) => ({ actionId, provenance: 'self-reported', declaredAt: '' })) };
+  }
+  const write = (label: string, next: () => AccountCareers) => async () => {
+    writes.push(label);
+    if (failNext) { failNext = false; return { ok: false, message: 'Unable to reach the API. Please try again.' }; }
+    careers.set(next());
+    return { ok: true };
+  };
 
   beforeEach(async () => {
     localStorage.clear();
     sessionStorage.clear();
-    saved = [];
-    failNextSave = false;
-    selection.set({ pathId: 'analyst', revision: 1, selectedAt: '' });
-    const paths = signal([path('analyst', 'Test Analyst', ['shared', 'design']), path('manager', 'Test Manager', ['shared', 'leading'])]);
-    const selectedPath = computed(() => paths().find((item) => item.id === selection()?.pathId) ?? null);
-    const progressFor = (item: CareerPath) => careerPathProgress(item, (courseId) => courseId === 'shared');
+    writes = [];
+    failNext = false;
+    state.set('ready');
+    careers.set(account(['test-analyst', 'test-manager'], 'test-analyst', []));
+    const paths = signal(PATHS);
+    const focusedPath = computed(() => paths().find((path) => path.id === careers()?.focusPathId) ?? null);
+    const current = () => careers()!;
     const service = {
-      state: signal('ready'), paths, selection, selectedPath, progressFor,
-      progress: computed(() => (selectedPath() ? progressFor(selectedPath()!) : null)),
-      nextAction: signal(null), coursePercent: (courseId: string) => (courseId === 'shared' ? 100 : 0),
-      loadOutlines: async () => {}, reload: async () => {},
-      select: async (pathId: string) => {
-        if (failNextSave) { failNextSave = false; return { ok: false, message: 'Unable to reach the API. Please try again.' }; }
-        saved.push(pathId);
-        selection.set({ pathId, revision: 1, selectedAt: '' });
-        return { ok: true };
-      },
+      state, paths, careers, focusedPath, selectedPath: focusedPath, selection: signal(null),
+      progressFor: () => ({ doneStepIds: new Set(), completed: 0, total: 0, percent: 0, finished: false, nextStepId: null }),
+      nextAction: signal(null), coursePercent: () => null, loadOutlines: async () => {}, reload: async () => {},
+      follow: (id: string) => write(`follow ${id}`, () => account([...new Set([...current().followedPathIds, id])],
+        current().focusPathId ?? id, current().satisfiedActionIds))(),
+      focus: (id: string) => write(`focus ${id}`, () => account(current().followedPathIds, id, current().satisfiedActionIds))(),
+      unfollow: (id: string) => write(`unfollow ${id}`, () => account(current().followedPathIds.filter((item) => item !== id),
+        current().focusPathId === id ? null : current().focusPathId, current().satisfiedActionIds))(),
+      declare: (actionId: string) => write(`declare ${actionId}`, () => account(current().followedPathIds, current().focusPathId,
+        [...current().satisfiedActionIds, actionId]))(),
     };
     TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: CareerPathService, useValue: service }] });
     fixture = TestBed.createComponent(CareerPathPage);
@@ -56,42 +90,83 @@ describe('deliberate career path changes (US-L011)', () => {
       feedbackRating: '', feedbackText: '', feedbackSubmitting: false, feedbackError: '', feedbackOptions: [],
     };
     for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    await click('Change target career');
+    await settle();
   });
 
-  it('AC01 choosing another path previews what carries over and saves nothing', async () => {
-    await click('Choose this path');
-    expect(text()).toContain('Switch from Test Analyst to Test Manager?');
-    expect(text()).toContain('1 of 2 required steps are already complete');
-    expect(text()).toContain('Test Manager step 1');
-    expect(text()).toContain('Still to do: Test Manager step 2.');
-    expect(saved).toEqual([]);
-    expect(selection()?.pathId).toBe('analyst');
+  it('US-L017-AC01/AC02 opens the focused tree with states in words and other careers only in the selector', () => {
+    expect(text()).toContain('Test Analyst');
+    expect(node('foundation').textContent).toContain('Ready to start');
+    expect(node('test-design').textContent).toContain('Locked: needs ISTQB Foundation');
+    expect(node('architect')).toBeNull();
+    expect(text()).toContain('0 of 2 milestones achieved');
+    const selector = (fixture.nativeElement as HTMLElement).querySelector('nav[aria-label="Your careers"]')!;
+    expect(selector.textContent).toContain('Test Manager');
   });
 
-  it('AC02 confirming saves the new path and opens it with the shared course counted once', async () => {
-    await click('Choose this path');
-    await click('Switch to Test Manager');
-    expect(saved).toEqual(['manager']);
-    expect(text()).toContain('Your flight path to Test Manager');
-    expect(text()).toContain('1 of 2 required steps complete');
+  it('US-L017-AC03/US-L019-AC02 selecting a node writes nothing; a confirmed declaration is self-reported and unlocks', async () => {
+    node('test-design').click();
+    await settle();
+    expect(text()).toContain('Locked until these are achieved: ISTQB Foundation');
+    expect(text()).not.toContain('Mark exam as passed');
+    node('foundation').click();
+    await settle();
+    expect(writes).toEqual([]);
+
+    await click('Mark exam as passed');
+    expect(text()).toContain('saved to your account as self-reported');
+    expect(writes).toEqual([]);
+    await click('Confirm');
+    expect(writes).toEqual(['declare foundation-exam']);
+    expect(text()).toContain('ISTQB Foundation achieved. Now ready: Test design.');
+    expect(node('foundation').textContent).toContain('Achieved');
+    expect(text()).toContain('1 of 2 milestones achieved');
   });
 
-  it('AC03 cancelling keeps the saved path; a failed save keeps the proposed choice with a retry', async () => {
-    await click('Choose this path');
-    await click('Keep Test Analyst');
-    expect(text()).not.toContain('Switch from');
-    expect(saved).toEqual([]);
+  it('US-L019-AC04 a failed declaration shows no success and keeps the choice for a retry', async () => {
+    await click('Mark exam as passed');
+    failNext = true;
+    await click('Confirm');
+    expect(text()).toContain('Not saved.');
+    expect(node('foundation').textContent).toContain('Ready to start');
+    expect(node('test-design').textContent).toContain('Locked');
+    await click('Try again');
+    expect(node('foundation').textContent).toContain('Achieved');
+  });
 
-    await click('Choose this path');
-    failNextSave = true;
-    await click('Switch to Test Manager');
-    expect(text()).toContain('Your choice was not saved.');
-    expect(selection()?.pathId).toBe('analyst');
-    await click('Retry switching');
-    expect(saved).toEqual(['manager']);
+  it('US-L020/US-L021 a cross-career prerequisite is explained and explored as a preview that records nothing', async () => {
+    await click('Test Manager');
+    expect(writes).toEqual(['focus test-manager']);
+    node('architect').click();
+    await settle();
+    expect(text()).toContain('Test design (from the Test Analyst career)');
+    careers.set(account(['test-manager'], 'test-manager', []));
+    await click('Explore prerequisite');
+    expect(text()).toContain('Previewing a career you do not follow');
+    expect(text()).toContain('Follow this career to record achievements on it.');
+    expect(text()).not.toContain('Mark exam as passed');
+    expect(writes).toEqual(['focus test-manager']);
+
+    await click('Follow this career');
+    expect(careers()?.followedPathIds).toEqual(['test-manager', 'test-analyst']);
+    expect(careers()?.focusPathId).toBe('test-analyst');
+  });
+
+  it('US-L021 stopping following explains that achievements are kept and never picks another focus', async () => {
+    careers.set(account(['test-analyst', 'test-manager'], 'test-analyst', ['foundation-exam']));
+    await settle();
+    await click('Stop following');
+    expect(text()).toContain('Your achievements, completed courses and enrollments are kept.');
+    expect(writes).toEqual([]);
+    await click('Stop following');
+    expect(writes).toEqual(['unfollow test-analyst']);
+    expect(careers()?.satisfiedActionIds).toEqual(['foundation-exam']);
+    expect(text()).toContain('Choose which career to view');
+  });
+
+  it('US-L017-AC04 a failed load offers a retry and is not shown as zero progress', async () => {
+    state.set('error');
+    await settle();
+    expect(text()).toContain('Career paths are unavailable');
+    expect(text()).not.toContain('milestones achieved');
   });
 });

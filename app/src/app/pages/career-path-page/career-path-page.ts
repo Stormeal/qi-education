@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
+import { CareerTree } from '../../ui/career-tree/career-tree';
 import { CareerPathService } from '../../services/career-path.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { Button } from '../../ui/button/button';
@@ -26,7 +27,7 @@ const SUGGESTED_PATH_BY_ANSWER: [string, string][] = [
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, FeedbackDialog, PageHeader, RouterLink],
+  imports: [Button, CareerTree, FeedbackDialog, PageHeader, RouterLink],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,20 +69,20 @@ export class CareerPathPage {
   protected readonly draftPathId = signal('');
   protected readonly saving = signal(false);
   protected readonly saveError = signal('');
-  protected readonly confirmingPathId = signal('');
+  protected readonly confirmingUnfollow = signal(false);
+  // A career being previewed without following it; empty means the saved focus is shown.
+  protected readonly previewPathId = signal('');
 
-  // What changing to the path being confirmed would mean, before anything is saved.
-  protected readonly switchImpact = computed(() => {
-    const path = this.careerPath.paths().find((item) => item.id === this.confirmingPathId());
-    if (!path) return null;
-    const done = this.careerPath.progressFor(path).doneStepIds;
-    const required = path.steps.filter((step) => step.required);
-    return {
-      total: required.length,
-      kept: required.filter((step) => done.has(step.id)).map((step) => step.title).join(', '),
-      keptCount: required.filter((step) => done.has(step.id)).length,
-      fresh: required.filter((step) => !done.has(step.id)).map((step) => step.title).join(', '),
-    };
+  protected readonly followedPaths = computed(() => (this.careerPath.careers()?.followedPathIds ?? [])
+    .flatMap((id) => this.careerPath.paths().find((path) => path.id === id) ?? []));
+  protected readonly viewedPath = computed(() => {
+    const id = this.previewPathId() || this.careerPath.careers()?.focusPathId;
+    return this.careerPath.paths().find((path) => path.id === id) ?? null;
+  });
+  // A saved focus whose career is no longer published.
+  protected readonly focusWithdrawn = computed(() => {
+    const focus = this.careerPath.careers()?.focusPathId;
+    return !!focus && !this.previewPathId() && !this.careerPath.paths().some((path) => path.id === focus);
   });
 
   protected readonly allQuestionsAnswered = computed(
@@ -99,9 +100,9 @@ export class CareerPathPage {
   });
 
   protected readonly milestones = computed(() => {
-    const path = this.careerPath.selectedPath();
-    const progress = this.careerPath.progress();
-    if (!path || !progress) return [];
+    const path = this.viewedPath();
+    if (!path) return [];
+    const progress = this.careerPath.progressFor(path);
 
     return path.steps.map((step) => ({
       ...step,
@@ -116,7 +117,8 @@ export class CareerPathPage {
   constructor() {
     // A saved selection opens straight on the learner's path.
     effect(() => {
-      if (this.careerPath.state() === 'ready' && this.careerPath.selectedPath() && this.wizardStep() === 'intro') {
+      if (this.careerPath.state() === 'ready' && this.wizardStep() === 'intro'
+        && (this.careerPath.selectedPath() || this.followedPaths().length)) {
         this.wizardStep.set('roadmap');
       }
     });
@@ -186,38 +188,59 @@ export class CareerPathPage {
     this.showStep('choose-career');
   }
 
-  // Replacing a saved path asks first; a first choice, or re-choosing the current path, saves directly.
-  protected choosePath(pathId: string): void {
-    const current = this.careerPath.selectedPath();
-    if (!current || current.id === pathId) {
-      void this.savePath(pathId);
+  protected isFollowed(pathId: string): boolean {
+    return this.careerPath.careers()?.followedPathIds.includes(pathId) ?? false;
+  }
+
+  /** Following adds a career and shows it; it never replaces another followed career. */
+  protected async follow(pathId: string): Promise<void> {
+    await this.save(pathId, async () => {
+      const followed = await this.careerPath.follow(pathId);
+      return followed.ok ? this.careerPath.focus(pathId) : followed;
+    });
+  }
+
+  /** A followed career becomes the saved focus; any other career is previewed without saving anything. */
+  protected async view(pathId: string): Promise<void> {
+    if (!this.isFollowed(pathId)) {
+      this.previewPathId.set(pathId);
+      this.saveError.set('');
+      this.showStep('roadmap');
       return;
     }
-    this.saveError.set('');
-    this.draftPathId.set('');
-    this.confirmingPathId.set(pathId);
-    this.focusAfterRender('.cp-switch');
-    void this.careerPath.loadOutlines(this.careerPath.paths().find((path) => path.id === pathId) ?? null);
+    await this.save(pathId, () => this.careerPath.focus(pathId));
   }
 
-  protected cancelSwitch(): void {
-    this.focusAfterRender(`[data-path="${this.confirmingPathId()}"] [appButton]`);
-    this.saveError.set('');
-    this.draftPathId.set('');
-    this.confirmingPathId.set('');
+  protected async unfollow(pathId: string): Promise<void> {
+    await this.save(pathId, () => this.careerPath.unfollow(pathId), false);
   }
 
-  protected async savePath(pathId: string): Promise<void> {
+  private async save(pathId: string, write: () => Promise<{ ok: boolean; message?: string }>, show = true): Promise<void> {
     if (this.saving()) return;
     this.draftPathId.set(pathId);
     this.saveError.set('');
     this.saving.set(true);
-    const result = await this.careerPath.select(pathId);
+    const result = await write();
     this.saving.set(false);
+    if (!result.ok) {
+      this.saveError.set(`Not saved. ${result.message}`);
+      return;
+    }
+    this.previewPathId.set('');
+    this.confirmingUnfollow.set(false);
+    this.draftPathId.set('');
+    if (show || this.wizardStep() !== 'roadmap') this.showStep('roadmap');
+    else this.focusAfterRender('.cp-step h2');
+  }
 
-    if (result.ok) {
-      this.confirmingPathId.set('');
-      this.showStep('roadmap');
-    } else this.saveError.set(`Your choice was not saved. ${result.message}`);
+  protected askToUnfollow(): void {
+    this.saveError.set('');
+    this.confirmingUnfollow.set(true);
+    this.focusAfterRender('.cp-unfollow');
+  }
+
+  protected cancelUnfollow(): void {
+    this.confirmingUnfollow.set(false);
+    this.focusAfterRender('.cp-unfollow-button');
   }
 }

@@ -318,11 +318,33 @@ export type CareerPathStep = {
   required: boolean;
   courses: CareerPathCourse[];
   prerequisiteStepIds: string[];
+  // Milestone fields (schemaVersion 2). A step ID is a milestone ID shared by every path that uses it.
+  stage?: string;
+  roleMilestone?: boolean;
+  actions?: CareerPathAction[];
+  requirementBundles?: string[][];
+};
+export type CareerPathAction = {
+  id: string;
+  kind: 'exam' | 'course' | 'activity';
+  title: string;
+  courseId: string;
+  available: boolean;
+};
+export type MilestoneState = 'achieved' | 'ready' | 'locked';
+/** The account's followed careers, focus and self-reported achievements; states are computed by the API. */
+export type AccountCareers = {
+  followedPathIds: string[];
+  focusPathId: string | null;
+  achievements: { actionId: string; provenance: 'self-reported'; declaredAt: string }[];
+  satisfiedActionIds: string[];
+  milestoneStates: Record<string, MilestoneState>;
 };
 
 export type CareerPath = {
   id: string;
   revision: number;
+  schemaVersion?: 1 | 2;
   title: string;
   summary: string;
   outcomes: string[];

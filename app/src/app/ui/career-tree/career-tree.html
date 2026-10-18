@@ -1,0 +1,152 @@
+<p class="ct-count">
+  {{ achievedCount() }} of {{ path().steps.length }} milestones achieved
+</p>
+
+<ol class="ct-stages" [attr.aria-label]="path().title + ' milestones by stage'">
+  @for (stage of stages(); track stage.label) {
+    <li class="ct-stage">
+      <h3 class="ct-stage-label">{{ stage.label }}</h3>
+      <ul class="ct-nodes">
+        @for (step of stage.steps; track step.id) {
+          @let nodeState = state(step.id);
+          <li>
+            <button
+              type="button"
+              class="ct-node"
+              [attr.data-state]="nodeState"
+              [attr.data-step]="step.id"
+              [attr.aria-current]="step.id === selected()?.id ? 'true' : null"
+              aria-controls="ct-detail"
+              (click)="select(step)"
+            >
+              <span class="ct-node-title">{{ step.title }}</span>
+              <span class="ct-node-state">
+                {{ stateLabel[nodeState] }}@if (nodeState === 'locked' && missing(step).length) {: needs {{ missing(step)[0].title }}@if (missing(step).length > 1) { and {{ missing(step).length - 1 }} more }}
+              </span>
+              @if (step.prerequisiteStepIds.length) {
+                <span class="ct-node-after">After {{ prerequisiteTitles(step) }}</span>
+              }
+              @if (step.roleMilestone) {
+                <span appChip="highlight">Role milestone</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    </li>
+  }
+</ol>
+
+@if (announcement()) {
+  <p class="ct-announcement" role="status">{{ announcement() }}</p>
+}
+
+@if (selected(); as step) {
+  @let detailState = state(step.id);
+  <section class="ct-detail" id="ct-detail" aria-labelledby="ct-detail-title">
+    <div class="ct-detail-main">
+      <p class="ct-detail-stage">{{ step.stage || 'Milestone' }} &middot; {{ stateLabel[detailState] }}</p>
+      <h3 id="ct-detail-title">{{ step.title }}</h3>
+      @if (step.description) { <p>{{ step.description }}</p> }
+
+      @if (detailState === 'achieved' && step.roleMilestone) {
+        <p class="ct-note">
+          Role milestone reached. This marks your learning toward the role; it is not a job title or an
+          external certification. You can keep developing from here.
+        </p>
+      }
+
+      @if (detailState === 'locked') {
+        <div class="ct-locked">
+          <p><strong>Locked until these are achieved:</strong></p>
+          <ul>
+            @for (item of missing(step); track item.id) {
+              <li>
+                {{ item.title }}
+                @if (item.otherPath) {
+                  <span class="ct-from">(from the {{ item.otherPath.title }} career)</span>
+                  <button type="button" appButton="ghost" size="sm" (click)="explore.emit(item.otherPath.id)">
+                    Explore prerequisite
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @let routes = bundles(step);
+      @if (routes.length) {
+        <h4>{{ routes.length > 1 ? 'Complete any one of these routes' : 'To achieve this milestone' }}</h4>
+        <ol class="ct-routes">
+          @for (route of routes; track $index) {
+            <li class="ct-route">
+              @if (routes.length > 1) { <p class="ct-route-label">Route {{ $index + 1 }}{{ route.length > 1 ? ': all of these' : '' }}</p> }
+              <ul>
+                @for (item of route; track item.action.id) {
+                  <li class="ct-action" [class.is-done]="item.satisfied">
+                    <span class="ct-action-title">{{ item.action.title }}</span>
+                    <span class="ct-action-state">
+                      {{ item.satisfied ? 'Done. ' + item.source : item.action.kind === 'exam' ? 'Exam, taken separately' : 'Not done yet' }}
+                    </span>
+                    @if (item.action.kind === 'course' && item.action.available) {
+                      <a [routerLink]="['/courses', item.action.courseId]">Open course</a>
+                    }
+                    @if (!item.satisfied && detailState === 'ready' && canDeclare()) {
+                      @if (confirmingActionId() === item.action.id) {
+                        <div class="ct-confirm" role="group" [attr.aria-label]="'Confirm ' + item.action.title">
+                          <p>
+                            Record that you have {{ declaredWord[item.action.kind] }} {{ item.action.title }}? This is
+                            your own declaration, saved to your account as self-reported. It does not mark lessons
+                            complete or enroll you in a course.
+                          </p>
+                          @if (saveError()) { <p class="ct-error" role="alert">{{ saveError() }}</p> }
+                          <div class="ct-confirm-actions">
+                            <button type="button" appButton="primary" size="sm" [loading]="saving()" [disabled]="saving()" (click)="declare(item.action)">
+                              {{ saving() ? 'Saving…' : saveError() ? 'Try again' : 'Confirm' }}
+                            </button>
+                            <button type="button" appButton="secondary" size="sm" [disabled]="saving()" (click)="cancelDeclare()">Cancel</button>
+                          </div>
+                        </div>
+                      } @else {
+                        <button type="button" appButton="secondary" size="sm" [attr.data-action]="item.action.id" (click)="askToDeclare(item.action)">
+                          {{ declareLabel[item.action.kind] }}
+                        </button>
+                      }
+                    }
+                  </li>
+                }
+              </ul>
+            </li>
+          }
+        </ol>
+        @if (detailState === 'ready' && !canDeclare()) {
+          <p class="ct-note">Follow this career to record achievements on it.</p>
+        }
+      } @else {
+        <p class="ct-note">This milestone's requirements are not set up yet.</p>
+      }
+    </div>
+
+    <div class="ct-detail-options">
+      <h4>Ways to prepare</h4>
+      @if (step.courses.length) {
+        <ul class="ct-options">
+          @for (course of step.courses; track $index) {
+            <li>
+              @if (course.available) {
+                <a [routerLink]="['/courses', course.courseId]">{{ course.title }}</a>
+              } @else {
+                <span>{{ course.title }}</span>
+                <span class="ct-action-state">{{ course.placeholder ? 'Not available in QI Academy yet' : 'Not currently available' }}</span>
+              }
+            </li>
+          }
+        </ul>
+        <p class="ct-note">Preparation helps, but the requirement above still applies.</p>
+      } @else {
+        <p class="ct-note">No learning options are listed for this milestone yet.</p>
+      }
+    </div>
+  </section>
+}

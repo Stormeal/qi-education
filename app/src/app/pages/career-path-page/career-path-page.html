@@ -181,9 +181,10 @@
           @case ('choose-career') {
             <div class="cp-step">
               <p class="cp-step-kicker">Stage 03</p>
-              <h2 class="cp-choose-heading">Compare paths and choose your target career</h2>
+              <h2 class="cp-choose-heading">Compare careers and choose what to follow</h2>
               <p class="cp-step-intro">
-                Choosing a path saves your goal. It does not enroll you in courses or unlock paid content.
+                You can follow several careers; shared milestones count for all of them. Following saves a goal.
+                It does not enroll you in courses or unlock paid content.
               </p>
               @if (saveError()) {
                 <p class="cp-notice is-error" role="alert">{{ saveError() }}</p>
@@ -194,8 +195,8 @@
                     @if (path.id === suggestedPathId()) {
                       <span class="cp-career-recommended">Suggested from your answers</span>
                     }
-                    @if (path.id === careerPath.selection()?.pathId) {
-                      <span class="cp-career-recommended">Your current path</span>
+                    @if (isFollowed(path.id)) {
+                      <span class="cp-career-recommended">You follow this career</span>
                     }
                     <h3>{{ path.title }}</h3>
                     <p>{{ path.summary }}</p>
@@ -216,34 +217,18 @@
                       &middot; {{ facts.available }} {{ facts.available === 1 ? 'course' : 'courses' }} available now
                       @if (facts.preview) { &middot; {{ facts.preview }} not available yet }
                     </p>
-                    @if (path.id === confirmingPathId() && switchImpact(); as impact) {
-                      <div class="cp-switch" role="group" aria-live="polite" [attr.aria-label]="'Switch to ' + path.title">
-                        <strong>Switch from {{ careerPath.selectedPath()?.title }} to {{ path.title }}?</strong>
-                        <p>
-                          {{ impact.keptCount }} of {{ impact.total }} required steps are already complete from courses you
-                          finished@if (impact.kept) {: {{ impact.kept }}}.
-                        </p>
-                        @if (impact.fresh) { <p>Still to do: {{ impact.fresh }}.</p> }
-                        <p>Your completed courses and enrollments are kept. You can switch back at any time.</p>
-                        <div class="cp-switch-actions">
-                          <button type="button" appButton="primary" [disabled]="saving()" (click)="savePath(path.id)">
-                            {{ saving() ? 'Saving…' : saveError() ? 'Retry switching' : 'Switch to ' + path.title }}
-                          </button>
-                          <button type="button" appButton="secondary" [disabled]="saving()" (click)="cancelSwitch()">
-                            Keep {{ careerPath.selectedPath()?.title }}
-                          </button>
-                        </div>
-                      </div>
-                    } @else {
-                    <button
-                      type="button"
-                      appButton="primary"
-                      [disabled]="saving()"
-                      (click)="choosePath(path.id)"
-                    >
-                      {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry saving this path' : path.id === careerPath.selection()?.pathId ? 'Keep this path' : 'Choose this path' }}
-                    </button>
-                    }
+                    <div class="cp-card-actions">
+                      @if (isFollowed(path.id)) {
+                        <button type="button" appButton="primary" [disabled]="saving()" (click)="view(path.id)">
+                          {{ saving() && path.id === draftPathId() ? 'Opening…' : 'View path' }}
+                        </button>
+                      } @else {
+                        <button type="button" appButton="primary" [disabled]="saving()" (click)="follow(path.id)">
+                          {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry following' : 'Follow this career' }}
+                        </button>
+                        <button type="button" appButton="ghost" [disabled]="saving()" (click)="view(path.id)">Preview</button>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -253,115 +238,177 @@
           @case ('roadmap') {
             <div class="cp-step cp-step-roadmap">
               <p class="cp-step-kicker">Stage 04</p>
-              @if (careerPath.selectedPath(); as path) {
-                @let progress = careerPath.progress();
-                <h2>Your flight path to {{ path.title }}</h2>
-                <p class="cp-step-intro">
-                  {{ progress?.completed }} of {{ progress?.total }} required steps complete &middot; {{ progress?.percent }}%
-                </p>
-                @if (careerPath.selection()?.revision !== path.revision) {
-                  <p class="cp-notice">This path was updated after you chose it. Courses you completed still count.</p>
-                }
-                @if (progress?.finished) {
-                  <p class="cp-notice" role="status">
-                    You completed every required step of this path. Finishing it does not grant an external
-                    certification; exams are taken separately. You can choose a new target below.
-                  </p>
-                }
-
-                @if (careerPath.nextAction(); as next) {
-                  <section class="cp-next" aria-labelledby="cp-next-title">
-                    <p class="cp-milestone-courses-label">Next required step</p>
-                    <h3 id="cp-next-title">{{ next.step.title }}</h3>
-                    <p>{{ next.course.title }}. {{ next.reason }}</p>
-                    <a appButton="primary" [routerLink]="next.link">
-                      {{ next.label }}
-                      <span aria-hidden="true">&rarr;</span>
-                    </a>
-                  </section>
-                } @else if (!progress?.finished) {
-                  <p class="cp-notice" role="status">
-                    Your next required step has no course available yet. It will open here once its course is
-                    published. Your completed steps are kept.
-                  </p>
-                }
-
-                <ol class="cp-roadmap-track" aria-label="Career path roadmap">
-                  <li class="cp-roadmap-stage is-start">
-                    <span class="cp-roadmap-stage-label">Start</span>
-                    <div class="cp-roadmap-stage-title">You today</div>
-                  </li>
-                  @for (milestone of milestones(); track milestone.id) {
-                    <li
-                      class="cp-roadmap-stage"
-                      [class.is-complete]="milestone.status === 'complete'"
-                      [class.is-current]="milestone.status === 'current'"
-                    >
-                      <div class="cp-roadmap-stage-inner">
-                        <div class="cp-roadmap-stage-header">
-                          @if (milestone.status === 'current') {
-                            <span class="cp-roadmap-stage-marker" aria-hidden="true">📍</span>
-                          }
-                          @if (milestone.status === 'complete') {
-                            <span class="cp-roadmap-stage-marker" aria-hidden="true">✓</span>
-                          }
-                          <div class="cp-roadmap-stage-title">{{ milestone.title }}</div>
-                        </div>
-                        <div class="cp-roadmap-stage-description">{{ milestone.description }}</div>
-                      </div>
-                    </li>
+              @if (followedPaths().length > 1) {
+                <nav class="cp-career-switch" aria-label="Your careers">
+                  @for (followed of followedPaths(); track followed.id) {
+                    <button type="button" appButton="secondary" size="sm" [disabled]="saving()"
+                      [attr.aria-current]="followed.id === viewedPath()?.id ? 'true' : null" (click)="view(followed.id)">
+                      {{ followed.title }}
+                    </button>
                   }
-                  <li class="cp-roadmap-stage is-goal">
-                    <span class="cp-roadmap-stage-label">Goal</span>
-                    <div class="cp-roadmap-stage-title">{{ path.title }}</div>
-                  </li>
-                </ol>
+                </nav>
+              }
+              @if (saveError()) {
+                <p class="cp-notice is-error" role="alert">{{ saveError() }}</p>
+              }
 
-                <div class="cp-milestones">
-                  @for (milestone of milestones(); track milestone.id; let i = $index) {
-                    <article
-                      class="cp-milestone"
-                      [class.is-complete]="milestone.status === 'complete'"
-                      [class.is-current]="milestone.status === 'current'"
-                    >
-                      <span class="cp-milestone-ghost-index" aria-hidden="true">{{ i + 1 }}</span>
-                      <div class="cp-milestone-body">
-                        <div class="cp-milestone-head">
-                          <h3>{{ milestone.title }}</h3>
-                          <span class="cp-milestone-badge">{{ milestone.status === 'complete' ? 'Complete' : !milestone.required ? 'Optional' : milestone.status === 'current' ? 'Next step' : 'Upcoming' }}</span>
-                        </div>
-                        <p>{{ milestone.description }}</p>
-                        <div class="cp-milestone-courses">
-                          <span class="cp-milestone-courses-label">
-                            {{ milestone.courses.length > 1 ? 'Complete any one of these courses' : 'Course' }}
-                          </span>
-                          <ul>
-                            @for (course of milestone.courses; track $index) {
-                              <li>
-                                @if (course.available) {
-                                  <a [routerLink]="['/courses', course.courseId]">{{ course.title }}</a>
-                                  <span class="cp-course-state">
-                                    {{ course.percent === null ? '' : course.percent === 100 ? 'Completed' : course.percent + '% complete' }}
-                                  </span>
-                                } @else {
-                                  {{ course.title }}
-                                  <span class="cp-course-state">{{ course.placeholder ? 'Preview — not available yet' : 'Not currently available' }}</span>
-                                }
-                              </li>
+              @if (focusWithdrawn()) {
+                <h2>Your saved career is no longer published</h2>
+                <p class="cp-step-intro">Your achievements, completed courses and enrollments are kept. Choose another career to view.</p>
+              } @else if (viewedPath(); as path) {
+                @let followed = isFollowed(path.id);
+                <div class="cp-career-head">
+                  <div>
+                    <p class="cp-milestone-courses-label">{{ followed ? 'Your career' : 'Previewing a career you do not follow' }}</p>
+                    <h2>{{ path.title }}</h2>
+                  </div>
+                  <div class="cp-card-actions">
+                    @if (!followed) {
+                      <button type="button" appButton="primary" [disabled]="saving()" (click)="follow(path.id)">
+                        {{ saving() ? 'Saving…' : 'Follow this career' }}
+                      </button>
+                    } @else if (!confirmingUnfollow()) {
+                      <button type="button" appButton="ghost" class="cp-unfollow-button" (click)="askToUnfollow()">Stop following</button>
+                    }
+                  </div>
+                </div>
+                @if (confirmingUnfollow() && followed) {
+                  <div class="cp-switch cp-unfollow" role="group" [attr.aria-label]="'Stop following ' + path.title">
+                    <strong>Stop following {{ path.title }}?</strong>
+                    <p>Your achievements, completed courses and enrollments are kept. You can follow it again at any time.</p>
+                    <div class="cp-switch-actions">
+                      <button type="button" appButton="primary" [disabled]="saving()" (click)="unfollow(path.id)">
+                        {{ saving() ? 'Saving…' : 'Stop following' }}
+                      </button>
+                      <button type="button" appButton="secondary" [disabled]="saving()" (click)="cancelUnfollow()">Keep following</button>
+                    </div>
+                  </div>
+                }
+
+                @if (path.schemaVersion === 2) {
+                  <app-career-tree [path]="path" [canDeclare]="followed" (explore)="view($event)" />
+                  <p class="cp-notice">
+                    CV recognition is coming later. For now you record achievements yourself; they are saved as self-reported.
+                  </p>
+                } @else {
+              @if (viewedPath(); as path) {
+                  @let progress = careerPath.progressFor(path);
+                  <p class="cp-step-intro">
+                    {{ progress?.completed }} of {{ progress?.total }} required steps complete &middot; {{ progress?.percent }}%
+                  </p>
+                  @if (path.id === careerPath.selection()?.pathId && careerPath.selection()?.revision !== path.revision) {
+                    <p class="cp-notice">This path was updated after you chose it. Courses you completed still count.</p>
+                  }
+                  @if (progress?.finished) {
+                    <p class="cp-notice" role="status">
+                      You completed every required step of this path. Finishing it does not grant an external
+                      certification; exams are taken separately. You can choose a new target below.
+                    </p>
+                  }
+  
+                  @if (path.id === careerPath.selectedPath()?.id && careerPath.nextAction(); as next) {
+                    <section class="cp-next" aria-labelledby="cp-next-title">
+                      <p class="cp-milestone-courses-label">Next required step</p>
+                      <h3 id="cp-next-title">{{ next.step.title }}</h3>
+                      <p>{{ next.course.title }}. {{ next.reason }}</p>
+                      <a appButton="primary" [routerLink]="next.link">
+                        {{ next.label }}
+                        <span aria-hidden="true">&rarr;</span>
+                      </a>
+                    </section>
+                  } @else if (path.id === careerPath.selectedPath()?.id && !progress?.finished) {
+                    <p class="cp-notice" role="status">
+                      Your next required step has no course available yet. It will open here once its course is
+                      published. Your completed steps are kept.
+                    </p>
+                  }
+  
+                  <ol class="cp-roadmap-track" aria-label="Career path roadmap">
+                    <li class="cp-roadmap-stage is-start">
+                      <span class="cp-roadmap-stage-label">Start</span>
+                      <div class="cp-roadmap-stage-title">You today</div>
+                    </li>
+                    @for (milestone of milestones(); track milestone.id) {
+                      <li
+                        class="cp-roadmap-stage"
+                        [class.is-complete]="milestone.status === 'complete'"
+                        [class.is-current]="milestone.status === 'current'"
+                      >
+                        <div class="cp-roadmap-stage-inner">
+                          <div class="cp-roadmap-stage-header">
+                            @if (milestone.status === 'current') {
+                              <span class="cp-roadmap-stage-marker" aria-hidden="true">📍</span>
                             }
-                          </ul>
+                            @if (milestone.status === 'complete') {
+                              <span class="cp-roadmap-stage-marker" aria-hidden="true">✓</span>
+                            }
+                            <div class="cp-roadmap-stage-title">{{ milestone.title }}</div>
+                          </div>
+                          <div class="cp-roadmap-stage-description">{{ milestone.description }}</div>
                         </div>
-                      </div>
-                    </article>
+                      </li>
+                    }
+                    <li class="cp-roadmap-stage is-goal">
+                      <span class="cp-roadmap-stage-label">Goal</span>
+                      <div class="cp-roadmap-stage-title">{{ path.title }}</div>
+                    </li>
+                  </ol>
+  
+                  <div class="cp-milestones">
+                    @for (milestone of milestones(); track milestone.id; let i = $index) {
+                      <article
+                        class="cp-milestone"
+                        [class.is-complete]="milestone.status === 'complete'"
+                        [class.is-current]="milestone.status === 'current'"
+                      >
+                        <span class="cp-milestone-ghost-index" aria-hidden="true">{{ i + 1 }}</span>
+                        <div class="cp-milestone-body">
+                          <div class="cp-milestone-head">
+                            <h3>{{ milestone.title }}</h3>
+                            <span class="cp-milestone-badge">{{ milestone.status === 'complete' ? 'Complete' : !milestone.required ? 'Optional' : milestone.status === 'current' ? 'Next step' : 'Upcoming' }}</span>
+                          </div>
+                          <p>{{ milestone.description }}</p>
+                          <div class="cp-milestone-courses">
+                            <span class="cp-milestone-courses-label">
+                              {{ milestone.courses.length > 1 ? 'Complete any one of these courses' : 'Course' }}
+                            </span>
+                            <ul>
+                              @for (course of milestone.courses; track $index) {
+                                <li>
+                                  @if (course.available) {
+                                    <a [routerLink]="['/courses', course.courseId]">{{ course.title }}</a>
+                                    <span class="cp-course-state">
+                                      {{ course.percent === null ? '' : course.percent === 100 ? 'Completed' : course.percent + '% complete' }}
+                                    </span>
+                                  } @else {
+                                    {{ course.title }}
+                                    <span class="cp-course-state">{{ course.placeholder ? 'Preview — not available yet' : 'Not currently available' }}</span>
+                                  }
+                                </li>
+                              }
+                            </ul>
+                          </div>
+                        </div>
+                      </article>
+                    }
+                  </div>
+                }
+                  }
+              } @else if (followedPaths().length) {
+                <h2>Choose which career to view</h2>
+                <p class="cp-step-intro">You follow {{ followedPaths().length }} {{ followedPaths().length === 1 ? 'career' : 'careers' }}.</p>
+                <div class="cp-card-actions">
+                  @for (followed of followedPaths(); track followed.id) {
+                    <button type="button" appButton="secondary" [disabled]="saving()" (click)="view(followed.id)">{{ followed.title }}</button>
                   }
                 </div>
               } @else {
-                <h2>Your saved path is no longer published</h2>
-                <p class="cp-step-intro">Your completed courses are kept. Choose another path to continue.</p>
+                <h2>You do not follow a career yet</h2>
+                <p class="cp-step-intro">Your achievements are kept. Choose a career to follow.</p>
               }
 
               <div class="cp-roadmap-actions">
-                <button type="button" appButton="secondary" (click)="continueToCareerChoice()">Change target career</button>
+                <button type="button" appButton="secondary" (click)="continueToCareerChoice()">Explore other careers</button>
               </div>
             </div>
           }

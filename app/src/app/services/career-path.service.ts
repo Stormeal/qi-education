@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
+  AccountCareers,
   AdminCareerPath,
   CareerPath,
   CareerPathDraft,
@@ -29,10 +30,14 @@ export class CareerPathService {
   readonly state = signal<'loading' | 'ready' | 'error'>('loading');
   readonly paths = signal<CareerPath[]>([]);
   readonly selection = signal<CareerPathSelection | null>(null);
+  readonly careers = signal<AccountCareers | null>(null);
   readonly adminPaths = signal<AdminCareerPath[]>([]);
   readonly adminCourses = signal<CourseListItem[]>([]);
 
-  readonly selectedPath = computed(() => this.paths().find((path) => path.id === this.selection()?.pathId) ?? null);
+  readonly focusedPath = computed(() => this.paths().find((path) => path.id === this.careers()?.focusPathId) ?? null);
+  // Home still reads one path: the focus, or the legacy selection while no focus is saved.
+  readonly selectedPath = computed(() => this.focusedPath()
+    ?? this.paths().find((path) => path.id === this.selection()?.pathId) ?? null);
   readonly progress = computed(() => {
     const path = this.selectedPath();
     return path ? this.progressFor(path) : null;
@@ -72,6 +77,7 @@ export class CareerPathService {
     if (token !== this.token()) {
       this.paths.set([]);
       this.selection.set(null);
+      this.careers.set(null);
       this.adminPaths.set([]);
       this.outlines.set({});
     }
@@ -79,14 +85,16 @@ export class CareerPathService {
     this.email.set(email);
     this.state.set('loading');
     try {
-      const [paths, selection] = await Promise.all([
+      const [paths, selection, careers] = await Promise.all([
         this.request<CareerPath[]>('/career-paths', token),
         this.request<{ selection: CareerPathSelection | null }>('/users/me/career-path', token),
+        this.request<AccountCareers>('/users/me/careers', token),
       ]);
       if (token !== this.token()) return;
-      if (!paths.ok || !selection.ok) throw new Error();
+      if (!paths.ok || !selection.ok || !careers.ok) throw new Error();
       this.paths.set(paths.body);
       this.selection.set(selection.body.selection);
+      this.careers.set(careers.body);
       this.state.set('ready');
       void this.loadOutlines();
     } catch {
@@ -106,6 +114,34 @@ export class CareerPathService {
     if (!result.ok) return { ok: false, message: result.message };
     this.selection.set(result.body.selection);
     void this.loadOutlines();
+    return { ok: true };
+  }
+
+  follow(pathId: string): Promise<CareerPathResult> {
+    return this.careersWrite(`/users/me/careers/${encodeURIComponent(pathId)}`, 'PUT');
+  }
+
+  /** Stops following; achievements and enrollments are kept by the API. */
+  unfollow(pathId: string): Promise<CareerPathResult> {
+    return this.careersWrite(`/users/me/careers/${encodeURIComponent(pathId)}`, 'DELETE');
+  }
+
+  focus(pathId: string): Promise<CareerPathResult> {
+    return this.careersWrite('/users/me/career-focus', 'PUT', { pathId });
+  }
+
+  /** Records a self-reported achievement; the API checks that its milestone is ready. */
+  declare(actionId: string): Promise<CareerPathResult> {
+    return this.careersWrite('/users/me/achievements', 'POST', { actionId });
+  }
+
+  private async careersWrite(path: string, method: string, body?: unknown): Promise<CareerPathResult> {
+    const token = this.token();
+    const result = await this.request<AccountCareers>(path, token, method, body);
+    // A reply that arrives after logout or an account switch belongs to the old session.
+    if (token !== this.token()) return { ok: false, message: 'You are signed in to a different account now.' };
+    if (!result.ok) return { ok: false, message: result.message, code: result.code };
+    this.careers.set(result.body);
     return { ok: true };
   }
 
