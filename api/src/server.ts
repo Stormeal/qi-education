@@ -1559,6 +1559,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     while (cause && typeof cause === 'object' && !seen.has(cause)) {
       seen.add(cause);
       if ('name' in cause && typeof cause.name === 'string' && connectionErrors.has(cause.name)) {
+        console.error('Storage unavailable', error);
         response.status(503).json({ message: 'Storage is temporarily unavailable. Please try again.', code: 'STORE_UNAVAILABLE', retryable: true });
         return;
       }

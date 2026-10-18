@@ -64,6 +64,15 @@ describe.each(['', '/api'])('US-P002-AC02 dependency errors (%s)', prefix => {
       expect(await response.json()).toEqual({ message: 'Unexpected server error' });
     });
 
+  it('US-P002-AC02 logs a MongoServerSelectionError once and preserves the safe 503 response', async () => {
+    const error = mongoFailure('MongoServerSelectionError');
+    const response = await failureResponse(error);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ message: storageMessage, code: 'STORE_UNAVAILABLE', retryable: true });
+    expect(console.error).toHaveBeenCalledTimes(1);
+    expect(console.error).toHaveBeenCalledWith('Storage unavailable', error);
+  });
+
   it('US-P002-AC02 unknown cyclic causes keep the generic 500', async () => {
     const error = new Error('private cyclic cause');
     error.cause = error;
