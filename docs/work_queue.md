@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. US-L023 (CV recognition) is delivered locally on `main` (last commit before this record `26330f5`); not pushed.
+None. US-L023 (CV recognition) is delivered and pushed to `main` on 2026-10-18 (`345bca1`); hosted checks are under Open release checks.
 
 ## Waiting on Alex
 
