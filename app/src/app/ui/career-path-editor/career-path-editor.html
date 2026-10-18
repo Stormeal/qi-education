@@ -146,6 +146,11 @@
                         </select>
                       </label>
                       <label>Title <input type="text" [name]="'actionTitle' + i + '-' + a" maxlength="160" [(ngModel)]="action.title" /></label>
+                      <label class="cpe-keywords">CV keywords
+                        <textarea rows="3" [value]="(action.cvKeywords ?? []).join('\n')"
+                          (change)="setKeywords(action, $any($event.target).value)"></textarea>
+                        <span class="cpe-hint">One per line: exact phrases from a CV, such as CTFL. Up to 10.</span>
+                      </label>
                       @if (action.kind === 'course') {
                         <label>Course
                           <select [name]="'actionCourse' + i + '-' + a" [(ngModel)]="action.courseId">

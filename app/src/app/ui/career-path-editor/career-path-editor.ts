@@ -178,11 +178,16 @@ export class CareerPathEditor {
     const actions = (step.actions ??= []);
     let index = actions.length + 1;
     while (actions.some((action) => action.id === `${step.id.slice(0, 50)}-a${index}`)) index++;
-    const action: EditableAction = { id: `${step.id.slice(0, 50)}-a${index}`, kind: 'activity', title: '', courseId: '' };
+    const action: EditableAction = { id: `${step.id.slice(0, 50)}-a${index}`, kind: 'activity', title: '', courseId: '', cvKeywords: [] };
     actions.push(action);
     const bundles = (step.requirementBundles ??= []);
     if (bundles.length === 0) bundles.push([action.id]);
     else if (bundles.length === 1) bundles[0].push(action.id);
+  }
+
+  /** One keyword per line; the API enforces the count and length limits. */
+  protected setKeywords(action: EditableAction, value: string): void {
+    action.cvKeywords = value.split('\n').map((line) => line.trim()).filter(Boolean);
   }
 
   protected removeAction(step: EditableStep, action: EditableAction): void {

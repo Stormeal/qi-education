@@ -136,6 +136,23 @@ describe('career milestone editing (US-A004)', () => {
     expect(own.requirementBundles).toEqual([['test-lead-step-2-a1', 'test-lead-step-2-a2']]);
   });
 
+  it('US-L023-AC07 CV keywords are edited one per line', async () => {
+    root().querySelector<HTMLInputElement>('#cpe-new-title')!.value = 'Test Lead';
+    await click('Add path');
+    await click('Add step');
+    await click('Add action');
+    expect(root().textContent).toContain('CV keywords');
+    const box = root().querySelector<HTMLTextAreaElement>('.cpe-keywords textarea')!;
+    box.value = 'ISTQB Foundation\n\n  CTFL ';
+    box.dispatchEvent(new Event('change'));
+    await click('Add action');
+    await click('Save draft');
+
+    const actions = saveDraft.mock.calls[0][1].steps.at(-1)!.actions!;
+    expect(actions[0].cvKeywords).toEqual(['ISTQB Foundation', 'CTFL']);
+    expect(actions[1].cvKeywords).toEqual([]);
+  });
+
   it('US-A004 converting an old-format career reuses shared milestones and turns linked courses into course actions', async () => {
     const old: CareerPathDraft = { title: 'Old Tester', summary: '', outcomes: [], estimatedHours: 0, steps: [
       { id: 'foundation', title: 'Foundation', description: '', required: true, prerequisiteStepIds: [], courses: [{ courseId: '', title: 'Preview' }] },
