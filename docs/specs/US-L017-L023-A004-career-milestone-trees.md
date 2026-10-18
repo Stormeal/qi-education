@@ -2,12 +2,13 @@
 
 ## Record
 
-- State: Proposed; feature definition requested and visual direction approved on
-  2026-10-18. This written specification has not yet been reviewed by Alex.
+- State: Approved by Alex on 2026-10-18 ("Approve, build release") with the proposed
+  defaults below; implementation started the same day (see Implementation contract).
 - Current-release stories: US-A004 and US-L017–US-L022 in the
   [backlog](../user_stories.md). US-L023 records future CV recognition separately.
-- Documentation owner: Codex. Implementation owner: unassigned; implementation
-  has not been selected. Branch/base: `main` / `34ba889`.
+- Documentation owner: Codex. Implementation: Claude Code (lead, `app/`) and Codex
+  (`api/src/**`), started 2026-10-18 on `main`. Codex handoff:
+  [US-L017-codex.md](../handoffs/US-L017-codex.md).
 - Related confirmed defects: none newly investigated. Preserve the privacy,
   progress and recovery contracts of US-P004, DEF-016 and US-L002.
 - Visual reference: [prototype](../../design/career-path/milestone-tree-prototype.html)
@@ -240,6 +241,23 @@ preservation requirements rather than prematurely selecting those interfaces.
 | Multi-career DTO compatibility, schema versioning, rollout and migration | Define in the implementation plan after written-spec approval; no silent shared-data migration |
 | Material requirement revisions for existing learners | Curriculum owner approves version/evidence mapping before publishing changed criteria |
 | Test Architect curriculum | Future selection; the model supports composition, but the fourth route is not part of launch scope |
+
+## Implementation contract (2026-10-18, confirm or change)
+
+Alex approved the spec without reviewing each default; these are the lead's choices, open to
+change. The API contract is in the [Codex handoff](../handoffs/US-L017-codex.md#contract-claudes-side-relies-on).
+
+- Milestones stay steps of a career path document (`schemaVersion: 2`); a step ID is a global
+  milestone ID, so Foundation is one milestone shared by all three careers. No separate
+  milestone collection.
+- Completion rules are action bundles: any one bundle with all its actions satisfied.
+  Preparation courses (`courses`) never satisfy a requirement.
+- A course action is satisfied by a declaration or by real 100% course completion on the
+  account; an exam or activity only by a declaration.
+- Milestone states are computed by the API and shown as given; the page does not recompute them.
+- Increment 1 (this one): API for A004/L019/L020/L021; learner tree, details, declaring and
+  several careers on the Career Path page. Next increment: admin editing of milestone fields
+  (the current editor preserves them), Home guidance (US-L022), legacy path mapping review.
 
 ## Story sequence and implementation handoff
 

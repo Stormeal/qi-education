@@ -4,6 +4,17 @@ Updated: 2026-10-18. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
+**Session 2026-10-18 — started by Alex with "Next job I want you to work on is US-L017".**
+Branch: `main`. Base: `611eede`. US-L017 depends on US-A004, L019, L020 and L021, and the spec
+was unreviewed; Alex chose "Approve, build release" (spec approved with its proposed defaults).
+Increment 1 builds the API for those stories and the learner tree page together. Admin editing
+of milestone fields and Home guidance (US-L022) are the next increment.
+
+| Owner | Scope | Files owned | State |
+| --- | --- | --- | --- |
+| Codex | API: milestone schema v2 and cross-path validation, account careers (follow, focus), self-reported achievements, milestone states | `api/src/**`; see the [handoff](handoffs/US-L017-codex.md) | Handed off |
+| Claude Code | US-L017/L018 tree and milestone details, declaring achievements and following several careers on the Career Path page; lead check | `app/**`, the spec (except Codex's checklist), `docs/user_stories.md` | In progress |
+
 **2026-10-18 — Career milestone trees: feature definition and stories (Codex).**
 Selected by Alex after reviewing the career-path mockup. Documentation only;
 feature implementation is not selected. Owner: Codex. Branch/base: `main` /
