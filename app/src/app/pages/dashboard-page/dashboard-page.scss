@@ -143,6 +143,32 @@
     transform 180ms ease;
 }
 
+.db-action-row.is-recommended {
+  position: relative;
+  overflow: hidden;
+  padding-right: 72px;
+}
+
+/* Corner ribbon on the recommended course (GitHub #45); real text, read before the title. */
+.db-ribbon {
+  position: absolute;
+  /* Band centre 35px from the top and right edges, so the word fits the visible diagonal. */
+  top: 25px;
+  right: -35px;
+  width: 140px;
+  padding: 4px 0;
+  transform: rotate(45deg);
+  color: var(--color-surface-card);
+  background: var(--color-primary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .db-action-row:hover {
   border-color: rgba(47, 79, 67, 0.2);
   box-shadow: 0 14px 32px rgba(23, 27, 74, 0.09);

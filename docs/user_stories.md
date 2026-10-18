@@ -14,7 +14,6 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | --- | --- | --- | --- | --- | --- |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | Product decisions | Below |
-| US-L007 | Present the primary recommendation first | In progress | P3 | None | Below, GitHub #45 |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | None | Below |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P002 | Return useful, consistent API errors | In progress | P2 | None (defaults recorded) | Below |
@@ -84,31 +83,6 @@ Feature: Enrollment and learning access
     When I request its learning content or resources
     Then only the agreed public preview is available
     And draft lesson content and quiz scoring answers are not disclosed
-```
-
-### US-L007 — Present the primary recommendation first
-
-**As a learner, I want my recommended next action first in the home list, so that I can identify
-the next useful step quickly.**
-
-State: In progress (Claude, 2026-10-18). Source: [GitHub #45](https://github.com/Stormeal/qi-education/issues/45).
-Design approved by Alex 2026-10-18: the list is Home's "Your learning". The recommendation is the
-first course in progress, else the first not started; with every course completed there is none.
-It moves to the top (others keep their order) and carries a "Recommended" corner ribbon at its
-top-right, as real text in the primary colour, readable at phone width.
-
-```gherkin
-Feature: Home recommendation emphasis
-  Scenario: US-L007-AC01 A recommendation exists
-    Given my account has a primary recommendation
-    When I view the home action list
-    Then that recommendation appears first with the agreed corner ribbon
-    And its text remains readable at supported screen sizes
-
-  Scenario: US-L007-AC02 No recommendation exists
-    Given my account has no recommendation
-    When I view the home action list
-    Then the page shows an honest starting state without a fabricated recommendation
 ```
 
 ### US-L014 — Confirm my email address at signup

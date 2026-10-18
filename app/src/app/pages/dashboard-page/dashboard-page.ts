@@ -30,6 +30,15 @@ export class DashboardPage {
   readonly courses = input.required<CourseSummary[]>();
   readonly coursesLoading = input.required<boolean>();
   readonly coursesError = input.required<string>();
+  // The course to continue: one already started beats one not started; unknown progress is never recommended.
+  protected readonly recommended = computed(() => {
+    const open = this.courses().filter((course) => course.status === 'In progress');
+    return open.find((course) => course.completed > 0) ?? open[0] ?? null;
+  });
+  protected readonly orderedCourses = computed(() => {
+    const first = this.recommended();
+    return first ? [first, ...this.courses().filter((course) => course !== first)] : this.courses();
+  });
   readonly progressReloaded = output<void>();
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();

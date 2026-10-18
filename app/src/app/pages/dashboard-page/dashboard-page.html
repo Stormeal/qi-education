@@ -96,12 +96,16 @@
         <p>No courses in your learning library yet.</p>
         <button appButton="primary" (click)="coursesClicked.emit()">Browse courses</button>
       } @else {
-      @for (course of courses(); track course.id) {
+      @for (course of orderedCourses(); track course.id) {
         <article
           class="db-action-row"
           [class.is-complete]="course.status === 'Completed'"
           [class.is-current]="course.status === 'In progress'"
+          [class.is-recommended]="course === recommended()"
         >
+          @if (course === recommended()) {
+            <span class="db-ribbon">Recommended</span>
+          }
           <span class="db-action-icon" aria-hidden="true">
             @if (course.status === 'Completed') {
               <svg viewBox="0 0 16 16" focusable="false">

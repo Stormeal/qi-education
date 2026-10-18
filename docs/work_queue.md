@@ -12,7 +12,7 @@ recorded in the stories in [user_stories.md](user_stories.md).
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
 | Codex | US-P002-AC02 API part: 503 `STORE_UNAVAILABLE` / `READ_ONLY` codes | `api/src/server.ts` error middleware, its tests; handoff [handoffs/US-P002-codex.md](handoffs/US-P002-codex.md) | Not started |
-| Claude | US-L007-AC01/AC02: recommended course first with a corner ribbon on Home | `app/src/app/pages/dashboard-page/`, `docs/specs/learning/home-and-library.md`, `docs/user_stories.md` | In progress |
+| Claude | US-L007-AC01/AC02: recommended course first with a corner ribbon on Home | `app/src/app/pages/dashboard-page/`, `docs/specs/learning/home-and-library.md`, `docs/user_stories.md` | Delivered locally (this commit): spec 3/3, `app:test` 378/378, browser-checked at desktop and phone width (one-course catalog; order covered by the spec). GitHub #45 can be closed. |
 
 Next action: both parts run in parallel; Claude reviews Codex's commit with the check routine.
 

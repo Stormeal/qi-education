@@ -1,0 +1,63 @@
+import { signal } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { CourseSummary } from '../../app.models';
+import { CareerPathService } from '../../services/career-path.service';
+import { LearningProgressService } from '../../services/learning-progress.service';
+import { DashboardPage } from './dashboard-page';
+
+const course = (id: string, status: string, completed: number, total = 4): CourseSummary => ({
+  id, title: `Course ${id}`, teacher: '', level: '', status, progress: total ? Math.round(completed / total * 100) : 0,
+  progressState: status === 'Unavailable' ? 'error' : 'ready', completed, total, nextLesson: '', goals: [],
+});
+
+describe('Home recommendation (US-L007)', () => {
+  let fixture: ComponentFixture<DashboardPage>;
+
+  const rows = () => [...(fixture.nativeElement as HTMLElement).querySelectorAll('.db-action-row')];
+  const titles = () => rows().map((row) => row.querySelector('h3')!.textContent!.trim());
+  const ribbons = () => rows().filter((row) => row.querySelector('.db-ribbon'));
+
+  function show(courses: CourseSummary[]): void {
+    fixture.componentRef.setInput('courses', courses);
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    TestBed.configureTestingModule({ providers: [
+      provideRouter([]),
+      { provide: CareerPathService, useValue: { milestoneProgress: signal(null), selectedPath: signal(null), progress: signal(null),
+        nextAction: signal(null), focusedPath: signal(null), state: signal('ready') } },
+      { provide: LearningProgressService, useValue: { accountSyncState: signal('idle') } },
+    ] });
+    fixture = TestBed.createComponent(DashboardPage);
+    const inputs: Record<string, unknown> = {
+      appVersion: '0', currentYear: 2026, student: { name: 'Learner', currentRole: 'Student' }, userEmail: 'learner@example.test',
+      userRoleLabel: 'Student', canAccessAdmin: false, activeCourse: null, courses: [], coursesLoading: false, coursesError: '',
+      isFeedbackOpen: false, feedbackSubmitted: false, feedbackPage: '', feedbackRating: '', feedbackText: '',
+      feedbackSubmitting: false, feedbackError: '', feedbackOptions: [],
+    };
+    for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
+  });
+
+  it('US-L007-AC01 puts the course in progress first with a "Recommended" ribbon and keeps the rest in order', () => {
+    show([course('a', 'Completed', 4), course('b', 'In progress', 0), course('c', 'In progress', 2), course('d', 'Unavailable', 0)]);
+    expect(titles()).toEqual(['Course c', 'Course a', 'Course b', 'Course d']);
+    expect(ribbons()).toHaveLength(1);
+    expect(rows()[0].querySelector('.db-ribbon')!.textContent!.trim()).toBe('Recommended');
+  });
+
+  it('US-L007-AC01 recommends the first course not started when none is in progress', () => {
+    show([course('a', 'Completed', 4), course('b', 'Unavailable', 0), course('c', 'In progress', 0), course('d', 'In progress', 0)]);
+    expect(titles()).toEqual(['Course c', 'Course a', 'Course b', 'Course d']);
+    expect(ribbons()).toHaveLength(1);
+  });
+
+  it('US-L007-AC02 shows no recommendation when every course is completed or its progress is unknown', () => {
+    show([course('a', 'Completed', 4), course('b', 'Unavailable', 0)]);
+    expect(titles()).toEqual(['Course a', 'Course b']);
+    expect(ribbons()).toHaveLength(0);
+  });
+});
