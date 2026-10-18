@@ -300,3 +300,42 @@ course availability, certification validity or production behavior.
 Documentation validation and the local documentation commit are recorded in the
 queue and Git history for this file. No story is Done on the strength of this
 specification or visual approval.
+
+## Codex API implementation checklist
+
+Owner Codex; `main`, base `5f14ea4`; approved handoff is the implementation contract.
+Implementation runs inline in the shared checkout, with isolated stores only.
+
+- [x] Schema and graph: scenario-named tests in `api/src/careerMilestones.test.ts`, then
+  extend `careerPath.ts` and publish/save checks in `server.ts`. Preserve v1 rules;
+  verify global IDs, bundles, cross-path prerequisites/cycles, private course labels,
+  legacy schema refusal and current admin edit tokens. Launch seeds remain unapproved drafts.
+- [x] Account storage and evaluation: add `accountCareersRepository.ts` for per-account
+  optimistic atomic mutations (Mongo compare/replace retry and memory parity), and
+  `accountCareers.ts` for migration, action evidence and prerequisite evaluation.
+  Test concurrent first writes, repeated declarations, bundles and historical evidence.
+- [x] Private routes: add `accountCareersRoutes.ts`, inject its repository in `server.ts`,
+  preserve legacy selection shape and also follow/focus. Test every new route, no-store,
+  failure/retry, per-account isolation, siblings and cross-career unlocks with scenario IDs.
+- [x] Run API tests, API build without emitting `api/dist`, and journey verification;
+  inspect the final diff, record evidence/limitations and commit locally with an aligned
+  version bump. No shared-service calls, push or deployment.
+
+Scenario evidence (API side only, 2026-10-18):
+
+| Scenarios | Automated evidence |
+| --- | --- |
+| US-A004-AC02, AC03, AC05, AC06 | `careerMilestones.test.ts`, `careerPathRepository.test.ts`, `accountCareers.test.ts`: bundles, preview seeds, global graph conflicts/cycles, public course labels, permission/stale/schema refusal, layout preservation and action-identity reuse refusal |
+| US-L019-AC01–AC06 | `accountCareers.test.ts`, `accountCareersRepository.test.ts`: empty evidence, authenticated server provenance/time, repeated adapter reads, retry after failed write/lost reply, account isolation and unchanged lesson/quiz/enrollment records |
+| US-L020-AC01–AC05 | `accountCareers.test.ts`, `careerMilestones.test.ts`: locked API writes, all/any bundles, sibling branches, one shared Foundation, three cross-career prerequisites and development after the role milestone |
+| US-L021-AC01–AC06 | `accountCareers.test.ts`, `accountCareersRepository.test.ts`: concurrent first/later follows, focus/preview separation, retained achievements, failure/retry, legacy read mapping/first-write preservation, authenticated scope and no-store |
+| Integrated launch route | `journey.test.ts`: admin draft → publish → multi-follow → locked refusal → Foundation → shared unlock → role → unfollow; both course-store journey configurations use memory-only providers |
+
+Independent review identified first-legacy-write goal loss, concurrent graph publication,
+and reuse of a published action ID for changed evidence. All have regression coverage;
+repository schema races and delayed v2 draft/publication races also have RED-to-GREEN tests.
+Changed qualification meanings require a new action identity; full curriculum revision,
+learner update notices and evidence migration remain outside this increment's handoff.
+Browser/session/keyboard behavior, real MongoDB durability/ownership recovery, curriculum
+approval and hosted release checks remain unverified. Lead owns story-status updates and
+the rest of this spec. Delivery/check totals are in the handoff Outcome and queue row.

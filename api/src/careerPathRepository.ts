@@ -1,8 +1,19 @@
 import { apiConfig, hasMongoConfig } from './config.js';
 import { nextCareerPathUpdatedAt, type CareerPathDocument, type CareerPathSelection } from './careerPath.js';
 import { getMongoDatabase } from './mongo.js';
+import { CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
+
+export class CareerPathSchemaError extends Error {
+  readonly code = 'career-path-schema';
+  constructor() { super('This career path requires milestone schema version 2.'); }
+}
+function protectMilestoneSchema(current: CareerPathDocument | null | undefined, next: CareerPathDocument): void {
+  if ((current?.draft?.schemaVersion === 2 || current?.published?.schemaVersion === 2)
+    && next.draft?.schemaVersion !== 2) throw new CareerPathSchemaError();
+}
 
 export interface CareerPathRepository {
+  withPublicationLock<T>(operation: () => Promise<T>): Promise<T>;
   listPaths(): Promise<CareerPathDocument[]>;
   // Nonempty expected versions must be checked atomically with replacement.
   savePath(document: CareerPathDocument, expectedUpdatedAt?: string): Promise<CareerPathDocument>;
@@ -12,6 +23,16 @@ export interface CareerPathRepository {
 }
 
 export class MongoCareerPathRepository implements CareerPathRepository {
+  constructor(private readonly publicationLock: CourseMutationLock = new MongoCourseMutationLock(async () =>
+    (await getMongoDatabase()).collection(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_career_path_locks`))) {}
+
+  async withPublicationLock<T>(operation: () => Promise<T>): Promise<T> {
+    try { return await this.publicationLock.run('published-graph', operation); }
+    catch (error) {
+      if (error instanceof CourseBusyError) throw new CareerPathConflictError('Career graph is being updated. Try publishing again shortly.');
+      throw error;
+    }
+  }
   private async collection<T extends { _id: string }>(suffix: string) {
     return (await getMongoDatabase()).collection<T>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_${suffix}`);
   }
@@ -23,6 +44,7 @@ export class MongoCareerPathRepository implements CareerPathRepository {
   async savePath(document: CareerPathDocument, expectedUpdatedAt?: string): Promise<CareerPathDocument> {
     const collection = await this.collection<CareerPathDocument>('career_paths');
     if (expectedUpdatedAt) {
+      protectMilestoneSchema(await collection.findOne({ _id: document._id }), document);
       const saved = { ...document, updatedAt: nextCareerPathUpdatedAt(expectedUpdatedAt) };
       // Only the database predicate decides whether this version is current.
       const result = await collection.replaceOne(
@@ -38,6 +60,7 @@ export class MongoCareerPathRepository implements CareerPathRepository {
     // when the route read an old snapshot or another API instance has a skewed clock.
     for (;;) {
       const current = await collection.findOne({ _id: document._id });
+      protectMilestoneSchema(current, document);
       const saved = { ...document, updatedAt: nextCareerPathUpdatedAt(current?.updatedAt ?? document.updatedAt) };
       if (!current) {
         try {
@@ -73,6 +96,10 @@ export class MongoCareerPathRepository implements CareerPathRepository {
 }
 
 export class InMemoryCareerPathRepository implements CareerPathRepository {
+  private readonly publicationLock = new InMemoryCourseMutationLock();
+  withPublicationLock<T>(operation: () => Promise<T>): Promise<T> {
+    return this.publicationLock.run('published-graph', operation);
+  }
   private readonly paths = new Map<string, CareerPathDocument>();
   private readonly selections = new Map<string, CareerPathSelection>();
 
@@ -82,6 +109,7 @@ export class InMemoryCareerPathRepository implements CareerPathRepository {
 
   async savePath(document: CareerPathDocument, expectedUpdatedAt?: string): Promise<CareerPathDocument> {
     const current = this.paths.get(document._id);
+    protectMilestoneSchema(current, document);
     if (expectedUpdatedAt && current?.updatedAt !== expectedUpdatedAt) {
       throw new CareerPathConflictError();
     }
@@ -109,7 +137,7 @@ export function createCareerPathRepository(): CareerPathRepository {
 }
 
 export class CareerPathConflictError extends Error {
-  constructor() {
-    super('Career path changed. Load the latest version before saving, publishing or withdrawing.');
+  constructor(message = 'Career path changed. Load the latest version before saving, publishing or withdrawing.') {
+    super(message);
   }
 }

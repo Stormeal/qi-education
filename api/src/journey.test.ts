@@ -134,4 +134,33 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect((await request(`/courses/${courseId}/content`, student)).status).toBe(200);
     expect((await request('/feedback', student)).status).toBe(403);
   });
+
+  it('US-A004-AC02 US-L019-AC02 US-L020-AC01 US-L020-AC03 US-L021-AC01 launch draft → publish → follow → declare → shared unlock', async () => {
+    expect(await (await request('/career-paths')).json()).toEqual([]);
+    const drafts = await (await request('/admin/career-paths', admin)).json();
+    // Publishing these unapproved starting drafts is an isolated test action only.
+    for (const id of ['technical-tester', 'test-manager', 'test-analyst']) {
+      const { draft } = drafts.find((item: { id: string }) => item.id === id);
+      expect(draft.schemaVersion).toBe(2);
+      expect((await request(`/admin/career-paths/${id}`, admin, 'PUT', draft)).status).toBe(200);
+      expect((await request(`/admin/career-paths/${id}/publish`, admin, 'POST')).status).toBe(200);
+    }
+    const enrollments = (await auth.findById(student.id))!.enrolledCourseIds;
+    for (const id of ['technical-tester', 'test-manager']) {
+      expect((await request(`/users/me/careers/${id}`, student, 'PUT')).status).toBe(200);
+    }
+    const locked = await request('/users/me/achievements', student, 'POST', { actionId: 'automation-engineer-exam' });
+    expect(locked.status).toBe(409); expect(await locked.json()).toMatchObject({ code: 'milestone-locked' });
+    const foundation = await request('/users/me/achievements', student, 'POST', { actionId: 'foundation-exam' });
+    expect(foundation.status).toBe(200); expect(foundation.headers.get('cache-control')).toBe('private, no-store');
+    const shared = await foundation.json();
+    expect(shared).toMatchObject({ followedPathIds: ['technical-tester', 'test-manager'],
+      milestoneStates: { foundation: 'achieved', 'technical-foundations': 'ready', 'test-manager-role': 'ready', 'test-design': 'ready' } });
+    expect((await request('/users/me/achievements', student, 'POST', { actionId: 'technical-foundations-activity' })).status).toBe(200);
+    const role = await (await request('/users/me/achievements', student, 'POST', { actionId: 'automation-engineer-exam' })).json();
+    expect(role.milestoneStates).toMatchObject({ 'automation-engineer': 'achieved', 'technical-test-analyst': 'ready', 'automation-practice': 'ready' });
+    const removed = await (await request('/users/me/careers/technical-tester', student, 'DELETE')).json();
+    expect(removed).toMatchObject({ followedPathIds: ['test-manager'], focusPathId: null, achievements: role.achievements });
+    expect((await auth.findById(student.id))!.enrolledCourseIds).toEqual(enrollments);
+  });
 });

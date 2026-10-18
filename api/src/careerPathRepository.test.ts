@@ -3,6 +3,7 @@ import { careerPathContentSchema } from './careerPath.js';
 import { InMemoryCareerPathRepository, MongoCareerPathRepository } from './careerPathRepository.js';
 import { getMongoDatabase } from './mongo.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InMemoryCourseMutationLock } from './courseMutationLock.js';
 
 // The real Mongo adapter receives a memory-only collection. This mock is installed
 // before imports, so no Mongo client can be created or contact any provider.
@@ -45,6 +46,14 @@ describe.each(['memory', 'mongo-adapter'] as const)('US-A003 conditional path wr
     const second = storage === 'memory' ? first : new MongoCareerPathRepository();
     return { ...fixture, first, second };
   };
+
+  it('US-A004-AC06 atomically refuses a legacy save after another writer upgrades the stored schema', async () => {
+    const { first, second } = setup();
+    const old = await first.savePath(document('old'));
+    const v2 = await second.savePath({ ...old, draft: { ...draft, schemaVersion: 2 } });
+    await expect(first.savePath({ ...old, draft })).rejects.toMatchObject({ code: 'career-path-schema' });
+    expect(await first.listPaths()).toEqual([v2]);
+  });
 
   it('allows only one of two writes based on the same stored version, including independent Mongo adapters', async () => {
     const { first, second } = setup();
@@ -95,6 +104,22 @@ describe.each(['memory', 'mongo-adapter'] as const)('US-A003 conditional path wr
 });
 
 describe('US-A003 Mongo conditional write command (memory collection only)', () => {
+  it('US-A004-AC03 holds one graph publication lock across independent Mongo adapters and releases after validation failure', async () => {
+    const lock = new InMemoryCourseMutationLock();
+    const first = new MongoCareerPathRepository(lock), second = new MongoCareerPathRepository(lock);
+    let entered!: () => void, release!: () => void;
+    const waiting = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const order: string[] = [];
+    const one = first.withPublicationLock(async () => { order.push('first'); entered(); await gate; order.push('released'); });
+    await waiting;
+    const two = second.withPublicationLock(async () => { order.push('second'); throw new Error('Invalid graph'); });
+    const rejected = expect(two).rejects.toThrow('Invalid graph');
+    expect(order).toEqual(['first']); release();
+    await one; await rejected;
+    expect(order).toEqual(['first', 'released', 'second']);
+    expect(await first.withPublicationLock(async () => 'retry')).toBe('retry');
+  });
   it('uses one acknowledged atomic replacement, a version predicate, and no upsert', async () => {
     const { collection, records } = collectionFixture();
     records.set('test-manager', document('old'));

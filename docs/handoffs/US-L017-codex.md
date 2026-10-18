@@ -134,3 +134,51 @@ Commit locally, do not push. Run `npm run api:test`, `npm run verify:journeys` a
 `npm run api:build`; record what could not be verified. Update your row in
 `docs/work_queue.md` (commit, checks, not verified, next), add an Outcome section here, then
 stop and summarize.
+
+## Outcome
+
+2026-10-18, Codex, `main`, base `5f14ea4`. Implementation is ready for the local
+delivery commit; its hash and final check totals will be recorded after commit.
+
+Checks passed on the completed working tree: `npm.cmd run api:test` (66 files,
+1643 tests), `npm.cmd run api:build -- -- --noEmit` (the required API build in
+check-only mode to honor the no-`api/dist` rule), `npm.cmd run verify:journeys`
+(14 checks), and `git diff --check`. No failure was caused by Claude's files.
+
+Delivered the additive schema v2, preview-only/unapproved launch drafts, learner DTO
+fields and public-course action filtering; global milestone/action validation, cross-path
+cycle refusal, repository-level legacy schema protection and v2 snapshot CAS. Graph
+publication/withdrawal is serialized across API instances using the existing Mongo
+ownership lock mechanism in `<MONGODB_COURSE_CONTENT_COLLECTION>_career_path_locks`.
+An uncertain publish write retains ownership for verified recovery under the existing
+31-minute expiry policy. A changed published action kind/course/title needs a new action
+ID; layout/title changes on milestones keep saved declarations.
+
+All five private account-careers routes return the agreed `AccountCareers` shape with
+computed milestone states and `private, no-store` / `Vary: Authorization`. Storage uses
+per-account CAS documents in `<MONGODB_COURSE_CONTENT_COLLECTION>_account_careers`, with
+in-memory parity. Concurrent follows/declarations merge, first declaration times survive
+retries, and eligibility includes sibling/shared/cross-career prerequisites. Course actions
+read current published lesson completion; declarations never write progress, quiz evidence,
+enrollments or access. Legacy selections are retained, mapped on read and persisted on first
+write; legacy PUT preserves its response and adds/focuses without losing the prior mapping.
+
+Scenario-named evidence is in `careerMilestones.test.ts`, `careerPathRepository.test.ts`,
+`accountCareers.test.ts`, `accountCareersRepository.test.ts` and `journey.test.ts`; the
+Codex checklist in the spec maps each assigned scenario group. Independent read-only review
+found the first-write legacy mapping bug and global publication race and flagged action
+identity reuse; regression tests cover all three fixes.
+
+Not verified: real MongoDB durability, multi-instance lock recovery under provider failure,
+shared services, browser/keyboard/session behavior, hosted deployment or curriculum validity.
+All execution used isolated memory stores (including Mongo-adapter fixtures), ephemeral
+ports, and no real MongoDB, Sheets, Mux or GitHub calls. `api/dist` was not rebuilt.
+The legacy compatibility bridge writes the legacy selection and new account document
+separately; a provider interruption between them requires an idempotent retry, not a
+cross-collection transaction guarantee.
+
+Next: lead integrates the combined API/tree in the browser, updates story statuses and
+the rest of the spec, and keeps curriculum approval, admin milestone authoring, material
+requirement revision/migration notices and Home guidance in their recorded follow-up scope.
+No functional changes under `app/` or edits to `docs/user_stories.md` by Codex; app edits
+are limited to the required release version locations. No push or deployment.

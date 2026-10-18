@@ -8,7 +8,17 @@ const careerPathStepSchema = z.object({
   title: z.string().trim().min(1).max(160),
   description: z.string().trim().max(600).default(''),
   required: z.boolean().default(true),
-  // The first course is the primary recommendation; the rest are accepted alternatives.
+  stage: z.string().trim().max(40).default(''),
+  roleMilestone: z.boolean().default(false),
+  actions: z.array(z.object({
+    id: careerPathIdSchema,
+    kind: z.enum(['exam', 'course', 'activity']),
+    title: z.string().trim().min(1).max(160),
+    courseId: z.string().trim().max(120).default(''),
+  })).max(12).default([]),
+  requirementBundles: z.array(z.array(careerPathIdSchema).min(1).max(12)).max(6).default([]),
+  // Preparation/learning recommendations only in v2; requirementBundles define completion.
+  // In v1 the first course is primary and the rest are accepted alternatives.
   // An empty courseId marks a preview (placeholder) course that cannot be opened or enrolled in.
   courses: z.array(z.object({
     courseId: z.string().trim().max(120).default(''),
@@ -18,6 +28,7 @@ const careerPathStepSchema = z.object({
 });
 
 export const careerPathContentSchema = z.object({
+  schemaVersion: z.union([z.literal(1), z.literal(2)]).default(1),
   title: z.string().trim().min(2).max(120),
   summary: z.string().trim().max(600).default(''),
   outcomes: z.array(z.string().trim().min(1).max(200)).max(10).default([]),
@@ -45,11 +56,20 @@ export function nextCareerPathUpdatedAt(previous?: string, now = Date.now()): st
 }
 
 /** Structural checks a revision must pass before learners can see it. */
-export function careerPathIssues(content: CareerPathContent, courses: Course[]): CareerPathIssue[] {
+export function careerPathIssues(content: CareerPathContent, courses: Course[], published: CareerPathContent[] = [], previous?: CareerPathContent | null): CareerPathIssue[] {
   const issues: CareerPathIssue[] = [];
   const courseIds = new Set(courses.map((course) => course.id));
   const stepIds = new Set<string>();
   const requiredCourseStep = new Map<string, string>();
+  if (content.schemaVersion === 2 && previous?.schemaVersion === 2) {
+    const historical = new Map(previous.steps.flatMap(step => step.actions).map(action => [action.id, action]));
+    for (const step of content.steps) for (const action of step.actions) {
+      const old = historical.get(action.id);
+      if (old && (old.kind !== action.kind || old.courseId !== action.courseId || old.title !== action.title)) {
+        issues.push({ stepId: step.id, message: `${step.title}: Action identity "${action.id}" already means a published qualification. Use a new versioned action ID for changed evidence.` });
+      }
+    }
+  }
 
   if (!content.steps.some((step) => step.required)) issues.push({ stepId: '', message: 'Add at least one required step.' });
 
@@ -57,21 +77,55 @@ export function careerPathIssues(content: CareerPathContent, courses: Course[]):
     const issue = (message: string) => issues.push({ stepId: step.id, message: `${step.title}: ${message}` });
     if (stepIds.has(step.id)) issue('Step IDs must be unique.');
     stepIds.add(step.id);
-    if (step.courses.length === 0) issue('Add at least one course.');
+    if (content.schemaVersion !== 2 && step.courses.length === 0) issue('Add at least one course.');
+    if (content.schemaVersion === 2) {
+      if (!step.requirementBundles.length) issue('Add at least one requirement bundle.');
+      const actionIds = new Set(step.actions.map(action => action.id));
+      if (actionIds.size !== step.actions.length) issue('Action IDs must be unique within a milestone.');
+      for (const bundle of step.requirementBundles) {
+        if (!bundle.length || bundle.some(id => !actionIds.has(id))) issue('Every requirement bundle must name actions of this milestone.');
+      }
+      for (const action of step.actions) {
+        if (action.kind === 'course' && !courseIds.has(action.courseId)) issue(`Action "${action.title}" must name an existing course.`);
+      }
+    }
     for (const course of step.courses) {
       if (!course.courseId) {
         if (!course.title) issue('Name the preview course or pick a real one.');
         continue;
       }
       if (!courseIds.has(course.courseId)) issue(`Course "${course.title || course.courseId}" no longer exists.`);
-      if (!step.required) continue;
+      if (!step.required || content.schemaVersion === 2) continue;
       const other = requiredCourseStep.get(course.courseId);
       if (other && other !== step.id) issue(`Course "${course.title || course.courseId}" is already required by another step.`);
       requiredCourseStep.set(course.courseId, step.id);
     }
   }
 
-  const prerequisites = new Map(content.steps.map((step) => [step.id, step.prerequisiteStepIds]));
+  const graph = content.schemaVersion === 2
+    ? [...published.filter(path => path.schemaVersion === 2).flatMap(path => path.steps), ...content.steps]
+    : content.steps;
+  const definitions = new Map<string, typeof content.steps[number]>();
+  const actions = new Map<string, string>();
+  // Order in a set/bundle is presentation only; semantic identities must agree.
+  const signature = (step: typeof content.steps[number]) => JSON.stringify({
+    actions: [...step.actions].sort((a, b) => a.id.localeCompare(b.id)),
+    bundles: step.requirementBundles.map(bundle => [...bundle].sort()).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+    prerequisites: [...step.prerequisiteStepIds].sort(),
+  });
+  if (content.schemaVersion === 2) for (const step of graph) {
+    const previous = definitions.get(step.id);
+    if (previous && signature(previous) !== signature(step)) issues.push({ stepId: step.id, message: `${step.title}: Conflicting shared milestone identity.` });
+    definitions.set(step.id, step);
+    for (const action of step.actions) {
+      const previousAction = actions.get(action.id);
+      // Shared action IDs carry the same completion/prerequisite contract too.
+      const definition = signature(step);
+      if (previousAction && previousAction !== definition) issues.push({ stepId: step.id, message: `${step.title}: Conflicting shared action identity "${action.id}".` });
+      actions.set(action.id, definition);
+    }
+  }
+  const prerequisites = new Map(graph.map((step) => [step.id, step.prerequisiteStepIds]));
   const state = new Map<string, 'visiting' | 'done'>();
   const inCycle = (id: string): boolean => {
     if (state.get(id) === 'done') return false;
@@ -81,9 +135,9 @@ export function careerPathIssues(content: CareerPathContent, courses: Course[]):
     state.set(id, 'done');
     return cyclic;
   };
-  for (const step of content.steps) {
+  for (const step of graph) {
     const unknown = step.prerequisiteStepIds.find((id) => !prerequisites.has(id));
-    if (unknown) issues.push({ stepId: step.id, message: `${step.title}: Prerequisite "${unknown}" is not a step in this path.` });
+    if (unknown) issues.push({ stepId: step.id, message: `${step.title}: Prerequisite "${unknown}" is not a step in the published graph.` });
     else if (inCycle(step.id)) issues.push({ stepId: step.id, message: `${step.title}: Prerequisites form a loop.` });
   }
 
@@ -93,13 +147,21 @@ export function careerPathIssues(content: CareerPathContent, courses: Course[]):
 /** Learner view of the published revision; course titles and availability come from the live catalog. */
 export function learnerCareerPath(document: CareerPathDocument, courses: Course[]) {
   if (!document.published) return null;
+  // Mongo records predating v2 have no defaults persisted on them.
+  const published = careerPathContentSchema.parse(document.published);
   const byId = new Map(courses.map((course) => [course.id, course]));
   return {
     id: document._id,
     revision: document.revision,
-    ...document.published,
-    steps: document.published.steps.map((step) => ({
+    ...published,
+    steps: published.steps.map((step) => ({
       ...step,
+      actions: step.actions.map(action => {
+        const stored = action.kind === 'course' ? byId.get(action.courseId) : undefined;
+        const course = stored?.status === 'published' ? stored : undefined;
+        return { ...action, title: course?.title ?? action.title,
+          available: action.kind !== 'course' || !!course };
+      }),
       courses: step.courses.map((reference) => {
         const storedCourse = reference.courseId ? byId.get(reference.courseId) : undefined;
         const course = storedCourse?.status === 'published' ? storedCourse : undefined;
@@ -121,7 +183,7 @@ const foundation = step('foundation', 'ISTQB Foundation Level',
   'The baseline certification for professional software testers.', ['ISTQB Foundation 4.0']);
 
 /** Starting drafts for admins. They are never stored or shown to learners until an admin saves and publishes. */
-export const careerPathSeeds: Record<string, CareerPathContent> = {
+const legacySeeds = {
   'technical-tester': {
     title: 'Technical Tester', estimatedHours: 0,
     summary: 'Build and maintain automated test suites and the tooling around them.',
@@ -166,3 +228,41 @@ export const careerPathSeeds: Record<string, CareerPathContent> = {
       step('ai-in-automation', 'AI in test automation', 'Apply AI assistance to building and maintaining automated tests.', ['Advanced Playwright and AI'], ['ai-testing'])],
   },
 };
+
+export const careerPathSeeds: Record<string, CareerPathContent> = Object.fromEntries(
+  Object.entries(legacySeeds).map(([id, seed]) => [id, careerPathContentSchema.parse(seed)]),
+);
+
+// Unapproved curriculum starting drafts from the candidate map, never automatically published.
+// Prerequisites below illustrate progression; curriculum review must approve them before launch.
+const milestone = (id: string, title: string, stage: string, preparations: string[], prerequisites: string[],
+  kind: 'exam' | 'activity' = 'activity', roleMilestone = false) => ({
+  ...step(id, title, 'Starting draft — curriculum criteria and prerequisites require approval.', preparations, prerequisites),
+  stage, roleMilestone, actions: [{ id: `${id}-${kind}`, kind,
+    title: id === 'foundation' ? 'Passed Foundation exam' : `${kind === 'exam' ? 'Passed exam' : 'Completed activity'}: ${title}`, courseId: '' }],
+  requirementBundles: [[`${id}-${kind}`]],
+});
+const sharedFoundation = milestone('foundation', 'ISTQB Foundation', 'Foundation',
+  ['ISTQB Foundation', 'Academy on-demand preparation (planned)'], [], 'exam');
+const launchSteps = {
+  'technical-tester': [sharedFoundation,
+    milestone('technical-foundations', 'Technical testing foundations', 'Build skills', ['Grundlæggende testautomatisering', 'Grundlæggende udvikling for testere'], ['foundation']),
+    milestone('automation-engineer', 'Test Automation Engineer', 'Specialize', ['ISTQB Advanced Test Automation Engineer v2.0'], ['technical-foundations'], 'exam', true),
+    milestone('technical-test-analyst', 'Technical Test Analyst', 'Specialize', ['ISTQB Advanced Technical Test Analyst'], ['technical-foundations'], 'exam'),
+    milestone('automation-practice', 'Automation in practice', 'Develop further', ['Automatisering med Playwright', 'Automatisering med Leapwork'], ['automation-engineer']),
+    milestone('api-testing', 'API testing', 'Develop further', ['Grundlæggende Postman', 'Grundlæggende SoapUI'], ['technical-foundations'])],
+  'test-manager': [sharedFoundation,
+    milestone('test-manager-role', 'Test Manager', 'Lead testing', ['Grundlæggende Test Management', 'Eksamineret Test Manager'], ['foundation'], 'activity', true),
+    milestone('advanced-test-manager', 'Advanced Test Management', 'Develop further', ['ISTQB Advanced Test Management v3.0'], ['test-manager-role'], 'exam'),
+    milestone('agile-leadership-exam', 'Agile test leadership certification', 'Develop further', ['ISTQB Advanced Agile Test Leadership at Scale'], ['test-manager-role'], 'exam'),
+    milestone('agile-leadership-practice', 'Agile test leadership in practice', 'Develop further', ['Test Manager i agile projekter'], ['test-manager-role'])],
+  'test-analyst': [sharedFoundation,
+    milestone('test-design', 'Test design techniques', 'Build skills', ['Testteknikker'], ['foundation']),
+    milestone('advanced-test-analyst', 'Advanced Test Analyst', 'Specialize', ['ISTQB Advanced Test Analyst'], ['test-design'], 'exam', true),
+    milestone('exploratory-testing', 'Exploratory testing', 'Develop further', ['Udforskende test'], ['test-design']),
+    milestone('acceptance-testing', 'Acceptance testing', 'Develop further', ['ISTQB Acceptance Testing'], ['test-design'], 'exam'),
+    milestone('risk-based-testing', 'Risk-based testing', 'Develop further', ['Risikobaseret test', 'Risikobaseret test (on-demand)'], ['test-design'])],
+};
+for (const [id, steps] of Object.entries(launchSteps)) {
+  careerPathSeeds[id] = careerPathContentSchema.parse({ ...careerPathSeeds[id], schemaVersion: 2, steps });
+}

@@ -37,7 +37,10 @@ import {
   selectCareerPathSchema,
   type CareerPathDocument,
 } from './careerPath.js';
-import { CareerPathConflictError, createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
+import { CareerPathConflictError, CareerPathSchemaError, createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
+import { createAccountCareersRepository, type AccountCareersRepository } from './accountCareersRepository.js';
+import { AccountCareersService } from './accountCareers.js';
+import { registerAccountCareersRoutes } from './accountCareersRoutes.js';
 import { registerLearningProgressRoutes } from './learningProgress.js';
 import { registerLessonExtrasRoutes } from './lessonExtrasRoutes.js';
 import { createLessonNotesRepository, type LessonNotesRepository } from './lessonNotesRepository.js';
@@ -105,6 +108,7 @@ type ServerDependencies = {
   passwordResetRepository?: PasswordResetRepository;
   passwordResetOptions?: PasswordResetOptions;
   careerPathRepository?: CareerPathRepository;
+  accountCareersRepository?: AccountCareersRepository;
   instructorProfileRepository?: InstructorProfileRepository;
   accountProfileRepository?: AccountProfileRepository;
   learningProgressRepository?: LearningProgressRepository;
@@ -140,6 +144,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const lessonNotes = dependencies.lessonNotesRepository ?? createLessonNotesRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses: reviewedCourses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
+  const accountCareers = new AccountCareersService(dependencies.accountCareersRepository ?? createAccountCareersRepository(),
+    careerPaths, learningProgress, courseContent);
   // Author metadata/thumbnail methods write review snapshots instead of the base
   // repository. Apply the same freeze above that existing review projection.
   const courses = courseWriteFreeze(reviewedCourses, storedCourses.readOnly === true);
@@ -1334,6 +1340,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     courses, content: courseContent, notes: lessonNotes, feedback });
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     courses, content: courseContent, progress: learningProgress });
+  registerAccountCareersRoutes(app, authenticateRequest(auth), accountCareers);
 
   app.get('/career-paths', async (_request, response, next) => {
     try {
@@ -1365,7 +1372,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       if (!path?.published) { response.status(404).json({ message: 'Career path not found' }); return; }
       const selection = { _id: (request as AuthenticatedRequest).user.id, pathId, revision: path.revision,
         selectedAt: new Date().toISOString() };
-      await careerPaths.saveSelection(selection);
+      await accountCareers.selectLegacy(selection);
       response.json({ selection });
     } catch (error) { next(error); }
   });
@@ -1380,43 +1387,66 @@ export function createServer(dependencies: ServerDependencies = {}) {
     try {
       const id = careerPathIdSchema.parse(request.params.id);
       const existing = (await allCareerPaths()).find((path) => path._id === id);
+      const stored = (await careerPaths.listPaths()).find(path => path._id === id);
+      if ((stored?.draft?.schemaVersion === 2 || stored?.published?.schemaVersion === 2) && request.body?.schemaVersion !== 2) {
+        response.status(409).json({ message: 'This career path requires milestone schema version 2.', code: 'career-path-schema' });
+        return;
+      }
       const expected = expectedPathVersion(request, existing);
       const draft = careerPathContentSchema.parse(request.body);
       const path = { _id: id, revision: existing?.revision ?? 0, published: existing?.published ?? null, draft,
         updatedAt: existing?.updatedAt ?? '' };
-      const saved = await careerPaths.savePath(path, expected);
+      // A v2 draft write must not restore an older published graph snapshot.
+      const saved = await careerPaths.savePath(path, expected ?? (draft.schemaVersion === 2 ? existing?.updatedAt || undefined : undefined));
       response.json(await adminCareerPath(saved));
     } catch (error) { next(error); }
   });
 
   app.post('/admin/career-paths/:id/publish', authenticateRequest(auth), requireAdmin, async (request, response, next) => {
     try {
-      const existing = (await allCareerPaths()).find((path) => path._id === request.params.id);
-      const expected = expectedPathVersion(request, existing);
-      if (!existing?.draft) { response.status(404).json({ message: 'Career path draft not found' }); return; }
-      const issues = careerPathIssues(existing.draft, await storedCourses.listCourses());
-      if (issues.length) {
-        response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
-        return;
-      }
-      // Learner completion lives in course records, so a new revision cannot erase or double-count it.
-      const path = { ...existing, revision: existing.revision + 1, published: existing.draft };
-      const saved = await careerPaths.savePath(path, expected);
-      response.json(await adminCareerPath(saved));
+      await careerPaths.withPublicationLock(async () => {
+        const existing = (await allCareerPaths()).find((path) => path._id === request.params.id);
+        const expected = expectedPathVersion(request, existing);
+        if (!existing?.draft) { response.status(404).json({ message: 'Career path draft not found' }); return; }
+        const published = (await careerPaths.listPaths()).filter(path => path._id !== existing._id && path.published)
+          .map(path => careerPathContentSchema.parse(path.published));
+        const issues = careerPathIssues(existing.draft, await storedCourses.listCourses(), published, existing.published);
+        if (issues.length) {
+          response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
+          return;
+        }
+        // Learner completion lives in course records, so a new revision cannot erase or double-count it.
+        const path = { ...existing, revision: existing.revision + 1, published: existing.draft };
+        let saved: CareerPathDocument;
+        try { saved = await careerPaths.savePath(path, expected ?? (existing.draft.schemaVersion === 2 ? existing.updatedAt || undefined : undefined)); }
+        catch (error) {
+          if (error instanceof CareerPathConflictError || error instanceof CareerPathSchemaError) throw error;
+          // Retain Mongo graph ownership when a provider may have accepted the write.
+          throw new AmbiguousCourseWriteError(error);
+        }
+        response.json(await adminCareerPath(saved));
+      });
     } catch (error) { next(error); }
   });
 
   app.post('/admin/career-paths/:id/unpublish', authenticateRequest(auth), requireAdmin, async (request, response, next) => {
     try {
-      const existing = (await careerPaths.listPaths()).find((path) => path._id === request.params.id);
-      const expected = expectedPathVersion(request, existing);
-      if (!existing?.published) {
-        response.status(409).json({ message: 'Career path is not published.' });
-        return;
-      }
-      const path = { ...existing, published: null, draft: existing.draft ?? existing.published };
-      const saved = await careerPaths.savePath(path, expected);
-      response.json(await adminCareerPath(saved));
+      await careerPaths.withPublicationLock(async () => {
+        const existing = (await careerPaths.listPaths()).find((path) => path._id === request.params.id);
+        const expected = expectedPathVersion(request, existing);
+        if (!existing?.published) {
+          response.status(409).json({ message: 'Career path is not published.' });
+          return;
+        }
+        const path = { ...existing, published: null, draft: existing.draft ?? existing.published };
+        let saved: CareerPathDocument;
+        try { saved = await careerPaths.savePath(path, expected ?? (existing.published.schemaVersion === 2 ? existing.updatedAt || undefined : undefined)); }
+        catch (error) {
+          if (error instanceof CareerPathConflictError || error instanceof CareerPathSchemaError) throw error;
+          throw new AmbiguousCourseWriteError(error);
+        }
+        response.json(await adminCareerPath(saved));
+      });
     } catch (error) { next(error); }
   });
 
@@ -1494,6 +1524,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
+    if (error instanceof CareerPathSchemaError) {
+      response.status(409).json({ message: error.message, code: error.code });
+      return;
+    }
     if (error instanceof CareerPathConflictError) {
       response.status(409).json({ message: error.message, code: 'CAREER_PATH_CONFLICT' });
       return;
