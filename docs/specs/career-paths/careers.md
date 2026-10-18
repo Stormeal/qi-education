@@ -7,8 +7,11 @@ the whole catalog in the way.
 
 ## Behavior
 
-- `/career-path` starts with a setup flow: intro, a **CV preview** (marked as preview: nothing is
-  uploaded, read or inferred), a few questions, then a comparison of published careers.
+- `/career-path` starts with a setup flow: intro, an optional **Upload your CV** step (the CV scan
+  from [milestones and achievements](milestones-and-achievements.md)), a few questions, then a
+  comparison of published careers.
+- A milestone-format career shows **Scan my CV** beside the tree; saving reports
+  "Saved N achievements from your CV." and the tree redraws.
 - **Following**: an account follows a set of careers (`PUT/DELETE /users/me/careers/:pathId`) and
   has one **focus** (`PUT /users/me/career-focus`), the career the page and Home show. Following
   again is harmless. Stopping following keeps every achievement and enrollment; if it was the

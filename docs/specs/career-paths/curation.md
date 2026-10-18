@@ -15,6 +15,10 @@ Admins write and publish the careers learners follow.
   activity), requirement routes ("every ticked action", or "any one route"), prerequisites from
   other careers and **Reuse a milestone from another career** (copies the shared milestone with
   its ID). Milestone IDs of a new career start with its career ID.
+- Each action has optional **CV keywords**, one per line (up to 10, each 1 to 80 characters,
+  duplicates removed): the exact phrases a CV scan matches. They are public with the career.
+  Changing them keeps the action's identity, also on shared milestones. The built-in milestone
+  drafts carry starter keywords for their ISTQB exams; job titles are never used as keywords.
 - **Convert to milestone format** turns an old-format draft into milestones: a step ID another
   milestone career already uses becomes that shared milestone; linked courses become course actions
   (any one completes it); a step without a course gets one activity. Learners see nothing until publish.

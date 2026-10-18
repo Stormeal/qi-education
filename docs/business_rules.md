@@ -54,11 +54,15 @@ The API enforces every rule here; the UI only mirrors them.
 
 - An account may follow several careers and has one focus. Following, focusing and exploring never
   change achievements or enrollments.
-- Milestone achievement needs all prerequisite milestones and one satisfied requirement route.
+- A milestone is achieved by one satisfied requirement route, even before its prerequisites;
+  prerequisites decide only whether it is ready or locked.
 - Preparation courses never satisfy a requirement. A course action counts by declaration or real
   100% completion; an exam or activity only by declaration.
-- Declarations are self-reported, add-only and counted once wherever the milestone appears.
-- Nothing is inferred from role, job title, answers or the CV preview.
+- Declarations are self-reported, add-only and counted once wherever the milestone appears. A
+  manual declaration needs a followed career and an unlocked milestone.
+- CV findings are saved only after the learner confirms them, with `cv` provenance, without the
+  follow or lock check. The CV itself is never uploaded or stored.
+- Nothing is inferred from role, job title or answers.
 - Old-format careers: a step is complete when any of its courses is 100% complete; prerequisites
   only suggest an order.
 

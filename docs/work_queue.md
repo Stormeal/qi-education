@@ -12,9 +12,9 @@ Contract and plan: [stories/US-L023-cv-recognition.md](stories/US-L023-cv-recogn
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
 | Codex | Tasks C1–C4: `cvKeywords`, state rule, `POST /users/me/achievements/cv`, journey step | `api/src/**`; handoff [handoffs/US-L023-codex.md](handoffs/US-L023-codex.md) | Complete locally on `main`, base `fa9c556` (2026-10-18). C1 `92c0bae`, C2 `a3217ed`, C3 `6a15cd6`; C4 delivered with this row in `test(US-L023): CV finding in the release journey`. Final checks: `npm run api:test` 1,677/1,677; `npm run verify:journeys` 16/16; `npm run api:build` passed, isolated stores only. Fresh review found one shared-keyword identity regression: validator and both publish prefixes reproduced it red, then green after fix `643459d`; no other findings. Separate graph validation preserves missing/cyclic locks while satisfied evidence bypasses valid unmet prerequisites. No API work remains; no push or live-service check. Lead next: A6/browser/spec wrap-up, including the stale prerequisite/provenance rules in `docs/business_rules.md` (outside Codex ownership). |
-| Claude | Tasks A1–A6: models, matcher, CV reading, scan panel, editor field, checks | `app/**`, US-L023 contract, `docs/specs/career-paths/` | In progress |
+| Claude | Tasks A1–A6: models, matcher, CV reading, scan panel, editor field, checks | `app/**`, US-L023 contract, `docs/specs/career-paths/` | A1–A5 committed (`2dd5753`..`bfb6d35`). Checks on `bfb6d35`: `api:test` 1,677/1,677, `app:test` 375/375 + UI foundation 23/23, `verify:journeys` 16/16, `app:build:pages` ok (initial 449.86 kB). Specs and business rules folded. Open: browser check with real PDF/.docx files (ports 3001/4200 held by another chat's servers), then delete the story contract. |
 
-Next action: Codex runs C1–C4; Claude runs A1–A5, then A6 once Codex has committed.
+Next action: Claude's browser check, then close the story.
 
 ## Waiting on Alex
 
