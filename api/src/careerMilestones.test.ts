@@ -55,7 +55,8 @@ describe('milestone content contract', () => {
       const seed = careerPathSeeds[id];
       expect(seed.schemaVersion).toBe(2);
       expect(seed.steps.find(step => step.id === 'foundation')?.actions).toEqual([
-        { id: 'foundation-exam', kind: 'exam', title: 'Passed Foundation exam', courseId: '' },
+        { id: 'foundation-exam', kind: 'exam', title: 'Passed Foundation exam', courseId: '',
+          cvKeywords: ['ISTQB Foundation', 'Certified Tester Foundation Level', 'CTFL'] },
       ]);
       expect(seed.steps.some(step => step.roleMilestone)).toBe(true);
       expect(seed.steps.every(step => step.courses.every(course => !course.courseId))).toBe(true);

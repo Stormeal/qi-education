@@ -10,10 +10,44 @@ import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository } from './feedbackRepository.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
+import { careerPathContentSchema, careerPathIssues, careerPathSeeds } from './careerPath.js';
 
 const step = (id: string, courses: { courseId?: string; title?: string }[], extra = {}) =>
   ({ id, title: `Step ${id}`, courses, ...extra });
 const path = (steps: unknown[]) => ({ title: 'Test Manager', summary: 'Lead a team.', outcomes: ['Plan test work'], estimatedHours: 40, steps });
+
+describe('US-L023 action CV keywords', () => {
+  const content = (extra = {}) => ({ schemaVersion: 2, ...path([step('foundation', [], {
+    actions: [{ id: 'foundation-exam', kind: 'exam', title: 'Foundation exam', ...extra }],
+    requirementBundles: [['foundation-exam']],
+  })]) });
+
+  it('US-L023-AC07 parses cvKeywords with defaults and limits', () => {
+    expect(careerPathContentSchema.parse(content()).steps[0].actions[0]).toMatchObject({ cvKeywords: [] });
+    expect(careerPathContentSchema.parse(content({ cvKeywords: ['  CTFL ', 'CTFL'] })).steps[0].actions[0])
+      .toMatchObject({ cvKeywords: ['CTFL'] });
+    for (const cvKeywords of [Array.from({ length: 11 }, (_, i) => `keyword ${i}`), [''], ['   '], ['x'.repeat(81)]]) {
+      expect(careerPathContentSchema.safeParse(content({ cvKeywords })).success).toBe(false);
+    }
+    expect(careerPathContentSchema.safeParse(content({ cvKeywords: ['x'.repeat(80)] })).success).toBe(true);
+  });
+
+  it('US-L023-AC07 a keyword change keeps the published action ID valid', () => {
+    const previous = careerPathContentSchema.parse(content({ cvKeywords: ['CTFL'] }));
+    const changed = careerPathContentSchema.parse(content({ cvKeywords: ['ISTQB Foundation'] }));
+    expect(careerPathIssues(changed, [], [], previous)).toEqual([]);
+  });
+
+  it('US-L023 starter keywords name certifications, not job titles', () => {
+    const actions = Object.values(careerPathSeeds).flatMap(path => path.steps.flatMap(step => step.actions));
+    const foundation = actions.find(action => action.id === 'foundation-exam')!;
+    expect(foundation).toMatchObject({ cvKeywords: ['ISTQB Foundation', 'Certified Tester Foundation Level', 'CTFL'] });
+    const titles = ['Test Automation Engineer', 'Technical Test Analyst', 'Test Manager', 'Test Analyst', 'Advanced Test Analyst'];
+    for (const action of actions) for (const keyword of action.cvKeywords) {
+      expect(titles.map(title => title.toLowerCase())).not.toContain(keyword.toLowerCase());
+    }
+  });
+});
 
 describe.each(['', '/api'])('career paths: US-L006, US-L009, US-T008 (%s)', (prefix) => {
   let server: Server, base: string, auth: InMemoryAuthRepository, paths: InMemoryCareerPathRepository;
@@ -38,6 +72,22 @@ describe.each(['', '/api'])('career paths: US-L006, US-L009, US-T008 (%s)', (pre
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterEach(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
+
+  it('US-L023-AC07 public career data includes cvKeywords', async () => {
+    const content = { schemaVersion: 2, ...path([step('foundation', [], {
+      actions: [{ id: 'foundation-exam', kind: 'exam', title: 'Foundation exam', cvKeywords: [' CTFL ', 'CTFL'] },
+        { id: 'foundation-activity', kind: 'activity', title: 'Other evidence' }],
+      requirementBundles: [['foundation-exam'], ['foundation-activity']],
+    })]) };
+    expect((await publish('keyword-path', content)).status).toBe(200);
+    for (const route of ['/career-paths', '/career-paths/keyword-path']) {
+      const reply = await request(route);
+      expect(reply.status).toBe(200);
+      const body = await reply.json();
+      const published = Array.isArray(body) ? body.find(item => item.id === 'keyword-path') : body;
+      expect(published.steps[0].actions.map((action: { cvKeywords: string[] }) => action.cvKeywords)).toEqual([['CTFL'], []]);
+    }
+  });
 
   it('US-P004-AC03 omits private draft catalog titles through a published reference and grants no access', async () => {
     await publish('test-manager', path([step('a', [{ courseId: 'demo-course-1', title: 'Curator public label' }])]));

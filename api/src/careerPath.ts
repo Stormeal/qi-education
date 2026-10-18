@@ -15,6 +15,7 @@ const careerPathStepSchema = z.object({
     kind: z.enum(['exam', 'course', 'activity']),
     title: z.string().trim().min(1).max(160),
     courseId: z.string().trim().max(120).default(''),
+    cvKeywords: z.array(z.string().trim().min(1).max(80)).max(10).default([]).transform(list => [...new Set(list)]),
   })).max(12).default([]),
   requirementBundles: z.array(z.array(careerPathIdSchema).min(1).max(12)).max(6).default([]),
   // Preparation/learning recommendations only in v2; requirementBundles define completion.
@@ -235,11 +236,21 @@ export const careerPathSeeds: Record<string, CareerPathContent> = Object.fromEnt
 
 // Unapproved curriculum starting drafts from the candidate map, never automatically published.
 // Prerequisites below illustrate progression; curriculum review must approve them before launch.
+const starterCvKeywords: Record<string, string[]> = {
+  foundation: ['ISTQB Foundation', 'Certified Tester Foundation Level', 'CTFL'],
+  'automation-engineer': ['ISTQB Advanced Test Automation Engineer', 'Advanced Level Test Automation Engineer', 'CTAL-TAE'],
+  'technical-test-analyst': ['ISTQB Advanced Technical Test Analyst', 'Advanced Level Technical Test Analyst', 'CTAL-TTA'],
+  'advanced-test-manager': ['ISTQB Advanced Test Management', 'ISTQB Advanced Test Manager', 'Advanced Level Test Manager', 'CTAL-TM'],
+  'agile-leadership-exam': ['ISTQB Advanced Agile Test Leadership at Scale', 'CTAL-ATLaS'],
+  'advanced-test-analyst': ['ISTQB Advanced Test Analyst', 'Advanced Level Test Analyst', 'CTAL-TA'],
+  'acceptance-testing': ['ISTQB Acceptance Testing', 'CT-AcT'],
+};
 const milestone = (id: string, title: string, stage: string, preparations: string[], prerequisites: string[],
   kind: 'exam' | 'activity' = 'activity', roleMilestone = false) => ({
   ...step(id, title, 'Starting draft — curriculum criteria and prerequisites require approval.', preparations, prerequisites),
   stage, roleMilestone, actions: [{ id: `${id}-${kind}`, kind,
-    title: id === 'foundation' ? 'Passed Foundation exam' : `${kind === 'exam' ? 'Passed exam' : 'Completed activity'}: ${title}`, courseId: '' }],
+    title: id === 'foundation' ? 'Passed Foundation exam' : `${kind === 'exam' ? 'Passed exam' : 'Completed activity'}: ${title}`, courseId: '',
+    cvKeywords: kind === 'exam' ? starterCvKeywords[id] ?? [] : [] }],
   requirementBundles: [[`${id}-${kind}`]],
 });
 const sharedFoundation = milestone('foundation', 'ISTQB Foundation', 'Foundation',
