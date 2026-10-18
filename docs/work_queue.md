@@ -6,8 +6,8 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on `main` on 2026-10-18, not pushed since `e75e14d`: US-L007, US-P002 (API
-codes, outage logging, app guidance). Last checks: `app:test` 381/381; API checks on `2848ad5` and
+None. Pushed to `main` on 2026-10-18: US-L007 and US-P002 (API codes, outage logging, app
+guidance). Last checks: `app:test` 381/381; API checks on `2848ad5` and
 `16abe29` (1,729/1,729).
 
 ## Waiting on Alex
