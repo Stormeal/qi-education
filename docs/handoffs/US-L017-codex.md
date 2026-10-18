@@ -137,8 +137,9 @@ stop and summarize.
 
 ## Outcome
 
-2026-10-18, Codex, `main`, base `5f14ea4`. Implementation is ready for the local
-delivery commit; its hash and final check totals will be recorded after commit.
+2026-10-18, Codex, `main`, base `5f14ea4`. Delivered locally in `ffd422d`
+(`feat(US-L017): deliver milestone trees and account careers API`, version 0.1.236).
+This follow-up delivery record has the required separate version bump.
 
 Checks passed on the completed working tree: `npm.cmd run api:test` (66 files,
 1643 tests), `npm.cmd run api:build -- -- --noEmit` (the required API build in
