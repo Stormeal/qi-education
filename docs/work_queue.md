@@ -6,14 +6,9 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on `main` on 2026-10-18, not pushed: US-L007 (`2b03e15`) and the API part of
-US-P002 (`2848ad5`). Check routine on `2848ad5`: `api:test` 1,727/1,727, `app:test` 378/378,
-`verify:journeys` 16/16, `app:build:pages` ok. Open: US-P002-AC02 UI half; raw MongoDB outages are
-no longer logged (follow-up for Codex).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | US-P002 review follow-up: log MongoDB connection failures once before the unchanged 503 | `api/src/server.ts` connection-error branch, `api/src/dependencyErrors.test.ts` | Delivered locally in this row's commit, `fix(US-P002): log storage outages before returning 503`, on `main`, base `2b9d257` (2026-10-18). Both route-prefix tests first failed with zero log calls, then passed with exactly one `console.error('Storage unavailable', error)` and the same response body. `npm run api:test`: 1,729/1,729 (68 files), isolated stores only; no push. Supersedes the missing-log note above. Lead follow-up: remove stale logging limitation from the queue introduction and reliability spec (outside Codex scope). |
+None. Delivered locally on `main` on 2026-10-18, not pushed since `e75e14d`: US-L007, US-P002 (API
+codes, outage logging, app guidance). Last checks: `app:test` 381/381; API checks on `2848ad5` and
+`16abe29` (1,729/1,729).
 
 ## Waiting on Alex
 

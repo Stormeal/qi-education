@@ -216,3 +216,34 @@ function jsonResponse(body: unknown): Response {
     json: () => Promise.resolve(body),
   } as Response;
 }
+
+describe('ApiClientService storage outages (US-P002-AC02)', () => {
+  let originalFetch: typeof window.fetch;
+  let service: ApiClientService;
+  const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    originalFetch = window.fetch;
+    service = new ApiClientService();
+  });
+  afterEach(() => { window.fetch = originalFetch; });
+
+  it('gives every store outage one actionable message and keeps its code', async () => {
+    window.fetch = (async () => reply(503, { message: 'Course details storage is unavailable.', code: 'STORE_UNAVAILABLE', retryable: true })) as typeof window.fetch;
+    const response = await service.fetch('/courses/course-1', { method: 'GET' });
+    expect(response.status).toBe(503);
+    expect(response.ok).toBe(false);
+    expect(await response.json()).toEqual({ code: 'STORE_UNAVAILABLE', retryable: true,
+      message: 'The service is briefly unavailable, so nothing was changed. Your work on this page is kept. Try again in a minute.' });
+  });
+
+  it('leaves read-only freezes and other errors as the API wrote them', async () => {
+    const readOnly = { message: 'Accounts are briefly read-only for maintenance. Try again in a few minutes.', code: 'READ_ONLY', retryable: false };
+    window.fetch = (async () => reply(503, readOnly)) as typeof window.fetch;
+    expect(await (await service.fetch('/courses', { method: 'GET' })).json()).toEqual(readOnly);
+    window.fetch = (async () => reply(500, { message: 'Unexpected server error' })) as typeof window.fetch;
+    expect(await (await service.fetch('/courses', { method: 'GET' })).json()).toEqual({ message: 'Unexpected server error' });
+  });
+});

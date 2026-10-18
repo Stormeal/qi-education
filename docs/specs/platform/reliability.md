@@ -31,7 +31,12 @@ false success.
   also when wrapped as `cause`) answers 503 `{ message, code: 'STORE_UNAVAILABLE', retryable: true }`
   with a fixed message for driver errors; a read-only freeze answers 503 `{ message, code:
   'READ_ONLY', retryable: false }`. Other failures a generic 500. Request bodies and internal errors
-  are never echoed.
+  are never echoed. Driver outages are logged once ("Storage unavailable").
+- **Outage guidance in the app**: `ApiClientService.fetch` gives every 503 `STORE_UNAVAILABLE` the
+  message "The service is briefly unavailable, so nothing was changed. Your work on this page is
+  kept. Try again in a minute." (`code` and `retryable` kept), so every page that shows API errors
+  shows it. Pages keep their inputs on a failed save; the course editor also keeps warning before
+  leaving. Read-only messages are shown as the API wrote them.
 
 ## Code
 
@@ -43,5 +48,3 @@ false success.
 
 - Retries across instances or after a restart are not guaranteed for feedback issues (US-P003-AC04).
 - No operator tool to release a course lock early (US-P005).
-- The UI does not yet use `code`/`retryable` for retry guidance (US-P002-AC02 UI part).
-- Raw MongoDB outages answered 503 are not written to the server log.

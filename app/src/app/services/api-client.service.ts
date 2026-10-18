@@ -51,7 +51,7 @@ export class ApiClientService {
           this.notifyUnauthorized();
         }
 
-        return response;
+        return response.status === 503 ? await withOutageGuidance(response) : response;
       } catch (error) {
         // US-P012: a local frontend never falls back to the hosted API, for reads either.
         if (localMutation || isLoopbackHost(window.location.hostname)) {
@@ -186,6 +186,16 @@ class LocalApiTargetError extends Error {}
 // Existing consumers display non-ok JSON messages, whereas their catch blocks
 // replace thrown network errors with generic guidance. Keep local failures on
 // that established error path without modifying pages or API response shapes.
+const STORE_OUTAGE_MESSAGE = 'The service is briefly unavailable, so nothing was changed. Your work on this page is kept. Try again in a minute.';
+
+// US-P002: every storage outage reads the same actionable way, whichever store the API named.
+async function withOutageGuidance(response: Response): Promise<Response> {
+  const body = await response.clone().json().catch(() => null) as { code?: unknown } | null;
+  if (body?.code !== 'STORE_UNAVAILABLE') return response;
+  return new Response(JSON.stringify({ ...body, message: STORE_OUTAGE_MESSAGE }),
+    { status: response.status, statusText: response.statusText, headers: response.headers });
+}
+
 function localApiFailure(message: string): Response {
   return new Response(JSON.stringify({ message }), {
     status: 503,

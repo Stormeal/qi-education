@@ -16,7 +16,6 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | Product decisions | Below |
 | US-L014 | Confirm my email address at signup | Proposed | P3 | None | Below |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
-| US-P002 | Return useful, consistent API errors | In progress | P2 | None (defaults recorded) | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P005 | Operator tooling for course lock recovery | Proposed | P2 | Operator permissions decision | Below |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Limit decision | Below, INV-014 |
@@ -134,31 +133,6 @@ Feature: Journey verification
     When I inspect its result
     Then the failing scenario, tested commit, and useful evidence are recorded
     And no shared user data or real GitHub issue has been created
-```
-
-### US-P002 — Return useful, consistent API errors
-
-**As a user, I want errors to explain what I can correct or retry, so that I can recover without
-losing my work.**
-
-State: In progress. Accurate 400/413/415 classification is delivered. Remaining: the UI half of
-AC02 (retry guidance, draft kept). API part delivered 2026-10-18 (`2848ad5`, see
-[reliability](specs/platform/reliability.md)):
-store outages (`AuthUnavailableError`, `CourseStoreUnavailableError`, MongoDB connection, server
-selection and network-timeout errors) answer 503 `{ message, code: 'STORE_UNAVAILABLE',
-retryable: true }`; read-only freezes (`AuthReadOnlyError`, `CourseReadOnlyError`) answer 503
-`{ message, code: 'READ_ONLY', retryable: false }`; `message` and existing codes stay, everything
-else stays a plain 500. Field names `code`/`retryable` are defaults: confirm or change. The UI half
-(retry guidance, draft kept) follows on top of these codes. Field-level DTO: not needed now (Zod
-`issues` already answer 400).
-
-```gherkin
-Feature: API error feedback
-  Scenario: US-P002-AC02 Recover from dependency failure
-    Given a required storage or media integration is unavailable
-    When I submit a valid action
-    Then the UI gives actionable retry guidance and preserves my draft
-    And it does not report the action as successfully saved
 ```
 
 ### US-P003 — Safe writes across API instances

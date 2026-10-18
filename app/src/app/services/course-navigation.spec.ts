@@ -141,6 +141,22 @@ describe('unsaved course navigation (DEF-006)', () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it('US-P002-AC02 a storage outage on save explains the retry, keeps the draft and saves nothing', async () => {
+    const reads = window.fetch;
+    const writes: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (!init?.method || init.method === 'GET') return reads(input, init);
+      writes.push(`${init.method} ${new URL(String(input)).pathname}`);
+      return json({ message: 'Course details storage is unavailable.', code: 'STORE_UNAVAILABLE', retryable: true }, 503);
+    }));
+    state.updateCourseTitle('Kept during the outage');
+    await state.submitCourse();
+    expect(writes.length).toBeGreaterThan(0);
+    expect(state.courseCreateError()).toContain('The service is briefly unavailable, so nothing was changed. Your work on this page is kept. Try again in a minute.');
+    expect(state.courseDraft().title).toBe('Kept during the outage');
+    expect(await TestBed.inject(Router).navigateByUrl('/courses')).toBe(false);
+  });
+
   it('NW-05 lets voluntary logout stay but session expiry always clears private state', async () => {
     state.updateCourseTitle('Unsaved private title');
     state.logout();
