@@ -6,7 +6,15 @@ messages hold them.
 
 ## Active work
 
-None. US-L023 (CV recognition) is delivered and pushed to `main` on 2026-10-18 (`345bca1`); hosted checks are under Open release checks.
+**US-L007 + US-P002 (API part)** (started 2026-10-18). Branch `main`, base `e75e14d`. Decisions are
+recorded in the stories in [user_stories.md](user_stories.md).
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | US-P002-AC02 API part: 503 `STORE_UNAVAILABLE` / `READ_ONLY` codes | `api/src/server.ts` error middleware, its tests; handoff [handoffs/US-P002-codex.md](handoffs/US-P002-codex.md) | Not started |
+| Claude | US-L007-AC01/AC02: recommended course first with a corner ribbon on Home | `app/src/app/pages/dashboard-page/`, `docs/specs/learning/home-and-library.md`, `docs/user_stories.md` | In progress |
+
+Next action: both parts run in parallel; Claude reviews Codex's commit with the check routine.
 
 ## Waiting on Alex
 
