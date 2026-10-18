@@ -2,13 +2,16 @@ import { CareerPath } from '../app.models';
 
 export type CvMatch = { actionId: string; actionTitle: string; milestoneTitle: string; snippet: string };
 
-// Same form for CV text and keywords: case, Unicode variants, dashes and whitespace never decide a match.
-const normalise = (text: string) =>
-  text.normalize('NFKC').toLowerCase().replace(/[‐-―−]/g, '-').replace(/\s+/g, ' ');
+// Same form for CV text and keywords: Unicode variants, dashes and whitespace never decide a match.
+const tidy = (text: string) => text.normalize('NFKC').replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\s+/g, ' ');
+const normalise = (text: string) => tidy(text).toLowerCase();
 
 /** Finds actions of milestone-format careers whose CV keywords appear in the text as whole words or phrases. */
 export function matchCvText(text: string, paths: CareerPath[], satisfiedActionIds: string[]): { found: CvMatch[]; alreadyRecorded: CvMatch[] } {
-  const cv = normalise(text);
+  const shown = tidy(text);
+  const cv = shown.toLowerCase();
+  // Snippets keep the CV's own capitals unless lowercasing changed the length (rare letters such as İ).
+  const source = shown.length === cv.length ? shown : cv;
   const seen = new Set<string>();
   const found: CvMatch[] = [];
   const alreadyRecorded: CvMatch[] = [];
@@ -20,7 +23,7 @@ export function matchCvText(text: string, paths: CareerPath[], satisfiedActionId
           .find((index) => index !== null);
         if (!hit) continue;
         seen.add(action.id);
-        const snippet = (hit.start > 30 ? '…' : '') + cv.slice(Math.max(0, hit.start - 30), hit.end + 30).trim()
+        const snippet = (hit.start > 30 ? '…' : '') + source.slice(Math.max(0, hit.start - 30), hit.end + 30).trim()
           + (hit.end + 30 < cv.length ? '…' : '');
         const match = { actionId: action.id, actionTitle: action.title, milestoneTitle: step.title, snippet };
         (satisfiedActionIds.includes(action.id) ? alreadyRecorded : found).push(match);

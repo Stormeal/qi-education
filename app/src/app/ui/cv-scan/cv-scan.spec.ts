@@ -86,7 +86,7 @@ describe('CV scan (US-L023)', () => {
     expect(boxes().map((box) => box.checked)).toEqual([true, true]);
     expect(text()).toContain('Passed ISTQB Foundation');
     expect(text()).toContain('Completes ISTQB Foundation');
-    expect(text()).toContain('ctfl in 2019');
+    expect(text()).toContain('CTFL in 2019');
     const recorded = host().querySelector('.cvs-recorded')!;
     expect(recorded.textContent).toContain('Already recorded');
     expect(recorded.textContent).toContain('Passed Advanced Test Management');
@@ -108,7 +108,7 @@ describe('CV scan (US-L023)', () => {
     await click('Cancel');
     expect(saves).toEqual([]);
     expect(done).toEqual([0]);
-    expect(text()).not.toContain('ctfl in 2019');
+    expect(text()).not.toContain('CTFL in 2019');
   });
 
   it('US-L023-AC06 explains each file that cannot be used and points to manual recording', async () => {

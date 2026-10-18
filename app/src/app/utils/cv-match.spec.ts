@@ -15,7 +15,7 @@ describe('matchCvText (US-L023-AC01, AC04)', () => {
   it('finds a keyword across line breaks and odd spacing, with the action, milestone and a snippet', () => {
     const { found } = matchCvText('Skills: ISTQB® Certified Tester\n  Foundation Level (2019), Jira', [career('a', [foundation])], []);
     expect(found).toEqual([{ actionId: 'foundation-exam', actionTitle: 'Passed ISTQB Foundation', milestoneTitle: 'ISTQB Foundation',
-      snippet: expect.stringContaining('certified tester foundation level') }]);
+      snippet: expect.stringContaining('ISTQB® Certified Tester Foundation Level (2019)') }]);
   });
 
   it('is case-insensitive and matches whole words only', () => {
