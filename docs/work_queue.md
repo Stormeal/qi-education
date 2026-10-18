@@ -6,15 +6,7 @@ messages hold them.
 
 ## Active work
 
-**US-L023 CV recognition** (started 2026-10-18). Branch `main`, base `1f43ded`.
-Contract and plan: [stories/US-L023-cv-recognition.md](stories/US-L023-cv-recognition.md), scenarios AC01–AC08.
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | Tasks C1–C4: `cvKeywords`, state rule, `POST /users/me/achievements/cv`, journey step | `api/src/**`; handoff [handoffs/US-L023-codex.md](handoffs/US-L023-codex.md) | Complete locally on `main`, base `fa9c556` (2026-10-18). C1 `92c0bae`, C2 `a3217ed`, C3 `6a15cd6`; C4 delivered with this row in `test(US-L023): CV finding in the release journey`. Final checks: `npm run api:test` 1,677/1,677; `npm run verify:journeys` 16/16; `npm run api:build` passed, isolated stores only. Fresh review found one shared-keyword identity regression: validator and both publish prefixes reproduced it red, then green after fix `643459d`; no other findings. Separate graph validation preserves missing/cyclic locks while satisfied evidence bypasses valid unmet prerequisites. No API work remains; no push or live-service check. Lead next: A6/browser/spec wrap-up, including the stale prerequisite/provenance rules in `docs/business_rules.md` (outside Codex ownership). |
-| Claude | Tasks A1–A6: models, matcher, CV reading, scan panel, editor field, checks | `app/**`, US-L023 contract, `docs/specs/career-paths/` | A1–A5 committed (`2dd5753`..`bfb6d35`). Checks on `bfb6d35`: `api:test` 1,677/1,677, `app:test` 375/375 + UI foundation 23/23, `verify:journeys` 16/16, `app:build:pages` ok (initial 449.86 kB). Specs and business rules folded. Open: browser check with real PDF/.docx files (ports 3001/4200 held by another chat's servers), then delete the story contract. |
-
-Next action: Claude's browser check, then close the story.
+None. US-L023 (CV recognition) is delivered locally on `main` (last commit before this record `26330f5`); not pushed.
 
 ## Waiting on Alex
 
@@ -41,6 +33,7 @@ Delivered work whose real-environment check has not been done. Tick off here whe
 - Profiles and instructor descriptions on two devices against hosted MongoDB.
 - Screen reader pass over the learning page, career tree, course editor and dialogs (none done yet).
 - The live [teacher rehearsal checklist](release/teacher-rehearsal-checklist.md).
+- CV recognition (US-L023) on the hosted site: careers already published there have no CV keywords until an admin adds them in the career editor (or converts/publishes from the starter drafts, which carry ISTQB keywords); then scan a real PDF and .docx CV. Scan panel at phone width not checked.
 
 ## Handoff record
 
