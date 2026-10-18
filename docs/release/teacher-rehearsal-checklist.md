@@ -105,7 +105,7 @@ Record for every failed step: what you clicked, what you saw, the time, and a sc
 ## After the rehearsal
 
 - [ ] Archive or remove the rehearsal course and its test accounts.
-- [ ] Log each failure as a defect in [defect_management.md](../defect_management.md)
+- [ ] Log each failure as a defect in [defects.md](../defects.md)
       with the evidence above.
-- [ ] Record the date, version and outcome under `docs/verification/`.
+- [ ] Record the date, version and outcome under `docs/history/verification/`.
 - [ ] Do not deploy anything except fixes for these failures until the teacher's session is over.

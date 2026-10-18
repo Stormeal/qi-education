@@ -1,0 +1,42 @@
+# Reliability
+
+## Purpose
+
+Overlapping requests, retries and slow providers must not lose work, duplicate data or show
+false success.
+
+## Behavior
+
+- **Course lock**: every course write runs under a per-course lock (MongoDB owner record; memory
+  locally). Reads do not take it. A held lock answers 409 after a bounded wait. A lock left by an
+  interrupted write expires after 31 minutes. Locked handlers answer with `send`/`json` and the
+  answer is held until the lock is released (DEF-042). Recovery runbook:
+  [course_operation_recovery.md](../../course_operation_recovery.md).
+- **Revision checks**: course saves and review actions carry the loaded revision; career path
+  writes may carry `X-Expected-Updated-At`. Stale writes are refused, never merged silently.
+- **Keyed queues** (per API instance): signup by normalized email, enrollment by user, feedback
+  triage by feedback ID, admin role/status by target. MongoDB adds cross-instance guarantees for
+  accounts: a unique email index, `$addToSet` enrollment and single-field updates.
+- **Atomic per-account writes** for progress, careers, achievements, notes and profiles (compare
+  and replace with retry, majority acknowledgement).
+- **Caching**: course responses are `private, no-store` with `Vary: Authorization`. A thumbnail
+  requested with `?v=<assetId>` that matches the served asset is cached privately for a year
+  (`immutable`). Nothing is publicly cacheable.
+- **Local runs stay local**: on a localhost frontend, writes go only to the local API; if it is
+  down, the client answers a local 503 ("Local API is unavailable…") and never sends the request to
+  the hosted API.
+- **Errors**: bodies are `{ message }` (plus `issues` for validation). Invalid JSON, oversized
+  bodies and unsupported encodings answer 400/413/415; other failures a generic 500. Request bodies
+  and internal errors are never echoed.
+
+## Code
+
+- API: `courseMutationLock.ts`, `keyedSerialQueue.ts`, `inFlightRead.ts`, `courseRequestReads.ts`,
+  `courseReview.ts`, error middleware in `server.ts`.
+- App: `services/api-client.service.ts` (base URL choice, response cache, 401 handling).
+
+## Limits
+
+- Retries across instances or after a restart are not guaranteed for feedback issues (US-P003-AC04).
+- No operator tool to release a course lock early (US-P005).
+- Errors have no stable codes or field-level details yet (US-P002).

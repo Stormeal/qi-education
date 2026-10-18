@@ -37,10 +37,11 @@ Every story includes actor, goal, benefit, scope, dependencies, outstanding
 decisions, and numbered Given/When/Then scenarios. Include permission denial,
 validation, missing data, failure/retry, and empty states when they matter.
 
-For a contract or multi-file change, create `docs/specs/<story-id>-<topic>.md`
+For a contract or multi-file change, create `docs/stories/<story-id>-<topic>.md`
 from the template. Define frontend behavior, API/storage impact, data migration,
-compatibility, and verification. Use [architecture.md](architecture.md) for current
-behavior; do not mistake a proposed spec for an implemented feature.
+compatibility, and verification. Current behavior is in the area specs under
+[specs/](specs/README.md) and in [architecture.md](architecture.md); a story contract
+describes proposed behavior and is never mistaken for an implemented feature.
 
 A Ready story has no unresolved decision affecting implementation, independently
 testable acceptance criteria, and known dependencies. This does not authorize
@@ -65,17 +66,23 @@ There is currently no lint script or permanent browser E2E suite.
 
 ## 5. Update the record and commit
 
-- Update the spec and scenario-to-test map to match the delivered behavior.
+- While the story is open, keep its scenario-to-test map in its `stories/` contract.
 - Mark a defect Fixed only with reproduction/regression evidence. Mark it Verified
   after the required environment checks; record the fixing commit and date.
   Keep its original reproduction and add a resolution section explaining the fix,
   passing checks, and remaining release verification. Fixed means resolved in code;
-  it does not imply a production deployment. Never delete resolved defect records.
-- Mark the story Done only when its criteria pass and its delivery commit is recorded.
-  Then remove it from `user_stories.md` (and remove delivered scenarios from a story that
-  stays open); its spec and verification file keep the record. This applies to stories
-  only: resolved defects stay in `defect_management.md`.
-  A local commit is not a deployment; track release verification separately.
+  it does not imply a production deployment. Then move the whole record from
+  [defects.md](defects.md) to [defects_resolved.md](defects_resolved.md); never delete it.
+- Mark the story Done only when its criteria pass and its delivery commit is recorded. Then:
+  1. Fold the delivered behavior into the matching area spec under `specs/` (short, high level;
+     add a new file in the right area folder if none fits) and any new rule into
+     [business_rules.md](business_rules.md).
+  2. Remove the story from `user_stories.md` (or only its delivered scenarios when it stays open)
+     and delete its `stories/` contract. Git history keeps the contract and its evidence.
+  3. Add anything not yet checked in a real environment to "Open release checks" in the queue.
+  A local commit is not a deployment.
+- Screenshots and verification records go under `docs/history/verification/<date>/`; handoffs of
+  finished increments move to `docs/history/handoffs/`.
 - Clear or replace the active queue record. Preserve useful handoff notes for partial work.
 - Use commits such as `feat(US-T001): enforce course ownership` or
   `fix(DEF-008): preserve request validation status codes`.
@@ -108,4 +115,4 @@ push/deploy only within the user's requested scope.
 | Done | Acceptance evidence and delivery commit are recorded |
 | Deferred | Intentionally postponed with a reason |
 
-Defect states and severity definitions live beside the defect records.
+Defect states and severity definitions are in [defects.md](defects.md).

@@ -1,7 +1,7 @@
 # Career milestone tree design reference
 
 Captured 2026-10-18 for the
-[proposed career milestone feature](../../docs/specs/US-L017-L023-A004-career-milestone-trees.md).
+[career milestone spec](../../docs/specs/career-paths/milestones-and-achievements.md).
 
 - [Interactive prototype](milestone-tree-prototype.html): open in a browser;
   uses local simulated progress and the existing QI Academy visual language.

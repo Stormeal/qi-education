@@ -1,70 +1,49 @@
 # Project documentation
 
-QI-Education helps teachers author courses and learners discover, enroll in, and
-complete them. This documentation establishes a spec-driven delivery process.
+QI Academy: teachers author courses, admins review and publish them, learners enroll, learn and
+follow career routes. This folder is split into what the app **does**, what we **plan**, and what
+**happened**.
 
-## Start here
+## What the app does (current behavior)
 
-| Document | Purpose |
+| Document | Read it for |
 | --- | --- |
-| [Work queue](work_queue.md) | Active work, next candidate, dependencies, and handoff |
-| [User stories](user_stories.md) | Prioritized product backlog with BDD acceptance criteria |
-| [Defect management](defect_management.md) | Evidence, severity, reproduction, and fix verification |
-| [Development workflow](development_workflow.md) | Fresh checkout through spec, implementation, and delivery |
-| [Architecture](architecture.md) | Current boundaries, storage, routes, and limitations |
-| [Local development](local_development.md) | Setup, isolated audit mode, checks, and deployment context |
-| [Course review specification](specs/US-T002-course-review.md) | US-T002 revisions, review history, behavior contract and delivery evidence |
-| [Draft recovery specification](specs/US-T003-draft-recovery.md) | Local recovery, account isolation and explicit Restore/Discard |
-| [Reliable saves specification](specs/US-T005-reliable-saves.md) | Revision preconditions, conflicts and safe partial retries |
-| [Ownership specification](specs/US-T001-course-ownership.md) | First teacher story's detailed contract |
-| [Lifecycle access specification](specs/DEF-002-005-course-lifecycle.md) | Access and quiz readiness contracts |
-| [Unsaved navigation specification](specs/DEF-006-unsaved-navigation.md) | Warning and discard behavior; recovery excluded |
-| [Direct learning specification](specs/DEF-010-direct-learning.md) | Remembered session, loading, errors and entitlement |
-| [Local learning progress specification](specs/DEF-007-009-014-learning-progress.md) | Real course progress, honest Home and quiz position |
-| [Remaining defect specification](specs/DEF-008-011-012-013-remaining-defects.md) | Request errors, feature availability and catalog integrity |
-| [Course operation recovery](course_operation_recovery.md) | Durable ownership and required hosted recovery checks |
-| [DEF-005 handoff](handoffs/DEF-005.md) | Historical publication readiness patch and delivery record |
-| [Feature spec template](templates/feature_spec.md) | Reusable format for future feature contracts |
-| [Audit report](audits/2026-10-04/application_audit.md) | Code review, walkthrough, evidence, and coverage limitations |
-| [Career path audit](audits/2026-10-05/career_path_audit.md) | Goal-to-learning journey, reproduced progress defects, and Proposed improvements |
-| [Career milestone tree feature](specs/US-L017-L023-A004-career-milestone-trees.md) | Proposed job routes, multiple followed careers, shared milestones, manual achievements and future CV recognition |
-| [Teacher rehearsal checklist](release/teacher-rehearsal-checklist.md) | Live-site walk of the full teacher, admin and learner path before a real teacher uses it |
-| [Code audit](audits/2026-10-09/code_audit.md) | Whole-repo code reading: load, security, and maintenance; unreproduced investigations and Proposed stories |
+| [specs/](specs/README.md) | One folder per application area, high-level behavior and the code behind it |
+| [business_rules.md](business_rules.md) | Roles and permissions, course lifecycle, access, progress, careers, limits |
+| [architecture.md](architecture.md) | Layers, file conventions, where new code goes, invariants, known debt |
+| [tech_stack.md](tech_stack.md) | Frameworks, libraries, hosting and tooling |
+
+## What we plan and are doing
+
+| Document | Read it for |
+| --- | --- |
+| [work_queue.md](work_queue.md) | Active work, what waits on Alex, next candidate, open release checks |
+| [user_stories.md](user_stories.md) | Open backlog with Given/When/Then scenarios |
+| [stories/](stories/) | Detailed contracts of open stories |
+| [defects.md](defects.md) | Open defects and investigations, triage rules, record template |
+| [development_workflow.md](development_workflow.md) | From selecting an item to delivery |
+
+## How to run and operate it
+
+| Document | Read it for |
+| --- | --- |
+| [local_development.md](local_development.md) | Setup, isolated and shared runs, checks |
+| [course_operation_recovery.md](course_operation_recovery.md) | Releasing a stuck course lock on the hosted API |
+| [release/teacher-rehearsal-checklist.md](release/teacher-rehearsal-checklist.md) | Live walk of the teacher, admin and learner path |
+| [qi-academy-rename.md](qi-academy-rename.md) | Rename compatibility and the remaining external steps |
+
+## What happened (do not load for normal work)
+
+| Document | Read it for |
+| --- | --- |
+| [defects_resolved.md](defects_resolved.md) | Every resolved defect with reproduction, fix and commit; look IDs up here |
+| [history/](history/README.md) | Audits, finished handoffs, verification screenshots, carried-out plans and runbooks |
 
 ## Product decisions
 
-Recorded on 2026-10-04:
+Recorded 2026-10-04 and still in force:
 
 1. Delivery order: **teacher journey, learner journey, platform reliability**.
 2. Teachers edit their own courses; admins can edit all courses.
 3. Work and commits use `main` unless a different branch is explicitly requested.
-4. Confirmed defects come before enhancements. Resolved defects stay documented
-   with their resolution, regression evidence, date, and fixing commit.
-
-DEF-002/003/004 are resolved locally in `a6767f6` on 2026-10-07; see their
-[verification record](verification/2026-10-07/DEF-002-004.md).
-DEF-005/006/010 are resolved locally; fixes and dedicated verification were delivered
-on 2026-10-08 in `3feeea4`. See their
-[verification record](verification/2026-10-08/DEF-005-006-010.md) and current queue.
-The user confirmed **warnings only** for the DEF-006 batch. Local draft recovery
-was separately selected on 2026-10-09 and delivered with reliable saves in `d674ee3`.
-US-T003/US-T005 are Done and DEF-015 is Fixed; [verification](verification/2026-10-09/US-T003-T005.md)
-records recovery, conflict/partial-save checks and remaining hosted/provider coverage.
-DEF-007/009/014 are resolved locally on 2026-10-09 in `6729b74`; current local
-completion rules are retained. [Verification](verification/2026-10-09/DEF-007-009-014.md) records
-the regressions and isolated walkthrough. Cross-device and career-path progress
-remain Proposed.
-DEF-008/011/012/013 are resolved on 2026-10-09; delivery commit `79c2ea5`. [Verification](verification/2026-10-09/remaining-defects.md)
-includes safe request errors, hidden unfinished controls, responsive cards and
-the user's approved shared category correction. Other shared records were preserved.
-The ownership policy is implemented and locally checked; see DEF-001 and US-T001
-for evidence and remaining release checks. Other audit-generated enhancements remain
-Proposed until selected and their outstanding decisions are resolved.
-
-The audit baseline is commit `6e19213`. An audit finding is a dated observation,
-not a promise that it still reproduces after later fixes. Use the backlog and
-defect statuses for the latest work state.
-
-The career path follow-up was performed on 2026-10-05 at `9a2f30b` plus the
-unfinished local lifecycle work. It adds DEF-014 and six Proposed stories;
-it does not implement career path features or close DEF-002–DEF-005.
+4. Confirmed defects come before enhancements. Resolved defects stay documented.

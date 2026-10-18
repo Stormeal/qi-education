@@ -1,7 +1,8 @@
 # <story-id>: <behavior title>
 
-Use this template for a new feature spec. Replace angle-bracket fields before
-marking the linked story Ready. Keep this template itself as a reusable example.
+Use this template for a story contract in `docs/stories/<story-id>-<topic>.md`. Replace
+angle-bracket fields before marking the linked story Ready. When the story is delivered, fold its
+behavior into the matching area spec under `docs/specs/` and delete the contract.
 
 ## Record
 

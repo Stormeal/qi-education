@@ -3,9 +3,46 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Start with [AGENTS.md](AGENTS.md), [docs/work_queue.md](docs/work_queue.md), and
-[docs/development_workflow.md](docs/development_workflow.md). The committed backlog
-and specs define the selected scope. Current architecture is documented in
+[docs/development_workflow.md](docs/development_workflow.md). The backlog
+([docs/user_stories.md](docs/user_stories.md)) and story contracts (`docs/stories/`) define the
+selected scope. Current behavior is in `docs/specs/<area>/`, current architecture in
 [docs/architecture.md](docs/architecture.md); keep proposed behavior separate from implementation.
+
+## Finding documentation
+
+Load only what the task needs: match its words to a row and read that file. Read
+`docs/business_rules.md` when roles, permissions or limits matter and `docs/architecture.md` before
+adding files. Skip `docs/history/` and `docs/defects_resolved.md` unless the task is about the past
+or names an old ID. Keep this table identical to the one in `AGENTS.md`.
+
+| Keywords in the task | Read (under `docs/`) |
+| --- | --- |
+| login, signup, session, token, remember me, `/auth/me`, sign-in limit, 429, disabled account | `specs/accounts/sign-in-and-sessions.md` |
+| password reset, reset link, change password, account mail, Brevo | `specs/accounts/passwords-and-email.md` |
+| profile, avatar, bio, job title, instructor description | `specs/accounts/profiles.md` |
+| catalog, `/courses`, carousel, search, filter, sort, category, course card | `specs/catalog/browse.md` |
+| course details, `/courses/:id`, enroll, enrollment, outline, price shown | `specs/catalog/course-details-and-enrollment.md` |
+| course editor, course form, steps, ownership, unsaved changes, draft recovery, save conflict, 409, 428 | `specs/authoring/course-editor.md` |
+| course builder, lesson, chapter, section, move lesson, exercise, attachment, file, thumbnail | `specs/authoring/lessons-and-builder.md` |
+| quiz, question, answer, pass mark, grading, quiz attempt, question image | `specs/authoring/quizzes.md` |
+| video, Mux, UpChunk, webhook, playback | `specs/authoring/video.md` |
+| review, submit, return, publish, archive, revision, review history, price, catalog settings | `specs/authoring/review-and-publication.md` |
+| Home, dashboard, My Learning, library list | `specs/learning/home-and-library.md` |
+| learning page, `/library/:id`, notes, lesson feedback, up next, Previous/Next, course facts | `specs/learning/learning-page.md` |
+| progress, completion, percentage, resume, `learning-progress` | `specs/learning/progress.md` |
+| career path, follow career, focus, career tree, CV preview, Home career tile | `specs/career-paths/careers.md` |
+| milestone, achievement, declaration, prerequisite, unlock, requirement route, bundle | `specs/career-paths/milestones-and-achievements.md` |
+| career editor, publish/withdraw career, convert to milestone format, curriculum | `specs/career-paths/curation.md`, `stories/US-A004-curriculum-review.md` |
+| admin users, role change, disable account, admin reset link, change log | `specs/admin/users.md` |
+| feedback, triage, GitHub issue, feedback inbox | `specs/admin/feedback.md` |
+| MongoDB, Google Sheets, store, in-memory, isolated, `USE_SHARED_SERVICES`, health, doctor, migrate, read-only freeze | `specs/platform/storage-and-run-modes.md` |
+| lock, `withCourseLock`, concurrency, race, retry, queue, cache, `Cache-Control`, error response | `specs/platform/reliability.md` |
+| CI, GitHub Pages, Vercel, deploy, push, version bump, git hook | `specs/platform/deployment-and-checks.md` |
+| button, tabs, chip, progress bar, focus ring, colour, design value, `tailwind.css`, accessibility | `specs/platform/ui-foundation.md` |
+| new file, new route, new repository, where code goes, conventions | `architecture.md` |
+| a library or version | `tech_stack.md` |
+| `DEF-…` / `INV-…` | `defects.md`, then `defects_resolved.md` |
+| `US-…` | `user_stories.md`, then `stories/` |
 
 ## Default skills
 
@@ -30,14 +67,15 @@ the check routine.
    increment (unticked spec boxes, "Not verified" lines); the first open item in queue order,
    confirmed defects before stories. Say in one line what was picked and why. Ask only when a
    product decision blocks the work; otherwise take the story's recommended default and record
-   it in the spec as "confirm or change".
+   it in the story contract (`docs/stories/`) as "confirm or change".
 3. **Split** into two parts that can run in parallel with no file in common. Default:
    Claude takes pages, UI components and UI-facing services in `app/`; Codex takes
    `api/src/**`, storage, and frontend services that only move data. If the item is too small
    to split, Codex gets the next independent item from the queue. If Codex is still busy,
    do not hand it more.
 4. **Record.** Owner, scope, files and state per owner in Active work; a handoff at
-   `docs/handoffs/<item>-codex.md`; decisions in the spec. Commit locally.
+   `docs/handoffs/<item>-codex.md` (moved to `docs/history/handoffs/` when done); decisions in
+   the story contract. Commit locally.
 5. **Hand Alex the Codex prompt first**, before starting Claude's own part: one fenced block
    to paste into Codex as is. Alex does nothing else: no shell commands, no folders to open.
 6. **Do Claude's part**: implement, test, browser-check on the isolated servers, record,
@@ -74,8 +112,8 @@ any code.
 2. Review its diff against the handoff: only its files, the contract kept, existing routes unchanged.
 3. Run `npm run api:test`, `npm run app:test`, `npm run verify:journeys`, `npm run app:build:pages`.
 4. Fix small findings in Claude's own files; return the rest to Codex as a new paste-ready prompt.
-5. Update queue, spec and stories; tell Alex in plain words what is done and what only Alex
-   can do (push, hosted checks).
+5. Update queue and stories, and fold delivered behavior into the area spec; tell Alex in plain
+   words what is done and what only Alex can do (push, hosted checks).
 
 ### Talking to Alex
 
@@ -134,11 +172,15 @@ The backend uses interface-based repository abstraction with different implement
 
 | Domain | Production | Local / Test |
 |---|---|---|
-| Auth | Google Sheets | In-memory demo users |
-| Courses (metadata) | Google Sheets | Google Sheets or in-memory |
+| Accounts and enrollments | MongoDB (cut over 2026-10-18) | In-memory demo users |
+| Courses (metadata) | MongoDB (cut over 2026-10-18) | In-memory |
 | Course content (sections/components) | MongoDB | In-memory |
-| Course assets (thumbnails) | MongoDB | In-memory |
-| Feedback | Google Sheets | Google Sheets or in-memory |
+| Course assets (thumbnails, attachments) | MongoDB | In-memory |
+| Progress, careers, notes, profiles, tokens | MongoDB | In-memory |
+| Feedback | Google Sheets | In-memory |
+
+Local runs use in-memory stores unless `USE_SHARED_SERVICES=1`. Full table:
+`docs/specs/platform/storage-and-run-modes.md`.
 
 Repositories are instantiated in `api/src/server.ts` and injected as dependencies — nothing touches storage directly from route handlers.
 
@@ -153,7 +195,8 @@ Repositories are instantiated in `api/src/server.ts` and injected as dependencie
 
 Auth and JSON mutation bodies use Zod; raw uploads use MIME and size checks.
 Error middleware converts `ZodError` to 400 responses with a `{ message }` body.
-Other parser errors currently become 500 (DEF-008). Bearer tokens are required on protected routes.
+Invalid JSON, oversized bodies and bad encodings answer 400/413/415; other failures a generic 500.
+Bearer tokens are required on protected routes.
 
 ### Frontend (`app/`)
 
@@ -185,7 +228,7 @@ CI runs on slower Linux machines and has caught two patterns that pass on a Wind
 
 ### Career paths
 
-Paths are curated by admins and stored in MongoDB; a learner saves one selected path per account. Path completion is **computed** from existing lesson completion (`LearningProgressService`), which lives in the browser only — so path progress is per-browser, not cross-device, and a step is complete when any one of its courses is 100% complete. Only required steps count.
+Careers are curated by admins and stored in MongoDB. A learner follows several careers and has one focus. Milestone states (achieved/ready/locked) are **computed by the API** from the account's declarations and its real course completion (stored per account, cross-device); the page shows them as given. Old-format careers (published before milestones) still compute "any one course 100% complete" per step in the browser. Details: `docs/specs/career-paths/`.
 
 ### Video Upload Flow
 
@@ -203,10 +246,9 @@ Roles: `student | teacher | admin`
 
 Course statuses: `draft → ready-for-review → published → archived`
 
-These are current status values; transition and admin-only publication enforcement
-have gaps recorded in the defect log. US-T001 enforces owner-only teacher authoring
-on every mutation route; admins can author all courses. Legacy rows without an
-owner remain admin-editable only. Release integration checks are tracked in DEF-001.
+Only review actions change status, and only admins publish. Teachers author only their own
+courses on every mutation route; admins can author all courses. Legacy rows without an
+owner remain admin-editable only. Full rules: `docs/business_rules.md`.
 
 - Teachers create courses and edit/add content to their own courses
 - Admins set pricing, catalog metadata, and publish/archive

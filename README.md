@@ -10,7 +10,7 @@ QI Academy is a portal for students and teachers to create, discover, and partic
 ## Project documentation and next work
 
 Start with [docs/README.md](docs/README.md) and [the work queue](docs/work_queue.md).
-The adjacent [user stories](docs/user_stories.md) and [defect log](docs/defect_management.md)
+The adjacent [user stories](docs/user_stories.md) and [defect log](docs/defects.md)
 record product behavior, BDD acceptance criteria, priorities, and audit findings.
 Read the [development workflow](docs/development_workflow.md) before implementing
 an item and [architecture](docs/architecture.md) for the current code map.

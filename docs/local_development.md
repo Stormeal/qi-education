@@ -37,7 +37,7 @@ runs ignore the opt-in and retain configured services and unavailable-store prot
 `NODE_ENV=test` takes priority and always isolates stores/integrations, whatever other
 settings say. Startup prints `Stores: isolated`, `Stores: shared` or `Stores: hosted`;
 `GET /health/config` reports the same `mode` alongside its existing fields.
-See [the isolation spec](specs/US-P011-isolated-local-runs.md).
+See [the isolation spec](specs/platform/storage-and-run-modes.md).
 
 For opted-in integrations, use the existing Vercel development environment:
 `npm run env:pull`. This writes ignored `api/.env` and requires Vercel access.
@@ -80,11 +80,11 @@ accounts between the Users sheet and `<MONGODB_COURSE_CONTENT_COLLECTION>_users`
 frozen and the store points the right way, and never prints password hashes. Isolated runs
 cannot use it. In Windows PowerShell call it as `npm.cmd ...`: plain `npm` drops the `--`, so
 the script sees no mode and refuses. The hosted procedure, with every command, is the
-[cutover runbook](release/US-P014-cutover.md).
+[cutover runbook](history/release/US-P014-cutover.md).
 
 `npm --prefix api run courses:migrate` does the same for course details (US-P015), with the
 same modes and guards for `COURSE_STORE` and `COURSE_STORE_READ_ONLY`. Its hosted procedure is
-the [course cutover runbook](release/US-P015-cutover.md); run it after the accounts cutover.
+the [course cutover runbook](history/release/US-P015-cutover.md); run it after the accounts cutover.
 
 ## Account mail and password recovery
 
@@ -113,7 +113,7 @@ do not consume them. The three-per-account rolling-hour limit includes pending
 or failed sends because a timeout can follow delivery. A failed password write
 after claiming a token leaves it consumed; request a fresh link. Existing signed
 sessions survive a reset. Client-address and confirmation-mail limits remain open.
-See the [reset spec](specs/US-L004-password-reset.md).
+See the [reset spec](specs/accounts/passwords-and-email.md).
 
 ## Isolated local audit/demo walkthrough
 
@@ -185,7 +185,7 @@ Reproduce the historical API findings safely:
 
 ```bash
 npm run api:build
-node docs/audits/2026-10-04/reproduce-api.mjs
+node docs/history/audits/2026-10-04/reproduce-api.mjs
 ```
 
 The probe reports observed statuses and exits zero when it runs successfully;
