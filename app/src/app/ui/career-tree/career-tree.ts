@@ -9,7 +9,6 @@ const STATE_LABEL: Record<MilestoneState, string> = { achieved: 'Achieved', read
 const DECLARE_LABEL: Record<CareerPathAction['kind'], string> = {
   exam: 'Mark exam as passed', course: 'Mark course as completed', activity: 'Mark as done',
 };
-const DECLARED_WORD: Record<CareerPathAction['kind'], string> = { exam: 'passed', course: 'completed', activity: 'done' };
 
 /** A career's milestones by stage, with the selected milestone's requirements, learning options and declarations. */
 @Component({
@@ -29,7 +28,6 @@ export class CareerTree {
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
   protected readonly stateLabel = STATE_LABEL;
   protected readonly declareLabel = DECLARE_LABEL;
-  protected readonly declaredWord = DECLARED_WORD;
 
   private readonly selectedId = signal('');
   protected readonly confirmingActionId = signal('');
@@ -137,7 +135,7 @@ export class CareerTree {
     const unlocked = this.path().steps.filter((item) => before.get(item.id) === 'locked' && this.state(item.id) === 'ready');
     const achieved = step && before.get(step.id) !== 'achieved' && this.state(step.id) === 'achieved';
     this.announcement.set([
-      `Saved: ${action.title} ${DECLARED_WORD[action.kind]}.`,
+      `Saved: ${action.title}.`,
       achieved ? `${step.title} achieved.` : '',
       unlocked.length ? `Now ready: ${unlocked.map((item) => item.title).join(', ')}.` : '',
     ].filter(Boolean).join(' '));

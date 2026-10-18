@@ -259,6 +259,23 @@ change. The API contract is in the [Codex handoff](../handoffs/US-L017-codex.md#
   several careers on the Career Path page. Next increment: admin editing of milestone fields
   (the current editor preserves them), Home guidance (US-L022), legacy path mapping review.
 
+### Lead check 2026-10-18 (Claude Code)
+
+Codex's `ffd422d`/`90d9fdf` stay in `api/src/**` and keep the handoff contract: the
+`AccountCareers` shape, the error codes and unchanged legacy routes. Codex also fixed
+DEF-PAGES-MONGO (`5afe5f3`, `a23bbfc`), the Pages deploy guard refusing MongoDB auth after the
+account cutover; it is outside this handoff, but correct and tested. Checks: API 1653/67, app
+346/45 plus 23 guards, journeys 14 and the Pages build pass. The career page stylesheet is
+over its 12 kB budget (warning only, as the learning page already is). Browser check on
+3001/4200 with in-memory stores and the three seeds published by the admin demo account:
+follow, declare Foundation, unlock, shared Foundation in a second career, phone width and
+keyboard. One copy fix: the confirmation repeated the action's verb.
+
+Not verified: hosted MongoDB, a screen reader, a real course action completed through lessons
+(API-tested only). On a phone the detail sits below the tree, so selecting a node does not
+scroll to it. Increment 2: admin editing of milestone fields, curriculum review (US-A004),
+Home guidance (US-L022).
+
 ## Story sequence and implementation handoff
 
 This is a feature/story package, not an implementation plan or an authorization
@@ -283,11 +300,11 @@ map each scenario ID below to meaningful checks when implementation is selected.
 | Scenario group | Required evidence | Current result |
 | --- | --- | --- |
 | US-A004-AC01–AC06 | Graph/requirement validation, admin API/editor, stale edits, privacy and catalogue coverage review | Pending |
-| US-L017-AC01–AC05 | Desktop and narrow-screen tree, empty/error states, node semantics and keyboard walkthrough | Pending |
-| US-L018-AC01–AC04 | Mandatory vs recommended actions, equivalent options, exam distinction and unavailable options | Pending |
-| US-L019-AC01–AC06 | Isolated account persistence/auth/retry, provenance and actual-progress preservation | Pending |
-| US-L020-AC01–AC05 | Eligibility API plus tree; sibling, shared and cross-career prerequisites; role milestone continuation | Pending |
-| US-L021-AC01–AC06 | Multiple goals, focus, exploration, retained achievements, concurrency and legacy migration | Pending |
+| US-L017-AC01–AC05 | Desktop and narrow-screen tree, empty/error states, node semantics and keyboard walkthrough | Increment 1 passed 2026-10-18: `career-path-page.spec.ts`; browser on 3001/4200, 1366 and 390 wide, Enter on a node, focus ring, no sideways scroll |
+| US-L018-AC01–AC04 | Mandatory vs recommended actions, equivalent options, exam distinction and unavailable options | Partly: requirement routes vs preparation and unavailable options shown in the tree detail (browser); equivalent-option review waits for curriculum (US-A004) |
+| US-L019-AC01–AC06 | Isolated account persistence/auth/retry, provenance and actual-progress preservation | Increment 1 passed: Codex API tests plus page spec (confirm, self-reported, failed save and retry); browser: Foundation declared and saved |
+| US-L020-AC01–AC05 | Eligibility API plus tree; sibling, shared and cross-career prerequisites; role milestone continuation | Increment 1 passed: Codex API tests plus page spec (cross-career prerequisite explained); browser: Test design unlocked, shared Foundation achieved in Test Manager |
+| US-L021-AC01–AC06 | Multiple goals, focus, exploration, retained achievements, concurrency and legacy migration | Increment 1 passed: Codex API tests plus page spec (follow adds, preview records nothing, stop following keeps achievements); browser: two followed careers in the selector |
 | US-L022-AC01–AC04 | Home-to-tree guidance, honest counts, load failures and old-session response rejection | Pending |
 | US-L023-AC01–AC03 | Future extraction/matching and learner review contract; no release-one implementation | Future / Proposed |
 

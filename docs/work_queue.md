@@ -22,7 +22,7 @@ of milestone fields and Home guidance (US-L022) are the next increment.
 | Owner | Scope | Files owned | State |
 | --- | --- | --- | --- |
 | Codex | US-L017 increment 1 API: milestone schema v2 and cross-path validation, account careers, achievements and milestone states | `api/src/**`; [handoff](handoffs/US-L017-codex.md#outcome); owner Codex, branch `main`, base `5f14ea4` | Delivered locally 2026-10-18 in `ffd422d` (0.1.236). Checks: 1643 API tests / 66 files, API build with `--noEmit`, 14 journey checks, diff check. Not verified: live Mongo/provider/hosted/browser/curriculum. Next: lead browser integration and story/spec status updates; no push. |
-| Claude Code | US-L017/L018 tree and milestone details, declaring achievements and following several careers on the Career Path page; lead check | `app/**`, the spec (except Codex's checklist), `docs/user_stories.md` | In progress |
+| Claude Code | US-L017/L018 tree and milestone details, declaring achievements and following several careers on the Career Path page; lead check | `app/**`, the spec (except Codex's checklist), `docs/user_stories.md` | Done locally: `aff5921` plus the lead-check commit. Lead check done 2026-10-18: all suites, Pages build and a browser walk pass (see the [spec](specs/US-L017-L023-A004-career-milestone-trees.md#lead-check-2026-10-18-claude-code)). Next: Alex decides on the push; increment 2 is admin milestone editing, curriculum review and Home |
 
 **2026-10-18 — Career milestone trees: feature definition and stories (Codex).**
 Selected by Alex after reviewing the career-path mockup. Documentation only;
