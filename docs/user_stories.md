@@ -141,8 +141,9 @@ Feature: Journey verification
 **As a user, I want errors to explain what I can correct or retry, so that I can recover without
 losing my work.**
 
-State: In progress. Accurate 400/413/415 classification is delivered. Remaining: recovery guidance
-when a dependency fails. API part (Codex, 2026-10-18, handoff `docs/handoffs/US-P002-codex.md`):
+State: In progress. Accurate 400/413/415 classification is delivered. Remaining: the UI half of
+AC02 (retry guidance, draft kept). API part delivered 2026-10-18 (`2848ad5`, see
+[reliability](specs/platform/reliability.md)):
 store outages (`AuthUnavailableError`, `CourseStoreUnavailableError`, MongoDB connection, server
 selection and network-timeout errors) answer 503 `{ message, code: 'STORE_UNAVAILABLE',
 retryable: true }`; read-only freezes (`AuthReadOnlyError`, `CourseReadOnlyError`) answer 503

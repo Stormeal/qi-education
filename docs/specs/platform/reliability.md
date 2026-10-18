@@ -26,8 +26,12 @@ false success.
   down, the client answers a local 503 ("Local API is unavailable…") and never sends the request to
   the hosted API.
 - **Errors**: bodies are `{ message }` (plus `issues` for validation). Invalid JSON, oversized
-  bodies and unsupported encodings answer 400/413/415; other failures a generic 500. Request bodies
-  and internal errors are never echoed.
+  bodies and unsupported encodings answer 400/413/415. A storage outage (account or course store
+  unavailable, or a MongoDB connection, server-selection, network-timeout or not-connected error,
+  also when wrapped as `cause`) answers 503 `{ message, code: 'STORE_UNAVAILABLE', retryable: true }`
+  with a fixed message for driver errors; a read-only freeze answers 503 `{ message, code:
+  'READ_ONLY', retryable: false }`. Other failures a generic 500. Request bodies and internal errors
+  are never echoed.
 
 ## Code
 
@@ -39,4 +43,5 @@ false success.
 
 - Retries across instances or after a restart are not guaranteed for feedback issues (US-P003-AC04).
 - No operator tool to release a course lock early (US-P005).
-- Errors have no stable codes or field-level details yet (US-P002).
+- The UI does not yet use `code`/`retryable` for retry guidance (US-P002-AC02 UI part).
+- Raw MongoDB outages answered 503 are not written to the server log.
