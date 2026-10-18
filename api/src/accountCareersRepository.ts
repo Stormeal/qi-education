@@ -2,7 +2,7 @@ import type { Collection } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 
-export type CareerAchievement = { actionId: string; provenance: 'self-reported'; declaredAt: string };
+export type CareerAchievement = { actionId: string; provenance: 'self-reported' | 'cv'; declaredAt: string };
 export type StoredAccountCareers = { followedPathIds: string[]; focusPathId: string | null; achievements: CareerAchievement[] };
 export type AccountCareersDocument = StoredAccountCareers & { _id: string; version: number };
 export interface AccountCareersRepository {

@@ -52,6 +52,7 @@ describe.each(['', '/api'])('US-L019/L020/L021 account careers API (%s)', prefix
   const state = async (account = student) => (await request('/users/me/careers', 'GET', undefined, account)).json();
   const follow = (id: string) => request(`/users/me/careers/${id}`, 'PUT');
   const declare = (actionId: string, extra = {}) => request('/users/me/achievements', 'POST', { actionId, ...extra });
+  const recognise = (actionIds: string[], extra = {}) => request('/users/me/achievements/cv', 'POST', { actionIds, ...extra });
   async function savePublished(id: string, steps: ReturnType<typeof node>[]) {
     const published = careerPathContentSchema.parse(tree(steps));
     await paths.savePath({ _id: id, revision: 1, published, draft: published, updatedAt: '' });
@@ -74,6 +75,87 @@ describe.each(['', '/api'])('US-L019/L020/L021 account careers API (%s)', prefix
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterEach(async () => { vi.restoreAllMocks(); await new Promise<void>(resolve => server.close(() => resolve())); });
+
+  it('US-L023-AC02 saves cv achievements without following', async () => {
+    const response = await recognise(['foundation-exam'], { provenance: 'self-reported', userId: other.id, declaredAt: 'fake' });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('vary')).toContain('Authorization');
+    const saved = await response.json();
+    expect(saved.achievements).toEqual([{ actionId: 'foundation-exam', provenance: 'cv', declaredAt: expect.any(String) }]);
+    expect(Number.isFinite(Date.parse(saved.achievements[0].declaredAt))).toBe(true);
+    expect(saved).toMatchObject({ followedPathIds: [], focusPathId: null, satisfiedActionIds: ['foundation-exam'],
+      milestoneStates: { foundation: 'achieved' } });
+    expect(await state()).toEqual(saved);
+    expect((await state(other)).achievements).toEqual([]);
+  });
+
+  it('US-L023-AC05 saves on a locked milestone and the manual rule is unchanged', async () => {
+    const response = await recognise(['further-exam']);
+    expect(response.status).toBe(200);
+    expect((await response.json()).milestoneStates).toMatchObject({ further: 'achieved', automation: 'locked', foundation: 'ready' });
+    await follow('technical-tester');
+    const denied = await declare('automation-exam');
+    expect(denied.status).toBe(409);
+    expect(await denied.json()).toMatchObject({ code: 'milestone-locked' });
+  });
+
+  it('US-L023-AC04 keeps existing provenance and never duplicates', async () => {
+    await follow('technical-tester');
+    const manual = await (await declare('foundation-exam')).json();
+    const response = await recognise(['foundation-exam', 'analysis-exam', 'analysis-exam']);
+    expect(response.status).toBe(200);
+    const saved = await response.json();
+    expect(saved.achievements).toEqual([manual.achievements[0],
+      { actionId: 'analysis-exam', provenance: 'cv', declaredAt: expect.any(String) }]);
+    expect(await (await recognise(['foundation-exam', 'analysis-exam'])).json()).toEqual(saved);
+  });
+
+  it('US-L023 refuses unknown IDs atomically and invalid or anonymous requests', async () => {
+    const mutate = vi.spyOn(accounts, 'mutate');
+    const missing = await recognise(['foundation-exam', 'unknown-action']);
+    expect(missing.status).toBe(404);
+    expect(await missing.json()).toEqual({ message: 'Achievement action not found' });
+    expect(await accounts.get(student.id)).toBeNull();
+    expect((await state()).achievements).toEqual([]);
+    for (const body of [{}, { actionIds: [] }, { actionIds: Array(51).fill('foundation-exam') },
+      { actionIds: ['INVALID ID'] }, { actionIds: [null] }, { actionIds: 'foundation-exam' }]) {
+      const response = await request('/users/me/achievements/cv', 'POST', body);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ message: expect.any(String) });
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+    }
+    const anonymous = await request('/users/me/achievements/cv', 'POST', { actionIds: ['foundation-exam'] }, null);
+    expect(anonymous.status).toBe(401);
+    expect(anonymous.headers.get('cache-control')).toBe('private, no-store');
+    expect(mutate).not.toHaveBeenCalled();
+    expect((await recognise(Array(50).fill('foundation-exam'))).status).toBe(200);
+    expect((await state()).achievements).toHaveLength(1);
+  });
+
+  it('US-L023 only recognises actions from published milestone-format careers', async () => {
+    const draft = careerPathContentSchema.parse(tree([node('draft-only')]));
+    const legacy = careerPathContentSchema.parse({ ...tree([node('legacy-only')]), schemaVersion: 1 });
+    await paths.savePath({ _id: 'draft-path', revision: 0, published: null, draft, updatedAt: '' });
+    await paths.savePath({ _id: 'legacy-path', revision: 1, published: legacy, draft: legacy, updatedAt: '' });
+    for (const id of ['draft-only-exam', 'legacy-only-exam']) {
+      expect((await recognise(['foundation-exam', id])).status).toBe(404);
+      expect(await accounts.get(student.id)).toBeNull();
+    }
+  });
+
+  it('US-L023-AC04 concurrent CV saves preserve all unique achievements and retry after a failed write', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(accounts, 'mutate').mockRejectedValueOnce(new Error('Isolated CV write failure'));
+    expect((await recognise(['foundation-exam', 'analysis-exam'])).status).toBe(500);
+    expect((await state()).achievements).toEqual([]);
+    const replies = await Promise.all([recognise(['foundation-exam', 'analysis-exam']), recognise(['analysis-exam', 'further-exam'])]);
+    expect(replies.map(response => response.status)).toEqual([200, 200]);
+    const saved = await state();
+    expect(saved.achievements).toHaveLength(3);
+    expect(saved.satisfiedActionIds).toEqual(expect.arrayContaining(['foundation-exam', 'analysis-exam', 'further-exam']));
+    expect(await (await recognise(['foundation-exam', 'analysis-exam', 'further-exam'])).json()).toEqual(saved);
+  });
 
   it('US-L019-AC01 starts empty and publishes ready/locked states without inventing qualifications', async () => {
     expect(await state()).toEqual({ followedPathIds: [], focusPathId: null, achievements: [], satisfiedActionIds: [],

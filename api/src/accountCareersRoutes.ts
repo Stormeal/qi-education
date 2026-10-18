@@ -5,6 +5,7 @@ import { careerPathIdSchema, selectCareerPathSchema } from './careerPath.js';
 import { AccountCareersError, type AccountCareersService } from './accountCareers.js';
 
 const declarationSchema = z.object({ actionId: careerPathIdSchema });
+const cvRecognitionSchema = z.object({ actionIds: z.array(careerPathIdSchema).min(1).max(50) });
 export function registerAccountCareersRoutes(app: Express, authenticate: RequestHandler, service: AccountCareersService): void {
   const account = (request: Request) => (request as Request & { user: AuthenticatedUser }).user.id;
   app.use(['/users/me/careers', '/users/me/career-focus', '/users/me/achievements'], (_request, response, next) => {
@@ -31,5 +32,8 @@ export function registerAccountCareersRoutes(app: Express, authenticate: Request
   }));
   app.post('/users/me/achievements', authenticate, handle(async (request, response) => {
     response.json(await service.declare(account(request), declarationSchema.parse(request.body).actionId));
+  }));
+  app.post('/users/me/achievements/cv', authenticate, handle(async (request, response) => {
+    response.json(await service.recognise(account(request), cvRecognitionSchema.parse(request.body).actionIds));
   }));
 }

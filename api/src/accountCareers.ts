@@ -142,6 +142,22 @@ export class AccountCareersService {
     return this.view(account, context);
   }
 
+  async recognise(userId: string, actionIds: string[]): Promise<AccountCareers> {
+    const context = await this.context(userId);
+    const publishedIds = new Set(context.steps.flatMap(step => step.actions.map(action => action.id)));
+    if (actionIds.some(id => !publishedIds.has(id))) throw new AccountCareersError(404, 'Achievement action not found');
+    const declaredAt = new Date().toISOString();
+    const account = await this.accounts.mutate(userId, context.initial, document => {
+      const recorded = new Set(document.achievements.map(item => item.actionId));
+      for (const actionId of actionIds) {
+        if (recorded.has(actionId)) continue;
+        document.achievements.push({ actionId, provenance: 'cv', declaredAt });
+        recorded.add(actionId);
+      }
+    });
+    return this.view(account, context);
+  }
+
   private v2Steps(path: CareerPathDocument): Milestone[] {
     const content = careerPathContentSchema.parse(path.published);
     return content.schemaVersion === 2 ? content.steps : [];
