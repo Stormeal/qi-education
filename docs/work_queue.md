@@ -11,7 +11,7 @@ recorded in the stories in [user_stories.md](user_stories.md).
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | US-P002-AC02 API part: 503 `STORE_UNAVAILABLE` / `READ_ONLY` codes | `api/src/server.ts` error middleware, its tests; handoff [handoffs/US-P002-codex.md](handoffs/US-P002-codex.md) | Not started |
+| Codex | US-P002-AC02 API part: 503 `STORE_UNAVAILABLE` / `READ_ONLY` codes | `api/src/server.ts` error middleware, its tests; handoff [handoffs/US-P002-codex.md](handoffs/US-P002-codex.md) | Delivered locally with this row in `feat(US-P002): classify dependency failures with stable codes`, on `main`, base `2b03e15` (2026-10-18). Dependency tests reproduced 32 expected failures before implementation; targeted dependency/request tests 66/66 passed, `npm run api:test` 1,727/1,727 (68 files), `npm run api:build` passed. Fresh review: no actionable findings. Isolated repositories throw simulated failures; no shared services or ports 3001/4200 used, no push. Middleware scope complete; direct responses outside it unchanged. Lead next: review commit, update reliability spec/story records, then UI recovery guidance; hosted outages not probed. |
 | Claude | US-L007-AC01/AC02: recommended course first with a corner ribbon on Home | `app/src/app/pages/dashboard-page/`, `docs/specs/learning/home-and-library.md`, `docs/user_stories.md` | Delivered locally (this commit): spec 3/3, `app:test` 378/378, browser-checked at desktop and phone width (one-course catalog; order covered by the spec). GitHub #45 can be closed. |
 
 Next action: both parts run in parallel; Claude reviews Codex's commit with the check routine.

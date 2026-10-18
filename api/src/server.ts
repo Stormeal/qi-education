@@ -1532,12 +1532,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
       response.status(409).json({ message: error.message, code: 'CAREER_PATH_CONFLICT' });
       return;
     }
-    if (error instanceof AuthUnavailableError) {
-      response.status(503).json({ message: error.message });
+    if (error instanceof AuthUnavailableError || error instanceof CourseStoreUnavailableError) {
+      response.status(503).json({ message: error.message, code: 'STORE_UNAVAILABLE', retryable: true });
       return;
     }
-    if (error instanceof AuthReadOnlyError) { response.status(503).json({ message: error.message }); return; }
-    if (error instanceof CourseReadOnlyError || error instanceof CourseStoreUnavailableError) { response.status(503).json({ message: error.message }); return; }
+    if (error instanceof AuthReadOnlyError || error instanceof CourseReadOnlyError) {
+      response.status(503).json({ message: error.message, code: 'READ_ONLY', retryable: false });
+      return;
+    }
     if (error instanceof DuplicateAccountError) { response.status(409).json({ message: error.message }); return; }
     if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.code ? { code: error.code } : {}), ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {
@@ -1547,6 +1549,20 @@ export function createServer(dependencies: ServerDependencies = {}) {
     if (error instanceof ZodError) {
       response.status(400).json({ message: 'Invalid request body', issues: error.issues });
       return;
+    }
+
+    // Driver errors can cross package boundaries or be wrapped by repositories.
+    // Keep domain responses above intact, and never echo connection details.
+    const connectionErrors = new Set(['MongoServerSelectionError', 'MongoNetworkError', 'MongoNetworkTimeoutError', 'MongoNotConnectedError']);
+    const seen = new Set<unknown>();
+    let cause: unknown = error;
+    while (cause && typeof cause === 'object' && !seen.has(cause)) {
+      seen.add(cause);
+      if ('name' in cause && typeof cause.name === 'string' && connectionErrors.has(cause.name)) {
+        response.status(503).json({ message: 'Storage is temporarily unavailable. Please try again.', code: 'STORE_UNAVAILABLE', retryable: true });
+        return;
+      }
+      cause = 'cause' in cause ? cause.cause : undefined;
     }
 
     console.error(error);
