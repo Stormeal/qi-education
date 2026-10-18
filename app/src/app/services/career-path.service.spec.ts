@@ -67,3 +67,27 @@ describe('milestone guidance shared by Home and the tree (US-L022)', () => {
     expect(service.milestoneProgress()).toEqual({ achieved: 1, total: 3, next: expect.objectContaining({ id: 'risk' }) });
   });
 });
+
+describe('saving CV findings (US-L023-AC03)', () => {
+  it('sends only the confirmed action IDs and shows the returned account careers', async () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    const sent: { url: string; method?: string; body: unknown }[] = [];
+    const careers = { followedPathIds: [], focusPathId: null, satisfiedActionIds: ['foundation-exam'], milestoneStates: {},
+      achievements: [{ actionId: 'foundation-exam', provenance: 'cv', declaredAt: 'now' }] };
+    const fetch = async (url: string, init: RequestInit) => {
+      sent.push({ url, method: init.method, body: JSON.parse(String(init.body)) });
+      return json(careers);
+    };
+    TestBed.configureTestingModule({ providers: [
+      { provide: ApiClientService, useValue: { fetch } },
+      { provide: CourseService, useValue: {} },
+      { provide: LearningProgressService, useValue: {} },
+    ] });
+    const service = TestBed.inject(CareerPathService);
+    service.token.set('token');
+    expect(await service.recogniseFromCv(['foundation-exam'])).toEqual({ ok: true });
+    expect(sent).toEqual([{ url: '/users/me/achievements/cv', method: 'POST', body: { actionIds: ['foundation-exam'] } }]);
+    expect(service.careers()).toEqual(careers);
+  });
+});

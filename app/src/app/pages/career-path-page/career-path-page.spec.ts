@@ -4,7 +4,9 @@ import { provideRouter } from '@angular/router';
 import { AccountCareers, CareerPath, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
 import { ConfirmOptions, ConfirmService } from '../../services/confirm.service';
+import { By } from '@angular/platform-browser';
 import { vi } from 'vitest';
+import { CvScan } from '../../ui/cv-scan/cv-scan';
 import { CareerPathPage } from './career-path-page';
 
 const milestone = (id: string, title: string, stage: string, prerequisiteStepIds: string[] = []): CareerPathStep => ({
@@ -194,9 +196,36 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(node('auto').textContent).toContain('Recommended later');
     expect(text()).toContain('Start here');
     expect(text()).not.toContain('Mark exam as passed');
+    expect(text()).not.toContain('Scan my CV');
     node('auto').click();
     await settle();
     expect(text()).toContain('Recommended after AI Testing. You can start it now if you prefer.');
+  });
+
+  it('US-L023 career setup starts with a real, optional CV step', async () => {
+    (fixture.componentInstance as unknown as { wizardStep: ReturnType<typeof signal<string>> }).wizardStep.set('upload');
+    await settle();
+    expect(text()).toContain('Upload your CV');
+    expect(text()).toContain('Your CV is read on this device only.');
+    expect(text()).not.toContain('Preview only');
+    expect(text()).not.toContain('CV preview');
+    await click('Skip this step');
+    expect(text()).toContain('A few quick questions');
+    expect(text()).not.toContain('was not uploaded or analysed');
+  });
+
+  it('US-L023 "Scan my CV" opens the scan beside the tree and reports what was saved', async () => {
+    expect(text()).toContain('Record achievements yourself, or scan your CV to find certifications.');
+    expect(text()).not.toContain('CV recognition is coming later');
+    await click('Scan my CV');
+    expect(text()).toContain('Drag and drop your CV here');
+    fixture.debugElement.query(By.directive(CvScan)).componentInstance.done.emit(2);
+    await settle();
+    expect(text()).not.toContain('Drag and drop your CV here');
+    expect(text()).toContain('Saved 2 achievements from your CV.');
+    await click('Scan my CV');
+    await click('Close CV scan');
+    expect(text()).not.toContain('Drag and drop your CV here');
   });
 
   it('US-L017-AC04 a failed load offers a retry and is not shown as zero progress', async () => {

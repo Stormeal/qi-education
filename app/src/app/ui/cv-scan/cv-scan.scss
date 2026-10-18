@@ -1,0 +1,183 @@
+/* Uses the career page's --cp-* tokens, inherited from its host. */
+
+:host {
+  display: grid;
+  gap: 12px;
+}
+
+.cvs-dropzone {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 52px 24px;
+  text-align: center;
+  color: var(--cp-text-dim);
+  background: var(--cp-panel);
+  border: 1px dashed var(--cp-border-strong);
+  border-radius: 18px;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.cvs-dropzone:hover,
+.cvs-dropzone.is-dragging {
+  border-color: var(--cp-amber-strong);
+  background: var(--cp-amber-dim);
+}
+
+.cvs-dropzone-icon {
+  display: inline-grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border: 1px solid var(--cp-border-strong);
+  border-radius: 50%;
+  color: var(--cp-amber-strong);
+  background: var(--cp-amber-dim);
+}
+
+.cvs-dropzone-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.cvs-dropzone-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.cvs-dropzone strong {
+  color: var(--cp-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cvs-dropzone-meta {
+  color: var(--cp-text-dim);
+  font-size: 12.5px;
+}
+
+/* Visually hidden but focusable: the button label shows the focus ring through :focus-within. */
+.cvs-choose {
+  position: relative;
+}
+
+.cvs-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.cvs-privacy,
+.cvs-hint,
+.cvs-status {
+  margin: 0;
+  color: var(--cp-text-dim);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.cvs-status {
+  padding: 28px 0;
+}
+
+.cvs-problem {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--color-danger);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  font-size: 0.9rem;
+}
+
+.cvs-results {
+  display: grid;
+  gap: 12px;
+}
+
+.cvs-results h3 {
+  margin: 0;
+  color: var(--cp-text);
+  font-family: var(--cp-font-display);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.cvs-recorded h4 {
+  margin: 4px 0 8px;
+  color: var(--cp-text-dim);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cvs-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cvs-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+  background: var(--cp-panel-strong);
+}
+
+label.cvs-row {
+  cursor: pointer;
+}
+
+.cvs-row input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--cp-success);
+}
+
+.cvs-recorded .cvs-row {
+  background: transparent;
+}
+
+.cvs-row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cvs-row-text strong {
+  color: var(--cp-text);
+  font-size: 14px;
+}
+
+.cvs-milestone {
+  color: var(--cp-text-dim);
+  font-size: 13px;
+}
+
+.cvs-snippet {
+  margin-top: 4px;
+  color: var(--cp-text-dim);
+  font-size: 12.5px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.cvs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

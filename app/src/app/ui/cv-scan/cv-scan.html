@@ -1,0 +1,87 @@
+@switch (state()) {
+  @case ('reading') {
+    <p class="cvs-status" role="status">Reading your CV on this device…</p>
+  }
+
+  @case ('results') {
+    <section class="cvs-results" aria-labelledby="cvs-results-title">
+      @if (found().length) {
+        <h3 id="cvs-results-title">We found these in your CV</h3>
+        <p class="cvs-hint">Untick anything that is not right, such as an exam you are still preparing for.</p>
+        <ul class="cvs-list">
+          @for (match of found(); track match.actionId) {
+            <li>
+              <label class="cvs-row">
+                <input type="checkbox" [checked]="ticked().has(match.actionId)"
+                  (change)="toggle(match.actionId, $any($event.target).checked)" />
+                <span class="cvs-row-text">
+                  <strong>{{ match.actionTitle }}</strong>
+                  <span class="cvs-milestone">Completes {{ match.milestoneTitle }}</span>
+                  <span class="cvs-snippet">“{{ match.snippet }}”</span>
+                </span>
+              </label>
+            </li>
+          }
+        </ul>
+      } @else {
+        <h3 id="cvs-results-title">Nothing new in your CV</h3>
+      }
+
+      @if (alreadyRecorded().length) {
+        <div class="cvs-recorded">
+          <h4>Already recorded</h4>
+          <ul class="cvs-list">
+            @for (match of alreadyRecorded(); track match.actionId) {
+              <li class="cvs-row">
+                <span class="cvs-row-text">
+                  <strong>{{ match.actionTitle }}</strong>
+                  <span class="cvs-milestone">Completes {{ match.milestoneTitle }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (saveError()) {
+        <p class="cvs-problem" role="alert">{{ saveError() }}</p>
+      }
+      <div class="cvs-actions">
+        @if (found().length) {
+          <button type="button" appButton="primary" [disabled]="saving() || !ticked().size" (click)="save()">
+            {{ saving() ? 'Saving…' : saveError() ? 'Try again' : 'Save' }}
+          </button>
+        }
+        <button type="button" appButton="secondary" [disabled]="saving()" (click)="cancel()">Cancel</button>
+      </div>
+    </section>
+  }
+
+  @default {
+    @if (problem()) {
+      <p class="cvs-problem" role="alert">{{ problem() }} You can record your achievements yourself instead.</p>
+    }
+    <div
+      class="cvs-dropzone"
+      [class.is-dragging]="dragging()"
+      (dragover)="onDragOver($event)"
+      (dragleave)="dragging.set(false)"
+      (drop)="onDrop($event)"
+    >
+      <span class="cvs-dropzone-icon" aria-hidden="true">
+        <svg viewBox="0 0 20 20" focusable="false">
+          <path d="M10 13V4" />
+          <path d="M6.5 7.5 10 4l3.5 3.5" />
+          <path d="M4 13.5v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" />
+        </svg>
+      </span>
+      <strong>Drag and drop your CV here</strong>
+      <label appButton="secondary" size="sm" class="cvs-choose">
+        Choose a file
+        <input type="file" class="cvs-file-input" accept=".pdf,.docx" (change)="onFileSelected($event)" />
+      </label>
+      <span class="cvs-dropzone-meta">PDF or Word (.docx), up to 10 MB</span>
+    </div>
+    <p class="cvs-privacy">Your CV is read on this device only. It is never uploaded or saved.</p>
+  }
+}

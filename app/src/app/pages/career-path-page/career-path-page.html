@@ -77,35 +77,10 @@
 
           @case ('upload') {
             <div class="cp-step">
-              <p class="cp-step-kicker">Stage 01 &middot; Preview</p>
+              <p class="cp-step-kicker">Stage 01</p>
               <h2>Upload your CV</h2>
-              <p class="cp-notice">
-                Preview only: CV analysis is not built yet. Your file stays on this device, is not
-                uploaded or read, and does not affect the paths you are shown.
-              </p>
-              <label
-                class="cp-dropzone"
-                [class.is-dragging]="isDraggingOverDropzone()"
-                (dragover)="onDropzoneDragOver($event)"
-                (dragleave)="onDropzoneDragLeave()"
-                (drop)="onDropzoneDrop($event)"
-              >
-                <span class="cp-dropzone-icon" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" focusable="false">
-                    <path d="M10 13V4" />
-                    <path d="M6.5 7.5 10 4l3.5 3.5" />
-                    <path d="M4 13.5v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" />
-                  </svg>
-                </span>
-                <strong>Drag and drop your CV here, or click to browse</strong>
-                <span class="cp-dropzone-meta">ACCEPTED &middot; PDF &middot; DOCX</span>
-                <input
-                  type="file"
-                  class="cp-dropzone-input"
-                  accept=".pdf,.doc,.docx"
-                  (change)="onCvFileSelected($event)"
-                />
-              </label>
+              <p class="cp-step-intro">We look for certifications such as ISTQB Foundation, so you can record them in one step. This is optional.</p>
+              <app-cv-scan (done)="continueToQuestions()" />
               <button type="button" appButton="secondary" (click)="continueToQuestions()">Skip this step</button>
             </div>
           }
@@ -115,9 +90,6 @@
               <p class="cp-step-kicker">Stage 02</p>
               <h2>A few quick questions</h2>
               <p class="cp-step-intro">Yes or no is all we need &mdash; your answers only decide which path we suggest first.</p>
-              @if (cvFileName()) {
-                <p class="cp-notice">Preview: {{ cvFileName() }} was not uploaded or analysed.</p>
-              }
               <div class="cp-questions">
                 @for (question of careerQuestions; track question.id; let i = $index) {
                   <div class="cp-question-row">
@@ -241,6 +213,11 @@
                           {{ saving() ? 'Saving…' : 'Follow this career' }}
                         </button>
                       }
+                      @if (path.schemaVersion === 2) {
+                        <button type="button" appButton size="sm" [attr.aria-expanded]="cvScanOpen()" (click)="toggleCvScan()">
+                          {{ cvScanOpen() ? 'Close CV scan' : 'Scan my CV' }}
+                        </button>
+                      }
                       <button type="button" appButton size="sm" (click)="continueToCareerChoice()">
                         Explore other careers <span aria-hidden="true">&nearr;</span>
                       </button>
@@ -268,11 +245,20 @@
                     </p>
                   }
 
+                @if (cvScanOpen() && path.schemaVersion === 2) {
+                  <div class="cp-cv-scan">
+                    <app-cv-scan (done)="cvScanDone($event)" />
+                  </div>
+                }
+                @if (cvSaved()) {
+                  <p class="cp-notice" role="status">{{ cvSaved() }}</p>
+                }
+
                 <app-career-tree [path]="path" [canDeclare]="followed" (explore)="view($event)" />
                 </section>
                 <p class="cp-below">
                   @if (path.schemaVersion === 2) {
-                    CV recognition is coming later. For now, record your achievements yourself. They are saved as self-reported.
+                    Record achievements yourself, or scan your CV to find certifications.
                   } @else {
                     Progress on this career comes from the courses you complete in QI Academy.
                   }

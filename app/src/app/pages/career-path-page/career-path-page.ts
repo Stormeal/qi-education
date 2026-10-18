@@ -5,6 +5,8 @@ import { CareerPathService } from '../../services/career-path.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { Button } from '../../ui/button/button';
+import { CvScan } from '../../ui/cv-scan/cv-scan';
+import { plural } from '../../utils/plural';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 type CareerPathWizardStep = 'intro' | 'upload' | 'questions' | 'choose-career' | 'roadmap';
@@ -27,7 +29,7 @@ const SUGGESTED_PATH_BY_ANSWER: [string, string][] = [
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, CareerTree, FeedbackDialog, PageHeader],
+  imports: [Button, CareerTree, CvScan, FeedbackDialog, PageHeader],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,14 +65,14 @@ export class CareerPathPage {
   private readonly confirm = inject(ConfirmService);
   protected readonly careerQuestions = CAREER_QUESTIONS;
   protected readonly setupSteps: { id: CareerPathWizardStep; label: string }[] = [
-    { id: 'upload', label: 'CV preview' }, { id: 'questions', label: 'Questions' },
+    { id: 'upload', label: 'Your CV' }, { id: 'questions', label: 'Questions' },
     { id: 'choose-career', label: 'Choose career' }, { id: 'roadmap', label: 'Your path' },
   ];
   protected readonly setupIndex = computed(() => this.setupSteps.findIndex((item) => item.id === this.wizardStep()));
 
   protected readonly wizardStep = signal<CareerPathWizardStep>('intro');
-  protected readonly isDraggingOverDropzone = signal(false);
-  protected readonly cvFileName = signal('');
+  protected readonly cvScanOpen = signal(false);
+  protected readonly cvSaved = signal('');
   protected readonly questionAnswers = signal<Record<string, boolean>>({});
   protected readonly draftPathId = signal('');
   protected readonly saving = signal(false);
@@ -143,30 +145,18 @@ export class CareerPathPage {
     this.showStep('upload');
   }
 
-  protected onDropzoneDragOver(event: DragEvent): void {
-    event.preventDefault();
-    this.isDraggingOverDropzone.set(true);
-  }
-
-  protected onDropzoneDragLeave(): void {
-    this.isDraggingOverDropzone.set(false);
-  }
-
-  protected onDropzoneDrop(event: DragEvent): void {
-    event.preventDefault();
-    this.isDraggingOverDropzone.set(false);
-    this.continueToQuestions(event.dataTransfer?.files?.[0]?.name ?? '');
-  }
-
-  protected onCvFileSelected(event: Event): void {
-    const input = event.target;
-    this.continueToQuestions(input instanceof HTMLInputElement ? (input.files?.[0]?.name ?? '') : '');
-  }
-
-  // The CV step is a preview: the file never leaves the browser and nothing is read from it.
-  protected continueToQuestions(fileName = ''): void {
-    this.cvFileName.set(fileName);
+  protected continueToQuestions(): void {
     this.showStep('questions');
+  }
+
+  protected toggleCvScan(): void {
+    this.cvSaved.set('');
+    this.cvScanOpen.update((open) => !open);
+  }
+
+  protected cvScanDone(saved: number): void {
+    this.cvScanOpen.set(false);
+    this.cvSaved.set(saved ? `Saved ${plural(saved, 'achievement')} from your CV.` : '');
   }
 
   protected answerQuestion(questionId: string, answer: boolean): void {
