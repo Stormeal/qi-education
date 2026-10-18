@@ -78,3 +78,61 @@ describe('career path editor (US-T008, US-A003)', () => {
     expect(text()).toContain('Withdrawn. Learners no longer see this path.');
   });
 });
+
+describe('career milestone editing (US-A004)', () => {
+  let fixture: ComponentFixture<CareerPathEditor>;
+  const saveDraft = vi.fn(async (_id: string, _draft: CareerPathDraft): Promise<CareerPathResult> => ({ ok: true }));
+  const foundation = { id: 'foundation', title: 'ISTQB Foundation', description: '', required: true, prerequisiteStepIds: [],
+    stage: 'Foundation', roleMilestone: false, courses: [], requirementBundles: [['foundation-exam']],
+    actions: [{ id: 'foundation-exam', kind: 'exam' as const, title: 'Passed Foundation exam', courseId: '' }] };
+  const analyst: CareerPathDraft = { schemaVersion: 2, title: 'Test Analyst', summary: '', outcomes: [], estimatedHours: 0, steps: [foundation] };
+
+  const root = () => fixture.nativeElement as HTMLElement;
+  async function click(label: string): Promise<void> {
+    const button = [...root().querySelectorAll('button')].find((item) => item.textContent?.trim().startsWith(label));
+    if (!button) throw new Error(`No button "${label}" in: ${root().textContent}`);
+    button.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
+
+  beforeEach(async () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    saveDraft.mockClear();
+    TestBed.configureTestingModule({ providers: [{ provide: CareerPathService, useValue: {
+      token: signal('token'), adminCourses: signal([]), loadAdmin: async () => ({ ok: true }), saveDraft, unpublish: vi.fn(),
+      adminPaths: signal<AdminCareerPath[]>([{ id: 'test-analyst', revision: 1, learners: 0, published: analyst, draft: analyst, updatedAt: 'x' }]),
+    } }] });
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
+    fixture = TestBed.createComponent(CareerPathEditor);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('US-A004-AC01/AC02 a new career reuses the shared Foundation and gets its own milestones with actions and routes', async () => {
+    root().querySelector<HTMLInputElement>('#cpe-new-title')!.value = 'Test Lead';
+    await click('Add path');
+    const reuse = root().querySelector<HTMLSelectElement>('#cpe-reuse')!;
+    reuse.value = 'foundation';
+    await click('Add shared milestone');
+    expect(root().textContent).toContain('Milestone ID foundation, shared with Test Analyst');
+    await click('Add step');
+    expect(root().textContent).toContain('Recommendations only. They never complete the milestone');
+    await click('Add action');
+    await click('Add alternative route');
+    expect(root().textContent).toContain('completing every ticked action in any one route');
+    await click('Save draft');
+
+    const draft = saveDraft.mock.calls[0][1];
+    expect(saveDraft.mock.calls[0][0]).toBe('test-lead');
+    expect(draft.schemaVersion).toBe(2);
+    expect(draft.steps[0]).toEqual(foundation);
+    const own = draft.steps[1];
+    expect(own.id).toBe('test-lead-step-2');
+    expect(own.actions!.map((action) => action.id)).toEqual(['test-lead-step-2-a1', 'test-lead-step-2-a2']);
+    expect(own.requirementBundles).toEqual([['test-lead-step-2-a1', 'test-lead-step-2-a2']]);
+  });
+});

@@ -26,7 +26,17 @@
   <section class="db-stats" aria-label="Learning summary">
     <article class="db-stat db-stat-hero" data-surface="dark">
       <span class="db-stat-label">Career path</span>
-      @if (careerPath.selectedPath(); as path) {
+      @if (careerPath.milestoneProgress(); as milestones) {
+        <strong class="db-stat-value">{{ milestones.achieved }} of {{ milestones.total }}</strong>
+        <p class="db-stat-meta">
+          <a routerLink="/career-path">{{ careerPath.focusedPath()?.title }}</a> &middot; milestones achieved
+        </p>
+        @if (milestones.next; as next) {
+          <p class="db-stat-meta">
+            Next: <a routerLink="/career-path" [queryParams]="{ milestone: next.id }">{{ next.title }}</a>
+          </p>
+        }
+      } @else if (careerPath.selectedPath(); as path) {
         <strong class="db-stat-value">{{ careerPath.progress()?.percent }}%</strong>
         <p class="db-stat-meta">
           <a routerLink="/career-path">{{ path.title }}</a> &middot;

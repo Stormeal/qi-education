@@ -353,7 +353,10 @@ export type CareerPath = {
 };
 export type CareerPathSelection = { pathId: string; revision: number; selectedAt: string };
 export type CareerPathDraft = Omit<CareerPath, 'id' | 'revision' | 'steps'> & {
-  steps: (Omit<CareerPathStep, 'courses'> & { courses: { courseId: string; title: string }[] })[];
+  steps: (Omit<CareerPathStep, 'courses' | 'actions'> & {
+    courses: { courseId: string; title: string }[];
+    actions?: Omit<CareerPathAction, 'available'>[];
+  })[];
 };
 export type AdminCareerPath = {
   id: string;

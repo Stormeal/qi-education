@@ -50,3 +50,20 @@ describe('career guidance across session changes (US-P004-AC02)', () => {
     expect(service.selection()).toBeNull();
   });
 });
+
+describe('milestone guidance shared by Home and the tree (US-L022)', () => {
+  it('US-L022-AC01/AC03 counts achieved milestones and names the first ready one, never a percentage', () => {
+    TestBed.configureTestingModule({ providers: [
+      { provide: ApiClientService, useValue: { fetch: async () => json({}) } },
+      { provide: CourseService, useValue: {} },
+      { provide: LearningProgressService, useValue: {} },
+    ] });
+    const service = TestBed.inject(CareerPathService);
+    const step = (id: string) => ({ id, title: id, description: '', required: true, courses: [], prerequisiteStepIds: [] });
+    service.paths.set([{ ...path('analyst'), schemaVersion: 2, steps: [step('foundation'), step('design'), step('risk')] }]);
+    expect(service.milestoneProgress()).toBeNull();
+    service.careers.set({ followedPathIds: ['analyst'], focusPathId: 'analyst', achievements: [], satisfiedActionIds: [],
+      milestoneStates: { foundation: 'achieved', design: 'locked', risk: 'ready' } });
+    expect(service.milestoneProgress()).toEqual({ achieved: 1, total: 3, next: expect.objectContaining({ id: 'risk' }) });
+  });
+});

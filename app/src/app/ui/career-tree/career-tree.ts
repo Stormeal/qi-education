@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CareerPath, CareerPathAction, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
 import { Button } from '../button/button';
@@ -29,7 +29,8 @@ export class CareerTree {
   protected readonly stateLabel = STATE_LABEL;
   protected readonly declareLabel = DECLARE_LABEL;
 
-  private readonly selectedId = signal('');
+  // Home links to a milestone with ?milestone=<id>; the tree opens on it.
+  private readonly selectedId = signal(inject(ActivatedRoute, { optional: true })?.snapshot.queryParamMap.get('milestone') ?? '');
   protected readonly confirmingActionId = signal('');
   protected readonly saving = signal(false);
   protected readonly saveError = signal('');

@@ -6,6 +6,7 @@ import { ConfirmService } from '../../services/confirm.service';
 import { Button } from '../button/button';
 
 type EditableStep = CareerPathDraft['steps'][number];
+type EditableAction = NonNullable<EditableStep['actions']>[number];
 
 const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 
@@ -79,7 +80,7 @@ export class CareerPathEditor {
     }
     if (!await this.mayDiscard()) return;
     this.listError.set('');
-    this.open(id, { title: input.value.trim(), summary: '', outcomes: [], estimatedHours: 0, steps: [] });
+    this.open(id, { schemaVersion: 2, title: input.value.trim(), summary: '', outcomes: [], estimatedHours: 0, steps: [] });
     this.savedSnapshot = ''; // A new path is unsaved from the start.
     input.value = '';
   }
@@ -89,9 +90,16 @@ export class CareerPathEditor {
   }
 
   protected addStep(draft: CareerPathDraft): void {
+    // Milestone IDs are shared across careers, so a new milestone's ID carries this path's ID.
+    const prefix = draft.schemaVersion === 2 ? `${this.editingId().slice(0, 40)}-step-` : 'step-';
     let index = draft.steps.length + 1;
-    while (draft.steps.some((step) => step.id === `step-${index}`)) index++;
-    const step: EditableStep = { id: `step-${index}`, title: '', description: '', required: true, courses: [{ courseId: '', title: '' }], prerequisiteStepIds: [] };
+    while (draft.steps.some((step) => step.id === `${prefix}${index}`)) index++;
+    const step: EditableStep = { id: `${prefix}${index}`, title: '', description: '', required: true, courses: [{ courseId: '', title: '' }], prerequisiteStepIds: [] };
+    if (draft.schemaVersion === 2) {
+      // Preparation courses are optional for milestones; the requirement completes them.
+      Object.assign(step, { courses: [], stage: '', roleMilestone: false, actions: [], requirementBundles: [] });
+      this.addAction(step);
+    }
     draft.steps.push(step);
     this.openStep.set(step);
   }
@@ -103,6 +111,62 @@ export class CareerPathEditor {
 
   protected moveStep(draft: CareerPathDraft, index: number, offset: -1 | 1): void {
     [draft.steps[index + offset], draft.steps[index]] = [draft.steps[index], draft.steps[index + offset]];
+  }
+
+  /** Published milestones of other careers that this draft does not contain yet, for prerequisites and reuse. */
+  protected otherMilestones(draft: CareerPathDraft) {
+    const found = new Map<string, { step: EditableStep; career: string }>();
+    for (const path of this.paths()) {
+      const content = path.published ?? path.draft;
+      if (path.id === this.editingId() || content?.schemaVersion !== 2) continue;
+      for (const step of content.steps) {
+        if (!found.has(step.id) && !draft.steps.some((own) => own.id === step.id)) found.set(step.id, { step, career: content.title });
+      }
+    }
+    return [...found.values()];
+  }
+
+  /** Careers other than this one that contain the same milestone ID. */
+  protected sharedWith(stepId: string): string {
+    return this.paths().filter((path) => path.id !== this.editingId()).map((path) => path.published ?? path.draft)
+      .flatMap((content) => content?.schemaVersion === 2 && content.steps.some((step) => step.id === stepId) ? [content.title] : [])
+      .join(', ');
+  }
+
+  // A shared milestone is copied with its ID, actions and rules; publishing refuses copies that differ.
+  protected reuseMilestone(draft: CareerPathDraft, select: HTMLSelectElement): void {
+    const found = this.otherMilestones(draft).find((item) => item.step.id === select.value);
+    if (!found) return;
+    const step = structuredClone(found.step);
+    draft.steps.push(step);
+    this.openStep.set(step);
+    select.value = '';
+  }
+
+  protected addAction(step: EditableStep): void {
+    const actions = (step.actions ??= []);
+    let index = actions.length + 1;
+    while (actions.some((action) => action.id === `${step.id.slice(0, 50)}-a${index}`)) index++;
+    const action: EditableAction = { id: `${step.id.slice(0, 50)}-a${index}`, kind: 'activity', title: '', courseId: '' };
+    actions.push(action);
+    const bundles = (step.requirementBundles ??= []);
+    if (bundles.length === 0) bundles.push([action.id]);
+    else if (bundles.length === 1) bundles[0].push(action.id);
+  }
+
+  protected removeAction(step: EditableStep, action: EditableAction): void {
+    step.actions = step.actions?.filter((item) => item !== action);
+    step.requirementBundles = step.requirementBundles?.map((bundle) => bundle.filter((id) => id !== action.id))
+      .filter((bundle) => bundle.length > 0);
+  }
+
+  protected toggleRouteAction(step: EditableStep, route: number, actionId: string, checked: boolean): void {
+    const bundles = step.requirementBundles!;
+    bundles[route] = checked ? [...bundles[route], actionId] : bundles[route].filter((id) => id !== actionId);
+  }
+
+  protected addRoute(step: EditableStep): void {
+    (step.requirementBundles ??= []).push([]);
   }
 
   protected togglePrerequisite(step: EditableStep, id: string, checked: boolean): void {
@@ -118,6 +182,8 @@ export class CareerPathEditor {
     if (!draft || this.busy()) return;
     draft.outcomes = this.outcomesText().split('\n').map((line) => line.trim()).filter(Boolean);
     draft.estimatedHours = Math.max(0, Math.round(Number(draft.estimatedHours) || 0));
+    // A route left without actions is unfinished editing, not a requirement; the API refuses empty routes.
+    for (const step of draft.steps) step.requirementBundles = step.requirementBundles?.filter((bundle) => bundle.length > 0);
     this.begin();
     const result = await this.careerPath.saveDraft(this.editingId(), draft, publish);
     this.busy.set(false);

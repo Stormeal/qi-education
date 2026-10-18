@@ -38,6 +38,18 @@ export class CareerPathService {
   // Home still reads one path: the focus, or the legacy selection while no focus is saved.
   readonly selectedPath = computed(() => this.focusedPath()
     ?? this.paths().find((path) => path.id === this.selection()?.pathId) ?? null);
+  /** Milestone guidance for a schema-2 focus, shared by Home and the tree: achieved count and the first ready milestone. */
+  readonly milestoneProgress = computed(() => {
+    const path = this.focusedPath();
+    const states = this.careers()?.milestoneStates;
+    if (path?.schemaVersion !== 2 || !states) return null;
+    return {
+      achieved: path.steps.filter((step) => states[step.id] === 'achieved').length,
+      total: path.steps.length,
+      next: path.steps.find((step) => states[step.id] === 'ready') ?? null,
+    };
+  });
+
   readonly progress = computed(() => {
     const path = this.selectedPath();
     return path ? this.progressFor(path) : null;

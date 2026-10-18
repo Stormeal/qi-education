@@ -62,6 +62,14 @@
               <label>Title <input type="text" [name]="'title' + i" maxlength="160" [(ngModel)]="step.title" /></label>
               <label>Description <textarea [name]="'description' + i" rows="2" maxlength="600" [(ngModel)]="step.description"></textarea></label>
               <label class="cpe-check"><input type="checkbox" [name]="'required' + i" [(ngModel)]="step.required" /> Required for path completion</label>
+              @if (path.schemaVersion === 2) {
+                <p class="cpe-hint">
+                  Milestone ID {{ step.id }}@if (sharedWith(step.id); as careers) {, shared with {{ careers }}. Change it the same way
+                  in every career, or publishing is refused}.
+                </p>
+                <label>Stage <input type="text" [name]="'stage' + i" maxlength="40" placeholder="e.g. Foundation" [(ngModel)]="step.stage" /></label>
+                <label class="cpe-check"><input type="checkbox" [name]="'role' + i" [(ngModel)]="step.roleMilestone" /> Role milestone (the job-title step of this career)</label>
+              }
 
               @if (path.steps.length > 1) {
                 <fieldset class="cpe-group">
@@ -78,12 +86,27 @@
                       </label>
                     }
                   }
+                  @if (path.schemaVersion === 2) {
+                    @for (other of otherMilestones(path); track other.step.id) {
+                      <label class="cpe-check">
+                        <input
+                          type="checkbox"
+                          [checked]="step.prerequisiteStepIds.includes(other.step.id)"
+                          (change)="togglePrerequisite(step, other.step.id, $any($event.target).checked)"
+                        />
+                        {{ other.step.title }} (from {{ other.career }})
+                      </label>
+                    }
+                  }
                 </fieldset>
               }
 
               <fieldset class="cpe-group is-stacked">
-                <legend>Courses</legend>
-                <p class="cpe-hint">Completing any one course completes the step. The first is the one learners are sent to.</p>
+                <legend>{{ path.schemaVersion === 2 ? 'Ways to prepare' : 'Courses' }}</legend>
+                <p class="cpe-hint">
+                  {{ path.schemaVersion === 2 ? 'Recommendations only. They never complete the milestone; the requirement below does.'
+                    : 'Completing any one course completes the step. The first is the one learners are sent to.' }}
+                </p>
                 @for (course of step.courses; track course; let c = $index) {
                   <div class="cpe-course">
                     <label>Course
@@ -102,6 +125,63 @@
                 }
                 <button type="button" appButton size="sm" (click)="step.courses.push({ courseId: '', title: '' })">Add course</button>
               </fieldset>
+
+              @if (path.schemaVersion === 2) {
+                <fieldset class="cpe-group is-stacked">
+                  <legend>Actions</legend>
+                  <p class="cpe-hint">What a learner does or declares, such as passing an exam. Do not reuse an action for a different exam or course.</p>
+                  @for (action of step.actions ?? []; track action.id; let a = $index) {
+                    <div class="cpe-course">
+                      <label>Kind
+                        <select [name]="'kind' + i + '-' + a" [(ngModel)]="action.kind">
+                          <option value="exam">Exam passed</option>
+                          <option value="course">Course completed</option>
+                          <option value="activity">Other activity</option>
+                        </select>
+                      </label>
+                      <label>Title <input type="text" [name]="'actionTitle' + i + '-' + a" maxlength="160" [(ngModel)]="action.title" /></label>
+                      @if (action.kind === 'course') {
+                        <label>Course
+                          <select [name]="'actionCourse' + i + '-' + a" [(ngModel)]="action.courseId">
+                            <option value="">Choose a course</option>
+                            @for (option of careerPath.adminCourses(); track option.id) {
+                              <option [value]="option.id">{{ option.title }} ({{ option.status }})</option>
+                            }
+                          </select>
+                        </label>
+                      }
+                      <button type="button" appButton="danger" size="sm" (click)="removeAction(step, action)">Remove action</button>
+                    </div>
+                  }
+                  <button type="button" appButton size="sm" (click)="addAction(step)">Add action</button>
+                </fieldset>
+
+                <fieldset class="cpe-group is-stacked">
+                  <legend>Requirement</legend>
+                  <p class="cpe-hint">
+                    {{ (step.requirementBundles?.length ?? 0) > 1
+                      ? 'Learners achieve this milestone by completing every ticked action in any one route.'
+                      : 'Learners achieve this milestone by completing every ticked action.' }}
+                    A route needs at least one action.
+                  </p>
+                  @for (route of step.requirementBundles ?? []; track $index; let r = $index) {
+                    <div class="cpe-route" role="group" [attr.aria-label]="'Route ' + (r + 1)">
+                      <strong>Route {{ r + 1 }}</strong>
+                      @for (action of step.actions ?? []; track action.id) {
+                        <label class="cpe-check">
+                          <input type="checkbox" [checked]="route.includes(action.id)"
+                            (change)="toggleRouteAction(step, r, action.id, $any($event.target).checked)" />
+                          {{ action.title || action.id }}
+                        </label>
+                      }
+                      @if ((step.requirementBundles?.length ?? 0) > 1) {
+                        <button type="button" appButton="danger" size="sm" (click)="step.requirementBundles!.splice(r, 1)">Remove route</button>
+                      }
+                    </div>
+                  }
+                  <button type="button" appButton size="sm" (click)="addRoute(step)">Add alternative route</button>
+                </fieldset>
+              }
             </div>
           }
         </section>
@@ -109,6 +189,18 @@
         <p class="cpe-hint">This path has no steps yet.</p>
       }
       <button type="button" class="cpe-add-step" appButton="dashed" size="sm" (click)="addStep(path)">Add step</button>
+      @if (path.schemaVersion === 2 && otherMilestones(path).length) {
+        <div class="cpe-reuse">
+          <label for="cpe-reuse">Reuse a milestone from another career</label>
+          <select #reuse id="cpe-reuse">
+            <option value="">Choose a milestone</option>
+            @for (other of otherMilestones(path); track other.step.id) {
+              <option [value]="other.step.id">{{ other.step.title }} ({{ other.career }})</option>
+            }
+          </select>
+          <button type="button" appButton size="sm" (click)="reuseMilestone(path, reuse)">Add shared milestone</button>
+        </div>
+      }
 
       <footer class="cpe-savebar">
         <p [class.cpe-error]="!!error()" [attr.role]="error() ? 'alert' : 'status'">

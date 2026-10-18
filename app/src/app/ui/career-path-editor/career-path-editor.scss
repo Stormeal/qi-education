@@ -349,3 +349,22 @@ $line: rgba(108, 101, 88, 0.2);
     grid-template-columns: 1fr;
   }
 }
+
+.cpe-route,
+.cpe-reuse {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.cpe-reuse {
+  margin-top: 12px;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+
+  label {
+    grid-column: 1 / -1;
+  }
+}

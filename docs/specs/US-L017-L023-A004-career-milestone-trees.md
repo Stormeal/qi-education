@@ -276,6 +276,31 @@ Not verified: hosted MongoDB, a screen reader, a real course action completed th
 scroll to it. Increment 2: admin editing of milestone fields, curriculum review (US-A004),
 Home guidance (US-L022).
 
+### Increment 2, 2026-10-18 (Claude Code; Alex: "Do this task here")
+
+Frontend only, so Codex had no part. No independent API item was ready either: US-P002-AC02
+needs `app/` changes and US-P016 waits for a clean hosted release.
+
+- Admin editor (US-A004-AC01/AC02): for format-2 paths, stage, role milestone, actions
+  (exam, course, other activity), requirement routes ("every ticked action", or "any one
+  route" when there are several), prerequisites from other careers, and "Reuse a milestone
+  from another career", which copies a shared milestone with its ID. New paths start in
+  format 2, and their milestone IDs carry the path ID. A milestone starts without preparation
+  courses. Empty routes are dropped on save because the API refuses them.
+- Home (US-L022-AC01/AC03): a format-2 focus shows "N of M milestones achieved" and the first
+  ready milestone in path order. That is the same rule the tree uses to pick its default
+  milestone (`CareerPathService.milestoneProgress`). The link opens the tree on that milestone
+  (`?milestone=`). Old-format paths keep the percentage.
+- Checks: app 348/45 plus 23 guards, Pages build. Browser on 3001/4200 with in-memory stores:
+  Home showed 1 of 5 and the next milestone and opened it in the tree. The admin created
+  "Test Lead" with the shared Foundation and a Test Manager prerequisite and published it.
+  Changing Foundation's action in one career only was refused with the affected milestone
+  named.
+- Not verified: admin editor at phone width, a screen reader, hosted data. US-A004-AC04
+  (curriculum review) and AC06's update notice for changed criteria stay open (Alex /
+  curriculum owner). US-L022-AC02/AC04 rely on the existing service guards and are not
+  separately browser-checked.
+
 ## Story sequence and implementation handoff
 
 This is a feature/story package, not an implementation plan or an authorization

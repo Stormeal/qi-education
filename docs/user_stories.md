@@ -19,7 +19,7 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-L019 | Record my own learning and certification achievements | In progress | P2 | A004; release with L020 | None |
 | US-L020 | Unlock milestones through shared prerequisites | In progress | P2 | A004, L019 | None |
 | US-L021 | Pursue several careers and focus on one route | In progress | P2 | A004, L019; legacy selection mapping | None |
-| US-L022 | Get consistent career guidance on Home and my tree | Proposed | P2 | L017, L018, L020, L021 | None |
+| US-L022 | Get consistent career guidance on Home and my tree | In progress | P2 | L017, L018, L020, L021 | None |
 | US-L023 | Recognise relevant achievements from my CV | Proposed (future) | P3 | L019, L020; extraction and review policy | None |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Teacher/learner contracts | None |
 | US-P002 | Return useful, consistent API errors | Proposed | P2 | None | DEF-008 |

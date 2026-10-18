@@ -13,6 +13,13 @@ memory/unconfigured auth still fail. Checks: 10 workflow regressions, 1653 API t
 Not verified: actual hosted Pages rerun. Next: authorized push and hosted workflow check.
 No shared-service calls, push or workflow rerun.
 
+**2026-10-18 — US-L017 increment 2 (Claude Code; Alex: "Do this task here").** Admin milestone
+editing (US-A004-AC01/AC02) and Home milestone guidance (US-L022-AC01/AC03). Frontend only, so
+Codex had no part, and no independent API item was ready. Done locally with checks and a browser
+walk; see the [spec](specs/US-L017-L023-A004-career-milestone-trees.md#increment-2-2026-10-18-claude-code-alex-do-this-task-here).
+Open: curriculum review (US-A004-AC04, Alex), the criteria-change notice (AC06). Next: Alex
+decides on the push.
+
 **Session 2026-10-18 — started by Alex with "Next job I want you to work on is US-L017".**
 Branch: `main`. Base: `611eede`. US-L017 depends on US-A004, L019, L020 and L021, and the spec
 was unreviewed; Alex chose "Approve, build release" (spec approved with its proposed defaults).
