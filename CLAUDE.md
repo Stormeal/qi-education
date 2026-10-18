@@ -44,6 +44,13 @@ or names an old ID. Keep this table identical to the one in `AGENTS.md`.
 | `DEF-…` / `INV-…` | `defects.md`, then `defects_resolved.md` |
 | `US-…` | `user_stories.md`, then `stories/` |
 
+- When a story is delivered, fold its behavior into the matching `docs/specs/<area>/` file and
+  delete its `docs/stories/` contract.
+- Commit `6c94eba` is the last one with every old story spec, handoff and verification file at its
+  original path: `git show 6c94eba:docs/specs/<file>.md` reads an old contract.
+- Docs written by other tools may contain stray Windows-1252 bytes (old `defect_management.md` had
+  `0x97` dashes); Read/Edit refuse such files until the bytes are replaced (`perl -pi -e 's/\x97/-/g'`).
+
 ## Default skills
 
 Use these without being asked (set by Alex, 2026-10-10):
