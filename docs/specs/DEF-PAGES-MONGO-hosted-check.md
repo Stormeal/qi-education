@@ -22,4 +22,5 @@ Verification 2026-10-18: the regression first failed on configured MongoDB and r
 to MongoDB (2 failed, 8 passed), then all 10 cases passed after the two-line workflow fix.
 Full API suite: 1653 tests / 67 files passed. `git diff --check` passed. No API or frontend
 production code changed; builds were not rerun and `api/dist` was not rebuilt.
-The fixing commit will be recorded immediately after the local commit.
+Fixed locally in `5afe5f3` (0.1.238). Hosted verification remains pending an authorized
+push and Pages run. Delivery records follow with the required separate version bump.

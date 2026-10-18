@@ -1436,3 +1436,15 @@ HTTP recovery to MongoDB (2 failed, 8 passed). Allowing configured google-sheets
 makes all 10 cases pass. Memory, unavailable/unknown storage, missing/unconfigured auth and
 HTTP failures remain refused. The separate auth health check and retry budget are unchanged.
 Full API suite and local delivery commit are pending. A real hosted Pages rerun is unverified.
+
+### DEF-PAGES-MONGO - Resolution and delivery, 2026-10-18
+
+Fixed locally in 5afe5f3 (version 0.1.238). The Pages config guard accepts configured
+Google Sheets or MongoDB auth and still rejects demo/unknown/unconfigured storage.
+Verified: all 10 workflow regressions and the full API suite (1653 tests, 67 files),
+plus git diff --check. The program under test is extracted from the actual workflow;
+fetch and retry timers are synthetic, with no external calls. The two failing MongoDB
+regressions passed after the fix. Existing records above are retained unchanged.
+Hosted workflow execution remains unverified; no push or deployment was authorized.
+This delivery record has its own required aligned version bump. Next: authorized push,
+then verify that the Pages workflow accepts the hosted MongoDB account configuration.

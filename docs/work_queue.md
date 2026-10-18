@@ -9,7 +9,7 @@ Selected by Alex's failing workflow log. Owner Codex; `main`, base `90d9fdf`.
 Scope: `.github/workflows/pages.yml`, isolated workflow regression, defect/spec/queue
 records and required version lines. Fix verified: configured MongoDB and Sheets pass;
 memory/unconfigured auth still fail. Checks: 10 workflow regressions, 1653 API tests /
-67 files, diff check. Local fixing commit next; its hash will follow immediately.
+67 files, diff check. Fixed locally in `5afe5f3` (0.1.238).
 Not verified: actual hosted Pages rerun. Next: authorized push and hosted workflow check.
 No shared-service calls, push or workflow rerun.
 
