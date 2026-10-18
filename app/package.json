@@ -1,6 +1,6 @@
 {
   "name": "@qi-academy/app",
-  "version": "0.1.252",
+  "version": "0.1.253",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -21,6 +21,8 @@
     "@mux/upchunk": "^3.5.0",
     "@ng-icons/core": "^33.2.2",
     "@ng-icons/lucide": "^33.2.2",
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.4.299",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
