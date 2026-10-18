@@ -3,7 +3,7 @@
 ## Record
 
 - Story: US-P015 ([backlog](../user_stories.md#us-p015--keep-course-details-in-mongodb-instead-of-google-sheets))
-- State: Code done locally and lead-checked 2026-10-17 (not pushed); cutover not run (picked by the lead 2026-10-17 on "Proceed with the next task": next step
+- State: Delivered and cut over 2026-10-18: hosted course details run on MongoDB
   of the agreed plan; its code ships switched off, so it does not wait for the US-P014 cutover)
 - Owner: Codex (all code: `api/**`, `scripts/doctor.mjs`; see the
   [handoff](../handoffs/US-P015-courses-in-mongodb-codex.md)); Claude Code (cutover runbook,
@@ -163,3 +163,13 @@ are Sensitive and stay local; the copy does not use them). Found on the way: in 
 PowerShell `npm` drops the `--` before the mode, so the runbooks now call `npm.cmd`. Not yet
 known: whether MongoDB Atlas accepts a connection from Alex's machine (the dry run does not
 connect; `--apply` will). Next: the [runbook](../release/US-P015-cutover.md) from step 4.
+
+Cutover 2026-10-18 (Claude Code ran the steps with Alex's go-ahead; same method as US-P014): dry
+run 11 valid, verify connected (0 in MongoDB); public catalog saved; freeze
+`COURSE_STORE_READ_ONLY=1` and redeploy, courses health `readOnly: true`; `--apply` inserted 11 and
+created the catalog index; `--verify` "Verified: 11 courses identical"; switch `COURSE_STORE=mongodb`,
+`COURSE_STORE_READ_ONLY=0` and redeploy, courses health `storage: mongodb, readOnly: false`; the
+public catalog is identical to the saved one (7 courses, same order, every field); an outline
+answers 200; no errors in the hosted log; Alex confirmed the catalog, his enrolled courses and a
+course details page. The Courses sheet is now a read-only backup; no data was lost (rollback in the
+runbook, which needs this API version or later for any restored cells).

@@ -24,6 +24,14 @@ Next: Alex reviews the written spec and the candidate curriculum; only after
 written-spec review should implementation planning be selected. All new stories
 stay Proposed. No implementation, shared-data change, push or deployment.
 
+**2026-10-18 — US-P015 course details cutover done (Alex: "Start the course cutover", "Switch now").**
+Hosted course details run on MongoDB: 11 copied and verified identical, the public catalog is
+unchanged, Alex confirmed catalog, enrolled courses and a details page. Record in the
+[spec](specs/US-P015-courses-in-mongodb.md#verification-and-delivery). Google Sheets now holds only
+feedback plus the old Users and Courses tabs as read-only backups. Next: US-P016 (retire the Sheets
+code for accounts and courses) after one release with a clean hosted log; the proposed backup and
+rehearsal story (US-P017 card) matters more now that MongoDB is the only live copy.
+
 **2026-10-18 — US-P014 accounts cutover done (Alex: "Begin the freeze", "Switch now").** Hosted
 accounts run on MongoDB: 12 copied and verified identical, `/health/auth` `store: mongodb`,
 Alex's sign-in, Admin user list and enrollments confirmed. Record in the

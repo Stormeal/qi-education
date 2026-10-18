@@ -28,7 +28,6 @@ Use [work_queue.md](work_queue.md) for the next item and active handoff.
 | US-P005 | Recover uncertain course operations safely | In progress | P2 | Lifecycle access | DEF-P005-LOCK; operator tooling remains Proposed |
 | US-P006 | Keep courses available when a class uses them together | In progress | P1 | Lifecycle access | DEF-P006-01–04; hosted budget/AC06 pending |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Client/confirmation limit decision | AC02 per-account login delivered locally; INV-014 signup investigation remains; safe-operation spec |
-| US-P015 | Keep course details in MongoDB instead of Google Sheets | Code done locally; cutover pending | P2 | P014 | INV-005, INV-017 |
 | US-P016 | Retire the Google Sheets code for accounts and courses | Proposed | P3 | P014, P015 | None |
 
 Priorities describe impact, while the queue describes delivery sequence. P1 is a
@@ -701,43 +700,13 @@ then refuses that address for 15 minutes. Signup and per-client limits remain
 outside that increment. Account email US-P009's
 completed scenarios are recorded in its [spec](specs/US-P009-account-email.md).
 
-### US-P015 — Keep course details in MongoDB instead of Google Sheets
-
-**As a learner or teacher, I want the catalog and course pages to load without depending on
-a spreadsheet, so that they stay available in a class session and show the title and status
-the course actually has.**
-
-State: Code done locally and lead-checked (2026-10-17); cutover after US-P014's, see the [runbook](release/US-P015-cutover.md) ([spec](specs/US-P015-courses-in-mongodb.md) AC01–AC09 with the same no-data-loss contract as US-P014). Its cutover follows US-P014's (same pattern: repository behind
-`CourseRepository`, a hosted `COURSE_STORE` switch defaulting to `google-sheets`, a dry-run
-and apply copy script, a cutover in a quiet moment). Course routes read the Courses sheet up
-to twice per request today (INV-005), and reviewed titles and statuses already live in
-MongoDB, so the sheet goes stale (INV-017). The spec has the full contract.
-
-```gherkin
-Feature: Course details stored in MongoDB
-  Scenario: US-P015-AC01 Course routes make no Sheets reads
-    Given the hosted API runs with COURSE_STORE=mongodb
-    When anyone opens the catalog or a course
-    Then no request reads the Courses sheet
-
-  Scenario: US-P015-AC02 The copy keeps every course field
-    Given the Courses sheet has N valid rows
-    When the copy script runs with --apply twice
-    Then MongoDB holds exactly N courses with all 21 fields, owner and created date unchanged
-
-  Scenario: US-P015-AC03 One source for title and status
-    Given an admin publishes a revised title
-    When the catalog and the course page load
-    Then both show the published title and status from MongoDB
-```
-
 ### US-P016 — Retire the Google Sheets code for accounts and courses
 
 **As the team maintaining QI Academy, I want accounts and courses to have one storage path,
 so that there is less code to keep correct and nothing reads the old sheets by mistake.**
 
-State: Proposed (2026-10-17). Depends on US-P014 and US-P015 running on MongoDB for one
-release with a clean hosted log. Removes the Sheets repositories for users and courses, the
+State: Proposed (2026-10-17). US-P014 and US-P015 are cut over (2026-10-18); this can start
+after one release with a clean hosted log. Removes the Sheets repositories for users and courses, the
 `USER_STORE`/`COURSE_STORE` switches and their health and doctor checks, and updates the
 architecture and local development docs. Feedback keeps its Google Sheets store; the old
 sheets stay in Google Drive as a read-only backup.
