@@ -45,14 +45,13 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     await settle();
   }
 
-  // Mirrors the API rule: achieved needs achieved prerequisites and a satisfied bundle; ready needs the prerequisites.
+  // Mirrors the API rule (US-L023): a satisfied bundle is achieved; otherwise ready needs achieved prerequisites.
   function account(followedPathIds: string[], focusPathId: string | null, declared: string[]): AccountCareers {
     const milestoneStates: Record<string, MilestoneState> = {};
     const stateOf = (step: CareerPathStep): MilestoneState => {
-      const prerequisitesMet = step.prerequisiteStepIds.every((id) =>
-        stateOf(PATHS.flatMap((path) => path.steps).find((item) => item.id === id)!) === 'achieved');
-      if (!prerequisitesMet) return 'locked';
-      return step.requirementBundles!.some((bundle) => bundle.every((id) => declared.includes(id))) ? 'achieved' : 'ready';
+      if (step.requirementBundles!.some((bundle) => bundle.every((id) => declared.includes(id)))) return 'achieved';
+      return step.prerequisiteStepIds.every((id) =>
+        stateOf(PATHS.flatMap((path) => path.steps).find((item) => item.id === id)!) === 'achieved') ? 'ready' : 'locked';
     };
     for (const step of PATHS.flatMap((path) => path.steps)) milestoneStates[step.id] = stateOf(step);
     return { followedPathIds, focusPathId, satisfiedActionIds: declared, milestoneStates,
@@ -127,6 +126,16 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(node('foundation').getAttribute('aria-current')).toBe('true');
     expect(node('foundation').textContent).toContain('Achieved');
     expect(text()).toContain('1 milestone achieved');
+  });
+
+  it('US-L023-AC02 an achievement saved from a CV reads "From your CV"', async () => {
+    const saved = account(['test-analyst', 'test-manager'], 'test-analyst', ['foundation-exam']);
+    careers.set({ ...saved, achievements: [{ actionId: 'foundation-exam', provenance: 'cv', declaredAt: '' }] });
+    await settle();
+    node('foundation').click();
+    await settle();
+    expect(text()).toContain('Done. From your CV');
+    expect(text()).not.toContain('Done. Self-reported');
   });
 
   it('US-L019-AC04 a failed declaration shows no success and keeps the choice for a retry', async () => {

@@ -142,9 +142,10 @@ export class CareerTree {
 
   private evidence(actionId: string) {
     const careers = this.careerPath.careers();
-    const declared = careers?.achievements.some((item) => item.actionId === actionId) ?? false;
+    const declared = careers?.achievements.find((item) => item.actionId === actionId);
     const satisfied = careers?.satisfiedActionIds.includes(actionId) ?? false;
-    return { satisfied, source: !satisfied ? '' : declared ? 'Self-reported' : 'From your course progress' };
+    const source = declared?.provenance === 'cv' ? 'From your CV' : declared ? 'Self-reported' : 'From your course progress';
+    return { satisfied, source: satisfied ? source : '' };
   }
 
   protected select(step: CareerPathStep): void {

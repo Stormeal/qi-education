@@ -147,6 +147,11 @@ export class CareerPathService {
     return this.careersWrite('/users/me/achievements', 'POST', { actionId });
   }
 
+  /** Saves achievements the learner confirmed from a CV scan; only action IDs leave the browser. */
+  recogniseFromCv(actionIds: string[]): Promise<CareerPathResult> {
+    return this.careersWrite('/users/me/achievements/cv', 'POST', { actionIds });
+  }
+
   private async careersWrite(path: string, method: string, body?: unknown): Promise<CareerPathResult> {
     const token = this.token();
     const result = await this.request<AccountCareers>(path, token, method, body);

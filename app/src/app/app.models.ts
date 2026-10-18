@@ -330,13 +330,15 @@ export type CareerPathAction = {
   title: string;
   courseId: string;
   available: boolean;
+  // Exact phrases a CV scan matches for this action.
+  cvKeywords?: string[];
 };
 export type MilestoneState = 'achieved' | 'ready' | 'locked';
 /** The account's followed careers, focus and self-reported achievements; states are computed by the API. */
 export type AccountCareers = {
   followedPathIds: string[];
   focusPathId: string | null;
-  achievements: { actionId: string; provenance: 'self-reported'; declaredAt: string }[];
+  achievements: { actionId: string; provenance: 'self-reported' | 'cv'; declaredAt: string }[];
   satisfiedActionIds: string[];
   milestoneStates: Record<string, MilestoneState>;
 };
