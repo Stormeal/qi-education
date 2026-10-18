@@ -65,7 +65,7 @@ describe('milestone content contract', () => {
     expect(careerPathSeeds['agile-tester'].schemaVersion).toBe(1);
   });
 
-  it('US-A004-AC02 US-L019-AC05 US-L020-AC01 requires every action in any one bundle and all prerequisites', () => {
+  it('US-A004-AC02 US-L019-AC05 US-L020-AC01 US-L023-AC05 requires every action in any one bundle; prerequisites gate readiness', () => {
     const parsed = content([milestone('foundation'), milestone('advanced', ['foundation'], {
       courses: [{ courseId: '', title: 'Preparation only' }], actions: [
         { id: 'action-one', kind: 'activity', title: 'One' }, { id: 'action-two', kind: 'activity', title: 'Two' },
@@ -73,7 +73,7 @@ describe('milestone content contract', () => {
       requirementBundles: [['action-one', 'action-two'], ['alternative-exam']],
     })]);
     const states = (...ids: string[]) => milestoneStates(parsed.steps, new Set(ids));
-    expect(states('alternative-exam')).toEqual({ foundation: 'ready', advanced: 'locked' });
+    expect(states('alternative-exam')).toEqual({ foundation: 'ready', advanced: 'achieved' });
     expect(states('foundation-exam', 'action-one').advanced).toBe('ready');
     expect(states('foundation-exam', 'action-one', 'action-two').advanced).toBe('achieved');
     expect(states('foundation-exam', 'alternative-exam').advanced).toBe('achieved');

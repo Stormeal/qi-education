@@ -11,7 +11,7 @@ Contract and plan: [stories/US-L023-cv-recognition.md](stories/US-L023-cv-recogn
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Tasks C1–C4: `cvKeywords`, state rule, `POST /users/me/achievements/cv`, journey step | `api/src/**`; handoff [handoffs/US-L023-codex.md](handoffs/US-L023-codex.md) | In progress on `main`, base `fa9c556` (2026-10-18). Next: C1 schema/publication tests, then C2–C4. Approved plan executed inline with red/green tests; queue row tracks progress within assigned files. |
+| Codex | Tasks C1–C4: `cvKeywords`, state rule, `POST /users/me/achievements/cv`, journey step | `api/src/**`; handoff [handoffs/US-L023-codex.md](handoffs/US-L023-codex.md) | In progress on `main`, base `fa9c556` (2026-10-18). C1 committed `92c0bae`, API 1,658/1,658 passed. C2 red/green state-rule checks in progress; next C3–C4. Implementation detail: validate prerequisite graph separately so missing/cyclic dependencies stay locked as required, while evidence bypasses valid unachieved prerequisites. |
 | Claude | Tasks A1–A6: models, matcher, CV reading, scan panel, editor field, checks | `app/**`, US-L023 contract, `docs/specs/career-paths/` | In progress |
 
 Next action: Codex runs C1–C4; Claude runs A1–A5, then A6 once Codex has committed.

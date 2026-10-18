@@ -17,17 +17,27 @@ type Milestone = CareerPathContent['steps'][number];
 export function milestoneStates(steps: Milestone[], satisfied: Set<string>): Record<string, MilestoneState> {
   const graph = new Map(steps.map(step => [step.id, step]));
   const states = new Map<string, MilestoneState>();
+  const valid = new Map<string, boolean>();
   const visiting = new Set<string>();
+  const validDependencies = (id: string): boolean => {
+    if (valid.has(id)) return valid.get(id)!;
+    const step = graph.get(id);
+    // Evidence does not make withdrawn or corrupt prerequisite graphs valid.
+    if (!step || visiting.has(id)) return false;
+    visiting.add(id);
+    const result = step.prerequisiteStepIds.every(validDependencies);
+    visiting.delete(id); valid.set(id, result);
+    return result;
+  };
   const evaluate = (id: string): MilestoneState => {
     if (states.has(id)) return states.get(id)!;
     const step = graph.get(id);
     // Fail closed on withdrawn dependencies or corrupt/legacy graph data.
-    if (!step || visiting.has(id)) return 'locked';
-    visiting.add(id);
-    const unlocked = step.prerequisiteStepIds.every(prerequisite => evaluate(prerequisite) === 'achieved');
+    if (!step || !validDependencies(id)) return 'locked';
     const achieved = step.requirementBundles.some(bundle => bundle.length > 0 && bundle.every(action => satisfied.has(action)));
-    const state = unlocked ? achieved ? 'achieved' : 'ready' : 'locked';
-    visiting.delete(id); states.set(id, state);
+    const state = achieved ? 'achieved'
+      : step.prerequisiteStepIds.every(prerequisite => evaluate(prerequisite) === 'achieved') ? 'ready' : 'locked';
+    states.set(id, state);
     return state;
   };
   return Object.fromEntries([...graph.keys()].map(id => [id, evaluate(id)]));

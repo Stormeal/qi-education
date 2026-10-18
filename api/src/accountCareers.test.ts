@@ -13,12 +13,32 @@ import { InMemoryFeedbackRepository } from './feedbackRepository.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
 import { InMemoryAccountCareersRepository } from './accountCareersRepository.js';
+import { milestoneStates } from './accountCareers.js';
 
 const node = (id: string, prerequisiteStepIds: string[] = [], extra = {}) => ({
   id, title: id, prerequisiteStepIds, courses: [], actions: [{ id: `${id}-exam`, kind: 'exam', title: `${id} exam` }],
   requirementBundles: [[`${id}-exam`]], ...extra,
 });
 const tree = (steps: ReturnType<typeof node>[]) => ({ schemaVersion: 2, title: 'Career tree', steps });
+
+describe('US-L023 milestone state rules', () => {
+  it('US-L023-AC05 a satisfied milestone is achieved even when its prerequisite is not', () => {
+    const steps = careerPathContentSchema.parse(tree([node('a'), node('b', ['a']), node('c', ['b'])])).steps;
+    expect(milestoneStates(steps, new Set(['b-exam']))).toEqual({ a: 'ready', b: 'achieved', c: 'ready' });
+  });
+
+  it('US-L023-AC05 keeps missing and cyclic dependencies locked even with evidence', () => {
+    const steps = careerPathContentSchema.parse(tree([node('orphan', ['missing']), node('a', ['b']), node('b', ['a'])])).steps;
+    expect(milestoneStates(steps, new Set(['orphan-exam', 'a-exam', 'b-exam'])))
+      .toEqual({ orphan: 'locked', a: 'locked', b: 'locked' });
+  });
+
+  it('US-L023-AC05 an empty route never satisfies a milestone', () => {
+    const steps = careerPathContentSchema.parse(tree([node('empty')])).steps;
+    steps[0].requirementBundles = [[]];
+    expect(milestoneStates(steps, new Set())).toEqual({ empty: 'ready' });
+  });
+});
 
 describe.each(['', '/api'])('US-L019/L020/L021 account careers API (%s)', prefix => {
   let server: Server, base: string, paths: InMemoryCareerPathRepository;
