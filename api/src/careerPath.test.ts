@@ -36,6 +36,8 @@ describe('US-L023 action CV keywords', () => {
     const previous = careerPathContentSchema.parse(content({ cvKeywords: ['CTFL'] }));
     const changed = careerPathContentSchema.parse(content({ cvKeywords: ['ISTQB Foundation'] }));
     expect(careerPathIssues(changed, [], [], previous)).toEqual([]);
+    // Foundation can be shared with another published career whose keywords have not been edited.
+    expect(careerPathIssues(changed, [], [previous], previous)).toEqual([]);
   });
 
   it('US-L023 starter keywords name certifications, not job titles', () => {
@@ -87,6 +89,19 @@ describe.each(['', '/api'])('career paths: US-L006, US-L009, US-T008 (%s)', (pre
       const published = Array.isArray(body) ? body.find(item => item.id === 'keyword-path') : body;
       expect(published.steps[0].actions.map((action: { cvKeywords: string[] }) => action.cvKeywords)).toEqual([['CTFL'], []]);
     }
+  });
+
+  it('US-L023-AC07 publishes keyword-only edits to an action shared with another career', async () => {
+    const original = careerPathSeeds['technical-tester'];
+    expect((await publish('technical-tester', original)).status).toBe(200);
+    expect((await publish('test-manager', careerPathSeeds['test-manager'])).status).toBe(200);
+    const changed = { ...original, steps: original.steps.map(step => ({ ...step,
+      actions: step.actions.map(action => action.id === 'foundation-exam'
+        ? { ...action, cvKeywords: [...action.cvKeywords, 'ISTQB CTFL'] } : action),
+    })) };
+    expect((await publish('technical-tester', changed)).status).toBe(200);
+    const published = await (await request('/career-paths/technical-tester')).json();
+    expect(published.steps[0].actions[0].cvKeywords).toContain('ISTQB CTFL');
   });
 
   it('US-P004-AC03 omits private draft catalog titles through a published reference and grants no access', async () => {

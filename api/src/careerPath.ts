@@ -110,7 +110,7 @@ export function careerPathIssues(content: CareerPathContent, courses: Course[], 
   const actions = new Map<string, string>();
   // Order in a set/bundle is presentation only; semantic identities must agree.
   const signature = (step: typeof content.steps[number]) => JSON.stringify({
-    actions: [...step.actions].sort((a, b) => a.id.localeCompare(b.id)),
+    actions: step.actions.map(({ cvKeywords, ...identity }) => identity).sort((a, b) => a.id.localeCompare(b.id)),
     bundles: step.requirementBundles.map(bundle => [...bundle].sort()).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
     prerequisites: [...step.prerequisiteStepIds].sort(),
   });
