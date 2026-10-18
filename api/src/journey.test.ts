@@ -163,4 +163,20 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect(removed).toMatchObject({ followedPathIds: ['test-manager'], focusPathId: null, achievements: role.achievements });
     expect((await auth.findById(student.id))!.enrolledCourseIds).toEqual(enrollments);
   });
+
+  it('US-L023-AC02 US-L023-AC05 a learner saves a CV finding out of order', async () => {
+    const before = await (await request('/users/me/careers', student)).json();
+    expect(before.milestoneStates['advanced-test-manager']).toBe('locked');
+    expect(before.milestoneStates['test-manager-role']).not.toBe('achieved');
+    const response = await request('/users/me/achievements/cv', student, 'POST', {
+      actionIds: ['advanced-test-manager-exam'],
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    const saved = await response.json();
+    expect(saved.milestoneStates['advanced-test-manager']).toBe('achieved');
+    expect(saved.achievements).toContainEqual({ actionId: 'advanced-test-manager-exam', provenance: 'cv', declaredAt: expect.any(String) });
+    expect(saved.milestoneStates['test-manager-role']).toBe(before.milestoneStates['test-manager-role']);
+    expect(await (await request('/users/me/careers', student)).json()).toEqual(saved);
+  });
 });
