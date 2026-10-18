@@ -1419,3 +1419,20 @@ including 20 new regressions; final independent review clear. Original defect
 bytes were preserved. Live Mongo cancellation/TTL/majority, hosted login/quotas
 and deployed browser messages remain unverified. No outside-file change needed.
 No shared services, real mail, fixed-port servers, push or deployment; Codex stopped.
+### DEF-PAGES-MONGO - Pages refuses configured MongoDB account storage
+
+State: In progress. Severity P2. Owner Codex. Reported by Alex 2026-10-18;
+main, base 90d9fdf. Contract: [hosted-check spec](specs/DEF-PAGES-MONGO-hosted-check.md).
+
+Evidence: Alex's Pages log repeats "Hosted API must use configured Google Sheets auth
+storage before Pages deploys" on all 12 attempts and exits 1. The completed US-P014
+cutover records hosted /health/auth with store: mongodb. .github/workflows/pages.yml
+still compares /health/config auth.storage only with google-sheets, rejecting healthy
+MongoDB auth. The actual inline workflow program reproduced this failure with synthetic
+{ auth: { configured: true, storage: 'mongodb' } }; no live request was needed.
+
+The new pagesWorkflow.test.ts regression first failed for configured MongoDB and transient
+HTTP recovery to MongoDB (2 failed, 8 passed). Allowing configured google-sheets or mongodb
+makes all 10 cases pass. Memory, unavailable/unknown storage, missing/unconfigured auth and
+HTTP failures remain refused. The separate auth health check and retry budget are unchanged.
+Full API suite and local delivery commit are pending. A real hosted Pages rerun is unverified.

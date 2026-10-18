@@ -4,6 +4,15 @@ Updated: 2026-10-18. Working branch: `main`. Original audited base: `6e19213`.
 
 ## Active work
 
+**2026-10-18 — DEF-PAGES-MONGO, Pages deploy guard after the account cutover (Codex).**
+Selected by Alex's failing workflow log. Owner Codex; `main`, base `90d9fdf`.
+Scope: `.github/workflows/pages.yml`, isolated workflow regression, defect/spec/queue
+records and required version lines. Fix verified: configured MongoDB and Sheets pass;
+memory/unconfigured auth still fail. Checks: 10 workflow regressions, 1653 API tests /
+67 files, diff check. Local fixing commit next; its hash will follow immediately.
+Not verified: actual hosted Pages rerun. Next: authorized push and hosted workflow check.
+No shared-service calls, push or workflow rerun.
+
 **Session 2026-10-18 — started by Alex with "Next job I want you to work on is US-L017".**
 Branch: `main`. Base: `611eede`. US-L017 depends on US-A004, L019, L020 and L021, and the spec
 was unreviewed; Alex chose "Approve, build release" (spec approved with its proposed defaults).
