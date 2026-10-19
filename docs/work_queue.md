@@ -16,7 +16,6 @@ Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| US-P016 defaults | Confirm or change: freezes kept, migration commands removed (still in `d1cdcb9`), shared runs without MongoDB answer "unavailable", `--allow-demo` removed. (Unused Vercel settings removed by Alex 2026-10-19.) | Reply "confirmed" or name the change |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-P008 (limits), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate
