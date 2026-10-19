@@ -184,6 +184,7 @@ export function reviewedRepositories(metadata: CourseRepository, content: Course
     listCourseReviewSummaries: ids => content.listCourseReviewSummaries(ids),
     deleteCourseContent: id => content.deleteCourseContent(id), saveCourseReview: (id, workflow) => content.saveCourseReview(id, workflow),
     withCourseMutationLock: (id, operation) => content.withCourseMutationLock(id, operation),
+    listCourseMutationLocks: () => content.listCourseMutationLocks(),
     getCourseContent: async id => {
       const doc = await content.getCourseContent(id);
       if (!doc) return null;
