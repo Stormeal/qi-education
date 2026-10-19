@@ -6,7 +6,18 @@ messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-19: US-L014 email confirmation (`aa93792` API,
+**US-P017 back up and restore MongoDB.** Base `16ec47d`, branch `main`. Decisions in
+[the story](user_stories.md).
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | Assigned 2026-10-19 |
+| Claude Code | Runbook, storage spec, review | `docs/**` | In progress |
+
+Next: Codex delivers the commands; Claude reviews, then Alex runs the first real backup and a
+scratch restore.
+
+Previously: pushed to `main` on 2026-10-19: US-L014 email confirmation (`aa93792` API,
 Codex; `9cd3cbf` app). Checks on `de90ee6`: `api:test` 1,600/1,600, `app:test` 392/392,
 `verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers (signup,
 Home notice, link from the mail, notice gone after reload).

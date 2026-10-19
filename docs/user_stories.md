@@ -16,6 +16,7 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | Product decisions | Below |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
+| US-P017 | Back up and restore MongoDB | In progress | P1 | None | Below |
 | US-P005 | Operator tooling for course lock recovery | Proposed | P2 | Operator permissions decision | Below |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
@@ -148,6 +149,42 @@ Feature: Verified course operation recovery
     When recovery is requested
     Then ownership remains in place with a concrete investigation action
     And the operator can use the verified manual recovery procedure
+```
+
+### US-P017 — Back up and restore MongoDB
+
+**As the team running QI Academy, I want a rehearsed backup and restore of MongoDB, so that losing
+or corrupting the database does not lose every account and course.**
+
+State: In progress (2026-10-19, Alex picked it). Since US-P016 MongoDB is the only live copy of
+accounts and courses; the old sheets stopped at 2026-10-18.
+
+Decisions taken by Claude, **confirm or change**:
+
+- Two commands in the API package using the MongoDB driver already installed (no new tool):
+  `db:backup` exports every collection of the configured database to a folder, one EJSON line per
+  document (dates and binary thumbnails survive), plus a manifest with counts and indexes.
+  `db:restore` loads such a folder into a database that must be empty, recreates the indexes and
+  compares counts. It never overwrites data: a real recovery restores into a new database and
+  then points `MONGODB_DB_NAME` at it.
+- Both need `USE_SHARED_SERVICES=1`. The backup folder must be outside the repository, because it
+  holds password hashes and personal data; the command refuses a folder inside it.
+- Alex runs the first real backup and a restore into a scratch database on the same cluster; the
+  runbook says how and how often (before each release that changes stored data, and monthly).
+
+```gherkin
+Feature: Rehearsed MongoDB backup and restore
+  Scenario: US-P017-AC01 Back up every collection
+    Given the configured MongoDB database
+    When I run the backup command with a folder outside the repository
+    Then every collection is written with its documents, counts and indexes
+    And nothing in the database is changed
+
+  Scenario: US-P017-AC02 Restore into an empty database
+    Given a backup folder
+    When I restore it into an empty database
+    Then every document, count and index matches the backup
+    And restoring into a database that already holds data is refused without writing anything
 ```
 
 ## Adding a story
