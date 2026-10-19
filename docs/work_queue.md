@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. Delivered 2026-10-19, not pushed: US-L001 access policy (`b638953`, price note on the
+None. Pushed to `main` on 2026-10-19 (`776e45c`): US-L001 access policy (`b638953`, price note on the
 course page) and US-P005 course lock inspection (API `df01631` by Codex, build fix `14a9d61`,
 Admin page panel by Claude). Checks: `api:test` 1,686/1,686, `app:test` 397/397,
 `verify:journeys` 16/16, `app:build:pages` and `api:build` pass; Admin panel checked in the
@@ -29,6 +29,8 @@ US-P003 multi-instance writes). Ask which one, with defaults.
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
+- Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
 - Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.
 - Mux: real upload, webhook delivery, processing delay and public playback on the hosted site; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
