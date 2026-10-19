@@ -39,6 +39,16 @@ backup that nothing reads.
 - The Sheets-to-MongoDB copy commands were removed in US-P016; the cutover runbooks are in
   [history/release](../../history/release/) and commit `d1cdcb9` has the code.
 
+## Backup and restore
+
+`npm --prefix api run db:backup -- --out <folder>` writes every collection of the configured
+database to a folder outside the repository (one EJSON document per line plus `manifest.json`
+with counts and indexes); it changes nothing in MongoDB. `db:restore -- --from <folder> --into
+<database>` loads a backup into a database with no documents and no extra indexes, compares every
+count and only then recreates the indexes. Both need `USE_SHARED_SERVICES=1`; they never
+overwrite data or print documents. Schedule, commands and recovery:
+[MongoDB backup and restore](../../release/mongodb-backup.md) (US-P017).
+
 ## Health and diagnostics
 
 - `GET /health`, `/health/config`, `/health/auth` (`{ status, store, readOnly }`), `/health/content`.
@@ -48,6 +58,6 @@ backup that nothing reads.
 ## Code
 
 - API: `config.ts`, `authStore.ts`, `courseStore.ts`, `mongo.ts`, `googleSheets.ts`, the
-  `*Repository.ts` files, `health/`.
+  `*Repository.ts` files, `databaseBackup.ts`, `databaseBackupCommand.ts`, `health/`.
 - Scripts: `scripts/doctor.mjs`, `scripts/run-app-dev.mjs`.
 - Setup: [local_development.md](../../local_development.md).

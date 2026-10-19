@@ -6,22 +6,9 @@ messages hold them.
 
 ## Active work
 
-**US-P017 back up and restore MongoDB.** Base `16ec47d`, branch `main`. Decisions in
-[the story](user_stories.md).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | API review fix done 2026-10-19; branch `main`, base `729a510`, fix `6e6470e` (initial delivery `93c841f`); US-P017-AC02 now inserts all collections, verifies all counts, then creates manifest indexes. Immediate-expiry TTL double reproduced failure before fix and passes afterwards; 58 targeted tests passed; full `npm run api:test` 71 files / 1,658 tests passed; `npm run api:build` passed. Success messages unchanged. No shared services or push. Next: Claude review; Alex real backup/scratch restore rehearsal |
-| Claude Code | Runbook, storage spec, review | `docs/**` | In progress |
-
-Next: Codex fixes the review finding (returned 2026-10-19: create indexes only after the final
-count check, so expiry indexes cannot delete restored documents first); then Alex runs the first
-real backup and a scratch restore.
-
-Previously: pushed to `main` on 2026-10-19: US-L014 email confirmation (`aa93792` API,
-Codex; `9cd3cbf` app). Checks on `de90ee6`: `api:test` 1,600/1,600, `app:test` 392/392,
-`verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers (signup,
-Home notice, link from the mail, notice gone after reload).
+None. Delivered locally on 2026-10-19, not pushed: US-P017 MongoDB backup and restore (`93c841f`
+and `6e6470e` commands, Codex; runbook `d90b650`/`729a510`). Checks on `29df0c2`: `api:test`
+1,658/1,658, `app:test` 392/392, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
 
 ## Waiting on Alex
 
@@ -29,12 +16,14 @@ Home notice, link from the mail, notice gone after reload).
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
+| First MongoDB backup and test restore (US-P017) | Follow [MongoDB backup and restore](release/mongodb-backup.md): "Before the first run", "Take a backup", then "Rehearse a restore". Also confirm or change the defaults: backups outside the repo, restore only into an empty database, schedule before data-changing releases and monthly | Both final lines ("Backup complete…", "Restore verified…") pasted to Claude with the same numbers |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate
 
-A backup and restore rehearsal for MongoDB, now the only live copy of accounts and courses, was
-suggested on 2026-10-18 but is not yet a story.
+Every open story waits on a decision by Alex (US-A004 curriculum, US-L001 access rules, US-P001
+browser runner, US-P003 multi-instance writes, US-P005 operator tooling). Ask which one, with
+defaults.
 
 ## Open release checks
 
