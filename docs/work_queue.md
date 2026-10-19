@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on 2026-10-19, not pushed: US-L014 email confirmation (`aa93792` API,
+None. Pushed to `main` on 2026-10-19: US-L014 email confirmation (`aa93792` API,
 Codex; `9cd3cbf` app). Checks on `de90ee6`: `api:test` 1,600/1,600, `app:test` 392/392,
 `verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers (signup,
 Home notice, link from the mail, notice gone after reload).
