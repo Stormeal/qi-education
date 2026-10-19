@@ -28,7 +28,6 @@ None.
 | --- | --- | --- | --- |
 | INV-003 | Overlapping signup or enrollment across several API instances. Single-instance races are fixed (DEF-023/024); MongoDB accounts now add a unique email index and `$addToSet` enrollment | Decide whether the MongoDB guarantees close it, then confirm with two isolated instances | US-P003-AC04 |
 | INV-004 | Feedback triage creates the GitHub issue before saving its link; a retry on another instance or after a restart can create a second issue (same-instance retry fixed, DEF-025) | Fail the link save after a stub issue, retry on a fresh instance, count issues | US-P003-AC04 |
-| INV-014 | Signup and per-client attempts are unlimited (per-account sign-in limit delivered, DEF-033/034) | Scripted signups against a local instance; agree limits first | US-P008-AC05 |
 | INV-019 | A hosted video lesson kept spinning on the learning page (Alex, 2026-10-17); not reproduced locally, possibly a side effect of DEF-043 | Open the same hosted lesson after the DEF-043 fix; if it still spins, copy the console and `mux-player` network requests | Learning page |
 
 ## New defect record

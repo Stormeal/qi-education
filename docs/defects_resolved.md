@@ -464,6 +464,14 @@ hosted release checks remain separate; no push/deployment for this delivery.
 
 ## Investigations requiring further evidence
 
+### INV-014 signup and per-client attempts were unlimited
+
+Resolved 2026-10-19 by US-P008 (`b227896` API, Codex; `9e3d8bd` app specs, Claude). Per network
+address: 10 reset requests and 20 signups per clock hour, 429 `too-many-requests` with
+`Retry-After`. Checks: `api:test` 1,554/1,554, `app:test` 383/383, `verify:journeys` 16/16,
+`app:build:pages`; browser check on the isolated servers (11th reset request shows the wait and
+keeps the form). Not checked: the hosted API behind Vercel's `x-forwarded-for`.
+
 ### Confirmed API class-load defects (Codex, 2026-10-09)
 
 Baseline: main / f8d4c2f. Isolated HTTP/in-memory stores and counting Google API

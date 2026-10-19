@@ -6,19 +6,9 @@ messages hold them.
 
 ## Active work
 
-**US-P008 per-client limits for reset requests and signups.** Base `e15d4e0`, branch `main`.
-Decisions in [the story](user_stories.md); closes INV-014 once delivered.
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | API limits, storage, API tests | `api/**`; [handoff](handoffs/US-P008-codex.md) | API done 2026-10-19; delivery `b227896`, branch `main`, base `6f607cb`; US-P008-AC05/AC06 (INV-014). Defaults: signup 20/reset 10 per client/hour, hashed keys, memory/Mongo atomic counts + TTL, fail-open, exact 429/Retry-After; injectable via `clientLimitOptions`/`clientLimitRepository`. Checks: `npm run api:test` 1,554/1,554; `npm run api:build` pass; `npm run verify:journeys` 16/16; 36 new client-limit tests. Isolated memory/Mongo doubles only; no shared services or push. Next: Claude browser check, fold account specs, close US-P008/INV-014. |
-| Claude Code | App regression specs for the 429 message, browser check, docs | `app/**`, `docs/**` | Waiting for Codex's API |
-
-Next: Codex delivers the API; Claude adds app specs, browser-checks on 3001/4200, folds the spec.
-
-Previously: pushed to `main` on 2026-10-19: `947f7a5` (CI spec fix) and US-P016 (`6812730` doctor,
-Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
-`app:test` 381/381, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
+None. Delivered locally on 2026-10-19, not pushed: US-P008 per-client limits (`b227896` API,
+`9e3d8bd` app specs). Checks on `73f1cf8`: `api:test` 1,554/1,554, `app:test` 383/383,
+`verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers.
 
 ## Waiting on Alex
 
@@ -26,7 +16,8 @@ Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-P008 (limits), US-L001 (preview, archive access, payment) | Decision recorded in the story |
+| US-P008 limits | Confirm or change: 10 reset requests and 20 signups per network address per clock hour (offered 5/5; raised for classrooms on one network) | Reply "confirmed" or name new numbers |
+| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate
 
@@ -37,6 +28,7 @@ suggested on 2026-10-18 but is not yet a story.
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Per-client limits (US-P008) on the hosted API: the 11th reset request from one network within an hour answers 429.
 - Mux: real upload, webhook delivery, processing delay and public playback on the hosted site; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).

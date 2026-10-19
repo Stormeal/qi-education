@@ -15,6 +15,14 @@ Both send a notice so the owner hears about the change.
   cancels every other open link for that account and sends a "password changed" notice.
 - **Mail limit**: at most three reset mails per account per rolling hour, counted across API
   instances. Failed or uncertain sends still use up their slot.
+- **Per-client limit** (US-P008): one network address may send at most 10 valid reset requests per
+  clock hour. A client is the first `x-forwarded-for` entry on the hosted API (set by Vercel) and
+  the connection address elsewhere; only a hash of address and purpose is stored, in
+  `<collection>_client_limits`, and it deletes itself after the hour. Over the limit: 429
+  `too-many-requests` with `Retry-After` and "Too many requests from your network. Try again in N
+  minutes." It is checked after the body validates and before any account lookup, so the answer is the same
+  whether or not the account exists. If the
+  limit store fails, the request goes ahead (fail-open, warning logged).
 - **Change password** (`POST /users/me/password`, every role): checks the current password first
   (wrong answers 400 `current-password-incorrect`, never 401), then the policy and that the new
   password differs. On success (204) unused reset links are cancelled and a notice is sent;
@@ -33,11 +41,12 @@ Both send a notice so the owner hears about the change.
 ## Code
 
 - API: `passwordResetRoutes.ts`, `passwordResetDelivery.ts`, `passwordResetRepository.ts`,
+  `clientLimit.ts`, `clientLimitRepository.ts`,
   `changePasswordRoutes.ts`, `mailSender.ts`.
 - App: `pages/password-reset-page/`, the password section of `pages/profile-page/`.
 - Settings: `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`, `APP_PUBLIC_URL`.
 
 ## Limits
 
-- No per-client or confirmation-mail limits yet (US-P008-AC05).
+- The admin reset link is not limited per client (admins only).
 - No current-password attempt limit on password change.

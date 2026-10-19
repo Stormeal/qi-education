@@ -18,7 +18,6 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P005 | Operator tooling for course lock recovery | Proposed | P2 | Operator permissions decision | Below |
-| US-P008 | Limit client reset requests and signups | In progress | P2 | None (limits chosen 2026-10-19) | Below, INV-014 |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -90,6 +89,8 @@ and nobody can register with my address.**
 
 State: Proposed, for later. Source: Alex, 2026-10-11. Decisions: whether an unconfirmed account may
 sign in and enroll, how long the link is valid, and what happens to existing accounts.
+It must add
+its own per-address and per-client mail limit (moved here from US-P008 on 2026-10-19).
 
 ```gherkin
 Feature: Email confirmation
@@ -173,49 +174,6 @@ Feature: Verified course operation recovery
     When recovery is requested
     Then ownership remains in place with a concrete investigation action
     And the operator can use the verified manual recovery procedure
-```
-
-### US-P008 — Limit client reset requests and confirmation mail
-
-**As a maintainer, I want the live service to refuse abuse, so that a guessing script cannot flood
-mailboxes or exhaust the service.**
-
-State: In progress (2026-10-19, Alex picked it). Per-account sign-in limits and the
-three-mails-per-hour reset limit are delivered (see
-[sign-in and sessions](specs/accounts/sign-in-and-sessions.md) and
-[passwords and email](specs/accounts/passwords-and-email.md)). This increment adds per-client
-limits for reset requests and signups.
-
-Decisions taken by Claude, **confirm or change**:
-
-- A client is one network address: on the hosted API the first `x-forwarded-for` entry set by
-  Vercel, elsewhere the connection address. Only a hash of address and purpose is stored, and it
-  deletes itself after the window.
-- Limits per client per one-hour window: **10 reset requests** and **20 signups**. Alex was offered
-  5 and 5; raised so a class signing up from one office or school network is not blocked. The
-  per-account limit of three reset mails per hour stays.
-- Counted after the body is valid (a typo answered 400 does not count) and before any account
-  lookup, so the 429 is the same whether or not an account exists.
-- Over the limit: 429 `{ message, code: 'too-many-requests' }` with `Retry-After`; the message
-  names the minutes left, and the app shows it as it does today for other failures.
-- Limit storage unavailable: the request goes ahead and a warning is logged (fail-open, like the
-  sign-in limit).
-- Confirmation mail is not limited here: it does not exist until US-L014, which must add its limit.
-
-```gherkin
-Feature: Safe operation of the live service
-  Scenario: US-P008-AC05 Limit client reset requests
-    Given one client has sent 10 valid reset requests within the hour
-    When it sends another, for an existing or an unknown address
-    Then the answer is 429 with the minutes to wait, identical for both addresses
-    And no reset mail is sent
-    And a request from another client is still accepted
-
-  Scenario: US-P008-AC06 Limit signups per client
-    Given one client has sent 20 valid signup requests within the hour
-    When it sends another
-    Then the answer is 429 with the minutes to wait and no account is created
-    And the signup form shows that message
 ```
 
 ## Adding a story
