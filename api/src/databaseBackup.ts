@@ -180,15 +180,17 @@ export async function restoreDatabase(database: RestoreDatabase, folder: string,
       batch.push(item.document); bytes += item.bytes;
     }
     await flush();
-    const definitions = indexes.get(entry.name)!;
-    if (definitions.length) await collection.createIndexes(definitions);
     if (inserted !== entry.count) throw new DatabaseBackupError('Restored document count does not match its manifest.');
     total += inserted;
     options.log?.(`${entry.name}: ${inserted} documents`);
   }
-  // Compare all collections after all writes and index creation, including TTL.
+  // Verify all counts before any TTL index can expire restored documents.
   for (const entry of manifest.collections) {
     if (await database.collection(entry.name).countDocuments() !== entry.count) throw new DatabaseBackupError('Restored document count does not match its manifest.');
+  }
+  for (const entry of manifest.collections) {
+    const definitions = indexes.get(entry.name)!;
+    if (definitions.length) await database.collection(entry.name).createIndexes(definitions);
   }
   return { collections: manifest.collections.length, documents: total, database: database.databaseName };
 }

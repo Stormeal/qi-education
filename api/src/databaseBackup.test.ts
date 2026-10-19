@@ -136,7 +136,36 @@ describe('US-P017-AC02 restore preflight and verification', () => {
     await expect(restoreDatabase(target.database, folder)).rejects.toThrow('count does not match');
     expect(writes(target)).toEqual([]);
   });
-  it('reports a final database count mismatch after insertion and index recreation', async () => {
+  it('verifies every collection before creating indexes that immediately expire restored documents', async () => {
+    const folder = await temporary();
+    const source = fakeBackupDatabase('source', {
+      first: { documents: [{ _id: 'expired', expiresAt: new Date(0) }], indexes: [
+        { name: 'expiry', key: { expiresAt: 1 }, expireAfterSeconds: 0 },
+      ] },
+      last: { documents: [{ _id: 'kept', title: 'unique' }], indexes: [
+        { name: 'unique_title', key: { title: 1 }, unique: true },
+      ] },
+    });
+    await backupDatabase(source.database, folder);
+    const target = fakeBackupDatabase('target');
+    const collection = target.database.collection.bind(target.database);
+    target.database.collection = name => {
+      const handle = collection(name);
+      return { ...handle, async createIndexes(indexes) {
+        await handle.createIndexes(indexes);
+        if (indexes.some(index => index.expireAfterSeconds !== undefined)) target.data.get(name)!.documents.length = 0;
+      } };
+    };
+    await expect(restoreDatabase(target.database, folder)).resolves.toEqual({ collections: 2, documents: 2, database: 'target' });
+    expect(target.events.filter(event => ['insert', 'count', 'indexes'].includes(event.operation))
+      .map(event => `${event.operation}:${event.name}`)).toEqual([
+      'insert:first', 'insert:last', 'count:first', 'count:last', 'indexes:first', 'indexes:last',
+    ]);
+    expect(target.data.get('first')!.documents).toHaveLength(0);
+    expect(target.data.get('first')!.indexes.some(index => index.name === 'expiry')).toBe(true);
+    expect(target.data.get('last')!.indexes.some(index => index.name === 'unique_title')).toBe(true);
+  });
+  it('reports a final database count mismatch after insertion', async () => {
     const folder = await archive(), target = fakeBackupDatabase('target');
     target.setCountResult((_name, count) => count - 1);
     await expect(restoreDatabase(target.database, folder)).rejects.toThrow('count does not match');
