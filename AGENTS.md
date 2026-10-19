@@ -41,7 +41,7 @@ or names an old ID. Keep this table identical to the one in `CLAUDE.md`.
 | career editor, publish/withdraw career, convert to milestone format, curriculum | `specs/career-paths/curation.md`, `stories/US-A004-curriculum-review.md` |
 | admin users, role change, disable account, admin reset link, change log | `specs/admin/users.md` |
 | feedback, triage, GitHub issue, feedback inbox | `specs/admin/feedback.md` |
-| MongoDB, Google Sheets, store, in-memory, isolated, `USE_SHARED_SERVICES`, health, doctor, migrate, read-only freeze | `specs/platform/storage-and-run-modes.md` |
+| MongoDB, Google Sheets, store, in-memory, isolated, `USE_SHARED_SERVICES`, health, doctor, migrate, read-only freeze, backup, restore | `specs/platform/storage-and-run-modes.md` |
 | lock, `withCourseLock`, concurrency, race, retry, queue, cache, `Cache-Control`, error response | `specs/platform/reliability.md` |
 | CI, GitHub Pages, Vercel, deploy, push, version bump, git hook | `specs/platform/deployment-and-checks.md` |
 | button, tabs, chip, progress bar, focus ring, colour, design value, `tailwind.css`, accessibility | `specs/platform/ui-foundation.md` |
