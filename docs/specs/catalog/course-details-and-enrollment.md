@@ -8,7 +8,8 @@ A learner reads what a course offers, then joins it so it appears in My Learning
 
 - `/courses/:id` shows the description, what you'll learn, requirements, who it is for, the
   course content outline (lesson titles only), what the course includes, the instructor, the
-  price and an **Enroll** action with a confirmation.
+  price and an **Enroll** action with a confirmation. A course with a price says "Price for
+  information only. Enrolling is free." under it.
 - Anyone can read a published course's details and outline. Owners and admins can also open
   their unpublished courses. A learner already enrolled in an archived course keeps access.
 - **Enroll** (`POST /users/me/courses/:id`) requires a signed-in active account and a published
@@ -23,6 +24,9 @@ A learner reads what a course offers, then joins it so it appears in My Learning
 ## Rules
 
 - Enrollment never comes from a career path, a declaration or a price.
+- Access policy (US-L001, 2026-10-19): the public preview is the outline only (titles, types,
+  durations); a learner enrolled before archival keeps full access while nobody new can enroll;
+  a price is informational and enrolling never takes payment.
 - Draft lesson content and quiz answers are never sent to anyone but owners and admins.
 
 ## Code
@@ -34,5 +38,5 @@ A learner reads what a course offers, then joins it so it appears in My Learning
 
 ## Limits
 
-- Open product decisions in US-L001: public preview limits, access after archival, and whether a
-  price should ever require payment.
+- No payment system and no free preview lessons. Tests: LC-03/LC-04 in
+  `api/src/courseLifecycle.test.ts`, the price note in `course-view-page.spec.ts`.

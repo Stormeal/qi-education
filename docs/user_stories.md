@@ -13,7 +13,6 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
-| US-L001 | Enroll and learn through authorized access | In progress | P1 | Alex: confirm defaults | Below |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P005 | Operator tooling for course lock recovery | In progress | P2 | Alex: confirm defaults | [stories/US-P005](stories/US-P005-lock-inspection.md) |
@@ -48,42 +47,6 @@ Feature: Credible career milestone curation
     When I publish a material change to milestone criteria
     Then changed criteria use explicit requirement versions and an update explanation
     And historical evidence, goals and enrollments remain stored
-```
-
-## Learner journey
-
-### US-L001 — Enroll and learn through authorized access
-
-**As a learner, I want to access published courses I have joined, so that my learning library
-contains material I am authorized to use.**
-
-State: In progress (started 2026-10-19). Published-only enrollment, authorized content and
-resources, the public outline and direct-URL resume are delivered and tested (LC-03/04 in
-`api/src/courseLifecycle.test.ts`). Decisions taken by the lead from the defaults Alex chose
-(Alex: confirm or change):
-
-- Public preview: the outline only (lesson titles, types and durations). No free lessons.
-- Archival: a learner enrolled before archival keeps full access; nobody new can enroll.
-- Price: informational only. Enrolling is free and takes no payment; the course page says so
-  next to a price. No payment system is planned.
-
-```gherkin
-Feature: Enrollment and learning access
-  Scenario: US-L001-AC01 Join a published eligible course
-    Given I am signed in and the course is published and meets the agreed access policy
-    When I enroll twice
-    Then one enrollment exists and the course appears once in My Learning
-
-  Scenario: US-L001-AC02 Deny unpublished enrollment
-    Given a course is draft, ready-for-review, or archived
-    When I attempt a new enrollment directly through the API
-    Then the action is denied and my library is unchanged
-
-  Scenario: US-L001-AC03 Protect full course content
-    Given I am anonymous or not entitled to the course
-    When I request its learning content or resources
-    Then only the agreed public preview is available
-    And draft lesson content and quiz scoring answers are not disclosed
 ```
 
 ## Platform reliability

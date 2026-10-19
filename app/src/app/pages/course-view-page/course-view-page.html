@@ -252,6 +252,9 @@
             <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
             <h2>{{ currentCourse.title }}</h2>
             <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
+            @if (currentCourse.priceDkk !== null) {
+              <p class="course-price-note price-field-note">Price for information only. Enrolling is free.</p>
+            }
             <div class="course-price-meta">
               <span>{{ ratingLabel(currentCourse.rating) }}</span>
               <span>{{ ratingCountLabel(currentCourse.ratingCount) }}</span>

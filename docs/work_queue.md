@@ -11,7 +11,7 @@ US-P005 alongside it.
 
 | Owner | Item | Scope and files | State |
 | --- | --- | --- | --- |
-| Claude Code | US-L001 AC01–03 | "No payment" note on priced courses (`app/src/app/pages/course-view-page/**`); close the story in `docs/user_stories.md`, `docs/specs/catalog/`, `docs/specs/learning/` | In progress |
+| Claude Code | US-L001 AC01–03 | Delivered 2026-10-19: price note on the course page, story folded into `docs/specs/catalog/course-details-and-enrollment.md` | Done; Alex confirms the defaults |
 | Codex | US-P005 AC01–04 API | `GET /admin/course-locks`, read-only; files in [handoff](handoffs/US-P005-lock-inspection-codex.md) | Handed over |
 | Claude Code | US-P005 Admin panel | Course locks panel on the Admin page against the handoff contract (`app/`) | After Codex commits |
 
