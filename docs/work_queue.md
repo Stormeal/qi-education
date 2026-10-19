@@ -16,7 +16,6 @@ None. Pushed to `main` on 2026-10-19: US-P008 per-client limits (`b227896` API,
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| US-P008 limits | Confirm or change: 10 reset requests and 20 signups per network address per clock hour (offered 5/5; raised for classrooms on one network) | Reply "confirmed" or name new numbers |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate
