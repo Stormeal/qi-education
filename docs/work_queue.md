@@ -11,7 +11,7 @@ messages hold them.
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | Assigned 2026-10-19 |
+| Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | API done 2026-10-19; branch `main`, base `d90b650` (includes `22a72d4`), delivery `93c841f`; US-P017-AC01/AC02: 57 isolated command/round-trip/refusal tests, full `npm run api:test` 71 files / 1,657 tests passed, `npm run api:build` passed, review resolved unexpected target TTL indexes. No shared services or push. Next: Claude reviews runbook line 95 (all target collections must have no documents and only default indexes); Alex performs real backup/restore rehearsal |
 | Claude Code | Runbook, storage spec, review | `docs/**` | In progress |
 
 Next: Codex delivers the commands; Claude reviews, then Alex runs the first real backup and a
