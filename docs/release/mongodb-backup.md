@@ -106,4 +106,4 @@ nothing more is lost while you recover.
 
 | Date | Backup (collections, documents) | Restore verified | By |
 | --- | --- | --- | --- |
-| Not yet run | | | |
+| 2026-10-19 | 16 collections, 65 documents, 11.6 MB | 16 collections, 65 documents into `qi-restore-rehearsal` | Alex (ProtonVPN on, via `scripts/mongodb-backup.ps1`) |

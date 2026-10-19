@@ -16,7 +16,7 @@ and `6e6470e` commands, Codex; runbook `d90b650`/`729a510`). Checks on `29df0c2`
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| First MongoDB backup and test restore (US-P017) | Follow [MongoDB backup and restore](release/mongodb-backup.md): "Before the first run", "Take a backup", then "Rehearse a restore". Also confirm or change the defaults: backups outside the repo, restore only into an empty database, schedule before data-changing releases and monthly | Both final lines ("Backup complete…", "Restore verified…") pasted to Claude with the same numbers |
+| US-P017 defaults | Confirm or change: backups outside the repo, restore only into an empty database, schedule before data-changing releases and monthly. Drop `qi-restore-rehearsal` in Atlas if not done yet | Reply "confirmed" |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate
