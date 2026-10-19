@@ -19,12 +19,14 @@
   <header class="admin-hero">
     <div class="admin-hero-copy">
       <p class="eyebrow">Admin</p>
-      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : section() === 'users' ? 'User management' : 'Career paths' }}</h1>
+      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : section() === 'users' ? 'User management' : section() === 'locks' ? 'Course locks' : 'Career paths' }}</h1>
       <p>
         {{ section() === 'feedback'
           ? 'Review user feedback, spot friction, and prioritize follow-up work.'
           : section() === 'users'
             ? 'Find a user, change their role, or send them a link for choosing a new password.'
+          : section() === 'locks'
+            ? 'A save holds its course until it finishes. A lock frees itself 31 minutes after it was taken; one that needs manual recovery never does.'
           : section() === 'instructors'
             ? 'Teachers write these in their profile. They are public as soon as they are saved; clear one that is unsuitable.'
             : 'Curate the paths learners can follow. Nothing reaches learners until you publish.' }}
@@ -39,6 +41,12 @@
           (click)="feedbackReloaded.emit()"
         >
           {{ feedbackLoading() ? 'Refreshing...' : 'Refresh' }}
+        </button>
+      </div>
+    } @else if (section() === 'locks') {
+      <div class="admin-hero-actions">
+        <button appButton="primary" [disabled]="locksState() === 'loading'" (click)="loadLocks()">
+          {{ locksState() === 'loading' ? 'Refreshing...' : 'Refresh' }}
         </button>
       </div>
     }
@@ -56,6 +64,9 @@
     </button>
     <button type="button" [attr.aria-current]="section() === 'users' ? 'page' : null" (click)="selectSection('users')">
       User management
+    </button>
+    <button type="button" [attr.aria-current]="section() === 'locks' ? 'page' : null" (click)="selectSection('locks')">
+      Course locks
     </button>
   </nav>
 
@@ -302,6 +313,42 @@
             </li>
           }
         </ul>
+      }
+    </section>
+  } @else if (section() === 'locks') {
+    <section class="admin-panel" aria-label="Course locks">
+      @if (locksState() === 'loading') {
+        <app-loading-skeleton variant="stat-card" [count]="2" />
+      } @else if (locksState() === 'error') {
+        <p class="admin-user-error admin-lock-error" role="alert">{{ locksError() }}</p>
+      } @else {
+        <p class="admin-instructor-message" role="status">Checked {{ locksCheckedAt() | date: 'd MMM y, HH:mm:ss' }}</p>
+        @if (locks().length === 0) {
+          <p class="admin-lock-empty">No course is locked right now.</p>
+        } @else {
+          <ul class="admin-lock-list">
+            @for (lock of locks(); track lock.courseId) {
+              <li [class.admin-lock-recovery]="lock.state === 'needs-recovery'">
+                <div class="admin-lock-head">
+                  <strong>{{ lock.courseTitle ?? lock.courseId }}</strong>
+                  <span>{{ lockStateLabels[lock.state] }}</span>
+                </div>
+                <dl>
+                  <dt>Course ID</dt><dd><code>{{ lock.courseId }}</code></dd>
+                  <dt>Owner</dt><dd><code>{{ lock.owner }}</code></dd>
+                  <dt>Taken</dt><dd><code>{{ lock.acquiredAt ?? 'missing' }}</code></dd>
+                </dl>
+                <p>
+                  @switch (lock.state) {
+                    @case ('held') { Frees itself at {{ lock.expiresAt | date: 'd MMM y, HH:mm' }}. }
+                    @case ('expired') { Past its expiry. The next save to this course removes it. }
+                    @default { The time it was taken cannot be read, so it never frees itself. Follow the manual steps in the course operation recovery runbook (docs/course_operation_recovery.md). }
+                  }
+                </p>
+              </li>
+            }
+          </ul>
+        }
       }
     </section>
   } @else {

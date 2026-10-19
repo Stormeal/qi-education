@@ -5,9 +5,11 @@ export type AdminUserRole = 'student' | 'teacher' | 'admin';
 export type AdminUser = { id: string; email: string; displayName: string; role: AdminUserRole; status: string; createdAt: string };
 export type AdminUserChange = { id: string; at: string; actor: { id: string; displayName: string };
   target: { id: string; displayName: string; email: string }; field: 'role' | 'status'; from: string; to: string };
+export type CourseLock = { courseId: string; courseTitle: string | null; owner: string; acquiredAt: string | null;
+  expiresAt: string | null; state: 'held' | 'expired' | 'needs-recovery' };
 export type AdminUsersResult<T> = { ok: true; body: T } | { ok: false; message: string };
 
-/** US-A001: admins search users, change a role and send a password reset link. */
+/** US-A001: admins search users, change a role and send a password reset link. US-P005: read course locks. */
 @Injectable({ providedIn: 'root' })
 export class AdminUsersService {
   private readonly apiClient = inject(ApiClientService);
@@ -31,6 +33,10 @@ export class AdminUsersService {
 
   sendPasswordReset(token: string, userId: string): Promise<AdminUsersResult<{ message: string }>> {
     return this.request(token, `/admin/users/${encodeURIComponent(userId)}/password-reset`, 'POST');
+  }
+
+  courseLocks(token: string): Promise<AdminUsersResult<{ checkedAt: string; locks: CourseLock[] }>> {
+    return this.request(token, '/admin/course-locks');
   }
 
   private async request<T>(token: string, path: string, method = 'GET', body?: unknown): Promise<AdminUsersResult<T>> {

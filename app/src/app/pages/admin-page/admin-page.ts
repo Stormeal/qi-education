@@ -6,7 +6,7 @@ import {
   FeedbackTriageUpdate,
   StudentSummary,
 } from '../../app.models';
-import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService } from '../../services/admin-users.service';
+import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService, CourseLock } from '../../services/admin-users.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
@@ -20,13 +20,13 @@ type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 type FeedbackTab = 'current' | 'archived';
 const isFeedbackTab = (id: string): id is FeedbackTab => id === 'current' || id === 'archived';
-type AdminSection = 'feedback' | 'career-paths' | 'instructors' | 'users';
+type AdminSection = 'feedback' | 'career-paths' | 'instructors' | 'users' | 'locks';
 const SECTION_KEY = 'qi-education:admin-section';
 
 function storedSection(): AdminSection {
   try {
     const stored = window.sessionStorage.getItem(SECTION_KEY);
-    return stored === 'career-paths' || stored === 'instructors' || stored === 'users' ? stored : 'feedback';
+    return stored === 'career-paths' || stored === 'instructors' || stored === 'users' || stored === 'locks' ? stored : 'feedback';
   }
   catch { return 'feedback'; }
 }
@@ -263,6 +263,24 @@ export class AdminPage {
     const result = await this.instructorProfiles.adminClear(profile.userId);
     this.instructorsMessage.set(result.ok ? `Cleared the description of ${profile.displayName}.` : `Not cleared. ${result.message}`);
     if (result.ok) this.instructors.update((items) => items.filter((item) => item.userId !== profile.userId));
+  }
+
+  // US-P005: read-only. A lock frees itself after its expiry; one that needs recovery follows the manual runbook.
+  protected readonly locks = signal<CourseLock[]>([]);
+  protected readonly locksState = signal<'loading' | 'ready' | 'error'>('loading');
+  protected readonly locksError = signal('');
+  protected readonly locksCheckedAt = signal('');
+  protected readonly lockStateLabels = { held: 'Held', expired: 'Expired', 'needs-recovery': 'Needs manual recovery' } as const;
+  private readonly locksLoader = effect(() => {
+    if (this.section() === 'locks' && this.authToken()) untracked(() => void this.loadLocks());
+  });
+
+  protected async loadLocks(): Promise<void> {
+    this.locksState.set('loading');
+    const result = await this.adminUsers.courseLocks(this.authToken());
+    if (result.ok) { this.locks.set(result.body.locks); this.locksCheckedAt.set(result.body.checkedAt); }
+    else this.locksError.set(result.message);
+    this.locksState.set(result.ok ? 'ready' : 'error');
   }
 
   protected selectSection(section: AdminSection): void {

@@ -182,3 +182,66 @@ describe('US-A001 user management on the Admin page', () => {
     expect(page.rows()).toHaveLength(3);
   });
 });
+
+describe('US-P005 course locks on the Admin page', () => {
+  let reply: () => Response;
+  let urls: string[];
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    sessionStorage.setItem('qi-education:admin-section', 'locks');
+    urls = [];
+    const fetch = async (url: string, init: RequestInit) => {
+      urls.push(`${init.method ?? 'GET'} ${url} ${(init.headers as Record<string, string>)['authorization']}`);
+      return url === '/admin/course-locks' ? reply() : json(404, { message: 'Not found' });
+    };
+    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: ApiClientService, useValue: { fetch } }] });
+  });
+
+  async function render(): Promise<HTMLElement> {
+    const fixture = TestBed.createComponent(AdminPage);
+    const inputs = { appVersion: 'test', currentYear: 2026, student: { name: 'Admin', currentRole: 'Admin', targetRole: '', pathProgress: null },
+      userEmail: 'admin@example.test', userRoleLabel: 'Admin', feedback: [], feedbackLoading: false, feedbackError: '', isFeedbackOpen: false,
+      feedbackSubmitted: false, feedbackPage: '', feedbackRating: '', feedbackText: '', feedbackSubmitting: false, feedbackSubmitError: '',
+      feedbackOptions: [], authToken: 'admin-token', currentUserId: 'admin' };
+    Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
+    const host = fixture.nativeElement as HTMLElement;
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(host.querySelector('.admin-lock-list, .admin-lock-empty, .admin-lock-error')).not.toBeNull();
+    });
+    return host;
+  }
+
+  it('AC01 AC03 AC04 lists each lock with its evidence and what happens next', async () => {
+    reply = () => json(200, { checkedAt: '2026-10-19T10:00:00.000Z', locks: [
+      { courseId: 'broken', courseTitle: null, owner: 'owner-1', acquiredAt: 'yesterday', expiresAt: null, state: 'needs-recovery' },
+      { courseId: 'old', courseTitle: 'Old course', owner: 'owner-2', acquiredAt: '2026-10-19T09:00:00.000Z', expiresAt: '2026-10-19T09:31:00.000Z', state: 'expired' },
+      { courseId: 'busy', courseTitle: 'Busy course', owner: 'owner-3', acquiredAt: '2026-10-19T09:58:00.000Z', expiresAt: '2026-10-19T10:29:00.000Z', state: 'held' },
+    ] });
+    const host = await render();
+    expect(urls).toEqual(['GET /admin/course-locks Bearer admin-token']);
+    const rows = [...host.querySelectorAll<HTMLElement>('.admin-lock-list li')].map((row) => row.textContent!.replace(/\s+/g, ' '));
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toContain('broken');
+    expect(rows[0]).toContain('Needs manual recovery');
+    expect(rows[0]).toContain('owner-1');
+    expect(rows[0]).toContain('yesterday');
+    expect(rows[1]).toContain('Old course');
+    expect(rows[1]).toContain('Expired');
+    expect(rows[2]).toContain('Busy course');
+    expect(rows[2]).toContain('Held');
+    expect(host.querySelector('.admin-lock-list button')).toBeNull();
+  });
+
+  it('says when no course is locked', async () => {
+    reply = () => json(200, { checkedAt: '2026-10-19T10:00:00.000Z', locks: [] });
+    expect((await render()).querySelector('.admin-lock-empty')?.textContent).toContain('No course is locked');
+  });
+
+  it('shows the API message when the list cannot be read', async () => {
+    reply = () => json(503, { message: 'Course locks are temporarily unavailable. Please try again later.' });
+    expect((await render()).querySelector('.admin-lock-error')?.textContent).toContain('temporarily unavailable');
+  });
+});

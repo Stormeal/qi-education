@@ -15,7 +15,6 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
-| US-P005 | Operator tooling for course lock recovery | In progress | P2 | Alex: confirm defaults | [stories/US-P005](stories/US-P005-lock-inspection.md) |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -97,25 +96,6 @@ Feature: Safe account and feedback writes
     Then at most one account exists for a normalized email
     And both requested enrollments persist without duplicates or lost updates
     And triage links the already-created issue
-```
-
-### US-P005 — Recover uncertain course operations safely
-
-**As an operator, I want to reconcile an interrupted course write safely, so that learners regain
-access without a delayed operation overwriting the recovered course.**
-
-State: In progress (started 2026-10-19). Lock expiry after 31 minutes is delivered. Runbook:
-[course operation recovery](course_operation_recovery.md). Now: an admin-only, read-only list of
-course locks; decisions (Alex: confirm or change) and scenarios in
-[stories/US-P005](stories/US-P005-lock-inspection.md).
-
-```gherkin
-Feature: Verified course operation recovery
-  Scenario: US-P005-AC03 Avoid unsupported recovery
-    Given the owner has a malformed timestamp or has not reached the host bound
-    When recovery is requested
-    Then ownership remains in place with a concrete investigation action
-    And the operator can use the verified manual recovery procedure
 ```
 
 ## Adding a story

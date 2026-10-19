@@ -6,14 +6,11 @@ messages hold them.
 
 ## Active work
 
-Started 2026-10-19 from base `5cccf70`, branch `main`. Alex picked US-L001; Codex takes
-US-P005 alongside it.
-
-| Owner | Item | Scope and files | State |
-| --- | --- | --- | --- |
-| Claude Code | US-L001 AC01–03 | Delivered 2026-10-19: price note on the course page, story folded into `docs/specs/catalog/course-details-and-enrollment.md` | Done; Alex confirms the defaults |
-| Codex | US-P005 AC01–04 API | `GET /admin/course-locks`, read-only; files in [handoff](handoffs/US-P005-lock-inspection-codex.md) | API implemented 2026-10-19 in `df01631`; branch `main`, base `2b14a2c`. AC01–04: 28 new scenario tests, 141 targeted tests passed; full `npm run api:test` passed (72 files / 1,686 tests). Read-only review: no further findings. `npm run api:build` BLOCKED TS2741 at `api/src/courseReview.ts:181`: outside assigned files, add `listCourseMutationLocks: () => content.listCourseMutationLocks(),` after line 186, then rerun build. Docs recovery/reliability updated. No shared services, browser or hosted verification; no push. Next: Claude forwards the method and reviews Admin panel integration |
-| Claude Code | US-P005 Admin panel | Course locks panel on the Admin page against the handoff contract (`app/`) | After Codex commits |
+None. Delivered 2026-10-19, not pushed: US-L001 access policy (`b638953`, price note on the
+course page) and US-P005 course lock inspection (API `df01631` by Codex, build fix `14a9d61`,
+Admin page panel by Claude). Checks: `api:test` 1,686/1,686, `app:test` 397/397,
+`verify:journeys` 16/16, `app:build:pages` and `api:build` pass; Admin panel checked in the
+browser on the isolated servers (empty list only; listed states covered by tests).
 
 ## Waiting on Alex
 
@@ -21,12 +18,12 @@ US-P005 alongside it.
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults | Decision recorded in the story |
+| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
 
-Every other open story waits on a decision by Alex (US-A004 curriculum, US-P001 browser
-runner, US-P003 multi-instance writes). Ask which one, with defaults.
+Every open story waits on a decision by Alex (US-A004 curriculum, US-P001 browser runner,
+US-P003 multi-instance writes). Ask which one, with defaults.
 
 ## Open release checks
 

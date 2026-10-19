@@ -18,6 +18,10 @@ false success.
   and `held`, `expired` or `needs-recovery`, malformed timestamps first then oldest acquisition.
   It never acquires, changes or deletes locks and offers no release action; uncertain owners
   require the recovery runbook above.
+  Admin page → **Course locks** shows the same list with a Refresh button (app:
+  `pages/admin-page/`, `AdminUsersService.courseLocks`). Decided 2026-10-19 (Alex: confirm or
+  change): admins only and no release button, because a valid lock frees itself after 31 minutes
+  and earlier release is not supported.
 - **Revision checks**: course saves and review actions carry the loaded revision; career path
   writes may carry `X-Expected-Updated-At`. Stale writes are refused, never merged silently.
 - **Keyed queues** (per API instance): signup by normalized email, enrollment by user, feedback
