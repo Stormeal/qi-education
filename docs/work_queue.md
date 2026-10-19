@@ -6,7 +6,17 @@ messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-19: US-P008 per-client limits (`b227896` API,
+**US-L014 email confirmation at signup.** Base `5e5a65a`, branch `main`. Decisions in
+[the story](user_stories.md).
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | API: flag, tokens, mail, confirm/resend routes, limits, API tests | `api/**`; [handoff](handoffs/US-L014-codex.md) | Assigned 2026-10-19 |
+| Claude Code | App: `/confirm-email` page, Home notice and resend, model and auth service, specs, docs | `app/**`, `docs/**` | In progress |
+
+Next: both parts in parallel; Claude browser-checks once Codex has committed.
+
+Previously: pushed to `main` on 2026-10-19: US-P008 per-client limits (`b227896` API,
 `9e3d8bd` app specs). Checks on `73f1cf8`: `api:test` 1,554/1,554, `app:test` 383/383,
 `verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers.
 

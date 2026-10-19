@@ -14,7 +14,7 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | --- | --- | --- | --- | --- | --- |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-L001 | Enroll and learn through authorized access | Proposed | P1 | Product decisions | Below |
-| US-L014 | Confirm my email address at signup | Proposed | P3 | None | Below |
+| US-L014 | Confirm my email address at signup | In progress | P3 | None (defaults chosen 2026-10-19) | Below |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P005 | Operator tooling for course lock recovery | Proposed | P2 | Operator permissions decision | Below |
@@ -87,24 +87,40 @@ Feature: Enrollment and learning access
 **As a new user, I want to confirm that my email address is mine, so that recovery mail reaches me
 and nobody can register with my address.**
 
-State: Proposed, for later. Source: Alex, 2026-10-11. Decisions: whether an unconfirmed account may
-sign in and enroll, how long the link is valid, and what happens to existing accounts.
-It must add
-its own per-address and per-client mail limit (moved here from US-P008 on 2026-10-19).
+State: In progress (2026-10-19, Alex picked it). Source: Alex, 2026-10-11.
+
+Decisions (defaults Alex accepted when picking the story, 2026-10-19):
+
+- An unconfirmed account can sign in and enroll as before; Home shows a "confirm your address"
+  notice with **Send a new link**.
+- The link works for 24 hours and once. Opening it confirms without signing in (it may be opened
+  on another device).
+- Every account that exists before this release counts as confirmed (no stored flag means
+  confirmed); only new signups start unconfirmed.
+- At most three confirmation mails per account per rolling hour (the signup mail counts), and the
+  per-network limit of US-P008 with 10 resend requests per hour. A failed signup mail does not fail
+  the signup; the person can ask for a new link.
+- Only SHA-256 hashes of confirmation tokens are stored.
 
 ```gherkin
 Feature: Email confirmation
   Scenario: US-L014-AC01 Confirm a new address
     Given I signed up with an email address
-    When I open the confirmation link sent to it
-    Then the account is marked as confirmed
-    And an expired or used link offers to send a new one
+    When I open the confirmation link sent to it within 24 hours
+    Then the account is marked as confirmed and the Home notice disappears
+    And opening the same link again says it is no longer valid and offers a new one
 
   Scenario: US-L014-AC02 An unconfirmed account
     Given I have not confirmed my address
-    When I use the site
-    Then the agreed limits for unconfirmed accounts apply
-    And I can ask for the confirmation mail again
+    When I sign in
+    Then I can use the site as before
+    And Home asks me to confirm and lets me send a new link
+    And a fourth link within the hour is refused with the minutes to wait
+
+  Scenario: US-L014-AC03 Existing accounts
+    Given an account created before this release
+    When it signs in
+    Then it counts as confirmed and sees no notice
 ```
 
 ## Platform reliability
