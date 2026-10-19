@@ -1,9 +1,10 @@
+import { authStoreDouble } from '../test/authStoreDouble.js';
 import { createHash } from 'node:crypto';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authSheetHeaders, authUserToSheetRow, createSessionToken, signupSchema, type AuthUser } from './auth.js';
-import { GoogleSheetsAuthRepository, InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
+import { createSessionToken, signupSchema, type AuthUser } from './auth.js';
+import { InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig } from './config.js';
 import { InMemoryCareerPathRepository } from './careerPathRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
@@ -16,14 +17,7 @@ import { LocalMailSender, type MailSender } from './mailSender.js';
 import { InMemoryPasswordResetRepository } from './passwordResetRepository.js';
 import { createServer } from './server.js';
 
-const sheet = vi.hoisted(() => ({ rows: [] as string[][] }));
-vi.mock('./googleSheets.js', () => ({ createSheetsClient: () => ({ spreadsheets: { values: {
-  get: async () => ({ data: { values: structuredClone(sheet.rows) } }),
-  update: async ({ range, requestBody, valueInputOption }: { range: string; requestBody: { values: string[][] }; valueInputOption: string }) => {
-    expect(valueInputOption).toBe('RAW'); const row = /!D(\d+)$/.exec(range)!;
-    sheet.rows[Number(row[1]) - 1][3] = requestBody.values[0][0]; return {};
-  },
-} } }) }));
+let accounts = authStoreDouble();
 const incorrect = { message: 'Your current password is not correct.', code: 'current-password-incorrect' };
 const invalid = { message: 'This reset link is no longer valid. Request a new one.', code: 'reset-link-invalid' };
 const oldPassword = 'Password123!'; const newPassword = 'Changed456!';
@@ -48,7 +42,7 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
   beforeEach(async () => {
     servers = []; auth = new InMemoryAuthRepository(); tokens = new InMemoryPasswordResetRepository(); mail = new LocalMailSender(() => {});
     users = (await Promise.all(['student', 'teacher', 'admin'].map(role => auth.findByEmail(`${role}@qi-education.local`)))) as AuthUser[];
-    sheet.rows = [[...authSheetHeaders], ...users.map(authUserToSheetRow)]; base = await start();
+    accounts = authStoreDouble(users); base = await start();
   });
   afterEach(async () => { await Promise.all(servers.map(server => new Promise<void>(resolve => server.close(() => resolve())))); vi.restoreAllMocks(); });
   function session(user = users[0], ttl = 3600) { return createSessionToken(user, apiConfig.AUTH_TOKEN_SECRET, ttl); }
@@ -79,13 +73,13 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
     expect(mail.messages).toEqual([{ to: users[index].email, subject: 'Your QI Academy password was changed',
       text: 'Your QI Academy password was changed. If you did not make this change, contact QI Academy support.' }]);
   });
-  it('AC01 exercises the same route with the actual Sheets hash-cell adapter over isolated rows', async () => {
-    const repository = new GoogleSheetsAuthRepository(); const origin = await start(repository);
+  it('AC01 exercises the same route with the actual Mongo adapter over isolated documents', async () => {
+    const repository = accounts.repository(); const origin = await start(repository);
     expect((await change(undefined, session(), origin)).status).toBe(204);
     expect((await post('/auth/login', { email: users[0].email, password: oldPassword }, null, origin)).status).toBe(401);
     expect((await post('/auth/login', { email: users[0].email, password: newPassword }, null, origin)).status).toBe(200);
-    const before = authUserToSheetRow(users[0]); const stored = sheet.rows[1];
-    expect(stored.filter((_, index) => index !== 3)).toEqual(before.filter((_, index) => index !== 3));
+    const stored = (await repository.findById(users[0].id))!;
+    expect({ ...stored, passwordHash: users[0].passwordHash }).toEqual(users[0]);
   });
   it.each(['wrong', '', null, 42, undefined])('AC01/03 rejects current proof %j before invalid or equal new passwords', async currentPassword => {
     const raw = await issue();
@@ -163,8 +157,8 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
     const response = await change(); expect(response.status).toBe(503); expect(await response.json()).toEqual({ message: expect.any(String) });
     expect(write).not.toHaveBeenCalled(); expect(error).not.toHaveBeenCalled();
   });
-  it.each(['memory', 'sheets'])('AC05 rejects a late token claimed after the profile change completed (%s)', async kind => {
-    const repository = kind === 'memory' ? auth : new GoogleSheetsAuthRepository();
+  it.each(['memory', 'mongodb'])('AC05 rejects a late token claimed after the profile change completed (%s)', async kind => {
+    const repository = kind === 'memory' ? auth : accounts.repository();
     const origin = await start(repository); const writeEntered = deferred(); const writeRelease = deferred();
     const consumeEntered = deferred(); const consumeRelease = deferred();
     const write = repository.updatePasswordHash.bind(repository); const consume = tokens.consume.bind(tokens);

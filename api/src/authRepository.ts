@@ -1,7 +1,5 @@
-import { protectCourseWrite } from './courseMutationLock.js';
-import { InFlightRead } from './inFlightRead.js';
 import { randomUUID } from 'node:crypto';
-import { apiConfig, getServicesMode, hasGoogleSheetsConfig, hasMongoConfig, isHostedApi } from './config.js';
+import { apiConfig, getServicesMode, hasMongoConfig } from './config.js';
 import { MongoAuthRepository } from './mongoAuthRepository.js';
 import { accountWriteFreeze, DuplicateAccountError, type AuthStorageType } from './authStore.js';
 export { MongoAuthRepository } from './mongoAuthRepository.js';
@@ -10,12 +8,8 @@ import {
   type AuthUser,
   type UserRole,
   type UserStatus,
-  authUserFromSheetRow,
-  authSheetHeaders,
-  authUserToSheetRow,
   hashPassword
 } from './auth.js';
-import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 
 export type AuthAccessMutation = { user: AuthUser; previous: AuthUser | null };
 
@@ -34,165 +28,6 @@ export interface AuthRepository {
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null>;
-}
-
-export class GoogleSheetsAuthRepository implements AuthRepository {
-  readonly storageType = 'google-sheets';
-  private readonly usersRead = new InFlightRead<AuthUser[]>();
-  private async write<T>(operation: () => Promise<T>): Promise<T> {
-    this.usersRead.invalidate();
-    try { return await protectCourseWrite(operation); }
-    finally { this.usersRead.invalidate(); }
-  }
-  async findByEmail(email: string, options?: { fresh?: boolean }): Promise<AuthUser | null> {
-    const users = await (options?.fresh ? this.usersRead.runFresh(this.loadUsers) : this.listUsers());
-    return users.find((user) => user.email === email) ?? null;
-  }
-
-  async findById(id: string, options?: { fresh?: boolean }): Promise<AuthUser | null> {
-    // Password proof, session authentication and role checks must not join a snapshot that
-    // was requested before this call; simultaneous fresh callers still share one read.
-    const users = await (options?.fresh ? this.usersRead.runFresh(this.loadUsers) : this.listUsers());
-    return users.find((user) => user.id === id) ?? null;
-  }
-
-  async createUser(user: AuthUser): Promise<AuthUser> {
-    const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(authSheetRange(), [...authSheetHeaders]);
-
-    await this.write(() => sheets.spreadsheets.values.append({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: authSheetRange(),
-      valueInputOption: 'RAW',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values: [authUserToSheetRow(user)],
-      },
-    }));
-
-    return user;
-  }
-
-  async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {
-    const sheets = createSheetsClient();
-    await ensureWorksheetHeaders(authSheetRange(), [...authSheetHeaders]);
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: authSheetRange(),
-    });
-    const rows = response.data.values ?? [];
-    const rowIndex = rows.slice(1).findIndex((row) => (row as string[])[0] === userId);
-
-    if (rowIndex < 0) {
-      return null;
-    }
-
-    const existing = authUserFromSheetRow(rows[rowIndex + 1] as string[]);
-    const enrolledCourseIds = existing.enrolledCourseIds.includes(courseId)
-      ? existing.enrolledCourseIds
-      : [...existing.enrolledCourseIds, courseId];
-    const updated: AuthUser = {
-      ...existing,
-      enrolledCourseIds,
-    };
-    const sheetRowNumber = rowIndex + 2;
-    const sheetTitle = authSheetRange().split('!')[0];
-
-    await this.write(() => sheets.spreadsheets.values.update({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-      range: `${sheetTitle}!H${sheetRowNumber}`,
-      valueInputOption: 'RAW',
-      requestBody: {
-        // Never rewrite a password, status or identity read before another mutation.
-        values: [[updated.enrolledCourseIds.join(', ')]]
-      }
-    }));
-
-    return updated;
-  }
-
-  async updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null> {
-    const sheets = createSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: authSheetRange(),
-    });
-    const rows = response.data.values ?? [];
-    const index = rows.slice(1).findIndex(row => (row as string[])[0] === userId);
-    if (index < 0) return null;
-    const existing = authUserFromSheetRow(rows[index + 1] as string[]);
-    if (existing.status !== 'active') return null;
-    const sheetTitle = authSheetRange().split('!')[0];
-    await this.write(() => sheets.spreadsheets.values.update({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: `${sheetTitle}!D${index + 2}`,
-      valueInputOption: 'RAW', requestBody: { values: [[passwordHash]] },
-    }));
-    return { ...existing, passwordHash };
-  }
-
-  async updateRole(userId: string, role: UserRole): Promise<AuthUser | null> {
-    return (await this.updateRoleWithChange(userId, role))?.user ?? null;
-  }
-
-  async updateRoleWithChange(userId: string, role: UserRole): Promise<AuthAccessMutation | null> {
-    const sheets = createSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: authSheetRange(),
-    });
-    const rows = response.data.values ?? [];
-    const index = rows.slice(1).findIndex(row => (row as string[])[0] === userId);
-    if (index < 0) return null;
-    const existing = authUserFromSheetRow(rows[index + 1] as string[]);
-    if (existing.role === role) return { user: existing, previous: null };
-    const sheetTitle = authSheetRange().split('!')[0];
-    await this.write(() => sheets.spreadsheets.values.update({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: `${sheetTitle}!E${index + 2}`,
-      valueInputOption: 'RAW', requestBody: { values: [[role]] },
-    }));
-    return { user: { ...existing, role }, previous: existing };
-  }
-
-  async updateStatus(userId: string, status: UserStatus): Promise<AuthUser | null> {
-    return (await this.updateStatusWithChange(userId, status))?.user ?? null;
-  }
-
-  async updateStatusWithChange(userId: string, status: UserStatus): Promise<AuthAccessMutation | null> {
-    const sheets = createSheetsClient();
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: authSheetRange(),
-    });
-    const rows = response.data.values ?? [];
-    const index = rows.slice(1).findIndex(row => (row as string[])[0] === userId);
-    if (index < 0) return null;
-    const existing = authUserFromSheetRow(rows[index + 1] as string[]);
-    if (existing.status === status) return { user: existing, previous: null };
-    const sheetTitle = authSheetRange().split('!')[0];
-    await this.write(() => sheets.spreadsheets.values.update({
-      spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: `${sheetTitle}!F${index + 2}`,
-      valueInputOption: 'RAW', requestBody: { values: [[status]] },
-    }));
-    return { user: { ...existing, status }, previous: existing };
-  }
-
-  async listUsers(options?: { fresh?: boolean }): Promise<AuthUser[]> {
-    return options?.fresh ? this.usersRead.runFresh(this.loadUsers) : this.usersRead.run(this.loadUsers);
-  }
-  async countEnrolledUsers(courseId: string, users?: AuthUser[]): Promise<number> {
-    return (users ?? await this.listUsers()).filter(user => user.enrolledCourseIds.includes(courseId)).length;
-  }
-
-  private readonly loadUsers = async (): Promise<AuthUser[]> => {
-    {
-      const sheets = createSheetsClient();
-
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
-        range: authSheetRange()
-      });
-
-      const rows = response.data.values ?? [];
-      return rows.slice(1).map((row) => authUserFromSheetRow(row as string[]));
-    }
-  };
 }
 
 export class InMemoryAuthRepository implements AuthRepository {
@@ -277,10 +112,7 @@ export function createAuthRepository(): AuthRepository {
 }
 function selectAuthRepository(): AuthRepository {
   if (getServicesMode() === 'isolated') return new InMemoryAuthRepository();
-  if (apiConfig.USER_STORE === 'mongodb') return hasMongoConfig() ? new MongoAuthRepository() : new UnavailableAuthRepository('mongodb');
-  if (hasGoogleSheetsConfig()) return new GoogleSheetsAuthRepository();
-  if (isHostedApi()) return new UnavailableAuthRepository();
-  return new InMemoryAuthRepository();
+  return hasMongoConfig() ? new MongoAuthRepository() : new UnavailableAuthRepository('mongodb');
 }
 
 export class AuthUnavailableError extends Error {
@@ -292,7 +124,7 @@ export class AuthUnavailableError extends Error {
 // No seeded users and no writes when the production store is missing. Keep the
 // server running so existing health routes can explain the unavailable state.
 class UnavailableAuthRepository implements AuthRepository {
-  constructor(readonly storageType: AuthStorageType = 'memory') {}
+  constructor(readonly storageType: AuthStorageType = 'mongodb') {}
   readonly unavailableReason = new AuthUnavailableError().message;
   async findByEmail(_email: string): Promise<AuthUser | null> { return null; }
   async findById(_id: string): Promise<AuthUser | null> { return null; }
@@ -318,24 +150,4 @@ function createDemoUser(role: AuthUser['role'], email: string, displayName: stri
     createdAt: new Date().toISOString(),
     enrolledCourseIds: []
   };
-}
-
-function authSheetRange() {
-  const sheetTitle = apiConfig.GOOGLE_SHEETS_USERS_RANGE.split('!')[0] ?? 'Users';
-  const lastColumn = toColumnName(authSheetHeaders.length);
-
-  return `${sheetTitle}!A:${lastColumn}`;
-}
-
-function toColumnName(index: number) {
-  let remaining = index;
-  let columnName = '';
-
-  while (remaining > 0) {
-    const offset = (remaining - 1) % 26;
-    columnName = String.fromCharCode(65 + offset) + columnName;
-    remaining = Math.floor((remaining - 1) / 26);
-  }
-
-  return columnName;
 }

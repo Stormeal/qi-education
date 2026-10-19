@@ -65,7 +65,7 @@ export function registerPasswordResetRoutes(app: Express, dependencies: {
     if (!currentUser || currentUser.status !== 'active' || passwordCredentialVersion(currentUser.passwordHash) !== expectedCredential) {
       response.status(410).json(invalid); return;
     }
-    // Never reactivate a claim if the Sheets write failed or its outcome is uncertain.
+    // Never reactivate a claim if the account write failed or its outcome is uncertain.
     const updated = await auth.updatePasswordHash(claimedUserId, hashPassword(password.data));
     if (!updated) { response.status(410).json(invalid); return; }
     await dependencies.signInLimit?.clear(updated.email);

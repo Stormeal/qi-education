@@ -3,8 +3,8 @@ import type { Server } from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createServer } from './server.js';
 import { apiConfig } from './config.js';
-import { createSessionToken, toAuthenticatedUser, authSheetHeaders, authUserToSheetRow, type AuthUser } from './auth.js';
-import { InMemoryAuthRepository, GoogleSheetsAuthRepository, type AuthRepository } from './authRepository.js';
+import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
+import { InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
 import { MongoAuthRepository } from './mongoAuthRepository.js';
 import { InMemoryCourseRepository } from './courseRepository.js';
 import { createCourseSchema } from './course.js';
@@ -18,22 +18,16 @@ import { LocalMailSender } from './mailSender.js';
 import { resetTokenHash } from './passwordResetDelivery.js';
 import { fakeAuthCollection } from '../test/fakeAuthCollection.js';
 
-const sheets = vi.hoisted(() => ({ rows: [] as string[][], reads: 0, writes: 0 }));
-vi.mock('./googleSheets.js', () => ({ ensureWorksheetHeaders: async () => { sheets.writes++; }, createSheetsClient: () => ({ spreadsheets: { values: {
-  get: async () => { sheets.reads++; return { data: { values: structuredClone(sheets.rows) } }; },
-  append: async () => { sheets.writes++; throw new Error('Unexpected Sheet write'); }, update: async () => { sheets.writes++; throw new Error('Unexpected Sheet write'); },
-} } }) }));
 const servers: Server[] = [];
 const originalReadOnly = apiConfig.USER_STORE_READ_ONLY;
 afterEach(async () => { apiConfig.USER_STORE_READ_ONLY = originalReadOnly; vi.restoreAllMocks(); await Promise.all(servers.splice(0).map(server => new Promise<void>(resolve => server.close(() => resolve())))); });
 const headers = (user: AuthUser) => ({ authorization: `Bearer ${createSessionToken(toAuthenticatedUser(user), apiConfig.AUTH_TOKEN_SECRET!)}` });
 async function setup(kind: string, sharedFake = fakeAuthCollection()) {
   const memory = new InMemoryAuthRepository(); const users = await memory.listUsers();
-  const auth: AuthRepository = kind === 'mongodb' ? new MongoAuthRepository(async () => sharedFake.collection) : kind === 'google-sheets' ? new GoogleSheetsAuthRepository() : memory;
+  const auth: AuthRepository = kind === 'mongodb' ? new MongoAuthRepository(async () => sharedFake.collection) : memory;
   if (kind === 'mongodb' && !sharedFake.documents.size) for (const user of users) await auth.createUser(user);
   const actual = kind === 'mongodb' ? await auth.listUsers() : users;
   const student = actual.find(user => user.role === 'student')!, admin = actual.find(user => user.role === 'admin')!;
-  sheets.rows = [[...authSheetHeaders], ...actual.map(authUserToSheetRow)]; sheets.reads = 0; sheets.writes = 0;
   const courses = new InMemoryCourseRepository();
   await courses.createCourse(createCourseSchema.parse({ title: 'Account query course', description: 'Isolated account route tests.', teacher: 'Teacher', level: 'Beginner', status: 'published' }), { id: 'course', ownerUserId: admin.id });
   const content = new InMemoryCourseContentRepository();
@@ -51,7 +45,7 @@ async function setup(kind: string, sharedFake = fakeAuthCollection()) {
     headers: { 'Content-Type': 'application/json', ...(user ? headers(user) : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   return { auth, student, admin, tokens, mail, changes, request, fake: sharedFake };
 }
-describe.each(['memory', 'mongodb', 'google-sheets'])('US-P014 HTTP store %s', kind => {
+describe.each(['memory', 'mongodb'])('US-P014 HTTP store %s', kind => {
   it.each(['', '/api'])('AC09 freezes every account-write workflow and side effect, while sign-in/reads remain available (%s)', async prefix => {
     apiConfig.USER_STORE_READ_ONLY = '1';
     const { auth, student, admin, tokens, mail, changes, request, fake } = await setup(kind);
@@ -77,7 +71,7 @@ describe.each(['memory', 'mongodb', 'google-sheets'])('US-P014 HTTP store %s', k
         expect(await response.json()).toEqual({ message: 'Accounts are briefly read-only for maintenance. Try again in a few minutes.' });
       }
     }
-    expect(await auth.listUsers()).toEqual(before); expect([...fake.documents.values()]).toEqual(mongoBefore); expect(sheets.writes).toBe(0);
+    expect(await auth.listUsers()).toEqual(before); expect([...fake.documents.values()]).toEqual(mongoBefore);
     expect(consume).not.toHaveBeenCalled(); expect(reserve).not.toHaveBeenCalled(); expect(invalidate).not.toHaveBeenCalled();
     expect(mail.messages).toEqual([]); expect(await changes.recent()).toEqual([]);
     expect((await request(prefix + '/auth/password-reset/check', undefined, 'POST', { token: raw })).status).toBe(204);
@@ -105,7 +99,7 @@ describe('US-P014 HTTP Mongo guarantees', () => {
       if (path.endsWith('/count')) expect(await response.json()).toEqual({ enrolledLearners: 1 });
       expect(fake.calls.finds).toEqual([{ _id: student.id }]);
     }
-    expect(list).not.toHaveBeenCalled(); expect(sheets.reads).toBe(0); expect(fake.calls.counts).toEqual([{ enrolledCourseIds: 'course' }]);
+    expect(list).not.toHaveBeenCalled(); expect(fake.calls.counts).toEqual([{ enrolledCourseIds: 'course' }]);
     expect(await (await request('/health/auth')).json()).toEqual({ status: 'ok', store: 'mongodb', readOnly: false });
   });
   it('AC02 revokes a token on the next request and preserves existing access-change logs', async () => {

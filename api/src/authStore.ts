@@ -1,7 +1,7 @@
 import type { AuthRepository } from './authRepository.js';
 import type { AuthUser, UserRole, UserStatus } from './auth.js';
 
-export type AuthStorageType = 'google-sheets' | 'mongodb' | 'memory';
+export type AuthStorageType = 'mongodb' | 'memory';
 export class DuplicateAccountError extends Error {
   constructor() { super('An account with this email already exists'); }
 }

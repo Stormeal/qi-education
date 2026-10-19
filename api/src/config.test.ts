@@ -7,8 +7,8 @@ import {
 } from './config.js';
 
 describe('API config', () => {
-  it('uses a course sheet range that includes all course columns by default', () => {
-    expect(apiConfig.GOOGLE_SHEETS_COURSES_RANGE).toBe('Courses!A:R');
+  it('uses the feedback sheet range by default', () => {
+    expect(apiConfig.GOOGLE_SHEETS_FEEDBACK_RANGE).toBe('Feedback!A:M');
   });
 
   it('allows the local auth token fallback outside production', () => {

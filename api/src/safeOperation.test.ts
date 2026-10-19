@@ -1,8 +1,10 @@
+import { InMemorySignInAttemptRepository } from './signInAttemptRepository.js';
+vi.mock('./mongo.js', () => ({ getMongoDatabase: () => { throw new Error('No real Mongo'); } }));
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiConfig } from './config.js';
-import { createAuthRepository, GoogleSheetsAuthRepository, type AuthRepository } from './authRepository.js';
+import { createAuthRepository, MongoAuthRepository, type AuthRepository } from './authRepository.js';
 import { InMemoryCourseRepository } from './courseRepository.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
@@ -24,6 +26,9 @@ describe('US-P008-AC01 safe production authentication (INV-013 / DEF-017)', () =
       GOOGLE_SHEETS_SPREADSHEET_ID: undefined,
       GOOGLE_SERVICE_ACCOUNT_EMAIL: undefined,
       GOOGLE_PRIVATE_KEY: undefined,
+      MONGODB_URI: undefined,
+      MONGODB_DB_NAME: undefined,
+      MONGODB_COURSE_CONTENT_COLLECTION: undefined,
     });
   });
   afterEach(async () => {
@@ -36,6 +41,7 @@ describe('US-P008-AC01 safe production authentication (INV-013 / DEF-017)', () =
   function start(authRepository = createAuthRepository()) {
     server = createServer({
       authRepository,
+      signInAttemptRepository: new InMemorySignInAttemptRepository(),
       courseRepository: new InMemoryCourseRepository(),
       courseContentRepository: new InMemoryCourseContentRepository(),
       courseAssetRepository: new InMemoryCourseAssetRepository(),
@@ -77,7 +83,7 @@ describe('US-P008-AC01 safe production authentication (INV-013 / DEF-017)', () =
     expect(health.status).toBe(503);
     expect(await health.json()).toEqual({ status: 'unavailable', message: expect.stringMatching(/user store.*not configured/i) });
     const config = await (await fetch(base + '/api/health/config')).json();
-    expect(config.auth).toEqual({ configured: false, storage: 'memory' });
+    expect(config.auth).toEqual({ configured: false, storage: 'mongodb' });
     expect(JSON.stringify(config)).not.toContain(apiConfig.AUTH_TOKEN_SECRET);
   });
 
@@ -95,26 +101,26 @@ describe('US-P008-AC01 safe production authentication (INV-013 / DEF-017)', () =
   });
 
   it('continues to use demo accounts in test mode even with provider settings present', async () => {
-    Object.assign(apiConfig, { GOOGLE_SHEETS_SPREADSHEET_ID: 'isolated-sheet-id', GOOGLE_SERVICE_ACCOUNT_EMAIL: 'isolated@example.invalid', GOOGLE_PRIVATE_KEY: 'synthetic-key' });
+    Object.assign(apiConfig, { MONGODB_URI: 'mongodb://synthetic.invalid', MONGODB_DB_NAME: 'synthetic', MONGODB_COURSE_CONTENT_COLLECTION: 'synthetic' });
     vi.stubEnv('NODE_ENV', 'test');
     expect((await createAuthRepository().findByEmail(credentials('admin').email))?.role).toBe('admin');
   });
 
-  it.each(['GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_PRIVATE_KEY'] as const)(
+  it.each(['MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION'] as const)(
     'does not create demo accounts when only %s is missing', async (missing) => {
-      Object.assign(apiConfig, { GOOGLE_SHEETS_SPREADSHEET_ID: 'isolated-sheet-id', GOOGLE_SERVICE_ACCOUNT_EMAIL: 'isolated@example.invalid', GOOGLE_PRIVATE_KEY: 'synthetic-key' });
+      Object.assign(apiConfig, { MONGODB_URI: 'mongodb://synthetic.invalid', MONGODB_DB_NAME: 'synthetic', MONGODB_COURSE_CONTENT_COLLECTION: 'synthetic' });
       apiConfig[missing] = undefined;
       expect(await createAuthRepository().findByEmail(credentials('admin').email)).toBeNull();
     },
   );
 
   it('selects configured production storage without accessing a provider', () => {
-    Object.assign(apiConfig, { GOOGLE_SHEETS_SPREADSHEET_ID: 'isolated-sheet-id', GOOGLE_SERVICE_ACCOUNT_EMAIL: 'isolated@example.invalid', GOOGLE_PRIVATE_KEY: 'synthetic-key' });
-    expect(createAuthRepository()).toBeInstanceOf(GoogleSheetsAuthRepository);
+    Object.assign(apiConfig, { MONGODB_URI: 'mongodb://synthetic.invalid', MONGODB_DB_NAME: 'synthetic', MONGODB_COURSE_CONTENT_COLLECTION: 'synthetic' });
+    expect(createAuthRepository()).toBeInstanceOf(MongoAuthRepository);
   });
 
   it('keeps a configured production repository usable with the existing response shape', async () => {
-    // Inject a pre-existing isolated account instead of contacting Google Sheets.
+    // Inject a pre-existing isolated account instead of contacting MongoDB.
     vi.stubEnv('NODE_ENV', 'test');
     const memory = createAuthRepository();
     const account = (await memory.findByEmail(credentials('teacher').email))!;

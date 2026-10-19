@@ -9,8 +9,8 @@ vi.mock('@mux/mux-node', () => ({ default: class { constructor() { providers.mux
 
 const shared = {
   GOOGLE_SHEETS_SPREADSHEET_ID: 'synthetic-sheet-id', GOOGLE_SERVICE_ACCOUNT_EMAIL: 'service@example.invalid', GOOGLE_PRIVATE_KEY: 'synthetic-google-key',
-  GOOGLE_SHEETS_COURSES_RANGE: 'SyntheticCourses!A:U', GOOGLE_SHEETS_USERS_RANGE: 'SyntheticUsers!A:H', GOOGLE_SHEETS_FEEDBACK_RANGE: 'SyntheticFeedback!A:M',
-  GOOGLE_SHEET_ID: 'synthetic-legacy-id', GOOGLE_SHEETS_COURSES: 'SyntheticCourses!A:U', GOOGLE_SHEETS_USERS: 'SyntheticUsers!A:H',
+  GOOGLE_SHEETS_FEEDBACK_RANGE: 'SyntheticFeedback!A:M',
+  GOOGLE_SHEET_ID: 'synthetic-legacy-id',
   MONGODB_URI: 'mongodb://synthetic.invalid', MONGODB_DB_NAME: 'synthetic-db', MONGODB_COURSE_CONTENT_COLLECTION: 'synthetic-content', MONGODB_COURSE_ASSET_COLLECTION: 'synthetic-assets',
   MUX_TOKEN_ID: 'synthetic-mux-id', MUX_TOKEN_SECRET: 'synthetic-mux-secret', MUX_WEBHOOK_SECRET: 'synthetic-webhook', MUX_SIGNING_KEY_ID: 'synthetic-signing-id', MUX_SIGNING_PRIVATE_KEY: 'synthetic-signing-key', MUX_DEFAULT_PLAYBACK_POLICY: 'public',
   GITHUB_FEEDBACK_TOKEN: 'synthetic-github-token', GITHUB_FEEDBACK_REPOSITORY: 'synthetic/repository', GITHUB_FEEDBACK_PROJECT_ID: 'synthetic-project',
@@ -72,7 +72,7 @@ describe('US-P011 centralized service selection', () => {
     expect(Object.fromEntries(['auth', 'courses', 'content', 'assets', 'feedback', 'paths', 'progress', 'profiles', 'resets'].map(key => [key, selected[key as 'auth'].constructor.name]))).toEqual(want === 'isolated' ? {
       auth: 'InMemoryAuthRepository', courses: 'InMemoryCourseRepository', content: 'InMemoryCourseContentRepository', assets: 'InMemoryCourseAssetRepository', feedback: 'InMemoryFeedbackRepository',
       paths: 'InMemoryCareerPathRepository', progress: 'InMemoryLearningProgressRepository', profiles: 'InMemoryInstructorProfileRepository', resets: 'InMemoryPasswordResetRepository',
-    } : { auth: 'GoogleSheetsAuthRepository', courses: 'GoogleSheetsCourseRepository', content: 'MongoCourseContentRepository', assets: 'MongoCourseAssetRepository', feedback: 'GoogleSheetsFeedbackRepository',
+    } : { auth: 'MongoAuthRepository', courses: 'MongoCourseRepository', content: 'MongoCourseContentRepository', assets: 'MongoCourseAssetRepository', feedback: 'GoogleSheetsFeedbackRepository',
       paths: 'MongoCareerPathRepository', progress: 'MongoLearningProgressRepository', profiles: 'MongoInstructorProfileRepository', resets: 'MongoPasswordResetRepository' });
     expect(selected.video?.constructor.name ?? null).toBe(want === 'isolated' ? null : 'ConfiguredMuxVideoService');
     expect(selected.webhook?.constructor.name ?? null).toBe(want === 'isolated' ? null : 'ConfiguredMuxWebhookService'); expect(selected.github).toBe(want !== 'isolated');
@@ -91,7 +91,7 @@ describe('US-P011 centralized service selection', () => {
       PORT: '43210', CORS_ORIGIN: 'http://example.test', AUTH_TOKEN_SECRET: 'synthetic-auth-session-secret', BREVO_API_KEY: 'synthetic-mail-key', MAIL_FROM_ADDRESS: 'sender@example.invalid', APP_PUBLIC_URL: 'https://example.test' });
     expect(built.mode).toBe('isolated'); expect(built.PORT).toBe(43210); expect(built.AUTH_TOKEN_SECRET).toBe('synthetic-auth-session-secret'); expect(built.CORS_ORIGIN).toBe('http://example.test');
     for (const key of Object.keys(shared).filter(key => !key.endsWith('_RANGE') && key !== 'MUX_DEFAULT_PLAYBACK_POLICY')) expect(built[key as 'GOOGLE_PRIVATE_KEY']).toBeUndefined();
-    expect(built.MUX_DEFAULT_PLAYBACK_POLICY).toBe('public'); expect(built.GOOGLE_SHEETS_COURSES_RANGE).toBe('Courses!A:R'); expect(built.GOOGLE_SHEETS_USERS_RANGE).toBe('Users!A:H');
+    expect(built.MUX_DEFAULT_PLAYBACK_POLICY).toBe('public');
     expect(built.BREVO_API_KEY).toBe(nodeEnv === 'test' ? undefined : 'synthetic-mail-key'); expect(built.MAIL_FROM_ADDRESS).toBe('sender@example.invalid');
     const selected = await factories(); expect(selected.video).toBeNull();
   });
@@ -111,9 +111,36 @@ describe('US-P011 centralized service selection', () => {
     await load({ NODE_ENV: 'development' }); const { createServer } = await import('./server.js'); const server = createServer().listen(0, '127.0.0.1'); servers.push(server);
     await new Promise<void>(resolve => server.once('listening', resolve)); const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const health = await (await fetch(base + prefix + '/health/config')).json(); expect(health).toEqual({ status: 'ok', mode: 'isolated', courses: { storage: 'memory', readOnly: false }, auth: { configured: true, storage: 'memory' }, mail: { configured: false, provider: 'local' },
-      content: { storage: 'memory', configured: false }, assets: { storage: 'memory', configured: false }, mux: { configured: false, playbackPolicy: 'public' }, corsOrigins: ['http://example.test'], ranges: { courses: 'Courses!A:R', users: 'Users!A:H', feedback: 'Feedback!A:M' } });
+      content: { storage: 'memory', configured: false }, assets: { storage: 'memory', configured: false }, mux: { configured: false, playbackPolicy: 'public' }, corsOrigins: ['http://example.test'], ranges: { feedback: 'Feedback!A:M' } });
     const response = await fetch(base + prefix + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'student@qi-education.local', password: 'wrong' }) });
     expect(response.status).toBe(401); expect(response.headers.get('x-qi-education-auth-storage')).toBe('memory'); expect(await response.json()).toEqual({ message: 'Invalid email or password' });
     expect(providers.sheets).not.toHaveBeenCalled(); expect(providers.mongo).not.toHaveBeenCalled(); expect(providers.mux).not.toHaveBeenCalled();
   });
+  it.each([
+    { NODE_ENV: 'production' },
+    { NODE_ENV: 'development', USE_SHARED_SERVICES: '1' },
+  ])('US-P016-AC01 missing Mongo settings fail closed through HTTP (%j)', async input => {
+    await load(input, false);
+    const { createServer } = await import('./server.js');
+    const server = createServer().listen(0, '127.0.0.1'); servers.push(server);
+    await new Promise<void>(resolve => server.once('listening', resolve));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    for (const prefix of ['', '/api']) {
+      const health = await (await fetch(base + prefix + '/health/config')).json();
+      expect(health.auth).toEqual({ configured: false, storage: 'mongodb' });
+      expect(health.courses).toEqual({ storage: 'mongodb', readOnly: false });
+      expect(health.ranges).toEqual({ feedback: 'Feedback!A:M' });
+      for (const path of ['/courses', '/auth/me']) {
+        const response = await fetch(base + prefix + path);
+        expect(response.status, path).toBe(503);
+        expect(await response.json()).toMatchObject({ message: expect.stringMatching(/unavailable/i) });
+      }
+      const login = await fetch(base + prefix + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'admin@qi-education.local', password: 'Password123!' }) });
+      expect(login.status).toBe(503);
+      expect(await login.json()).toMatchObject({ message: expect.stringMatching(/unavailable/i) });
+    }
+    expect(providers.mongo).not.toHaveBeenCalled(); expect(providers.sheets).not.toHaveBeenCalled();
+  });
+
 });

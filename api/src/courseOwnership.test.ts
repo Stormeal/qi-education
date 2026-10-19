@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
 import { InMemoryAuthRepository } from './authRepository.js';
 import { apiConfig } from './config.js';
-import { createCourseSchema, courseFromSheetRow, courseToSheetRow } from './course.js';
+import { createCourseSchema } from './course.js';
 import { InMemoryCourseRepository } from './courseRepository.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
@@ -99,7 +99,7 @@ describe('course authoring ownership (DEF-001)', () => {
     const created = await response.json();
     expect(created.ownerUserId).toBe(user.id);
     expect((await courses.listCourses()).find((course) => course.id === created.id)).toMatchObject({ ownerUserId: user.id });
-    expect(courseFromSheetRow(courseToSheetRow(created))).toMatchObject({ ownerUserId: user.id });
+    expect((await courses.listCourses()).find(course => course.id === created.id)).toMatchObject({ ownerUserId: user.id });
   });
 
   for (const prefix of ['', '/api']) {
@@ -233,12 +233,4 @@ describe('course authoring ownership (DEF-001)', () => {
     expect(mux.createDirectUpload).not.toHaveBeenCalled();
   });
 
-  it('reads a legacy 20-column row without guessing ownership from the teacher label', () => {
-    const row = ['legacy', 'Legacy Course', 'Description', 'Beginner', 'Same display name', '',
-      'draft', '2026-10-04T00:00:00.000Z', '', '', '', '', '', '', 'FALSE', 'FALSE', '0', '0', 'Uncategorized', 'English'];
-    expect(courseFromSheetRow(row)).toMatchObject({ ownerUserId: '' });
-    row.push(owner.id);
-    expect(courseFromSheetRow(row)).toMatchObject({ ownerUserId: owner.id });
-    expect(courseToSheetRow(courseFromSheetRow(row))[20]).toBe(owner.id);
-  });
 });

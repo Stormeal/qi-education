@@ -8,14 +8,12 @@
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "auth:hash-password": "tsx src/hashPassword.ts",
-    "users:migrate": "tsx src/migrateUsers.ts",
-    "courses:migrate": "tsx src/migrateCourses.ts"
+    "auth:hash-password": "tsx src/hashPassword.ts"
   },
   "keywords": [],
   "author": "",
   "license": "UNLICENSED",
-  "description": "QI Academy API backed by Google Sheets.",
+  "description": "QI Academy API",
   "dependencies": {
     "@mux/mux-node": "^14.1.0",
     "cors": "^2.8.6",

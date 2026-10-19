@@ -52,7 +52,6 @@ import { createLearningProgressRepository, type LearningProgressRepository } fro
 import {
   apiConfig,
   getCorsOrigins,
-  hasGoogleSheetsConfig,
   hasMongoAssetConfig,
   hasMongoConfig,
   hasMuxConfig,
@@ -124,7 +123,6 @@ type ServerDependencies = {
 
 type AuthenticatedRequest = Request & {
   user: AuthenticatedUser;
-  users?: AuthUser[];
 };
 
 export function createServer(dependencies: ServerDependencies = {}) {
@@ -271,7 +269,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (hasUnsafeThumbnailStorage(courses, courseAssets)) {
           response.status(503).json({
             message:
-              'Thumbnail uploads require shared asset storage when courses are stored in Google Sheets. Configure MongoDB course asset storage before uploading thumbnails.',
+              'Thumbnail uploads require shared asset storage when courses are stored in MongoDB. Configure MongoDB course asset storage before uploading thumbnails.',
           });
           return;
         }
@@ -480,7 +478,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.get('/health', (_request, response) => {
     response.json({
       status: 'ok',
-      storage: hasGoogleSheetsConfig() ? 'google-sheets' : 'memory',
+      storage: auth.storageType ?? 'memory',
     });
   });
 
@@ -508,8 +506,6 @@ export function createServer(dependencies: ServerDependencies = {}) {
       },
       corsOrigins: getCorsOrigins(),
       ranges: {
-        courses: apiConfig.GOOGLE_SHEETS_COURSES_RANGE,
-        users: apiConfig.GOOGLE_SHEETS_USERS_RANGE,
         feedback: apiConfig.GOOGLE_SHEETS_FEEDBACK_RANGE,
       },
     });
@@ -609,7 +605,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
 
       // The Mongo uniqueness contract accepts a padded normalized address.
-      // Keep the deployed Sheets/default validation behavior unchanged.
+      // Keep the existing in-memory signup validation behavior unchanged.
       const body = auth.storageType === 'mongodb' && typeof request.body?.email === 'string'
         ? { ...request.body, email: request.body.email.trim().toLowerCase() } : request.body;
       const input = signupSchema.parse(body);
@@ -762,7 +758,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (hasUnsafeCourseCreationStorage(courses, courseContent)) {
           response.status(503).json({
             message:
-              'Course creation requires shared content storage when courses are stored in Google Sheets. Configure MongoDB course content storage before creating courses.',
+              'Course creation requires shared content storage when courses are stored in MongoDB. Configure MongoDB course content storage before creating courses.',
           });
           return;
         }
@@ -1335,8 +1331,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   };
 
   registerLessonExtrasRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
-    authenticateWithUsers: authenticateRequest(auth, auth.storageType === 'google-sheets'),
-    countLearners: (courseId, request) => auth.countEnrolledUsers(courseId, (request as AuthenticatedRequest).users),
+    authenticateWithUsers: authenticateRequest(auth),
+    countLearners: courseId => auth.countEnrolledUsers(courseId),
     courses, content: courseContent, notes: lessonNotes, feedback });
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     courses, content: courseContent, progress: learningProgress });
@@ -1999,7 +1995,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function authenticateRequest(authRepository: AuthRepository, includeUsers = false) {
+function authenticateRequest(authRepository: AuthRepository) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
       const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
@@ -2026,10 +2022,7 @@ function authenticateRequest(authRepository: AuthRepository, includeUsers = fals
 
       // A later request must not join a snapshot captured before another instance
       // revoked this account or changed its role (DEF-027).
-      // Learner count uses the same fresh snapshot for authentication and the
-      // count, rather than adding a second Sheets read after authentication.
-      const users = includeUsers ? await authRepository.listUsers({ fresh: true }) : undefined;
-      const user = users ? users.find(user => user.id === session.sub) : await authRepository.findById(session.sub, { fresh: true });
+      const user = await authRepository.findById(session.sub, { fresh: true });
 
       if (!user || user.status !== 'active') {
         response.status(401).json({ message: 'Authentication required' });
@@ -2037,7 +2030,6 @@ function authenticateRequest(authRepository: AuthRepository, includeUsers = fals
       }
 
       (request as AuthenticatedRequest).user = toAuthenticatedUser(user);
-      if (users) (request as AuthenticatedRequest).users = users;
       next();
     } catch (error) {
       next(error);

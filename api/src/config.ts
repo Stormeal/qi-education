@@ -28,22 +28,16 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default(defaultCorsOrigin),
   AUTH_TOKEN_SECRET: z.string().min(16).optional(),
   SESSION_SECRET: z.string().min(16).optional(),
-  USER_STORE: z.enum(['google-sheets', 'mongodb']).default('google-sheets'),
   USER_STORE_READ_ONLY: z.enum(['0', '1']).default('0'),
-  COURSE_STORE: z.enum(['google-sheets', 'mongodb']).default('google-sheets'),
   COURSE_STORE_READ_ONLY: z.enum(['0', '1']).default('0'),
   MONGODB_URI: z.string().min(1).optional(),
   MONGODB_DB_NAME: z.string().min(1).optional(),
   MONGODB_COURSE_CONTENT_COLLECTION: z.string().min(1).optional(),
   MONGODB_COURSE_ASSET_COLLECTION: z.string().min(1).optional(),
   GOOGLE_SHEET_ID: z.string().min(1).optional(),
-  GOOGLE_SHEETS_COURSES: z.string().min(1).optional(),
-  GOOGLE_SHEETS_USERS: z.string().min(1).optional(),
   GOOGLE_SHEETS_SPREADSHEET_ID: z.string().min(1).optional(),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.email().optional(),
   GOOGLE_PRIVATE_KEY: z.string().min(1).optional(),
-  GOOGLE_SHEETS_COURSES_RANGE: z.string().optional(),
-  GOOGLE_SHEETS_USERS_RANGE: z.string().optional(),
   GOOGLE_SHEETS_FEEDBACK_RANGE: z.string().optional(),
   GITHUB_FEEDBACK_TOKEN: z.string().min(1).optional(),
   GITHUB_FEEDBACK_REPOSITORY: z.string().min(1).optional(),
@@ -72,18 +66,12 @@ export function buildApiConfig(source: Record<string, string | undefined>) {
   if (source.NODE_ENV === 'test') delete settings.BREVO_API_KEY;
   const env = envSchema.parse(settings);
   const authTokenSecret = authTokenSecretForMode(env.AUTH_TOKEN_SECRET, env.SESSION_SECRET, mode);
-  const coursesRange = firstDefined(env.GOOGLE_SHEETS_COURSES_RANGE, env.GOOGLE_SHEETS_COURSES);
-  const usersRange = firstDefined(env.GOOGLE_SHEETS_USERS_RANGE, env.GOOGLE_SHEETS_USERS);
   const spreadsheetId = firstDefined(env.GOOGLE_SHEETS_SPREADSHEET_ID, env.GOOGLE_SHEET_ID);
   return {
     ...env,
     mode,
     AUTH_TOKEN_SECRET: authTokenSecret,
     GOOGLE_SHEETS_SPREADSHEET_ID: spreadsheetId,
-    GOOGLE_SHEETS_COURSES_RANGE:
-      coursesRange && coursesRange !== 'GOOGLE_SHEETS_COURSES_RANGE' ? coursesRange : 'Courses!A:R',
-    GOOGLE_SHEETS_USERS_RANGE:
-      usersRange && usersRange !== 'GOOGLE_SHEETS_USERS_RANGE' ? usersRange : 'Users!A:H',
     GOOGLE_SHEETS_FEEDBACK_RANGE:
       env.GOOGLE_SHEETS_FEEDBACK_RANGE && env.GOOGLE_SHEETS_FEEDBACK_RANGE !== 'GOOGLE_SHEETS_FEEDBACK_RANGE'
         ? env.GOOGLE_SHEETS_FEEDBACK_RANGE : 'Feedback!A:M',

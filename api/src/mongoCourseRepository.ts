@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Collection } from 'mongodb';
 import type { CourseRepository, CourseSeed } from './courseRepository.js';
-import { courseSheetHeaders, createCourseSchema, updateCourseSchema, updateCourseCatalogMetadataSchema,
+import { courseFields, createCourseSchema, updateCourseSchema, updateCourseCatalogMetadataSchema,
   type Course, type CreateCourseInput, type UpdateCourseInput, type UpdateCoursePriceInput,
   type UpdateCourseCatalogMetadataInput, type UpdateCourseThumbnailInput } from './course.js';
 import { apiConfig } from './config.js';
@@ -11,7 +11,7 @@ export type MongoCourseDocument = Omit<Course, 'id'> & { _id: string };
 export type MongoCourseCollection = Pick<Collection<MongoCourseDocument>, 'find' | 'insertOne' | 'findOneAndUpdate' | 'createIndex'>;
 const majority = { writeConcern: { w: 'majority' as const } };
 function dto(document: MongoCourseDocument): Course {
-  return structuredClone(Object.fromEntries(courseSheetHeaders.map(field => [field, field === 'id' ? document._id : document[field]])) as Course);
+  return structuredClone(Object.fromEntries(courseFields.map(field => [field, field === 'id' ? document._id : document[field]])) as Course);
 }
 function fields(input: object, allowed: string[]): Partial<Omit<Course, 'id' | 'createdAt' | 'ownerUserId'>> {
   return structuredClone(Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))));

@@ -229,8 +229,6 @@ describe('QI Academy API', () => {
         'https://qi-education.vercel.app',
       ],
       ranges: {
-        courses: 'Courses!A:R',
-        users: 'Users!A:H',
         feedback: 'Feedback!A:M',
       },
     });
@@ -370,7 +368,7 @@ describe('QI Academy API', () => {
 
       expect(response.status).toBe(503);
       expect(body.message).toBe(
-        'Course creation requires shared content storage when courses are stored in Google Sheets. Configure MongoDB course content storage before creating courses.',
+        'Course creation requires shared content storage when courses are stored in MongoDB. Configure MongoDB course content storage before creating courses.',
       );
       expect(await courseRepository.listCourses()).toHaveLength(1);
     } finally {
@@ -1903,12 +1901,12 @@ class FailingCreateCourseRepository extends InMemoryCourseRepository implements 
 
   override async createCourse(...args: Parameters<CourseRepository['createCourse']>) {
     this.lastCreateId = args[1]?.id ?? null;
-    throw new Error('Sheets write failed');
+    throw new Error('Storage write failed');
   }
 }
 
 class SharedCourseRepository extends InMemoryCourseRepository implements CourseRepository {
-  override readonly storageType = 'google-sheets';
+  override readonly storageType = 'mongodb' as const;
 }
 
 class FailingCourseContentRepository implements CourseContentRepository {

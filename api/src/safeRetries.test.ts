@@ -1,8 +1,9 @@
+import { authStoreDouble } from '../test/authStoreDouble.js';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authSheetHeaders, authUserToSheetRow, createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
-import { GoogleSheetsAuthRepository, InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
+import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
+import { InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
 import { InMemoryCareerPathRepository } from './careerPathRepository.js';
 import { apiConfig } from './config.js';
 import { createCourseSchema } from './course.js';
@@ -15,6 +16,7 @@ import { GitHubFeedbackError, type GitHubFeedbackService } from './githubFeedbac
 import { InMemoryLearningProgressRepository } from './learningProgressRepository.js';
 import { createServer } from './server.js';
 
+let accounts = authStoreDouble();
 const sheet = vi.hoisted(() => ({
   rows: new Map<string, string[][]>(),
   beforeWrite: async (_operation: string, _range: string) => {},
@@ -57,7 +59,7 @@ describe.each(['', '/api'])('US-P003 isolated retry contracts (%s)', prefix => {
     student = (await memoryAuth.findByEmail('student@qi-education.local'))!;
     admin = (await memoryAuth.findByEmail('admin@qi-education.local'))!;
     sheet.rows.clear();
-    sheet.rows.set('Users', [[...authSheetHeaders], authUserToSheetRow(student), authUserToSheetRow(admin)]);
+    accounts = authStoreDouble([student, admin]);
     sheet.rows.set('Feedback', [[...feedbackSheetHeaders]]);
     sheet.beforeWrite = async () => {};
   });
@@ -102,19 +104,13 @@ describe.each(['', '/api'])('US-P003 isolated retry contracts (%s)', prefix => {
     });
   }
 
-  it.each(['memory', 'sheets'] as const)('AC01 prevents duplicate normalized signup with the %s repository', async storage => {
-    const auth = storage === 'memory' ? memoryAuth : new GoogleSheetsAuthRepository();
+  it.each(['memory', 'mongodb'] as const)('AC01 prevents duplicate normalized signup with the %s repository', async storage => {
+    const auth = storage === 'memory' ? memoryAuth : accounts.repository();
     const entered = deferred(), release = deferred();
-    if (storage === 'memory') {
-      const create = memoryAuth.createUser.bind(memoryAuth);
-      vi.spyOn(memoryAuth, 'createUser').mockImplementationOnce(async user => {
-        entered.resolve(); await release.promise; return create(user);
-      });
-    } else {
-      sheet.beforeWrite = async (operation) => {
-        if (operation === 'append') { sheet.beforeWrite = async () => {}; entered.resolve(); await release.promise; }
-      };
-    }
+    const create = auth.createUser.bind(auth);
+    vi.spyOn(auth, 'createUser').mockImplementationOnce(async user => {
+      entered.resolve(); await release.promise; return create(user);
+    });
     await start(auth);
     const input = { displayName: 'New Learner', email: 'Overlap@Example.test', password: 'Password123!' };
     const first = request('/auth/signup', undefined, 'POST', input);
@@ -132,20 +128,16 @@ describe.each(['', '/api'])('US-P003 isolated retry contracts (%s)', prefix => {
     expect(await loser.json()).toEqual(await duplicate.json());
     expect(await (await request('/auth/signup', undefined, 'POST', input)).json())
       .toEqual({ message: 'An account with this email already exists' });
-    if (storage === 'sheets') expect(sheet.rows.get('Users')!.filter(row => row[1] === 'overlap@example.test')).toHaveLength(1);
-    else {
-      const user = (await auth.findByEmail('overlap@example.test'))!;
-      expect((await request('/auth/login', undefined, 'POST', { email: input.email, password: input.password })).status).toBe(200);
-      expect(user.email).toBe('overlap@example.test');
-    }
+    expect((await auth.listUsers()).filter(user => user.email === 'overlap@example.test')).toHaveLength(1);
+    expect((await request('/auth/login', undefined, 'POST', { email: input.email, password: input.password })).status).toBe(200);
   });
 
-  it('AC02 preserves both enrollments with the Sheets adapter under a paused row write', async () => {
-    const auth = new GoogleSheetsAuthRepository();
+  it('AC02 preserves both enrollments with the Mongo adapter under a paused update', async () => {
+    const auth = accounts.repository();
     const entered = deferred(), release = deferred();
-    sheet.beforeWrite = async (operation, range) => {
-      if (operation === 'update' && range.startsWith('Users!')) {
-        sheet.beforeWrite = async () => {}; entered.resolve(); await release.promise;
+    accounts.beforeWrite = async field => {
+      if (field === 'enrolledCourseIds') {
+        accounts.beforeWrite = async () => {}; entered.resolve(); await release.promise;
       }
     };
     await start(auth);
@@ -216,13 +208,10 @@ describe.each(['', '/api'])('US-P003 isolated retry contracts (%s)', prefix => {
     expect((await first).status).toBe(201);
   });
 
-  it.each(['memory', 'sheets'] as const)('releases signup coordination after a %s write rejection', async storage => {
-    const auth = storage === 'memory' ? memoryAuth : new GoogleSheetsAuthRepository();
+  it.each(['memory', 'mongodb'] as const)('releases signup coordination after a %s write rejection', async storage => {
+    const auth = storage === 'memory' ? memoryAuth : accounts.repository();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    if (storage === 'memory') vi.spyOn(memoryAuth, 'createUser').mockRejectedValueOnce(new Error('Write failed'));
-    else sheet.beforeWrite = async operation => {
-      if (operation === 'append') { sheet.beforeWrite = async () => {}; throw new Error('Write failed'); }
-    };
+    vi.spyOn(auth, 'createUser').mockRejectedValueOnce(new Error('Write failed'));
     await start(auth);
     const input = { displayName: 'Learner', email: 'retry@example.test', password: 'Password123!' };
     expect((await request('/auth/signup', undefined, 'POST', input)).status).toBe(500);
@@ -230,12 +219,10 @@ describe.each(['', '/api'])('US-P003 isolated retry contracts (%s)', prefix => {
     expect((await request('/auth/signup', undefined, 'POST', input)).status).toBe(409);
   });
 
-  it('releases enrollment coordination after a failed Sheets write', async () => {
+  it('releases enrollment coordination after a failed Mongo write', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const auth = new GoogleSheetsAuthRepository();
-    sheet.beforeWrite = async (_operation, range) => {
-      if (range.startsWith('Users!')) { sheet.beforeWrite = async () => {}; throw new Error('Write failed'); }
-    };
+    const auth = accounts.repository();
+    vi.spyOn(auth, 'enrollUserInCourse').mockRejectedValueOnce(new Error('Write failed'));
     await start(auth);
     expect((await request('/users/me/courses/course-a', student, 'POST')).status).toBe(500);
     expect((await request('/users/me/courses/course-b', student, 'POST')).status).toBe(200);
@@ -243,12 +230,12 @@ describe.each(['', '/api'])('US-P003 isolated retry contracts (%s)', prefix => {
     expect((await auth.findById(student.id))!.enrolledCourseIds.sort()).toEqual(['course-a', 'course-b']);
   });
 
-  it('allows another user enrollment while a Sheets row write is paused', async () => {
+  it('allows another user enrollment while a Mongo update is paused', async () => {
     const entered = deferred(), release = deferred();
-    sheet.beforeWrite = async (_operation, range) => {
-      if (range.startsWith('Users!')) { sheet.beforeWrite = async () => {}; entered.resolve(); await release.promise; }
+    accounts.beforeWrite = async field => {
+      if (field === 'enrolledCourseIds') { accounts.beforeWrite = async () => {}; entered.resolve(); await release.promise; }
     };
-    const auth = new GoogleSheetsAuthRepository();
+    const auth = accounts.repository();
     await start(auth);
     const first = request('/users/me/courses/course-a', student, 'POST');
     await entered.promise;

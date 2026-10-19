@@ -44,17 +44,6 @@ export type AuthUser = {
 
 export type AuthenticatedUser = Omit<AuthUser, 'passwordHash'>;
 
-export const authSheetHeaders = [
-  'id',
-  'email',
-  'displayName',
-  'passwordHash',
-  'role',
-  'status',
-  'createdAt',
-  'enrolledCourseIds'
-] as const;
-
 type SessionPayload = {
   sub: string;
   email: string;
@@ -62,32 +51,6 @@ type SessionPayload = {
   displayName: string;
   exp: number;
 };
-
-export function authUserFromSheetRow(row: string[]): AuthUser {
-  return {
-    id: row[0] ?? '',
-    email: (row[1] ?? '').trim().toLowerCase(),
-    displayName: row[2] ?? '',
-    passwordHash: row[3] ?? '',
-    role: userRoleSchema.catch('student').parse(row[4]),
-    status: userStatusSchema.catch('active').parse(row[5]),
-    createdAt: row[6] ?? '',
-    enrolledCourseIds: parseEnrolledCourseIds(row[7])
-  };
-}
-
-export function authUserToSheetRow(user: AuthUser): string[] {
-  return [
-    user.id,
-    user.email,
-    user.displayName,
-    user.passwordHash,
-    user.role,
-    user.status,
-    user.createdAt,
-    user.enrolledCourseIds.join(', ')
-  ];
-}
 
 export function toAuthenticatedUser(user: AuthUser): AuthenticatedUser {
   const { passwordHash: _passwordHash, ...publicUser } = user;
@@ -182,15 +145,4 @@ function signToken(payload: SessionPayload, secret: string): string {
 
 function createSignature(value: string, secret: string): string {
   return createHmac('sha256', secret).update(value).digest('base64url');
-}
-
-function parseEnrolledCourseIds(value: string | undefined): string[] {
-  if (!value?.trim()) {
-    return [];
-  }
-
-  return value
-    .split(',')
-    .map((courseId) => courseId.trim())
-    .filter(Boolean);
 }

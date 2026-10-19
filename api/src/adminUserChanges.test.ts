@@ -1,23 +1,16 @@
+import { authStoreDouble } from '../test/authStoreDouble.js';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authSheetHeaders, authUserToSheetRow, createSessionToken, type AuthUser } from './auth.js';
-import { GoogleSheetsAuthRepository, InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
+import { createSessionToken, type AuthUser } from './auth.js';
+import { InMemoryAuthRepository, type AuthRepository } from './authRepository.js';
 import { apiConfig } from './config.js';
 import { LocalMailSender } from './mailSender.js';
 import { InMemoryPasswordResetRepository } from './passwordResetRepository.js';
 import { createServer } from './server.js';
 import type { UserChange } from './userChangeRepository.js';
 
-const sheets = vi.hoisted(() => ({ rows: [] as string[][], writes: [] as string[], beforeRead: async () => {}, beforeWrite: async (_range: string) => {} }));
-vi.mock('./googleSheets.js', () => ({ ensureWorksheetHeaders: async () => {}, createSheetsClient: () => ({ spreadsheets: { values: {
-  get: async () => { const values = structuredClone(sheets.rows); await sheets.beforeRead(); return { data: { values } }; },
-  update: async ({ range, requestBody, valueInputOption }: { range: string; requestBody: { values: string[][] }; valueInputOption: string }) => {
-    expect(valueInputOption).toBe('RAW'); await sheets.beforeWrite(range);
-    const cell = range.match(/!([DEFH])(\d+)$/); if (!cell) throw new Error('Non-cell write');
-    const col = { D: 3, E: 4, F: 5, H: 7 }[cell[1]]!; sheets.writes.push(range); sheets.rows[Number(cell[2]) - 1][col] = requestBody.values[0][0]; return {};
-  },
-} } }) }));
+let accounts = authStoreDouble();
 function deferred() { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; }
 class ChangeDouble {
   entries: UserChange[] = [];
@@ -38,7 +31,7 @@ describe.each(['', '/api'])('US-A001 account status/change HTTP (%s)', prefix =>
   }
   beforeEach(async () => {
     servers = []; auth = new InMemoryAuthRepository(); users = await auth.listUsers(); changes = new ChangeDouble(); mail = new LocalMailSender(() => {}); tokens = new InMemoryPasswordResetRepository(); now = Date.parse('2026-10-11T12:00:00Z'); id = 0;
-    sheets.rows = [[...authSheetHeaders], ...users.map(authUserToSheetRow)]; sheets.writes = []; sheets.beforeRead = async () => {}; sheets.beforeWrite = async () => {}; base = await start();
+    accounts = authStoreDouble(users); base = await start();
   });
   afterEach(async () => { await Promise.all(servers.map(server => new Promise<void>(resolve => server.close(() => resolve())))); vi.restoreAllMocks(); });
   const session = (user: AuthUser, ttl = 3600) => createSessionToken(user, apiConfig.AUTH_TOKEN_SECRET, ttl);
@@ -56,10 +49,10 @@ describe.each(['', '/api'])('US-A001 account status/change HTTP (%s)', prefix =>
     }
   });
   it.each([{ before: 'active', after: 'disabled', expected: 401 }, { before: 'disabled', after: 'active', expected: 200 }])('DEF-032 login after another instance changes status ignores an older $before snapshot', async ({ before, after, expected }) => {
-    const a = new GoogleSheetsAuthRepository(), b = new GoogleSheetsAuthRepository(); const originA = await start(a), originB = await start(b);
-    sheets.rows[1][5] = before;
+    const a = accounts.repository(), b = accounts.repository(); const originA = await start(a), originB = await start(b);
+    accounts.fake.documents.get(users[0].id)!.status = before;
     const entered = deferred(), release = deferred(); let first = true;
-    sheets.beforeRead = async () => { if (first) { first = false; entered.resolve(); await release.promise; } };
+    accounts.beforeRead = async () => { if (first) { first = false; entered.resolve(); await release.promise; } };
     const stale = b.findByEmail(users[0].email); await entered.promise;
     expect((await request(statusPath(), 'PATCH', { status: after }, undefined, originA)).status).toBe(200);
     const loginStarted = deferred(), original = b.findByEmail.bind(b); vi.spyOn(b, 'findByEmail').mockImplementation((...args) => { loginStarted.resolve(); return original(...args); });
@@ -84,15 +77,15 @@ describe.each(['', '/api'])('US-A001 account status/change HTTP (%s)', prefix =>
   it('AC10 missing target is 404 without an entry', async () => {
     const response = await request(statusPath('missing'), 'PATCH', { status: 'disabled' }); expect(response.status).toBe(404); expect(await response.json()).toEqual({ message: 'User not found' }); expect(response.headers.get('cache-control')).toBe('no-store'); expect(changes.entries).toEqual([]);
   });
-  it.each(['memory', 'sheets'])('AC07 status revokes and restores old session/login in %s', async kind => {
-    const repository = kind === 'memory' ? auth : new GoogleSheetsAuthRepository(); const origin = kind === 'memory' ? base : await start(repository); const bearer = session(users[0]);
+  it.each(['memory', 'mongodb'])('AC07 status revokes and restores old session/login in %s', async kind => {
+    const repository = kind === 'memory' ? auth : accounts.repository(); const origin = kind === 'memory' ? base : await start(repository); const bearer = session(users[0]);
     const disable = await request(statusPath(), 'PATCH', { status: 'disabled' }, undefined, origin); expect(disable.status).toBe(200); expect(await disable.json()).toEqual({ ...dto(users[0]), status: 'disabled' }); expect(disable.headers.get('cache-control')).toBe('no-store');
     expect((await request('/auth/me', 'GET', undefined, bearer, origin)).status).toBe(401);
     const login = await request('/auth/login', 'POST', { email: users[0].email, password: 'Password123!' }, null, origin); expect(login.status).toBe(401); expect(await login.json()).toEqual({ message: 'Invalid email or password' });
     const enable = await request(statusPath(), 'PATCH', { status: 'active' }, undefined, origin); expect(enable.status).toBe(200); expect(await enable.json()).toEqual(dto(users[0]));
     expect((await request('/auth/me', 'GET', undefined, bearer, origin)).status).toBe(200); expect((await request('/auth/login', 'POST', { email: users[0].email, password: 'Password123!' }, null, origin)).status).toBe(200);
     expect(changes.entries.map(change => [change.field, change.from, change.to])).toEqual([['status', 'active', 'disabled'], ['status', 'disabled', 'active']]);
-    if (kind === 'sheets') expect(sheets.writes).toEqual(['Users!F2', 'Users!F2']);
+    if (kind === 'mongodb') expect(accounts.writes).toEqual(['status', 'status']);
   });
   it('AC08 unchanged role/status is 200 with no write or entry', async () => {
     const status = vi.spyOn(auth, 'updateStatusWithChange'), role = vi.spyOn(auth, 'updateRoleWithChange');
@@ -141,13 +134,13 @@ describe.each(['', '/api'])('US-A001 account status/change HTTP (%s)', prefix =>
     const path = field === 'role' ? rolePath() : statusPath(); const body = field === 'role' ? { role: 'teacher' } : { status: 'disabled' };
     const a = request(path, 'PATCH', body); await entered.promise; const b = request(path, 'PATCH', body); release.resolve(); const replies = await Promise.all([a, b]); expect(replies.map(r => r.status)).toEqual([200, 200]); expect(write).toHaveBeenCalledTimes(2); const outcomes = await Promise.all(write.mock.results.map(result => result.value)); expect(outcomes.filter(result => result.previous !== null)).toHaveLength(1); expect(changes.append).toHaveBeenCalledOnce();
   });
-  it('AC12 held F write survives independent enrollment, role and actual reset confirmation', async () => {
-    const repository = new GoogleSheetsAuthRepository(); const origin = await start(repository); const entered = deferred(), release = deferred();
-    sheets.beforeWrite = async range => { if (range === 'Users!F2') { entered.resolve(); await release.promise; } };
+  it('AC12 held status update survives independent enrollment, role and actual reset confirmation', async () => {
+    const repository = accounts.repository(); const origin = await start(repository); const entered = deferred(), release = deferred();
+    accounts.beforeWrite = async range => { if (range === 'status') { entered.resolve(); await release.promise; } };
     const disable = request(statusPath(), 'PATCH', { status: 'disabled' }, undefined, origin); await entered.promise;
     await repository.enrollUserInCourse(users[0].id, 'demo-course-1'); await repository.updateRole(users[0].id, 'teacher');
     expect((await request(`/admin/users/${users[0].id}/password-reset`, 'POST', undefined, undefined, origin)).status).toBe(202); const raw = mail.messages[0].text.match(/#token=([A-Za-z0-9_-]+)/)![1];
     expect((await request('/auth/password-reset/confirm', 'POST', { token: raw, password: 'Changed456!' }, null, origin)).status).toBe(204);
-    release.resolve(); expect((await disable).status).toBe(200); const stored = await repository.findById(users[0].id, { fresh: true }); expect(stored!.status).toBe('disabled'); expect(stored!.role).toBe('teacher'); expect(stored!.enrolledCourseIds).toEqual(['demo-course-1']); expect(stored!.passwordHash).not.toBe(users[0].passwordHash); expect(sheets.writes).toEqual(['Users!H2', 'Users!E2', 'Users!D2', 'Users!F2']);
+    release.resolve(); expect((await disable).status).toBe(200); const stored = await repository.findById(users[0].id, { fresh: true }); expect(stored!.status).toBe('disabled'); expect(stored!.role).toBe('teacher'); expect(stored!.enrolledCourseIds).toEqual(['demo-course-1']); expect(stored!.passwordHash).not.toBe(users[0].passwordHash); expect(accounts.writes).toEqual(['enrolledCourseIds', 'role', 'passwordHash', 'status']);
   });
 });

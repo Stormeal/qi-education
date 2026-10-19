@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GoogleSheetsAuthRepository } from './authRepository.js';
-import { GoogleSheetsCourseRepository } from './courseRepository.js';
+import { InMemoryAuthRepository } from './authRepository.js';
+import { InMemoryCourseRepository } from './courseRepository.js';
 import { GoogleSheetsFeedbackRepository } from './feedbackRepository.js';
-import { authSheetHeaders, type AuthUser, toAuthenticatedUser } from './auth.js';
-import { courseSheetHeaders, createCourseSchema } from './course.js';
+import { type AuthUser, toAuthenticatedUser } from './auth.js';
+import { createCourseSchema } from './course.js';
 import { feedbackSheetHeaders } from './feedback.js';
 
 const stub = vi.hoisted(() => ({ rows: new Map<string, string[][]>(), modes: [] as string[] }));
@@ -34,24 +34,23 @@ vi.mock('./googleSheets.js', () => {
 });
 beforeEach(() => {
   stub.rows.clear(); stub.modes.length = 0;
-  stub.rows.set('Users', [[...authSheetHeaders]]); stub.rows.set('Courses', [[...courseSheetHeaders]]);
   stub.rows.set('Feedback', [[...feedbackSheetHeaders]]);
 });
 
 describe('INV-009 / US-P007-AC03/04 literal spreadsheet round trips', () => {
   it.each(['=1+1', '007', '+01', '-01', '@name'])('preserves %s in all nine data writes', async text => {
-    const auth = new GoogleSheetsAuthRepository(), courses = new GoogleSheetsCourseRepository(), feedback = new GoogleSheetsFeedbackRepository();
+    const auth = new InMemoryAuthRepository(), courses = new InMemoryCourseRepository(), feedback = new GoogleSheetsFeedbackRepository();
     const user: AuthUser = { id: 'user', email: 'user@example.test', displayName: text, passwordHash: 'hash', role: 'student', status: 'active', createdAt: '2026-10-09', enrolledCourseIds: [] };
     await auth.createUser(user);
     const names = [(await auth.findById('user'))!.displayName];
     await auth.enrollUserInCourse('user', 'course'); names.push((await auth.findById('user'))!.displayName);
     await courses.createCourse(createCourseSchema.parse({ title: text, description: 'Literal description', teacher: 'Teacher', level: 'Beginner' }), { id: 'course', createdAt: '2026-10-09' });
-    let course = (await courses.listCourses())[0]; const titles = [course.title];
-    await courses.updateCourse('course', { ...course, title: text }); course = (await courses.listCourses())[0]; titles.push(course.title);
-    await courses.updateCoursePrice('course', { priceDkk: 7 }); course = (await courses.listCourses())[0]; titles.push(course.title);
+    let course = (await courses.listCourses()).find(course => course.id === 'course')!; const titles = [course.title];
+    await courses.updateCourse('course', { ...course, title: text }); course = (await courses.listCourses()).find(course => course.id === 'course')!; titles.push(course.title);
+    await courses.updateCoursePrice('course', { priceDkk: 7 }); course = (await courses.listCourses()).find(course => course.id === 'course')!; titles.push(course.title);
     await courses.updateCourseCatalogMetadata('course', { isPremium: false, isBestseller: false, rating: 0, ratingCount: 0, category: 'Software Testing', languages: [] });
-    course = (await courses.listCourses())[0]; titles.push(course.title);
-    await courses.updateCourseThumbnail('course', { thumbnailAssetId: 'asset' }); course = (await courses.listCourses())[0]; titles.push(course.title);
+    course = (await courses.listCourses()).find(course => course.id === 'course')!; titles.push(course.title);
+    await courses.updateCourseThumbnail('course', { thumbnailAssetId: 'asset' }); course = (await courses.listCourses()).find(course => course.id === 'course')!; titles.push(course.title);
     const entry = await feedback.createFeedback({ page: 'course', rating: 'okay', message: text }, toAuthenticatedUser(user));
     const messages = [(await feedback.findFeedbackById(entry.id))!.message];
     await feedback.updateFeedbackTriage(entry.id, { workStatus: 'work', priority: 'low', githubIssueUrl: text });
@@ -60,6 +59,6 @@ describe('INV-009 / US-P007-AC03/04 literal spreadsheet round trips', () => {
       names: [text, text], titles: Array(5).fill(text), category: 'Software Testing', messages: [text, text], issueUrl: text,
     });
     expect(stub.modes.filter(mode => mode !== 'RAW')).toEqual([]);
-    expect(stub.modes.filter(mode => mode === 'RAW').length).toBe(11); // Nine data writes plus two feedback header writes.
+    expect(stub.modes.filter(mode => mode === 'RAW').length).toBe(4); // Two feedback data writes and two feedback header writes.
   });
 });
