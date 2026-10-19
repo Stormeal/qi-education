@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on 2026-10-19, not pushed: US-P008 per-client limits (`b227896` API,
+None. Pushed to `main` on 2026-10-19: US-P008 per-client limits (`b227896` API,
 `9e3d8bd` app specs). Checks on `73f1cf8`: `api:test` 1,554/1,554, `app:test` 383/383,
 `verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers.
 
