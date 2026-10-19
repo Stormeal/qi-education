@@ -9,7 +9,11 @@ signed in across page loads.
 
 - **Signup** creates a `student` account. Display name 2–120 characters; email is trimmed and
   lower-cased; password at least 8 characters with one capital letter and one number. One account
-  per normalized email (duplicate signup answers 409).
+  per normalized email (duplicate signup answers 409). A new account starts unconfirmed and is
+  sent a confirmation link (see [passwords and email](passwords-and-email.md)); a failed mail does
+  not fail the signup. Every user object carries `emailConfirmed`; accounts created before
+  2026-10-19 have no stored flag and count as confirmed. An unconfirmed account can sign in and
+  enroll as before.
 - **Login** answers a signed session token (12-hour lifetime) and the user. A wrong password, an
   unknown address and a disabled account all get the same generic 401.
 - **Remember me** stores the session in `localStorage`; otherwise `sessionStorage`. Logout clears both.
@@ -47,4 +51,4 @@ signed in across page loads.
 
 - Sign-in has no per-client limit, only the per-address one.
 - Existing sessions survive a password change until their token expires.
-- Email addresses are not confirmed at signup (US-L014).
+- Confirming the address unlocks nothing yet; it only makes recovery mail trustworthy.

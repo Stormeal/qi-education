@@ -18,7 +18,7 @@ or names an old ID. Keep this table identical to the one in `AGENTS.md`.
 | Keywords in the task | Read (under `docs/`) |
 | --- | --- |
 | login, signup, session, token, remember me, `/auth/me`, sign-in limit, 429, disabled account | `specs/accounts/sign-in-and-sessions.md` |
-| password reset, reset link, change password, account mail, Brevo | `specs/accounts/passwords-and-email.md` |
+| password reset, reset link, change password, account mail, email confirmation, `/confirm-email`, Brevo | `specs/accounts/passwords-and-email.md` |
 | profile, avatar, bio, job title, instructor description | `specs/accounts/profiles.md` |
 | catalog, `/courses`, carousel, search, filter, sort, category, course card | `specs/catalog/browse.md` |
 | course details, `/courses/:id`, enroll, enrollment, outline, price shown | `specs/catalog/course-details-and-enrollment.md` |

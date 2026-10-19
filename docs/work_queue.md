@@ -6,19 +6,10 @@ messages hold them.
 
 ## Active work
 
-**US-L014 email confirmation at signup.** Base `5e5a65a`, branch `main`. Decisions in
-[the story](user_stories.md).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | API: flag, tokens, mail, confirm/resend routes, limits, API tests | `api/**`; [handoff](handoffs/US-L014-codex.md) | API done 2026-10-19; delivery `aa93792`, branch `main`, base `9cd3cbf` (includes `239645e`); US-L014-AC01/AC02/AC03. Optional account flag/boolean DTOs, signup mail, confirm/resend contracts, 24-hour hash-only single-use tokens, three mails/account/rolling hour, confirmation network limit and freeze protection. Reuses token CAS; reset regression checks pass. Checks: `npm run api:test` 1,600/1,600; `npm run api:build` pass; `npm run verify:journeys` 16/16; 46 new confirmation tests, including parallel Mongo doubles. Isolated stores only; no live services or push. Next: Claude browser check and story/spec closeout. |
-| Claude Code | App: `/confirm-email` page, Home notice and resend, model and auth service, specs, docs | `app/**`, `docs/**` | In progress |
-
-Next: both parts in parallel; Claude browser-checks once Codex has committed.
-
-Previously: pushed to `main` on 2026-10-19: US-P008 per-client limits (`b227896` API,
-`9e3d8bd` app specs). Checks on `73f1cf8`: `api:test` 1,554/1,554, `app:test` 383/383,
-`verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers.
+None. Delivered locally on 2026-10-19, not pushed: US-L014 email confirmation (`aa93792` API,
+Codex; `9cd3cbf` app). Checks on `de90ee6`: `api:test` 1,600/1,600, `app:test` 392/392,
+`verify:journeys` 16/16, `app:build:pages` pass; browser-checked on the isolated servers (signup,
+Home notice, link from the mail, notice gone after reload).
 
 ## Waiting on Alex
 
@@ -37,6 +28,7 @@ suggested on 2026-10-18 but is not yet a story.
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.
 - Mux: real upload, webhook delivery, processing delay and public playback on the hosted site; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).

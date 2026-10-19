@@ -10,6 +10,9 @@ A signed-in learner sees where they are and what to do next, and finds every cou
   career path tile. The tile shows the focused career's next step (see
   [careers](../career-paths/careers.md)) or "Choose a career path" when none is followed.
   With no enrollments it shows an honest empty state ("No courses enrolled", "Find a course").
+- **Confirm your email address**: while the account is unconfirmed, Home shows a notice naming
+  the address, with **Send a new link** and the API's answer (US-L014). It disappears as soon as
+  the link is opened in the same browser.
 - **Your learning** lists every enrolled course. The **recommended** course comes first with a
   "Recommended" corner ribbon: the first course in progress with a lesson done, else the first at
   0%. A completed course or one whose progress is unavailable is never recommended; then there is

@@ -1,6 +1,6 @@
 {
   "name": "qi-academy",
-  "version": "0.1.292",
+  "version": "0.1.293",
   "private": true,
   "engines": {
     "node": "22.x"
