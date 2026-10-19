@@ -6,15 +6,9 @@ messages hold them.
 
 ## Active work
 
-**US-P016 retire the Sheets code for accounts and courses.** Base `d1cdcb9`, branch `main`.
-Decisions in [the story](user_stories.md). Not pushed: `947f7a5` (CI spec fix) and later commits.
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | API: Sheets account/course repositories, store switches, migration code, API tests | `api/**` except the three tests below; [handoff](handoffs/US-P016-codex.md) | Done 2026-10-19; API delivery `e615e80`, branch `main`, base `6812730` (includes `f1ecb4f`). US-P016-AC01: only feedback uses Sheets; `npm run api:test` 1,518/1,518 and `npm run api:build` pass; source scan passes; isolated memory/Mongo doubles only, no shared services or push. Includes `api/.env.example`. Next: Claude reviews delivery and closes story/spec/handoff; no code changes needed outside Codex scope. |
-| Claude Code | Doctor, DEF-012 correction script, Pages gate, docs | `scripts/doctor.mjs`, `scripts/correct-def-012-categories.mjs`, `.github/workflows/pages.yml`, `api/src/localScripts.test.ts`, `api/src/categoryCorrection.test.ts`, `api/src/pagesWorkflow.test.ts`, `docs/**`, `CLAUDE.md`, `AGENTS.md` | Done 2026-10-19, `api:test` 1,713/1,713 before Codex changes. Left: `api/.env.example` (Codex area), fold story into spec after review |
-
-Next: Claude finishes its part, then runs the check routine on Codex's commit.
+None. Delivered locally on 2026-10-19, not pushed: `947f7a5` (CI spec fix) and US-P016 (`6812730`
+doctor, Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
+`app:test` 381/381, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
 
 ## Waiting on Alex
 
@@ -22,6 +16,7 @@ Next: Claude finishes its part, then runs the check routine on Codex's commit.
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
+| US-P016 defaults | Confirm or change: freezes kept, migration commands removed (still in `d1cdcb9`), shared runs without MongoDB answer "unavailable", `--allow-demo` removed. Optional: delete `USER_STORE`, `COURSE_STORE`, `GOOGLE_SHEETS_USERS*`, `GOOGLE_SHEETS_COURSES*` in Vercel | Reply "confirmed" or name the change |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-P008 (limits), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate

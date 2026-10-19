@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-18. Open work only. Priority order chosen by Alex: **teachers, learners,
+Updated: 2026-10-19. Open work only. Priority order chosen by Alex: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. What the app already does is
 in [specs/](specs/README.md); use [work_queue.md](work_queue.md) for the next item and active work.
 
@@ -19,7 +19,6 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P005 | Operator tooling for course lock recovery | Proposed | P2 | Operator permissions decision | Below |
 | US-P008 | Limit client reset requests and confirmation mail | Proposed | P2 | Limit decision | Below, INV-014 |
-| US-P016 | Retire the Google Sheets code for accounts and courses | In progress | P3 | None (release confirmed clean 2026-10-19) | Below |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -193,39 +192,6 @@ Feature: Safe operation of the live service
     When the agreed limit is exceeded
     Then no further mail is sent for the agreed period
     And the response still does not reveal whether the account exists
-```
-
-### US-P016 — Retire the Google Sheets code for accounts and courses
-
-**As the team maintaining QI Academy, I want accounts and courses to have one storage path, so that
-there is less code to keep correct and nothing reads the old sheets by mistake.**
-
-State: In progress (2026-10-19). Accounts and courses were cut over on 2026-10-18; start after one
-release with a clean hosted log. Removes the Sheets repositories for users and courses, the
-`USER_STORE`/`COURSE_STORE` switches with their health and doctor checks, the migration scripts, and
-updates [storage and run modes](specs/platform/storage-and-run-modes.md) and
-[local development](local_development.md). Feedback keeps its Google Sheets store; the old sheets
-stay in Google Drive as a read-only backup.
-
-Started 2026-10-19 after Alex confirmed the 2026-10-18 release clean. Decisions taken by Claude,
-**confirm or change**:
-
-- `USER_STORE_READ_ONLY` / `COURSE_STORE_READ_ONLY` stay as maintenance freezes for MongoDB.
-- The migration commands (`users:migrate`, `courses:migrate`) go without replacement; commit
-  `d1cdcb9` still has them if the sheets ever need to be read back.
-- Shared local runs (`USE_SHARED_SERVICES=1`) without MongoDB settings answer "unavailable" for
-  accounts and courses instead of falling back to demo users.
-- The DEF-012 category correction script goes: it writes the Courses sheet, which nothing reads.
-- The Pages deploy gate accepts only MongoDB account storage.
-- Vercel's `USER_STORE`, `COURSE_STORE`, `GOOGLE_SHEETS_USERS*` and `GOOGLE_SHEETS_COURSES*`
-  settings become unused; removing them is optional and Alex's call.
-
-```gherkin
-Feature: One storage path for accounts and courses
-  Scenario: US-P016-AC01 Only feedback uses Google Sheets
-    Given the API source after this story
-    When a reviewer searches it for Google Sheets clients
-    Then only the feedback repository and its configuration use them
 ```
 
 ## Adding a story
