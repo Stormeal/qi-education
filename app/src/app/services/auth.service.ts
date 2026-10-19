@@ -109,11 +109,23 @@ export class AuthService {
   }
 
   checkPasswordReset(token: string): Promise<PasswordResetResult> {
-    return this.passwordResetOutcome('check', { token });
+    return this.linkOutcome('/auth/password-reset/check', { token });
   }
 
   confirmPasswordReset(token: string, password: string): Promise<PasswordResetResult> {
-    return this.passwordResetOutcome('confirm', { token, password });
+    return this.linkOutcome('/auth/password-reset/confirm', { token, password });
+  }
+
+  /** US-L014. Needs no sign-in: the link may be opened on another device. */
+  confirmEmail(token: string): Promise<PasswordResetResult> {
+    return this.linkOutcome('/auth/email-confirmation/confirm', { token });
+  }
+
+  /** US-L014. `confirmed` is true when the account turned out to be confirmed already (204). */
+  async resendEmailConfirmation(sessionToken: string): Promise<{ confirmed: boolean; message: string }> {
+    const result = await this.postJson('/auth/email-confirmation/resend', {}, sessionToken);
+    if (result.status === 204) return { confirmed: true, message: '' };
+    return { confirmed: false, message: result.message || 'We could not send email right now. Please try again later.' };
   }
 
   /** US-L013. A wrong current password is a 400 from the API, never a 401, so the session survives it. */
@@ -132,17 +144,23 @@ export class AuthService {
     }
   }
 
-  private async passwordResetOutcome(step: string, body: unknown): Promise<PasswordResetResult> {
-    const result = await this.passwordReset(step, body);
+  private async linkOutcome(path: string, body: unknown): Promise<PasswordResetResult> {
+    const result = await this.postJson(path, body);
     if (result.status === 204) return { ok: true };
     // 410: the link is unknown, expired or used. Anything else can be retried with the same link.
     return { ok: false, invalid: result.status === 410, message: result.message || 'Something went wrong. Please try again.' };
   }
 
-  private async passwordReset(step: string, body: unknown): Promise<{ status: number; message: string }> {
+  private passwordReset(step: string, body: unknown): Promise<{ status: number; message: string }> {
+    return this.postJson(`/auth/password-reset/${step}`, body);
+  }
+
+  private async postJson(path: string, body: unknown, sessionToken?: string): Promise<{ status: number; message: string }> {
     try {
-      const response = await this.apiClient.fetch(`/auth/password-reset/${step}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      const response = await this.apiClient.fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(sessionToken ? { authorization: `Bearer ${sessionToken}` } : {}) },
+        body: JSON.stringify(body),
       });
       const json = await response.json().catch(() => ({})) as { message?: string };
       return { status: response.status, message: json.message ?? '' };

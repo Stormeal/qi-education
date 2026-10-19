@@ -10,6 +10,8 @@ export type LoginResponse = {
     status: 'active' | 'disabled';
     createdAt: string;
     enrolledCourseIds: string[];
+    // US-L014. Missing (an older API or stored session) means confirmed.
+    emailConfirmed?: boolean;
   };
   permissions: {
     canCreateCourses: boolean;

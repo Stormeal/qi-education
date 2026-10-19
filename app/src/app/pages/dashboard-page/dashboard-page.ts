@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { CourseSummary, FeedbackOption, StudentSummary } from '../../app.models';
 import { RouterLink } from '@angular/router';
 import { CareerPathService } from '../../services/career-path.service';
+import { AppStateService } from '../../services/app-state.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
 import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
 import { Button } from '../../ui/button/button';
@@ -19,6 +20,7 @@ import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 export class DashboardPage {
   protected readonly careerPath = inject(CareerPathService);
   private readonly learningProgress = inject(LearningProgressService);
+  protected readonly state = inject(AppStateService);
   protected readonly progressSyncNotice = computed(() => this.learningProgress.accountSyncState() === 'pending' ? PROGRESS_SYNC_NOTICE : '');
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();

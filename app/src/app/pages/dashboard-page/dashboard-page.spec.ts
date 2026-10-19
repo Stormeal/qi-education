@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { CourseSummary } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
+import { AppStateService } from '../../services/app-state.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
 import { DashboardPage } from './dashboard-page';
 
@@ -29,7 +30,7 @@ describe('Home recommendation (US-L007)', () => {
     TestBed.configureTestingModule({ providers: [
       provideRouter([]),
       { provide: CareerPathService, useValue: { milestoneProgress: signal(null), selectedPath: signal(null), progress: signal(null),
-        nextAction: signal(null), focusedPath: signal(null), state: signal('ready') } },
+        nextAction: signal(null), focusedPath: signal(null), state: signal('ready'), load: async () => {} } },
       { provide: LearningProgressService, useValue: { accountSyncState: signal('idle') } },
     ] });
     fixture = TestBed.createComponent(DashboardPage);
@@ -59,5 +60,17 @@ describe('Home recommendation (US-L007)', () => {
     show([course('a', 'Completed', 4), course('b', 'Unavailable', 0)]);
     expect(titles()).toEqual(['Course a', 'Course b']);
     expect(ribbons()).toHaveLength(0);
+  });
+
+  it.each([[false, true], [true, false], [undefined, false]])('US-L014-AC02/AC03 emailConfirmed %s shows the confirm notice: %s', (emailConfirmed, shown) => {
+    TestBed.inject(AppStateService).loginState.set({ token: 'session', permissions: { canCreateCourses: false, hasAdminAccess: false },
+      user: { id: 'u', email: 'learner@example.test', displayName: 'Learner', role: 'student', status: 'active', createdAt: '', enrolledCourseIds: [], emailConfirmed } });
+    show([]);
+    const notice = (fixture.nativeElement as HTMLElement).querySelector('.db-confirm-email');
+    expect(Boolean(notice)).toBe(shown);
+    if (notice) {
+      expect(notice.textContent).toContain('We sent a link to learner@example.test. It works for 24 hours.');
+      expect(notice.querySelector('button')!.textContent!.trim()).toBe('Send a new link');
+    }
   });
 });

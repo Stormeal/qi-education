@@ -43,6 +43,11 @@ export const routes: Routes = [
       import('./pages/password-reset-page/password-reset-page').then((module) => module.PasswordResetPage),
   },
   {
+    path: 'confirm-email',
+    loadComponent: () =>
+      import('./pages/confirm-email-page/confirm-email-page').then((module) => module.ConfirmEmailPage),
+  },
+  {
     path: 'career-path',
     loadComponent: () =>
       import('./routes/career-path-route').then((module) => module.CareerPathRoute),

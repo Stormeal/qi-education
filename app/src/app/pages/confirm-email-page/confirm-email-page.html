@@ -1,0 +1,57 @@
+<main class="min-h-[100dvh] bg-[var(--shell-bg)] px-4 py-4 text-[var(--ink)] sm:px-6 lg:px-8 lg:py-6">
+  <section
+    class="mx-auto w-full max-w-xl rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel-base)] shadow-[0_30px_80px_rgba(23,27,74,0.12)]"
+  >
+    <div class="border-b border-[var(--panel-border)] px-6 py-6 sm:px-10">
+      <app-brand-link />
+    </div>
+
+    <div class="grid gap-5 px-6 py-8 sm:px-10">
+      <h1 #heading tabindex="-1" class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)] outline-none">
+        @switch (step()) {
+          @case ('checking') { Confirming your email address }
+          @case ('done') { Your email address is confirmed }
+          @case ('invalid') { This link no longer works }
+          @case ('error') { We could not confirm your address }
+        }
+      </h1>
+
+      @switch (step()) {
+        @case ('checking') {
+          <p role="status" class="text-[15px] leading-6 text-[var(--muted)]">One moment.</p>
+        }
+
+        @case ('done') {
+          <p role="status" class="text-[15px] leading-6 text-[var(--muted)]">
+            Thank you. Password reset mails will now reach you at this address.
+          </p>
+        }
+
+        @case ('invalid') {
+          <p role="alert" class="text-[15px] leading-6 text-[var(--muted)]">
+            The link has expired, was already used, or is incomplete. Links work for 24 hours and once.
+          </p>
+          @if (state.emailNeedsConfirmation()) {
+            @if (state.emailConfirmationMessage()) {
+              <p role="status" class="text-[15px] leading-6 text-[var(--muted)]">{{ state.emailConfirmationMessage() }}</p>
+            }
+            <button appButton="primary" [disabled]="state.emailConfirmationSending()" (click)="state.resendEmailConfirmation()">
+              {{ state.emailConfirmationSending() ? 'Sending…' : 'Send a new link' }}
+            </button>
+          } @else if (!state.loginState()) {
+            <p class="text-[15px] leading-6 text-[var(--muted)]">Log in, then choose Send a new link on your Home page.</p>
+          }
+        }
+
+        @case ('error') {
+          <p role="alert" class="rounded-[18px] border border-[rgba(185,28,28,0.16)] bg-[rgba(254,242,242,0.92)] px-5 py-3 text-[15px] leading-6 text-[var(--danger-ink)]">{{ error() }}</p>
+          <button appButton="primary" (click)="confirm()">Try again</button>
+        }
+      }
+
+      <a routerLink="/" class="text-[14px] font-semibold text-[var(--form-ink)] transition hover:text-[var(--accent-deep)]">
+        {{ state.loginState() ? 'Go to Home' : 'Go to log in' }}
+      </a>
+    </div>
+  </section>
+</main>

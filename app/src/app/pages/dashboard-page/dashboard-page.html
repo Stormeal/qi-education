@@ -23,6 +23,18 @@
     </div>
   </header>
 
+  @if (state.emailNeedsConfirmation()) {
+    <section class="db-confirm-email" aria-label="Confirm your email address">
+      <div class="db-confirm-email-copy">
+        <p><strong>Confirm your email address.</strong> We sent a link to {{ userEmail() }}. It works for 24 hours.</p>
+        @if (state.emailConfirmationMessage()) { <p role="status">{{ state.emailConfirmationMessage() }}</p> }
+      </div>
+      <button appButton [disabled]="state.emailConfirmationSending()" (click)="state.resendEmailConfirmation()">
+        {{ state.emailConfirmationSending() ? 'Sending…' : 'Send a new link' }}
+      </button>
+    </section>
+  }
+
   <section class="db-stats" aria-label="Learning summary">
     <article class="db-stat db-stat-hero" data-surface="dark">
       <span class="db-stat-label">Career path</span>

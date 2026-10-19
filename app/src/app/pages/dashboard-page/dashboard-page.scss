@@ -325,3 +325,28 @@
     font-size: 28px;
   }
 }
+
+.db-confirm-email {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: var(--panel-base);
+}
+
+.db-confirm-email-copy {
+  display: grid;
+  gap: 4px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .db-confirm-email {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

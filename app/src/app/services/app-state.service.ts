@@ -68,7 +68,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.289';
+  readonly appVersion = '0.1.290';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -82,6 +82,11 @@ export class AppStateService {
   readonly isSubmitting = signal(false);
   readonly loginError = signal('');
   readonly loginState = signal<LoginState | null>(this.sessionService.restoreLoginState());
+  // US-L014. Confirming in this tab hides the Home notice at once; the next session check brings the stored flag.
+  private readonly emailConfirmedHere = signal(false);
+  readonly emailNeedsConfirmation = computed(() => this.loginState()?.user.emailConfirmed === false && !this.emailConfirmedHere());
+  readonly emailConfirmationSending = signal(false);
+  readonly emailConfirmationMessage = signal('');
   readonly currentPath = signal(this.normalizePath(this.router.url));
 
   readonly profileBio = signal('');
@@ -597,6 +602,22 @@ export class AppStateService {
     this.endSession();
   }
 
+  markEmailConfirmed(): void {
+    this.emailConfirmedHere.set(true);
+  }
+
+  async resendEmailConfirmation(): Promise<void> {
+    const session = this.loginState();
+    if (!session || this.emailConfirmationSending()) return;
+    this.emailConfirmationSending.set(true);
+    this.emailConfirmationMessage.set('');
+    const result = await this.authService.resendEmailConfirmation(session.token);
+    this.emailConfirmationSending.set(false);
+    if (this.loginState()?.token !== session.token) return;
+    if (result.confirmed) this.markEmailConfirmed();
+    else this.emailConfirmationMessage.set(result.message);
+  }
+
   private endSession(): void {
     this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
@@ -637,6 +658,8 @@ export class AppStateService {
     this.profileAvatarColor.set(DEFAULT_AVATAR_COLOR);
     this.profileSnapshot.set('');
     this.profileSaved.set(false);
+    this.emailConfirmedHere.set(false);
+    this.emailConfirmationMessage.set('');
     this.sessionService.clearStoredSession();
     this.clearCourseCatalogNotice();
     this.clearCoursePriceNotice();
