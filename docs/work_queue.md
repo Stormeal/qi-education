@@ -1,20 +1,19 @@
 # Work queue
 
-Updated: 2026-10-18. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-19. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-18: US-L007 and US-P002 (API codes, outage logging, app
-guidance). Last checks: `app:test` 381/381; API checks on `2848ad5` and
-`16abe29` (1,729/1,729).
+None. Pushed to `main` on 2026-10-18: US-L007 and US-P002. Not pushed: `947f7a5` fixes the CI
+failure on `73694de` (a spec ended while the logout navigation still loaded a lazy route chunk);
+`app:test` 381/381 on 2026-10-19.
 
 ## Waiting on Alex
 
 | Item | What Alex does | How to tell it is done |
 | --- | --- | --- |
-| DEF-PAGES-MONGO hosted check | Open the latest "Deploy to GitHub Pages" run on GitHub Actions | The run is green, including the hosted auth check |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-P008 (limits), US-L001 (preview, archive access, payment) | Decision recorded in the story |
