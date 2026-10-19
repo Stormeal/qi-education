@@ -6,7 +6,17 @@ messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-19: `947f7a5` (CI spec fix) and US-P016 (`6812730` doctor,
+**US-P008 per-client limits for reset requests and signups.** Base `e15d4e0`, branch `main`.
+Decisions in [the story](user_stories.md); closes INV-014 once delivered.
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | API limits, storage, API tests | `api/**`; [handoff](handoffs/US-P008-codex.md) | Assigned 2026-10-19 |
+| Claude Code | App regression specs for the 429 message, browser check, docs | `app/**`, `docs/**` | Waiting for Codex's API |
+
+Next: Codex delivers the API; Claude adds app specs, browser-checks on 3001/4200, folds the spec.
+
+Previously: pushed to `main` on 2026-10-19: `947f7a5` (CI spec fix) and US-P016 (`6812730` doctor,
 Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
 `app:test` 381/381, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
 
