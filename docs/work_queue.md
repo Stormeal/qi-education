@@ -6,9 +6,15 @@ messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-18: US-L007 and US-P002. Not pushed: `947f7a5` fixes the CI
-failure on `73694de` (a spec ended while the logout navigation still loaded a lazy route chunk);
-`app:test` 381/381 on 2026-10-19.
+**US-P016 retire the Sheets code for accounts and courses.** Base `d1cdcb9`, branch `main`.
+Decisions in [the story](user_stories.md). Not pushed: `947f7a5` (CI spec fix) and later commits.
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | API: Sheets account/course repositories, store switches, migration code, API tests | `api/**` except the three tests below; [handoff](handoffs/US-P016-codex.md) | Assigned 2026-10-19 |
+| Claude Code | Doctor, DEF-012 correction script, Pages gate, docs | `scripts/doctor.mjs`, `scripts/correct-def-012-categories.mjs`, `.github/workflows/pages.yml`, `api/src/localScripts.test.ts`, `api/src/categoryCorrection.test.ts`, `api/src/pagesWorkflow.test.ts`, `docs/**`, `CLAUDE.md`, `AGENTS.md` | In progress |
+
+Next: Claude finishes its part, then runs the check routine on Codex's commit.
 
 ## Waiting on Alex
 
@@ -20,7 +26,6 @@ failure on `73694de` (a spec ended while the logout navigation still loaded a la
 
 ## Next candidate
 
-US-P016 (retire the Sheets code for accounts and courses) once one release has a clean hosted log.
 A backup and restore rehearsal for MongoDB, now the only live copy of accounts and courses, was
 suggested on 2026-10-18 but is not yet a story.
 
