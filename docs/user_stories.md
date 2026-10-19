@@ -13,10 +13,10 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
-| US-L001 | Enroll and learn through authorized access | Proposed | P1 | Product decisions | Below |
+| US-L001 | Enroll and learn through authorized access | In progress | P1 | Alex: confirm defaults | Below |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
-| US-P005 | Operator tooling for course lock recovery | Proposed | P2 | Operator permissions decision | Below |
+| US-P005 | Operator tooling for course lock recovery | In progress | P2 | Alex: confirm defaults | [stories/US-P005](stories/US-P005-lock-inspection.md) |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -57,10 +57,15 @@ Feature: Credible career milestone curation
 **As a learner, I want to access published courses I have joined, so that my learning library
 contains material I am authorized to use.**
 
-State: Proposed. Published-only enrollment, authorized content and resources, the public outline
-and direct-URL resume are delivered. Remaining decisions: public preview limits; access for
-already-enrolled users after archival; whether prices are informational or require payment. No
-payment system exists. The scenarios stay as the contract those decisions may change.
+State: In progress (started 2026-10-19). Published-only enrollment, authorized content and
+resources, the public outline and direct-URL resume are delivered and tested (LC-03/04 in
+`api/src/courseLifecycle.test.ts`). Decisions taken by the lead from the defaults Alex chose
+(Alex: confirm or change):
+
+- Public preview: the outline only (lesson titles, types and durations). No free lessons.
+- Archival: a learner enrolled before archival keeps full access; nobody new can enroll.
+- Price: informational only. Enrolling is free and takes no payment; the course page says so
+  next to a price. No payment system is planned.
 
 ```gherkin
 Feature: Enrollment and learning access
@@ -136,10 +141,10 @@ Feature: Safe account and feedback writes
 **As an operator, I want to reconcile an interrupted course write safely, so that learners regain
 access without a delayed operation overwriting the recovered course.**
 
-State: Proposed. Lock expiry after 31 minutes is delivered. Runbook:
-[course operation recovery](course_operation_recovery.md). Remaining: operator tooling to inspect
-and release a lock sooner. Decisions: operator identity and permissions, the evidence required
-before release, and manual versus assisted recovery.
+State: In progress (started 2026-10-19). Lock expiry after 31 minutes is delivered. Runbook:
+[course operation recovery](course_operation_recovery.md). Now: an admin-only, read-only list of
+course locks; decisions (Alex: confirm or change) and scenarios in
+[stories/US-P005](stories/US-P005-lock-inspection.md).
 
 ```gherkin
 Feature: Verified course operation recovery

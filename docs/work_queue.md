@@ -6,9 +6,14 @@ messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-19: US-P017 MongoDB backup and restore (defaults confirmed by Alex; first backup and rehearsal passed) (`93c841f`
-and `6e6470e` commands, Codex; runbook `d90b650`/`729a510`). Checks on `29df0c2`: `api:test`
-1,658/1,658, `app:test` 392/392, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
+Started 2026-10-19 from base `5cccf70`, branch `main`. Alex picked US-L001; Codex takes
+US-P005 alongside it.
+
+| Owner | Item | Scope and files | State |
+| --- | --- | --- | --- |
+| Claude Code | US-L001 AC01–03 | "No payment" note on priced courses (`app/src/app/pages/course-view-page/**`); close the story in `docs/user_stories.md`, `docs/specs/catalog/`, `docs/specs/learning/` | In progress |
+| Codex | US-P005 AC01–04 API | `GET /admin/course-locks`, read-only; files in [handoff](handoffs/US-P005-lock-inspection-codex.md) | Handed over |
+| Claude Code | US-P005 Admin panel | Course locks panel on the Admin page against the handoff contract (`app/`) | After Codex commits |
 
 ## Waiting on Alex
 
@@ -16,13 +21,12 @@ and `6e6470e` commands, Codex; runbook `d90b650`/`729a510`). Checks on `29df0c2`
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-L001 (preview, archive access, payment) | Decision recorded in the story |
+| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults | Decision recorded in the story |
 
 ## Next candidate
 
-Every open story waits on a decision by Alex (US-A004 curriculum, US-L001 access rules, US-P001
-browser runner, US-P003 multi-instance writes, US-P005 operator tooling). Ask which one, with
-defaults.
+Every other open story waits on a decision by Alex (US-A004 curriculum, US-P001 browser
+runner, US-P003 multi-instance writes). Ask which one, with defaults.
 
 ## Open release checks
 
