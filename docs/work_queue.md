@@ -11,7 +11,7 @@ messages hold them.
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | API done 2026-10-19; branch `main`, base `d90b650` (includes `22a72d4`), delivery `93c841f`; US-P017-AC01/AC02: 57 isolated command/round-trip/refusal tests, full `npm run api:test` 71 files / 1,657 tests passed, `npm run api:build` passed, review resolved unexpected target TTL indexes. No shared services or push. Next: Claude reviews runbook line 95 (all target collections must have no documents and only default indexes); Alex performs real backup/restore rehearsal |
+| Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | API review fix done 2026-10-19; branch `main`, base `729a510`, fix `6e6470e` (initial delivery `93c841f`); US-P017-AC02 now inserts all collections, verifies all counts, then creates manifest indexes. Immediate-expiry TTL double reproduced failure before fix and passes afterwards; 58 targeted tests passed; full `npm run api:test` 71 files / 1,658 tests passed; `npm run api:build` passed. Success messages unchanged. No shared services or push. Next: Claude review; Alex real backup/scratch restore rehearsal |
 | Claude Code | Runbook, storage spec, review | `docs/**` | In progress |
 
 Next: Codex fixes the review finding (returned 2026-10-19: create indexes only after the final
