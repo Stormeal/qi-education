@@ -8,7 +8,9 @@
     "build": "tsc --project tsconfig.json",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "auth:hash-password": "tsx src/hashPassword.ts"
+    "auth:hash-password": "tsx src/hashPassword.ts",
+    "db:backup": "tsx src/backupDatabaseCli.ts",
+    "db:restore": "tsx src/restoreDatabaseCli.ts"
   },
   "keywords": [],
   "author": "",
