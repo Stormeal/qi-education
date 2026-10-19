@@ -102,7 +102,6 @@ purpose; never return a stored document as is.
 ## Known debt
 
 - `server.ts` and `AppStateService` are large and mix concerns.
-- Google Sheets code for accounts and courses is still present though hosted runs use MongoDB (US-P016).
 - No browser end-to-end suite (US-P001). Hosted-only behavior is checked by hand.
 - Multi-instance guarantees exist only where MongoDB provides them; per-instance queues cover the rest
   ([reliability](specs/platform/reliability.md)).

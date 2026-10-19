@@ -167,7 +167,7 @@ npm --prefix api test -- <path-to-test>
 # Health check for local configuration
 npm run doctor
 
-# Generate a password hash for Google Sheets auth store
+# Generate a password hash for a hand-made account
 npm --prefix api run auth:hash-password -- "Password123!"
 ```
 

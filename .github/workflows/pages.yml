@@ -39,7 +39,6 @@ jobs:
       - name: Test Angular app
         run: npm run app:test -- --run
 
-      # categoryCorrection.test.ts loads scripts that import api/dist.
       - name: Build API
         run: npm run api:build
 
@@ -64,8 +63,8 @@ jobs:
                 throw new Error(`Hosted API config returned HTTP ${response.status}`);
               }
 
-              if (!body.auth?.configured || !['google-sheets', 'mongodb'].includes(body.auth?.storage)) {
-                throw new Error('Hosted API must use configured Google Sheets or MongoDB auth storage before Pages deploys.');
+              if (!body.auth?.configured || body.auth?.storage !== 'mongodb') {
+                throw new Error('Hosted API must use configured MongoDB auth storage before Pages deploys.');
               }
 
               process.exit(0);

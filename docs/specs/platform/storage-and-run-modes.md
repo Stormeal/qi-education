@@ -20,36 +20,34 @@ Startup prints one `Stores:` line; `/health/config` reports `mode`.
 
 | Data | Store |
 | --- | --- |
-| Accounts and enrollments | MongoDB `<collection>_users` (`USER_STORE=mongodb`, cut over 2026-10-18) |
-| Course details (metadata, owner, price, catalog fields) | MongoDB `<collection>_courses` (`COURSE_STORE=mongodb`, cut over 2026-10-18) |
+| Accounts and enrollments | MongoDB `<collection>_users` (cut over 2026-10-18) |
+| Course details (metadata, owner, price, catalog fields) | MongoDB `<collection>_courses` (cut over 2026-10-18) |
 | Course content, live/working snapshots, review history | MongoDB course-content collection |
 | Thumbnails and attachments | MongoDB asset repository |
 | Lesson notes, learning progress, career paths, account careers, profiles, instructor descriptions, reset tokens, sign-in attempts, user change log | MongoDB, one collection each named `<collection>_<purpose>` |
 | Feedback | Google Sheets (Feedback tab) |
 
-`<collection>` is `MONGODB_COURSE_CONTENT_COLLECTION`. The code default for `USER_STORE` and
-`COURSE_STORE` is still `google-sheets`; the old Users and Courses tabs are a read-only backup.
-Retiring that code is US-P016.
+`<collection>` is `MONGODB_COURSE_CONTENT_COLLECTION`. Shared and hosted mode without the MongoDB
+settings answer "unavailable" (503) for accounts and courses, never demo data. Feedback is the only
+Google Sheets store (US-P016); the old Users and Courses tabs stay in Google Drive as a read-only
+backup that nothing reads.
 
-## Maintenance freeze and migration
+## Maintenance freeze
 
 - `USER_STORE_READ_ONLY=1` / `COURSE_STORE_READ_ONLY=1` refuse account or course-detail writes with a
   503 maintenance message; reads keep working.
-- `npm --prefix api run users:migrate -- <--dry-run|--apply|--verify|--restore-sheet>` and
-  `courses:migrate` copy between Sheets and MongoDB. Every mode needs `USE_SHARED_SERVICES=1`;
-  writing modes need the freeze. `--verify` must print `Verified: N … identical` before a switch.
-  Runbooks: [history/release](../../history/release/).
+- The Sheets-to-MongoDB copy commands were removed in US-P016; the cutover runbooks are in
+  [history/release](../../history/release/) and commit `d1cdcb9` has the code.
 
 ## Health and diagnostics
 
 - `GET /health`, `/health/config`, `/health/auth` (`{ status, store, readOnly }`), `/health/content`.
   They prove configuration, not a full read/write journey.
-- `npm run doctor` checks local settings and that the running API's mode matches.
+- `npm run doctor` checks local settings and that the running API's mode and stores match.
 
 ## Code
 
 - API: `config.ts`, `authStore.ts`, `courseStore.ts`, `mongo.ts`, `googleSheets.ts`, the
-  `*Repository.ts` files, `usersMigration.ts`, `coursesMigration.ts`, `migrateUsers.ts`,
-  `migrateCourses.ts`, `health/`.
+  `*Repository.ts` files, `health/`.
 - Scripts: `scripts/doctor.mjs`, `scripts/run-app-dev.mjs`.
 - Setup: [local_development.md](../../local_development.md).

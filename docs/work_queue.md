@@ -12,7 +12,7 @@ Decisions in [the story](user_stories.md). Not pushed: `947f7a5` (CI spec fix) a
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
 | Codex | API: Sheets account/course repositories, store switches, migration code, API tests | `api/**` except the three tests below; [handoff](handoffs/US-P016-codex.md) | Assigned 2026-10-19 |
-| Claude Code | Doctor, DEF-012 correction script, Pages gate, docs | `scripts/doctor.mjs`, `scripts/correct-def-012-categories.mjs`, `.github/workflows/pages.yml`, `api/src/localScripts.test.ts`, `api/src/categoryCorrection.test.ts`, `api/src/pagesWorkflow.test.ts`, `docs/**`, `CLAUDE.md`, `AGENTS.md` | In progress |
+| Claude Code | Doctor, DEF-012 correction script, Pages gate, docs | `scripts/doctor.mjs`, `scripts/correct-def-012-categories.mjs`, `.github/workflows/pages.yml`, `api/src/localScripts.test.ts`, `api/src/categoryCorrection.test.ts`, `api/src/pagesWorkflow.test.ts`, `docs/**`, `CLAUDE.md`, `AGENTS.md` | Done 2026-10-19, `api:test` 1,713/1,713 before Codex changes. Left: `api/.env.example` (Codex area), fold story into spec after review |
 
 Next: Claude finishes its part, then runs the check routine on Codex's commit.
 

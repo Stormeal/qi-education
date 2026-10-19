@@ -2,7 +2,7 @@
 
 Purpose: walk the exact path the first real teacher will take, on the **live site**,
 before they do. Everything delivered in October 2026 was verified with in-memory
-stores only; this is the first check against the real Google Sheet, MongoDB and Mux.
+stores only; this is the first check against the real MongoDB and Mux.
 
 Time: about 30 minutes. One person, three accounts. Written 2026-10-09 for version
 0.1.64; re-read the "Known limits" section if the version has moved on.
@@ -10,14 +10,13 @@ Time: about 30 minutes. One person, three accounts. Written 2026-10-09 for versi
 ## Before you start
 
 - [ ] The latest `main` is deployed: the footer shows the expected version, and
-      `https://qi-education.vercel.app/api/health/config` reports `google-sheets`,
-      `mongodb` (content and assets) and `mux.configured: true`.
-- [ ] Back up: make a copy of the Google Sheet (File → Make a copy) and export the
-      MongoDB `courseContent` and course asset collections.
+      `https://qi-education.vercel.app/api/health/config` reports `mongodb` (accounts,
+      courses, content and assets) and `mux.configured: true`.
+- [ ] Back up: export the MongoDB collections for accounts (`_users`), courses
+      (`_courses`), course content and course assets.
 - [ ] Three accounts exist and you can log in to each: a **teacher**, an **admin**, and
-      a **student**. A new account is a student; to make a teacher, set the `role` cell
-      of that row in the Users sheet to `teacher` (there is no screen for this yet,
-      US-A001). Use the account type the real teacher will use.
+      a **student**. A new account is a student; an admin grants teacher access on the
+      Admin page under **Users**. Use the account type the real teacher will use.
 - [ ] Have ready: a JPEG/PNG/WebP image under 2 MB, a PDF or PowerPoint under 4 MB, a
       second file **over** 4 MB, and a short video file.
 - [ ] Open the Vercel project's function logs in another tab.
@@ -99,8 +98,8 @@ Record for every failed step: what you clicked, what you saw, the time, and a sc
   minute, a failed write may be holding the course lock. It releases by itself after
   31 minutes; learners can still read meanwhile. For a faster fix follow
   [course operation recovery](../course_operation_recovery.md).
-- There is no "delete course" in the app. Archive it, or remove its row from the
-  Courses sheet and its content document by hand.
+- There is no "delete course" in the app. Archive it, or remove its course document
+  and its content document from MongoDB by hand.
 
 ## After the rehearsal
 

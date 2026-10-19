@@ -51,7 +51,7 @@ Check local release readiness:
 npm run doctor
 ```
 
-The doctor checks `api/.env`, local API health, auth storage, CORS, and content storage configuration. Use `npm run doctor -- --allow-demo` only when you intentionally want local login to use the demo users instead of the shared Google Sheets users.
+The doctor checks `api/.env`, local API health, account and course storage, CORS, and content storage configuration.
 
 ## Google Sheets Setup
 
@@ -105,7 +105,7 @@ Set an `AUTH_TOKEN_SECRET` value in the API environment before using login in sh
 For setup details and an isolated demo walkthrough that skips shared credentials,
 see [local development](docs/local_development.md). Do not copy empty optional
 credentials from `.env.example` unchanged; omit unused optional values or provide
-valid ones. Current worksheet widths are Courses `A:U`, Users `A:H`, Feedback `A:M`.
+valid ones. Accounts and courses live in MongoDB; Google Sheets holds only feedback.
 
 Preferred environment variable names:
 
@@ -114,15 +114,13 @@ AUTH_TOKEN_SECRET
 GOOGLE_SHEETS_SPREADSHEET_ID
 GOOGLE_SERVICE_ACCOUNT_EMAIL
 GOOGLE_PRIVATE_KEY
-GOOGLE_SHEETS_COURSES_RANGE
-GOOGLE_SHEETS_USERS_RANGE
 GOOGLE_SHEETS_FEEDBACK_RANGE
 MONGODB_URI
 MONGODB_DB_NAME
 MONGODB_COURSE_CONTENT_COLLECTION
 ```
 
-The API still accepts the legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and `SESSION_SECRET` names, but new configuration should use the preferred names above.
+The API still accepts the legacy `GOOGLE_SHEET_ID` and `SESSION_SECRET` names, but new configuration should use the preferred names above.
 
 The feedback worksheet range defaults to `Feedback!A:M`; override it with `GOOGLE_SHEETS_FEEDBACK_RANGE` if needed.
 

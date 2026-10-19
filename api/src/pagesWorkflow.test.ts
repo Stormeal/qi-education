@@ -23,13 +23,13 @@ function run(responses: Array<{ ok: boolean; status: number; body: unknown }>) {
 const healthy = (storage: string, configured = true) => ({ ok: true, status: 200, body: { auth: { configured, storage } } });
 
 describe('Pages hosted auth storage gate', () => {
-  it.each(['mongodb', 'google-sheets'])('DEF-PAGES-MONGO-AC01 accepts configured persistent %s auth', storage => {
-    const result = run([healthy(storage)]);
+  it('DEF-PAGES-MONGO-AC01 accepts configured MongoDB auth', () => {
+    const result = run([healthy('mongodb')]);
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).not.toContain('failed');
   });
   it.each([
-    healthy('memory'), healthy('unavailable'), healthy('unknown'), healthy('mongodb', false), healthy('google-sheets', false),
+    healthy('memory'), healthy('unavailable'), healthy('unknown'), healthy('mongodb', false), healthy('google-sheets'),
     { ok: true, status: 200, body: {} }, { ok: true, status: 200, body: { auth: { storage: 'mongodb' } } },
   ])('DEF-PAGES-MONGO-AC02 refuses unsupported or unconfigured auth: %j', response => {
     const result = run([response]);

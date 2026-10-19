@@ -50,10 +50,9 @@ Never commit `.env` or log credentials.
 | Area | Configuration |
 | --- | --- |
 | Auth | `AUTH_TOKEN_SECRET` (required in production) |
-| Account store (US-P014) | `USER_STORE`: `google-sheets` (default) or `mongodb`, in shared and hosted mode only; isolated runs always use the demo users. `USER_STORE_READ_ONLY=1` freezes account writes (503 with a retry message) while accounts are copied. Any other value stops start-up |
-| Course store (US-P015) | `COURSE_STORE`: `google-sheets` (default) or `mongodb`, in shared and hosted mode only; isolated runs keep the demo course. `COURSE_STORE_READ_ONLY=1` freezes course-detail writes (503 with a retry message) while courses are copied. Any other value stops start-up |
-| Sheets | `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY` |
-| Sheet tabs | `GOOGLE_SHEETS_COURSES_RANGE`, `GOOGLE_SHEETS_USERS_RANGE`, `GOOGLE_SHEETS_FEEDBACK_RANGE` |
+| Accounts and courses | MongoDB (the Mongo content settings below) in shared and hosted mode; without them those routes answer "unavailable". Isolated runs use the demo users and demo course |
+| Maintenance freeze | `USER_STORE_READ_ONLY=1` / `COURSE_STORE_READ_ONLY=1` refuse account or course-detail writes (503 with a retry message). Any value other than `0` or `1` stops start-up |
+| Feedback (Sheets) | `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEETS_FEEDBACK_RANGE` |
 | Mongo content | `MONGODB_URI`, `MONGODB_DB_NAME`, `MONGODB_COURSE_CONTENT_COLLECTION` |
 | Mongo assets | Same URI/database plus `MONGODB_COURSE_ASSET_COLLECTION` |
 | Mux uploads | `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`; webhook secret for callback verification |
@@ -62,29 +61,15 @@ Never commit `.env` or log credentials.
 | Account mail | `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`, `APP_PUBLIC_URL`; optional `MAIL_FROM_NAME` (default `QI-Education`) |
 | HTTP | `PORT`, comma-separated `CORS_ORIGIN` |
 
-Use the header order exported in `api/src/course.ts`, `auth.ts`, and `feedback.ts`.
-Current sheet widths: Courses `A:U` (until the US-P015 cutover), Users `A:H` (until the US-P014
-cutover); afterwards each is a read-only backup. Feedback `A:Q` stays in use. Column U is
-`ownerUserId`; old rows default to an empty owner and admin-only editing. Share a test sheet
-with the service account before running integration checks. Shared Sheets plus
-memory content/assets will block some authoring operations by design.
+Use the header order exported in `api/src/feedback.ts`; the Feedback tab is `A:Q`. Share a test
+sheet with the service account before running integration checks.
 
-The legacy `GOOGLE_SHEET_ID`, `GOOGLE_SHEETS_COURSES`, `GOOGLE_SHEETS_USERS`, and
-`SESSION_SECRET` aliases are accepted; use the preferred names for new setup.
+The old Users and Courses tabs stay in Google Drive as a read-only backup of the 2026-10-18
+cutover; nothing reads them. The commands that copied them (`users:migrate`, `courses:migrate`)
+were removed in US-P016; commit `d1cdcb9` still has them.
 
-## Moving accounts and courses between Google Sheets and MongoDB (US-P014, US-P015)
-
-`npm --prefix api run users:migrate -- --dry-run|--apply|--verify|--restore-sheet` copies
-accounts between the Users sheet and `<MONGODB_COURSE_CONTENT_COLLECTION>_users`. It needs
-`USE_SHARED_SERVICES=1`, refuses `--apply` and `--restore-sheet` unless account writes are
-frozen and the store points the right way, and never prints password hashes. Isolated runs
-cannot use it. In Windows PowerShell call it as `npm.cmd ...`: plain `npm` drops the `--`, so
-the script sees no mode and refuses. The hosted procedure, with every command, is the
-[cutover runbook](history/release/US-P014-cutover.md).
-
-`npm --prefix api run courses:migrate` does the same for course details (US-P015), with the
-same modes and guards for `COURSE_STORE` and `COURSE_STORE_READ_ONLY`. Its hosted procedure is
-the [course cutover runbook](history/release/US-P015-cutover.md); run it after the accounts cutover.
+The legacy `GOOGLE_SHEET_ID` and `SESSION_SECRET` aliases are accepted; use the preferred names
+for new setup.
 
 ## Account mail and password recovery
 
@@ -106,7 +91,7 @@ and provider under mail, without keys/addresses, alongside its new store mode.
 Real acceptance, delivery and
 spam placement remain Alex's post-deployment check; no test sends real mail.
 
-Shared/hosted password writes use the configured account store (`USER_STORE`); hashed reset tokens
+Shared/hosted password writes use the MongoDB account store; hashed reset tokens
 use configured Mongo and
 `<MONGODB_COURSE_CONTENT_COLLECTION>_password_resets`. No raw token is persisted. Links last 60 minutes and one use; checks
 do not consume them. The three-per-account rolling-hour limit includes pending
@@ -177,8 +162,8 @@ Single frontend file: `npm.cmd --prefix app test -- --watch=false --include=src/
 Doctor reports the selected mode using shell-over-dotenv precedence; in test mode
 it skips the file. Isolated mode permits missing shared settings and the local auth
 fallback. Shared/hosted mode retains configuration checks. A running API in another
-mode fails the check: restart it with the intended settings. `--allow-demo` remains
-a legacy option; `--skip-server` limits checks to configuration. Doctor does not
+mode or with a different account or course store fails the check: restart it with the intended
+settings. `--skip-server` limits checks to configuration. Doctor does not
 prove live provider readiness.
 
 Reproduce the historical API findings safely:
