@@ -58,6 +58,15 @@ describe('US-L004 forgot password and reset page', () => {
     expect(page.host.textContent).toContain('spam folder');
   });
 
+  it('US-P008-AC05 keeps the form and shows the wait when the network has asked too often', async () => {
+    replies['/auth/password-reset/request'] = json(429, { message: 'Too many requests from your network. Try again in 12 minutes.', code: 'too-many-requests' });
+    const page = open();
+    page.type('#reset-email', 'someone@example.test');
+    await page.submit();
+    expect(page.heading()).toBe('Forgot your password?');
+    expect(page.host.textContent).toContain('Too many requests from your network. Try again in 12 minutes.');
+  });
+
   it('AC05 says to try again later when the mail cannot be sent and keeps the form', async () => {
     replies['/auth/password-reset/request'] = json(503, { message: 'We could not send email right now. Please try again later.' });
     const page = open();

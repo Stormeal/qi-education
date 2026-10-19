@@ -247,3 +247,25 @@ describe('ApiClientService storage outages (US-P002-AC02)', () => {
     expect(await (await service.fetch('/courses', { method: 'GET' })).json()).toEqual({ message: 'Unexpected server error' });
   });
 });
+
+describe('US-P008-AC05/AC06 per-client limits', () => {
+  let originalFetch: typeof window.fetch;
+  const limited = { message: 'Too many requests from your network. Try again in 12 minutes.', code: 'too-many-requests' };
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    originalFetch = window.fetch;
+  });
+  afterEach(() => { window.fetch = originalFetch; });
+
+  it('passes the 429 message to signup and reset callers once, without retrying', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(limited), { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '720' } }));
+    window.fetch = fetch as typeof window.fetch;
+    TestBed.configureTestingModule({ providers: [{ provide: ApiClientService, useValue: new ApiClientService() }] });
+    const auth = TestBed.inject(AuthService);
+    expect(await auth.signup({ email: 'class@example.test', displayName: 'Class member', password: 'Testing42' })).toEqual({ ok: false, message: limited.message });
+    expect(await auth.requestPasswordReset('class@example.test')).toEqual({ ok: false, message: limited.message });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
