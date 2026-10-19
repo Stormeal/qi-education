@@ -14,8 +14,9 @@ messages hold them.
 | Codex | Backup and restore commands, tests | `api/**`; [handoff](handoffs/US-P017-codex.md) | API done 2026-10-19; branch `main`, base `d90b650` (includes `22a72d4`), delivery `93c841f`; US-P017-AC01/AC02: 57 isolated command/round-trip/refusal tests, full `npm run api:test` 71 files / 1,657 tests passed, `npm run api:build` passed, review resolved unexpected target TTL indexes. No shared services or push. Next: Claude reviews runbook line 95 (all target collections must have no documents and only default indexes); Alex performs real backup/restore rehearsal |
 | Claude Code | Runbook, storage spec, review | `docs/**` | In progress |
 
-Next: Codex delivers the commands; Claude reviews, then Alex runs the first real backup and a
-scratch restore.
+Next: Codex fixes the review finding (returned 2026-10-19: create indexes only after the final
+count check, so expiry indexes cannot delete restored documents first); then Alex runs the first
+real backup and a scratch restore.
 
 Previously: pushed to `main` on 2026-10-19: US-L014 email confirmation (`aa93792` API,
 Codex; `9cd3cbf` app). Checks on `de90ee6`: `api:test` 1,600/1,600, `app:test` 392/392,

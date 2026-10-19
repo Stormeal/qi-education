@@ -69,8 +69,13 @@ not touched.
    **Drop database**. Check the name twice: only the rehearsal database goes.
 4. Tell Claude the two final lines, so the rehearsal date is recorded.
 
-If the restore says the target database already holds data, an earlier rehearsal was not dropped:
-do step 3 first, then run step 2 again.
+If the restore says the target database already holds data or has non-default indexes, an earlier
+rehearsal was not dropped: do step 3 first, then run step 2 again.
+
+If it ends with "Database command failed. Check MongoDB access…", the database user in
+`MONGODB_URI` may only be allowed to write the live database. In Atlas, **Database Access** →
+that user → **Edit**, add the built-in role `readWrite` on database `qi-restore-rehearsal`, save,
+wait a minute and run step 2 again.
 
 ## Real recovery
 
@@ -92,9 +97,10 @@ nothing more is lost while you recover.
   document per line in MongoDB's extended JSON, so dates and binary files survive) plus
   `manifest.json` with counts and index definitions. It refuses a folder inside the repository or
   a folder that is not empty.
-- `db:restore` refuses a target that already holds any of the backed-up collections, inserts the
-  documents, recreates the indexes (unique and expiry indexes included) and compares every count
-  with the manifest. Any refusal or mismatch ends with exit code 1.
+- `db:restore` first reads the whole backup and checks it against the manifest, then refuses a
+  target database that holds any documents or non-default indexes, before writing anything. It
+  inserts the documents, compares every count with the manifest and then recreates the indexes
+  (unique and expiry indexes included). Any refusal or mismatch ends with exit code 1.
 - Both need `USE_SHARED_SERVICES=1` and the MongoDB settings in `api\.env`. They never print
   connection strings, documents or password hashes.
 
