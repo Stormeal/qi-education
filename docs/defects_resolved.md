@@ -470,7 +470,7 @@ Resolved 2026-10-19 by US-P008 (`b227896` API, Codex; `9e3d8bd` app specs, Claud
 address: 10 reset requests and 20 signups per clock hour, 429 `too-many-requests` with
 `Retry-After`. Checks: `api:test` 1,554/1,554, `app:test` 383/383, `verify:journeys` 16/16,
 `app:build:pages`; browser check on the isolated servers (11th reset request shows the wait and
-keeps the form). Not checked: the hosted API behind Vercel's `x-forwarded-for`.
+keeps the form). Hosted check 2026-10-19 (Alex): 10 requests 202, the 11th 429 with `Retry-After` and the wait in minutes.
 
 ### Confirmed API class-load defects (Codex, 2026-10-09)
 

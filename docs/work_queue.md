@@ -28,7 +28,6 @@ suggested on 2026-10-18 but is not yet a story.
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
-- Per-client limits (US-P008) on the hosted API: the 11th reset request from one network within an hour answers 429.
 - Mux: real upload, webhook delivery, processing delay and public playback on the hosted site; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).
