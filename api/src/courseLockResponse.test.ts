@@ -31,6 +31,7 @@ describe.each(['', '/api'])('DEF-042 response after lock release %s', prefix => 
     releaseStarted = signal(); allowRelease = signal(); events = [];
     releaseFailure = undefined; acquisitionFailure = undefined; records = new Map();
     const lock = new MongoCourseMutationLock(async () => ({
+      find: () => ({ toArray: async () => structuredClone([...records.values()]) }),
       async insertOne(document: CourseMutationLockDocument) {
         if (acquisitionFailure) throw acquisitionFailure;
         records.set(document._id, document);

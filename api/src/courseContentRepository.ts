@@ -3,7 +3,7 @@ import type { Collection } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import type { CourseContentSection } from './courseContent.js';
 import { getMongoDatabase } from './mongo.js';
-import { protectCourseWrite, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
+import { protectCourseWrite, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock, type CourseMutationLockInfo } from './courseMutationLock.js';
 
 export type CourseContentDocument = {
   _id: string;
@@ -31,6 +31,7 @@ export interface CourseContentRepository {
   updateCourseContent(courseId: string, sections: CourseContentSection[]): Promise<CourseContentDocument>;
   deleteCourseContent(courseId: string): Promise<void>;
   withCourseMutationLock<T>(courseId: string, operation: () => Promise<T>): Promise<T>;
+  listCourseMutationLocks(): Promise<CourseMutationLockInfo[]>;
 }
 
 export class MongoCourseContentRepository implements CourseContentRepository {
@@ -44,6 +45,7 @@ export class MongoCourseContentRepository implements CourseContentRepository {
   withCourseMutationLock<T>(courseId: string, operation: () => Promise<T>): Promise<T> {
     return this.mutationLock.run(courseId, operation);
   }
+  listCourseMutationLocks(): Promise<CourseMutationLockInfo[]> { return this.mutationLock.list(); }
 
   private async collection() {
     return this.collectionLoader();
@@ -146,6 +148,7 @@ export class InMemoryCourseContentRepository implements CourseContentRepository 
   withCourseMutationLock<T>(courseId: string, operation: () => Promise<T>): Promise<T> {
     return this.mutationLock.run(courseId, operation);
   }
+  listCourseMutationLocks(): Promise<CourseMutationLockInfo[]> { return this.mutationLock.list(); }
 
   async checkHealth(): Promise<void> {
     return;

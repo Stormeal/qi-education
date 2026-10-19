@@ -5,6 +5,7 @@ const expiryMs = 31 * 60 * 1000;
 function fixture() {
   const records = new Map<string, CourseMutationLockDocument>();
   const collection = {
+    find: vi.fn(() => ({ toArray: async () => structuredClone([...records.values()]) })),
     insertOne: vi.fn(async (doc: CourseMutationLockDocument) => {
       if (records.has(doc._id)) throw Object.assign(new Error('Duplicate'), { code: 11000 });
       records.set(doc._id, doc); return { acknowledged: true, insertedId: doc._id };

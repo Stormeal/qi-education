@@ -4,6 +4,7 @@ import { AmbiguousCourseWriteError, CourseBusyError, InMemoryCourseMutationLock,
 function collectionFixture() {
   const records = new Map<string, CourseMutationLockDocument>();
   const collection = {
+    find: vi.fn(() => ({ toArray: async () => structuredClone([...records.values()]) })),
     findOne: vi.fn(async ({ _id }: { _id: string }) => records.get(_id) ?? null),
     insertOne: vi.fn(async (document: CourseMutationLockDocument) => {
       if (records.has(document._id)) throw Object.assign(new Error('Duplicate key'), { code: 11000 });

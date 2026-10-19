@@ -33,6 +33,7 @@ import { createPasswordResetRepository, type PasswordResetRepository } from './p
 import { registerPasswordResetRoutes, type PasswordResetOptions } from './passwordResetRoutes.js';
 import { registerChangePasswordRoute } from './changePasswordRoutes.js';
 import { registerAdminUserRoutes } from './adminUsersRoutes.js';
+import { registerCourseLocksRoutes } from './courseLocksRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -450,7 +451,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
-  app.use(['/auth/password-reset', '/api/auth/password-reset', '/auth/email-confirmation', '/api/auth/email-confirmation', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users'], (_request, response, next) => {
+  app.use(['/auth/password-reset', '/api/auth/password-reset', '/auth/email-confirmation', '/api/auth/email-confirmation', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users', '/admin/course-locks', '/api/admin/course-locks'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'no-store'); next();
   });
   app.use(['/users/me/profile', '/api/users/me/profile'], (_request, response, next) => {
@@ -566,6 +567,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
+  registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {

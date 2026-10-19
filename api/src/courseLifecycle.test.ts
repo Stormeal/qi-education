@@ -86,6 +86,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
   it.each(['read', 'write'])('retains durable ownership only for an uncertain %s failure', async (stage) => {
     const records = new Map<string, CourseMutationLockDocument>();
     const collection = {
+      find: vi.fn(() => ({ toArray: async () => structuredClone([...records.values()]) })),
       findOne: vi.fn(async ({ _id }: { _id: string }) => records.get(_id) ?? null),
       insertOne: vi.fn(async (document: CourseMutationLockDocument) => {
         if (records.has(document._id)) throw Object.assign(new Error('Duplicate'), { code: 11000 });
@@ -112,7 +113,7 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
   });
 
   it.each(['read', 'write'])('coordinates a real Mongo repository %s failure at the provider boundary', async (stage) => {
-    const locks = { insertOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+    const locks = { find: () => ({ toArray: async () => [] }), insertOne: vi.fn().mockResolvedValue({ acknowledged: true }),
       deleteOne: vi.fn().mockResolvedValue({ acknowledged: true }) };
     const existing = { _id: 'course', sections: validSections, createdAt: '', updatedAt: '' };
     const findOne = vi.fn().mockResolvedValue(existing);

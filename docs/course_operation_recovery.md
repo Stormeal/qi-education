@@ -48,7 +48,12 @@ does not implement stale-editor conflict detection or a cross-store transaction.
    then resume writes. Record the incident and recovery evidence.
 
 If termination or final remote outcome cannot be established, leave ownership in
-place. Automated recovery and operator tooling are Proposed in US-P005.
+place. To inspect ownership, open **Admin → Course locks** or, with an admin bearer
+token, read `GET /admin/course-locks` (also `/api/admin/course-locks`). The read-only
+list shows the course ID/title, owner, acquisition time, expiry and state. Missing
+or malformed acquisition times are marked `needs-recovery`: inspect the owner and
+provider logs and follow the verified recovery steps above. Reading the list never
+takes, changes or deletes a lock; it provides no release action.
 
 ## Required hosted release checks
 

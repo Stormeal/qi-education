@@ -1910,6 +1910,7 @@ class SharedCourseRepository extends InMemoryCourseRepository implements CourseR
 }
 
 class FailingCourseContentRepository implements CourseContentRepository {
+  async listCourseMutationLocks(): ReturnType<CourseContentRepository['listCourseMutationLocks']> { throw new Error('Content store unavailable'); }
   async withCourseMutationLock<T>(_id: string, operation: () => Promise<T>): Promise<T> { return operation(); }
   readonly storageType = 'mongodb';
 

@@ -12,6 +12,12 @@ false success.
   interrupted write expires after 31 minutes. Locked handlers answer with `send`/`json` and the
   answer is held until the lock is released (DEF-042). Recovery runbook:
   [course_operation_recovery.md](../../course_operation_recovery.md).
+- **Lock inspection** (US-P005): admins can read `GET /admin/course-locks` (also under `/api`)
+  with `Cache-Control: no-store`; anonymous callers get 401, other roles 403, and unavailable
+  storage 503 `{ message }`. The list shows course ID/title, owner, acquisition/expiry times
+  and `held`, `expired` or `needs-recovery`, malformed timestamps first then oldest acquisition.
+  It never acquires, changes or deletes locks and offers no release action; uncertain owners
+  require the recovery runbook above.
 - **Revision checks**: course saves and review actions carry the loaded revision; career path
   writes may carry `X-Expected-Updated-At`. Stale writes are refused, never merged silently.
 - **Keyed queues** (per API instance): signup by normalized email, enrollment by user, feedback

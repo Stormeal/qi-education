@@ -25,17 +25,19 @@ async function beforeDeadline<T>(operation: Promise<T>, deadline: number): Promi
 
 export interface CourseMutationLock {
   run<T>(courseId: string, operation: () => Promise<T>): Promise<T>;
+  list(): Promise<CourseMutationLockInfo[]>;
 }
 
 export class InMemoryCourseMutationLock implements CourseMutationLock {
-  private readonly held = new Set<string>();
+  private readonly held = new Map<string, CourseMutationLockDocument>();
+  async list(): Promise<CourseMutationLockInfo[]> { return lockInfo([...this.held.values()]); }
   async run<T>(courseId: string, operation: () => Promise<T>): Promise<T> {
     const deadline = Date.now() + 5000;
     while (this.held.has(courseId)) {
       if (Date.now() >= deadline) throw new CourseBusyError();
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
-    this.held.add(courseId);
+    this.held.set(courseId, { _id: courseId, owner: randomUUID(), acquiredAt: new Date().toISOString() });
     try { return await operation(); }
     finally { this.held.delete(courseId); }
   }
@@ -45,7 +47,11 @@ export class InMemoryCourseMutationLock implements CourseMutationLock {
 // Revisit before deploying to a host with a longer invocation lifetime.
 export const courseLockExpiryMs = 31 * 60 * 1000;
 export type CourseMutationLockDocument = { _id: string; owner: string; acquiredAt: string };
-type LockCollection = Pick<Collection<CourseMutationLockDocument>, 'findOne' | 'insertOne' | 'deleteOne'>;
+export type CourseMutationLockInfo = {
+  courseId: string; owner: string; acquiredAt: string | null; expiresAt: string | null;
+  state: 'held' | 'expired' | 'needs-recovery';
+};
+type LockCollection = Pick<Collection<CourseMutationLockDocument>, 'find' | 'findOne' | 'insertOne' | 'deleteOne'>;
 
 function acquisitionTime(value: unknown): number {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return NaN;
@@ -56,6 +62,11 @@ function acquisitionTime(value: unknown): number {
 
 export class MongoCourseMutationLock implements CourseMutationLock {
   constructor(private readonly collectionLoader: () => Promise<LockCollection>) {}
+  async list(): Promise<CourseMutationLockInfo[]> {
+    const deadline = Date.now() + 5000;
+    const collection = await beforeDeadline(this.collectionLoader(), deadline);
+    return lockInfo(await beforeDeadline(collection.find({}, { timeoutMS: Math.max(1, deadline - Date.now()) }).toArray(), deadline));
+  }
   async run<T>(courseId: string, operation: () => Promise<T>): Promise<T> {
     const owner = randomUUID();
     const deadline = Date.now() + 5000;
@@ -112,4 +123,19 @@ export class MongoCourseMutationLock implements CourseMutationLock {
       }
     }
   }
+}
+
+function lockInfo(documents: CourseMutationLockDocument[]): CourseMutationLockInfo[] {
+  const now = Date.now();
+  return documents.map(document => {
+    const acquired = acquisitionTime(document.acquiredAt), valid = Number.isFinite(acquired);
+    const expires = acquired + courseLockExpiryMs;
+    const info: CourseMutationLockInfo = {
+      courseId: document._id, owner: document.owner,
+      acquiredAt: typeof document.acquiredAt === 'string' ? document.acquiredAt : null,
+      expiresAt: valid ? new Date(expires).toISOString() : null,
+      state: !valid ? 'needs-recovery' : expires <= now ? 'expired' : 'held',
+    };
+    return { time: valid ? acquired : -Infinity, info };
+  }).sort((a, b) => a.time === b.time ? 0 : a.time - b.time).map(entry => entry.info);
 }
