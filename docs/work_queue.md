@@ -11,7 +11,7 @@ messages hold them.
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | API: flag, tokens, mail, confirm/resend routes, limits, API tests | `api/**`; [handoff](handoffs/US-L014-codex.md) | Assigned 2026-10-19 |
+| Codex | API: flag, tokens, mail, confirm/resend routes, limits, API tests | `api/**`; [handoff](handoffs/US-L014-codex.md) | API done 2026-10-19; delivery `aa93792`, branch `main`, base `9cd3cbf` (includes `239645e`); US-L014-AC01/AC02/AC03. Optional account flag/boolean DTOs, signup mail, confirm/resend contracts, 24-hour hash-only single-use tokens, three mails/account/rolling hour, confirmation network limit and freeze protection. Reuses token CAS; reset regression checks pass. Checks: `npm run api:test` 1,600/1,600; `npm run api:build` pass; `npm run verify:journeys` 16/16; 46 new confirmation tests, including parallel Mongo doubles. Isolated stores only; no live services or push. Next: Claude browser check and story/spec closeout. |
 | Claude Code | App: `/confirm-email` page, Home notice and resend, model and auth service, specs, docs | `app/**`, `docs/**` | In progress |
 
 Next: both parts in parallel; Claude browser-checks once Codex has committed.
