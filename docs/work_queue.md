@@ -11,7 +11,7 @@ Decisions in [the story](user_stories.md); closes INV-014 once delivered.
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | API limits, storage, API tests | `api/**`; [handoff](handoffs/US-P008-codex.md) | Assigned 2026-10-19 |
+| Codex | API limits, storage, API tests | `api/**`; [handoff](handoffs/US-P008-codex.md) | API done 2026-10-19; delivery `b227896`, branch `main`, base `6f607cb`; US-P008-AC05/AC06 (INV-014). Defaults: signup 20/reset 10 per client/hour, hashed keys, memory/Mongo atomic counts + TTL, fail-open, exact 429/Retry-After; injectable via `clientLimitOptions`/`clientLimitRepository`. Checks: `npm run api:test` 1,554/1,554; `npm run api:build` pass; `npm run verify:journeys` 16/16; 36 new client-limit tests. Isolated memory/Mongo doubles only; no shared services or push. Next: Claude browser check, fold account specs, close US-P008/INV-014. |
 | Claude Code | App regression specs for the 429 message, browser check, docs | `app/**`, `docs/**` | Waiting for Codex's API |
 
 Next: Codex delivers the API; Claude adds app specs, browser-checks on 3001/4200, folds the spec.
