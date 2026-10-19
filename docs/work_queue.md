@@ -6,8 +6,8 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on 2026-10-19, not pushed: `947f7a5` (CI spec fix) and US-P016 (`6812730`
-doctor, Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
+None. Pushed to `main` on 2026-10-19: `947f7a5` (CI spec fix) and US-P016 (`6812730` doctor,
+Pages gate, docs; `e615e80` API). Checks on `23e2905`: `api:test` 1,518/1,518,
 `app:test` 381/381, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
 
 ## Waiting on Alex
