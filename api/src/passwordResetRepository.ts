@@ -21,13 +21,17 @@ export type PasswordResetCollection = {
 
 export class MongoPasswordResetRepository implements PasswordResetRepository {
   constructor(private readonly collectionLoader: () => Promise<PasswordResetCollection> = async () =>
-    (await getMongoDatabase()).collection<PasswordResetDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_password_resets`)) {}
+    (await getMongoDatabase()).collection<PasswordResetDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_password_resets`),
+    private readonly tokenLifetimeMs = lifetime) {}
 
   async reserve(userId: string, hash: string, now: number, credentialVersion?: string): Promise<boolean> {
     return this.change(userId, document => {
       const recent = document.tokens.filter(token => token.createdAt > now - lifetime);
       if (recent.length >= 3 || recent.some(token => token.hash === hash)) return { value: false };
-      document.tokens = [...recent, { hash, createdAt: now, expiresAt: now + lifetime, state: 'pending',
+      // Confirmation links outlive their rolling-hour mail slots. Keep those
+      // links usable; the default reset lifetime retains its existing behavior.
+      const retained = document.tokens.filter(token => token.expiresAt > now || token.createdAt > now - lifetime);
+      document.tokens = [...retained, { hash, createdAt: now, expiresAt: now + this.tokenLifetimeMs, state: 'pending',
         ...(credentialVersion ? { credentialVersion } : {}) }];
       return { value: true, write: true };
     });
@@ -38,6 +42,12 @@ export class MongoPasswordResetRepository implements PasswordResetRepository {
       if (!token) return { value: false };
       token.state = 'active'; return { value: true, write: true };
     });
+  }
+  async mailRetryAfter(userId: string, now: number): Promise<number> {
+    const document = await (await this.collectionLoader()).findOne({ _id: userId });
+    const recent = document?.tokens.filter(token => token.createdAt > now - lifetime) ?? [];
+    if (recent.length < 3) return 1;
+    return Math.max(1, Math.ceil((Math.min(...recent.map(token => token.createdAt)) + lifetime - now) / 1000));
   }
   async findActive(hash: string, now: number) {
     const document = await (await this.collectionLoader()).findOne({ 'tokens.hash': hash });
@@ -88,7 +98,7 @@ export class MongoPasswordResetRepository implements PasswordResetRepository {
 }
 
 export class InMemoryPasswordResetRepository extends MongoPasswordResetRepository {
-  constructor() {
+  constructor(tokenLifetimeMs = lifetime) {
     const documents = new Map<string, PasswordResetDocument>();
     super(async () => ({
       async findOne(filter) {
@@ -104,7 +114,7 @@ export class InMemoryPasswordResetRepository extends MongoPasswordResetRepositor
         if (documents.get(filter._id)?.version !== filter.version) return { matchedCount: 0 };
         documents.set(document._id, structuredClone(document)); return { matchedCount: 1 };
       },
-    }));
+    }), tokenLifetimeMs);
   }
 }
 

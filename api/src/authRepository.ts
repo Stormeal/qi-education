@@ -28,6 +28,7 @@ export interface AuthRepository {
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null>;
+  confirmEmail(userId: string): Promise<AuthUser | null>;
 }
 
 export class InMemoryAuthRepository implements AuthRepository {
@@ -105,6 +106,13 @@ export class InMemoryAuthRepository implements AuthRepository {
     this.users[index] = { ...this.users[index], passwordHash };
     return this.users[index];
   }
+
+  async confirmEmail(userId: string): Promise<AuthUser | null> {
+    const index = this.users.findIndex(user => user.id === userId && user.status === 'active');
+    if (index < 0) return null;
+    this.users[index] = { ...this.users[index], emailConfirmed: true };
+    return this.users[index];
+  }
 }
 
 export function createAuthRepository(): AuthRepository {
@@ -137,6 +145,7 @@ class UnavailableAuthRepository implements AuthRepository {
   async createUser(_user: AuthUser): Promise<AuthUser> { throw new AuthUnavailableError(); }
   async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
   async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
+  async confirmEmail(_userId: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
 }
 
 function createDemoUser(role: AuthUser['role'], email: string, displayName: string): AuthUser {

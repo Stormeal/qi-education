@@ -35,7 +35,7 @@ describe('US-P016-AC01 account store selection', () => {
     const { auth } = await load({ USER_STORE_READ_ONLY: '1' });
     const repo = auth.createAuthRepository(); expect(repo.readOnly).toBe(true); expect(repo.storageType).toBe(store);
     const calls = [() => repo.createUser({} as never), () => repo.enrollUserInCourse('id', 'course'), () => repo.updatePasswordHash('id', 'hash'),
-      () => repo.updateRole('id', 'teacher'), () => repo.updateStatus('id', 'disabled'), () => repo.updateRoleWithChange('id', 'teacher'), () => repo.updateStatusWithChange('id', 'disabled')];
+      () => repo.updateRole('id', 'teacher'), () => repo.updateStatus('id', 'disabled'), () => repo.updateRoleWithChange('id', 'teacher'), () => repo.updateStatusWithChange('id', 'disabled'), () => repo.confirmEmail('id')];
     for (const call of calls) await expect(call()).rejects.toThrow('Accounts are briefly read-only for maintenance. Try again in a few minutes.');
   });
 });

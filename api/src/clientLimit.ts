@@ -3,9 +3,9 @@ import type { Request, Response } from 'express';
 import { getServicesMode, type ServicesMode } from './config.js';
 import type { ClientLimitRepository } from './clientLimitRepository.js';
 
-export type ClientLimitPurpose = 'reset' | 'signup';
+export type ClientLimitPurpose = 'reset' | 'signup' | 'confirmation';
 export type ClientLimitOptions = {
-  resetLimit?: number; signupLimit?: number; now?: () => number; storageTimeoutMs?: number;
+  resetLimit?: number; signupLimit?: number; confirmationLimit?: number; now?: () => number; storageTimeoutMs?: number;
 };
 const windowMs = 60 * 60 * 1000;
 
@@ -23,7 +23,7 @@ export class ClientLimit {
   private readonly storageTimeoutMs: number;
   constructor(private readonly store: ClientLimitRepository, options: ClientLimitOptions = {}) {
     this.now = options.now ?? Date.now;
-    this.limits = { reset: options.resetLimit ?? 10, signup: options.signupLimit ?? 20 };
+    this.limits = { reset: options.resetLimit ?? 10, signup: options.signupLimit ?? 20, confirmation: options.confirmationLimit ?? 10 };
     this.storageTimeoutMs = options.storageTimeoutMs ?? 5000;
     if (Object.values(this.limits).some(limit => !Number.isSafeInteger(limit) || limit < 1) ||
       !Number.isFinite(this.storageTimeoutMs) || this.storageTimeoutMs <= 0) throw new Error('Invalid client limit policy.');

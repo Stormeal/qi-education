@@ -3,6 +3,9 @@ import { createSignInAttemptRepository, type SignInAttemptRepository } from './s
 import { SignInLimit, type SignInLimitOptions } from './signInLimit.js';
 import { ClientLimit, type ClientLimitOptions } from './clientLimit.js';
 import { createClientLimitRepository, type ClientLimitRepository } from './clientLimitRepository.js';
+import { createEmailConfirmationRepository, type EmailConfirmationRepository } from './emailConfirmationRepository.js';
+import { sendEmailConfirmationLink, type EmailConfirmationOptions } from './emailConfirmationDelivery.js';
+import { registerEmailConfirmationRoutes } from './emailConfirmationRoutes.js';
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
@@ -105,6 +108,8 @@ type ServerDependencies = {
   signInLimitOptions?: SignInLimitOptions;
   clientLimitRepository?: ClientLimitRepository;
   clientLimitOptions?: ClientLimitOptions;
+  emailConfirmationRepository?: EmailConfirmationRepository;
+  emailConfirmationOptions?: EmailConfirmationOptions;
   userChangeRepository?: UserChangeRepository;
   userChangeOptions?: UserChangeOptions;
   mailSender?: MailSender;
@@ -137,6 +142,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
   const mailSender = dependencies.mailSender ?? createMailSender();
   const passwordResetTokens = dependencies.passwordResetRepository ?? createPasswordResetRepository();
+  const emailConfirmations = dependencies.emailConfirmationRepository ?? createEmailConfirmationRepository();
   const storedCourses = requestCachedCourses(courseWriteFreeze(dependencies.courseRepository ?? createCourseRepository(), apiConfig.COURSE_STORE_READ_ONLY === '1'));
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
   const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
@@ -444,7 +450,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     }),
   );
-  app.use(['/auth/password-reset', '/api/auth/password-reset', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users'], (_request, response, next) => {
+  app.use(['/auth/password-reset', '/api/auth/password-reset', '/auth/email-confirmation', '/api/auth/email-confirmation', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'no-store'); next();
   });
   app.use(['/users/me/profile', '/api/users/me/profile'], (_request, response, next) => {
@@ -473,7 +479,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use((request, response, next) => {
     const path = request.path.toLowerCase();
     const accountWrite = request.method === 'POST' && (
-      ['/auth/signup', '/signup', '/users/me/password', '/auth/password-reset/request', '/auth/password-reset/confirm'].includes(path.replace(/\/$/, '')) ||
+      ['/auth/signup', '/signup', '/users/me/password', '/auth/password-reset/request', '/auth/password-reset/confirm', '/auth/email-confirmation/confirm'].includes(path.replace(/\/$/, '')) ||
       /^\/users\/me\/courses\/[^/]+\/?$/.test(path) || /^\/admin\/users\/[^/]+\/password-reset\/?$/.test(path)) ||
       request.method === 'PATCH' && /^\/admin\/users\/[^/]+\/(role|status)\/?$/.test(path);
     if (auth.readOnly && accountWrite) { response.status(503).json({ message: new AuthReadOnlyError().message }); return; }
@@ -555,6 +561,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
     options: dependencies.passwordResetOptions, signInLimit, clientLimit });
+  registerEmailConfirmationRoutes(app, { auth, tokens: emailConfirmations, sender: mailSender,
+    options: dependencies.emailConfirmationOptions, clientLimit, authenticate: authenticateRequest(auth) });
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
@@ -632,8 +640,13 @@ export function createServer(dependencies: ServerDependencies = {}) {
           status: 'active',
           createdAt: new Date().toISOString(),
           enrolledCourseIds: [],
+          emailConfirmed: false,
         });
 
+        // The account already exists: confirmation delivery must never turn a
+        // successful signup into a failure or encourage another signup attempt.
+        try { await sendEmailConfirmationLink(user, { tokens: emailConfirmations, sender: mailSender, options: dependencies.emailConfirmationOptions }); }
+        catch { /* The signed-in user can request another link. */ }
         response.status(201).json(createAuthResponse(user, authTokenSecret));
       });
     } catch (error) {

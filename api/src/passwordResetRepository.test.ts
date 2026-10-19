@@ -1,25 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as config from './config.js';
-import { createPasswordResetRepository, InMemoryPasswordResetRepository, MongoPasswordResetRepository,
-  type PasswordResetDocument, type PasswordResetCollection } from './passwordResetRepository.js';
+import { createPasswordResetRepository, InMemoryPasswordResetRepository, MongoPasswordResetRepository } from './passwordResetRepository.js';
 
-export function isolatedResetCollection() {
-  const documents = new Map<string, PasswordResetDocument>();
-  const collection: PasswordResetCollection = {
-    async findOne(filter) { return structuredClone(filter._id ? documents.get(filter._id) ?? null
-      : [...documents.values()].find(doc => doc.tokens.some(token => token.hash === filter['tokens.hash'])) ?? null); },
-    async insertOne(document) {
-      if (documents.has(document._id)) throw { code: 11000 };
-      documents.set(document._id, structuredClone(document));
-    },
-    async replaceOne(filter, document) {
-      const current = documents.get(filter._id);
-      if (current?.version !== filter.version) return { matchedCount: 0 };
-      documents.set(document._id, structuredClone(document)); return { matchedCount: 1 };
-    },
-  };
-  return { collection, documents };
-}
+import { fakeAccountMailTokenCollection as isolatedResetCollection } from '../test/fakeAccountMailTokenCollection.js';
+
 describe.each(['memory', 'mongo-cas'])('Reset token atomic storage (%s)', kind => {
   function create() { const store = isolatedResetCollection(); return { ...store,
     repository: kind === 'memory' ? new InMemoryPasswordResetRepository() : new MongoPasswordResetRepository(async () => store.collection) }; }

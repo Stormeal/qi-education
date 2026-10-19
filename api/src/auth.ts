@@ -40,9 +40,10 @@ export type AuthUser = {
   status: UserStatus;
   createdAt: string;
   enrolledCourseIds: string[];
+  emailConfirmed?: boolean;
 };
 
-export type AuthenticatedUser = Omit<AuthUser, 'passwordHash'>;
+export type AuthenticatedUser = Omit<AuthUser, 'passwordHash' | 'emailConfirmed'> & { emailConfirmed: boolean };
 
 type SessionPayload = {
   sub: string;
@@ -54,7 +55,7 @@ type SessionPayload = {
 
 export function toAuthenticatedUser(user: AuthUser): AuthenticatedUser {
   const { passwordHash: _passwordHash, ...publicUser } = user;
-  return publicUser;
+  return { ...publicUser, emailConfirmed: user.emailConfirmed !== false };
 }
 
 export function hashPassword(password: string): string {

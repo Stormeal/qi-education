@@ -166,7 +166,8 @@ describe('US-P008 client limits through HTTP', () => {
     const { auth, mail, post } = await setup({ clientLimitRepository: { increment }, clientLimitOptions: { storageTimeoutMs: 10 } });
     expect((await post(reset, { email: 'student@qi-education.local' })).status).toBe(202);
     expect((await post('/signup', signupBody(0))).status).toBe(201);
-    expect(mail.messages).toHaveLength(1); expect(await auth.findByEmail(signupBody(0).email)).not.toBeNull();
+    expect(mail.messages.map(message => message.subject)).toEqual(['Reset your QI Academy password', 'Confirm your QI Academy email address']);
+    expect(await auth.findByEmail(signupBody(0).email)).not.toBeNull();
     expect(warn.mock.calls).toEqual(Array(2).fill(['Client limit storage unavailable; protection may be bypassed.']));
     if (failure === 'timeout') for (const call of increment.mock.calls) expect(call[3]?.aborted).toBe(true);
   });

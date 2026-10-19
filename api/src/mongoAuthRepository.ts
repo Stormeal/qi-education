@@ -12,7 +12,8 @@ const emailKey = (email: string) => email.trim().toLowerCase();
 function account(document: MongoAuthDocument): AuthUser {
   // A whitelist keeps internal Mongo fields out of callers and session DTOs.
   return { id: document._id, email: document.email, displayName: document.displayName, passwordHash: document.passwordHash,
-    role: document.role, status: document.status, createdAt: document.createdAt, enrolledCourseIds: [...document.enrolledCourseIds] };
+    role: document.role, status: document.status, createdAt: document.createdAt, enrolledCourseIds: [...document.enrolledCourseIds],
+    ...(document.emailConfirmed === undefined ? {} : { emailConfirmed: document.emailConfirmed }) };
 }
 export async function ensureAuthIndexes(collection: Pick<MongoAuthCollection, 'createIndex'>): Promise<void> {
   await collection.createIndex({ email: 1 }, { unique: true });
@@ -60,6 +61,11 @@ export class MongoAuthRepository implements AuthRepository {
   }
   async updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null> {
     const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active' }, { $set: { passwordHash } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    return document ? account(document) : null;
+  }
+  async confirmEmail(userId: string): Promise<AuthUser | null> {
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active' }, { $set: { emailConfirmed: true } },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
     return document ? account(document) : null;
   }
