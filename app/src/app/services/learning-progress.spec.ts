@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { computed } from '@angular/core';
 import { vi } from 'vitest';
@@ -31,7 +32,8 @@ const json = (value: unknown, status = 200) => new Response(JSON.stringify(value
 
 describe('honest account progress (DEF-007, DEF-009, DEF-014)', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); vi.spyOn(window, 'scrollTo').mockImplementation(() => {}); });
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+  // Logout navigates home without waiting; a lazy route chunk loading after the file ends fails the run on CI.
+  afterEach(async () => { await vi.waitFor(() => expect(TestBed.inject(Router).currentNavigation()).toBeNull()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   async function open(path: string, options: { empty?: boolean; saved?: unknown; outlineFailure?: boolean; catalogFailure?: boolean; otherAccount?: boolean; emptyCourse?: boolean; delayedOutline?: boolean; manyLessons?: boolean; legacy?: boolean } = {}) {
     const restored = options.otherAccount ? { ...login, user: { ...login.user, email: 'other@example.test', id: 'other' } } : login;

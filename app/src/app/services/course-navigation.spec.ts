@@ -57,7 +57,8 @@ describe('unsaved course navigation (DEF-006)', () => {
     await vi.waitFor(() => expect(state.coursesLoading()).toBe(false));
     harness.detectChanges();
   });
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+  // Logout navigates home without waiting; a lazy route chunk loading after the file ends fails the run on CI.
+  afterEach(async () => { await vi.waitFor(() => expect(TestBed.inject(Router).currentNavigation()).toBeNull()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   it('NW-01 keeps metadata and outline edits when Cancel is declined', async () => {
     state.updateCourseTitle('Unsaved title');

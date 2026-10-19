@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { vi } from 'vitest';
 import { appConfig } from '../app.config';
@@ -21,7 +22,8 @@ describe('US-T003/005 draft and save behavior', () => {
     await RouterTestingHarness.create('/courses/course/edit');
     await vi.waitFor(() => expect(state.courseReview()?.version).toBe(3));
   });
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+  // Logout navigates home without waiting; a lazy route chunk loading after the file ends fails the run on CI.
+  afterEach(async () => { await vi.waitFor(() => expect(TestBed.inject(Router).currentNavigation()).toBeNull()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
   it('AC02 advances the confirmed metadata revision and retries only failed lessons', async () => {
     state.updateCourseTitle('Saved details'); state.updateCourseSectionTitle(0, 'Unsaved lessons');
     const updated = { ...course, title: 'Saved details' };

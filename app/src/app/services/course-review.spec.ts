@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { appConfig } from '../app.config';
 import { vi } from 'vitest';
@@ -31,7 +32,8 @@ describe('US-T002 editor review flow', () => {
     await TestBed.configureTestingModule({ providers: appConfig.providers }).compileComponents();
     state = TestBed.inject(AppStateService); state.availableCourses.set([course]);
   });
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+  // Logout navigates home without waiting; a lazy route chunk loading after the file ends fails the run on CI.
+  afterEach(async () => { await vi.waitFor(() => expect(TestBed.inject(Router).currentNavigation()).toBeNull()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
   async function render(status: 'draft' | 'ready-for-review' | 'published', role: 'teacher' | 'admin' = 'teacher') {
     vi.spyOn(TestBed.inject(CourseService), 'loadCourseContent').mockResolvedValue(document(status));
     state.loginState.set(login(role));
