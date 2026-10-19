@@ -12,7 +12,7 @@ US-P005 alongside it.
 | Owner | Item | Scope and files | State |
 | --- | --- | --- | --- |
 | Claude Code | US-L001 AC01–03 | Delivered 2026-10-19: price note on the course page, story folded into `docs/specs/catalog/course-details-and-enrollment.md` | Done; Alex confirms the defaults |
-| Codex | US-P005 AC01–04 API | `GET /admin/course-locks`, read-only; files in [handoff](handoffs/US-P005-lock-inspection-codex.md) | Handed over |
+| Codex | US-P005 AC01–04 API | `GET /admin/course-locks`, read-only; files in [handoff](handoffs/US-P005-lock-inspection-codex.md) | API implemented 2026-10-19 in `df01631`; branch `main`, base `2b14a2c`. AC01–04: 28 new scenario tests, 141 targeted tests passed; full `npm run api:test` passed (72 files / 1,686 tests). Read-only review: no further findings. `npm run api:build` BLOCKED TS2741 at `api/src/courseReview.ts:181`: outside assigned files, add `listCourseMutationLocks: () => content.listCourseMutationLocks(),` after line 186, then rerun build. Docs recovery/reliability updated. No shared services, browser or hosted verification; no push. Next: Claude forwards the method and reviews Admin panel integration |
 | Claude Code | US-P005 Admin panel | Course locks panel on the Admin page against the handoff contract (`app/`) | After Codex commits |
 
 ## Waiting on Alex
