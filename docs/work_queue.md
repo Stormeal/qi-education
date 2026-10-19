@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on 2026-10-19, not pushed: US-P017 MongoDB backup and restore (`93c841f`
+None. Pushed to `main` on 2026-10-19: US-P017 MongoDB backup and restore (defaults confirmed by Alex; first backup and rehearsal passed) (`93c841f`
 and `6e6470e` commands, Codex; runbook `d90b650`/`729a510`). Checks on `29df0c2`: `api:test`
 1,658/1,658, `app:test` 392/392, `verify:journeys` 16/16, `app:build:pages` and `api:build` pass.
 
@@ -16,7 +16,6 @@ and `6e6470e` commands, Codex; runbook `d90b650`/`729a510`). Checks on `29df0c2`
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| US-P017 defaults | Confirm or change: backups outside the repo, restore only into an empty database, schedule before data-changing releases and monthly. Drop `qi-restore-rehearsal` in Atlas if not done yet | Reply "confirmed" |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner), US-L001 (preview, archive access, payment) | Decision recorded in the story |
 
 ## Next candidate
