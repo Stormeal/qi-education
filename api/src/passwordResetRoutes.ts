@@ -5,6 +5,7 @@ import type { AuthRepository } from './authRepository.js';
 import { sendPasswordChangedNotice, type MailSender } from './mailSender.js';
 import type { PasswordResetRepository } from './passwordResetRepository.js';
 import type { SignInLimit } from './signInLimit.js';
+import type { ClientLimit } from './clientLimit.js';
 import { resetMailUnavailable as mailUnavailable, resetTokenHash as tokenHash, sendPasswordResetLink, type PasswordResetOptions } from './passwordResetDelivery.js';
 export type { PasswordResetOptions } from './passwordResetDelivery.js';
 const accepted = { message: 'If an account exists for this address, we have sent a reset link.' };
@@ -14,6 +15,7 @@ const storageUnavailable = { message: 'Password reset is temporarily unavailable
 export function registerPasswordResetRoutes(app: Express, dependencies: {
   auth: AuthRepository; tokens: PasswordResetRepository; sender: MailSender; options?: PasswordResetOptions;
   signInLimit?: SignInLimit;
+  clientLimit: ClientLimit;
 }) {
   const { auth, tokens, sender, options = {} } = dependencies;
   const now = options.now ?? Date.now;
@@ -27,6 +29,7 @@ export function registerPasswordResetRoutes(app: Express, dependencies: {
     const input = request.body?.email;
     const email = z.email().safeParse(typeof input === 'string' ? input.trim().toLowerCase() : input);
     if (!email.success) { response.status(400).json({ message: 'Enter a valid email address.' }); return; }
+    if (!await dependencies.clientLimit.allow('reset', request, response)) return;
     if (!sender.available || auth.unavailableReason) { response.status(503).json(mailUnavailable); return; }
     const user = await auth.findByEmail(email.data);
     if (!user || user.status !== 'active') { response.status(202).json(accepted); return; }

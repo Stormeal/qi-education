@@ -1,6 +1,8 @@
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
 import { SignInLimit, type SignInLimitOptions } from './signInLimit.js';
+import { ClientLimit, type ClientLimitOptions } from './clientLimit.js';
+import { createClientLimitRepository, type ClientLimitRepository } from './clientLimitRepository.js';
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
@@ -101,6 +103,8 @@ type ServerDependencies = {
   authRepository?: AuthRepository;
   signInAttemptRepository?: SignInAttemptRepository;
   signInLimitOptions?: SignInLimitOptions;
+  clientLimitRepository?: ClientLimitRepository;
+  clientLimitOptions?: ClientLimitOptions;
   userChangeRepository?: UserChangeRepository;
   userChangeOptions?: UserChangeOptions;
   mailSender?: MailSender;
@@ -129,6 +133,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
   const auth = accountWriteFreeze(dependencies.authRepository ?? createAuthRepository(), apiConfig.USER_STORE_READ_ONLY === '1');
   const signInLimit = new SignInLimit(dependencies.signInAttemptRepository ?? createSignInAttemptRepository(), dependencies.signInLimitOptions);
+  const clientLimit = new ClientLimit(dependencies.clientLimitRepository ?? createClientLimitRepository(), dependencies.clientLimitOptions);
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
   const mailSender = dependencies.mailSender ?? createMailSender();
   const passwordResetTokens = dependencies.passwordResetRepository ?? createPasswordResetRepository();
@@ -549,7 +554,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
 
   registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
-    options: dependencies.passwordResetOptions, signInLimit });
+    options: dependencies.passwordResetOptions, signInLimit, clientLimit });
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
@@ -609,6 +614,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       const body = auth.storageType === 'mongodb' && typeof request.body?.email === 'string'
         ? { ...request.body, email: request.body.email.trim().toLowerCase() } : request.body;
       const input = signupSchema.parse(body);
+      if (!await clientLimit.allow('signup', request, response)) return;
       await signupWrites.run(input.email, async () => {
         const existingUser = await auth.findByEmail(input.email);
 
