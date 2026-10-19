@@ -59,5 +59,5 @@ overwrite data or print documents. Schedule, commands and recovery:
 
 - API: `config.ts`, `authStore.ts`, `courseStore.ts`, `mongo.ts`, `googleSheets.ts`, the
   `*Repository.ts` files, `databaseBackup.ts`, `databaseBackupCommand.ts`, `health/`.
-- Scripts: `scripts/doctor.mjs`, `scripts/run-app-dev.mjs`.
+- Scripts: `scripts/doctor.mjs`, `scripts/run-app-dev.mjs`, `scripts/mongodb-backup.ps1` (backup and restore from Windows).
 - Setup: [local_development.md](../../local_development.md).

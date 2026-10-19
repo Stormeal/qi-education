@@ -34,17 +34,17 @@ Paste as one block. It reads the database and writes files; it changes nothing i
 
 ```powershell
 $folder = "C:\Users\Alex\qi-backups\$(Get-Date -Format yyyy-MM-dd-HHmm)"
-$env:USE_SHARED_SERVICES = '1'
-npm.cmd --prefix api run db:backup -- --out $folder
-Remove-Item Env:USE_SHARED_SERVICES
+powershell -ExecutionPolicy Bypass -File scripts\mongodb-backup.ps1 -Action backup -Out $folder
 ```
 
 You see one line per collection with its document count, then
 `Backup complete: N collections, M documents in C:\Users\Alex\qi-backups\…`. Any other last line
 means the backup did not finish: copy the output to Claude.
 
-Use `npm.cmd`, not `npm`: in Windows PowerShell plain `npm` drops the `--` and the command sees no
-folder.
+`scripts\mongodb-backup.ps1` runs the API command in its own process with shared services on. It
+looks the database cluster up through Windows, because Node's own DNS queries are blocked while
+ProtonVPN is connected (`querySrv ETIMEOUT`, 2026-10-19), and never prints or stores the address.
+`-ExecutionPolicy Bypass` applies to that one run only and changes no setting.
 
 ## Rehearse a restore
 
@@ -58,9 +58,7 @@ not touched.
 2. Paste, changing the folder name to the backup you just took:
 
    ```powershell
-   $env:USE_SHARED_SERVICES = '1'
-   npm.cmd --prefix api run db:restore -- --from "C:\Users\Alex\qi-backups\<backup folder>" --into qi-restore-rehearsal
-   Remove-Item Env:USE_SHARED_SERVICES
+   powershell -ExecutionPolicy Bypass -File scripts\mongodb-backup.ps1 -Action restore -From "C:\Users\Alex\qi-backups\<backup folder>" -Into qi-restore-rehearsal
    ```
 
    It is finished when the last line reads `Restore verified: N collections, M documents into
