@@ -16,7 +16,7 @@ Capture user data only in anonymized form.
 
 When a defect is fixed, move its whole record to `defects_resolved.md` with the resolution date,
 fixing commit, passing regression checks and any remaining release checks. Never delete or reuse IDs.
-Next free IDs: DEF-053, INV-020.
+Next free IDs: DEF-054, INV-020.
 
 ## Open defects
 
@@ -33,6 +33,14 @@ fixing commit and permanent regression evidence: none.
 | DEF-050 | P2 / Open | **Two-instance duplicate course purchases miss the warning.** `paymentRoutes.ts:38–49`. Two app instances share isolated stores and a fake provider; confirm distinct paid sessions for one learner/course, pausing both after insert and before enrollment. Both return 200; two payments and one enrollment persist, but no duplicate-purchase warning is emitted. Expected: the second distinct purchase is recorded and logged for refund follow-up. The warning uses a stale pre-enrollment snapshot and a process-local queue. [Audit reproduction](audits/2026-10-api-audit.md#def-050). | Atomic durable first-purchase/enrollment classification plus two-instance regression; keep both payment records and retry recovery. Same-session idempotency is unaffected. Related: US-L024, `specs/payments/payments.md`. |
 | DEF-051 | P2 / Open | **Schema-valid multi-lesson course cannot be saved.** `server.ts:471`; `courseContent.ts:32,94,98`. A teacher-owned draft with six 20,000-character text lessons passes `updateCourseContentSchema`, but its 120,436-byte full PATCH with a current revision returns 413. A one-lesson control returns 200. Expected: supported full-course content can be saved within a deliberately aligned size contract. Default JSON parser limit rejects it before the handler. [Audit reproduction](audits/2026-10-api-audit.md#def-051). | Define bounded total save size consistent with hosting limits, align parser/schema/editor guidance, add realistic boundary regression. Related: authoring lessons/builder and course-editor specs. |
 | DEF-052 | P3 / Open | **Multibyte malformed token causes 500.** `auth.ts:107–111`. GET `/auth/me` with `Bearer e30.e30.` plus 43 `é` characters. Character length passes; UTF-8 buffer lengths differ, so `timingSafeEqual` throws `ERR_CRYPTO_TIMING_SAFE_EQUAL_LENGTH`; response is generic 500. Expected: malformed credentials return 401 without error-level noise. No authentication bypass observed. [Audit reproduction](audits/2026-10-api-audit.md#def-052). | Validate base64url signature/byte lengths and add malformed-token regressions on protected paths. Related: sign-in/session spec. |
+
+X4 findings (2026-10-20, source `97cd1d5`, isolated stores/synthetic failures only). No production
+code was changed; all records below are Open, fixing commit none, permanent expected-behavior
+regressions pending the fix. Hosted environments and real providers were not exercised.
+
+| ID | Severity / state | Finding and reproduction | Expected behavior / next action |
+| --- | --- | --- | --- |
+| DEF-053 | P2 / Open | **Password-reset routes turn MongoDB outages into 500.** `api/src/passwordResetRoutes.ts:22–25` catches every exception locally. In `createServer` with in-memory auth/reset stores and synthetic mail, inject an error named `MongoNetworkError` into `auth.findByEmail`; POST a valid reset request. For check/confirm, first reserve and activate a valid fixture token, then inject the same error into `tokens.findActive` and POST the token (plus a policy-valid password for confirm). All three return 500 with the private reset-unavailable message. The generic catch prevents the global outage classifier from running. | `specs/platform/reliability.md` requires Mongo connection failures to return retryable 503 `STORE_UNAVAILABLE`; the 500 loses retry/outage guidance. Forward recognized outages safely or preserve their typed 503 mapping locally. Add all three expected-503 HTTP regressions; keep genuinely unknown-error responses generic. The X4 account test inventory records these three gaps without a passing test endorsing 500 for an outage. |
 
 ## Open investigations
 
