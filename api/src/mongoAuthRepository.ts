@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Collection } from 'mongodb';
 import type { AuthRepository, AuthAccessMutation, AuthEnrollmentMutation } from './authRepository.js';
 import type { AuthUser, UserRole, UserStatus } from './auth.js';
@@ -5,7 +6,7 @@ import { DuplicateAccountError } from './authStore.js';
 import { apiConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 
-export type MongoAuthDocument = Omit<AuthUser, 'id'> & { _id: string };
+export type MongoAuthDocument = Omit<AuthUser, 'id'> & { _id: string; enrollmentPurchases?: Record<string, string> };
 export type MongoAuthCollection = Pick<Collection<MongoAuthDocument>, 'findOne' | 'find' | 'insertOne' | 'findOneAndUpdate' | 'countDocuments' | 'createIndex'>;
 const majority = { writeConcern: { w: 'majority' as const } };
 const emailKey = (email: string) => email.trim().toLowerCase();
@@ -57,14 +58,23 @@ export class MongoAuthRepository implements AuthRepository {
   async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {
     return (await this.enrollUserInCourseWithChange(userId, courseId))?.user ?? null;
   }
-  async enrollUserInCourseWithChange(userId: string, courseId: string): Promise<AuthEnrollmentMutation | null> {
-    // The preimage and add-only write are one atomic operation across instances.
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId }, { $addToSet: { enrolledCourseIds: courseId } },
+  async enrollUserInCourseWithChange(userId: string, courseId: string, purchaseSessionId?: string): Promise<AuthEnrollmentMutation | null> {
+    const collection = await this.collection();
+    // Hash the course key so arbitrary IDs cannot become Mongo field paths.
+    const key = createHash('sha256').update(courseId).digest('hex');
+    // The source session is written only by the first enrollment. Replays of
+    // that session must still identify it as the first purchase across hosts.
+    const document = await collection.findOneAndUpdate({ _id: userId, ...(purchaseSessionId ? { enrolledCourseIds: { $ne: courseId } } : {}) },
+      { $addToSet: { enrolledCourseIds: courseId }, ...(purchaseSessionId ? { $set: { [`enrollmentPurchases.${key}`]: purchaseSessionId } } : {}) },
       { returnDocument: 'before', includeResultMetadata: false, ...majority });
-    if (!document) return null;
+    if (!document) {
+      if (!purchaseSessionId) return null;
+      const current = await collection.findOne({ _id: userId });
+      return current ? { user: account(current), added: false, purchaseSessionId: current.enrollmentPurchases?.[key] } : null;
+    }
     const user = account(document); const added = !user.enrolledCourseIds.includes(courseId);
     if (added) user.enrolledCourseIds.push(courseId);
-    return { user, added };
+    return { user, added, purchaseSessionId: added && purchaseSessionId ? purchaseSessionId : document.enrollmentPurchases?.[key] };
   }
 
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {

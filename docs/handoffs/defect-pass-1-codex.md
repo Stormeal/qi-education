@@ -59,4 +59,45 @@ If one is needed, finish everything else first, then report the need.
 
 ## Result
 
-(Codex: commits, checks run with counts, anything not verified.)
+Completed 2026-10-20 on `main`; required ancestor `3129083` confirmed. Local commits only; no push.
+Claude's concurrent commits and files were preserved. Only the four explicitly authorized version
+files were changed outside the API/document ownership list.
+
+| Item | Delivery commit | Regression evidence |
+| --- | --- | --- |
+| DEF-047 | `ff6f4a8` | `changePassword.test.ts`: final-write reset and signed-in change barriers; 6 failed before, 76 focused tests passed after |
+| DEF-048 | `c764add` | `mailSender.test.ts`: hosted-marker local-mail refusal; 2 failed before, 24 focused tests passed after |
+| DEF-052 | `e0b94ff` | `requestErrors.test.ts`: malformed signatures return 401 without error logs; multibyte case failed before, 19 tests passed after |
+| DEF-053 | `94a2195` | `passwordReset.test.ts`: request/check/confirm Mongo failures; 6 failed before, 124 focused tests passed after |
+| DEF-049 | `05ef437` | Global/provider nested canaries, Mux cleanup, GitHub project failure and allowlisted logger; 5 failed before, 80 focused tests and build passed after |
+| DEF-050 | `57ba355`, completed by review correction in this final delivery commit | `multiInstancePayments.test.ts`: distinct purchases, same-session replay and replay followed by a distinct purchase on both aliases; 2 original and 2 replay cases failed before their fixes; 6 final interleavings pass |
+| DEF-051 | `6f4f53a` | `requestErrors.test.ts`: schema-valid six-lesson save at exactly 4 MiB and refusal one byte over; 4 failed before, 191 focused tests passed after |
+| DEF-054 | `7eddf52` | `x4LearningErrorBranches.test.ts`: six valid operations against corrupt stored career data on both aliases; 12 failed before, 108 tests passed after |
+| DEF-055 | `1e1fdf5` | `reviewAdapterContract.test.ts`: compiler-derived nullable-result regression failed before; non-null contract and genuine missing-course 404s pass, with 40 existing review tests and build |
+| Price range R3 | This commit: `fix(R3): enforce API price range and finish defect verification` | `paymentRoutes.test.ts`: exact 400 message, valid boundaries, invalid stored prices and no provider call; 4 failed before, 39 focused payment tests passed after |
+
+Final checks after all API changes:
+
+- `npm run api:test`: **85 files, 2,241 tests passed**, no failures.
+- `npm run verify:journeys`: **1 file, 16 tests passed**, memory and isolated Mongo-operation doubles.
+- `npm run api:build`: passed (exit 0).
+- `git diff --check`: passed.
+- Independent read-only code review: found the DEF-050 same-session replay race; reproduced it,
+  corrected it, and reviewed the correction. The source checkout session is now stored atomically
+  alongside its first enrollment in internal account metadata (`enrollmentPurchases`, course IDs
+  hashed as field keys); account projections never expose it. No migration is needed for old enrollments.
+
+The final delivery commit also aligns existing hosted-mail fixtures and the price error expectation.
+The initial full run exposed seven such outdated expectations (five hosted-mail cases, two price
+responses); all pass in the final full run. The review correction above was folded into this final
+commit to retain ten local delivery commits without rewriting shared `main` history.
+
+Not verified: hosted behavior, real MongoDB/indexes/failover, Stripe, Mux, Brevo, GitHub or browser UI.
+All mutations used isolated in-memory stores/doubles and ephemeral ports; no shared-service probes,
+secrets, ports 3001/4200, provider calls, push or deployment.
+
+Claude follow-up (outside Codex's ownership): update the relevant specs and
+`docs/local_development.md` for hosted mail selection, the 4 MiB content-save limit and API price
+validation. In particular, the local-development text claiming that a VERCEL-only hosted process
+keeps console mail is obsolete. Defect records remain Fixed in `docs/defects.md` as Alex requested;
+no resolved-record move or spec edit was made by Codex.

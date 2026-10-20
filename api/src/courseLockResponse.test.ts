@@ -135,7 +135,7 @@ describe.each(['', '/api'])('DEF-042 response after lock release %s', prefix => 
   it('forwards handler errors only after release, with the normal 400 body', async () => {
     const response = await finishAfterRelease(request('/courses/course/price', 'PATCH', { priceDkk: -1 }));
     expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({ message: 'Invalid request body', issues: [{ path: ['priceDkk'] }] });
+    expect(await response.json()).toEqual({ message: 'Enter 0 for free, or a whole number of DKK from 3 to 999,999.' });
   });
 
   it('logs failed release before sending the successful handler response', async () => {

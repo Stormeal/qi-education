@@ -11,7 +11,7 @@ import {
   hashPassword
 } from './auth.js';
 
-export type AuthEnrollmentMutation = { user: AuthUser; added: boolean };
+export type AuthEnrollmentMutation = { user: AuthUser; added: boolean; purchaseSessionId?: string };
 
 export type AuthAccessMutation = { user: AuthUser; previous: AuthUser | null };
 
@@ -29,13 +29,14 @@ export interface AuthRepository {
   updateStatusWithChange(userId: string, status: UserStatus): Promise<AuthAccessMutation | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
-  enrollUserInCourseWithChange(userId: string, courseId: string): Promise<AuthEnrollmentMutation | null>;
+  enrollUserInCourseWithChange(userId: string, courseId: string, purchaseSessionId?: string): Promise<AuthEnrollmentMutation | null>;
   updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null>;
   confirmEmail(userId: string): Promise<AuthUser | null>;
 }
 
 export class InMemoryAuthRepository implements AuthRepository {
   readonly storageType = 'memory';
+  private readonly enrollmentPurchases = new Map<string, string>();
   private readonly users: AuthUser[] = [
     createDemoUser('student', 'student@qi-education.local', 'Student Demo'),
     createDemoUser('teacher', 'teacher@qi-education.local', 'Teacher Demo'),
@@ -87,13 +88,15 @@ export class InMemoryAuthRepository implements AuthRepository {
   async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {
     return (await this.enrollUserInCourseWithChange(userId, courseId))?.user ?? null;
   }
-  async enrollUserInCourseWithChange(userId: string, courseId: string): Promise<AuthEnrollmentMutation | null> {
+  async enrollUserInCourseWithChange(userId: string, courseId: string, purchaseSessionId?: string): Promise<AuthEnrollmentMutation | null> {
     const index = this.users.findIndex(user => user.id === userId);
     if (index < 0) return null;
     const user = this.users[index];
     const added = !user.enrolledCourseIds.includes(courseId);
     if (added) this.users[index] = { ...user, enrolledCourseIds: [...user.enrolledCourseIds, courseId] };
-    return { user: this.users[index], added };
+    const key = JSON.stringify([userId, courseId]);
+    if (added && purchaseSessionId) this.enrollmentPurchases.set(key, purchaseSessionId);
+    return { user: this.users[index], added, purchaseSessionId: this.enrollmentPurchases.get(key) };
   }
 
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {

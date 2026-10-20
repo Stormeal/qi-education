@@ -1,3 +1,4 @@
+import { coursePriceMessage } from './course.js';
 import { logError } from './errorLogger.js';
 import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
@@ -1237,7 +1238,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
     requireAdmin,
     withCourseLock(async (request, response, next) => {
       try {
-        const input = updateCoursePriceSchema.parse(request.body);
+        const parsed = updateCoursePriceSchema.safeParse(request.body);
+        if (!parsed.success) { response.status(400).json({ message: coursePriceMessage }); return; }
+        const input = parsed.data;
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
         const updatedCourse = await courses.updateCoursePrice(courseId, input);
 

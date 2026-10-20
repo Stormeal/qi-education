@@ -76,7 +76,7 @@ describe('US-P011 centralized service selection', () => {
       paths: 'MongoCareerPathRepository', progress: 'MongoLearningProgressRepository', profiles: 'MongoInstructorProfileRepository', resets: 'MongoPasswordResetRepository' });
     expect(selected.video?.constructor.name ?? null).toBe(want === 'isolated' ? null : 'ConfiguredMuxVideoService');
     expect(selected.webhook?.constructor.name ?? null).toBe(want === 'isolated' ? null : 'ConfiguredMuxWebhookService'); expect(selected.github).toBe(want !== 'isolated');
-    expect(selected.mail.provider).toBe(input.NODE_ENV === 'production' ? 'brevo' : 'local');
+    expect(selected.mail.provider).toBe(want === 'hosted' ? 'brevo' : 'local');
     expect(providers.sheets).not.toHaveBeenCalled(); expect(providers.mongo).not.toHaveBeenCalled(); expect(providers.mux).toHaveBeenCalledTimes(want === 'isolated' ? 0 : 2);
     if (want === 'isolated') {
       for (const role of ['student', 'teacher', 'admin']) expect((await selected.auth.findByEmail(`${role}@qi-education.local`))!.role).toBe(role);

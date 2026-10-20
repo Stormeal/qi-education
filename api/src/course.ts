@@ -69,9 +69,9 @@ export const updateCourseSchema = createCourseSchema.omit({
   category: true,
   languages: true,
 });
-export const updateCoursePriceSchema = z.object({
-  priceDkk: z.number().int().nonnegative().nullable(),
-});
+export const coursePriceMessage = 'Enter 0 for free, or a whole number of DKK from 3 to 999,999.';
+export const coursePriceDkkSchema = z.number().int().min(0).max(999999).refine(value => value === 0 || value >= 3).nullable();
+export const updateCoursePriceSchema = z.object({ priceDkk: coursePriceDkkSchema });
 export const updateCourseCatalogMetadataSchema = z.object({
   isPremium: z.boolean(),
   isBestseller: z.boolean(),

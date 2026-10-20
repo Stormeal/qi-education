@@ -55,6 +55,34 @@ describe('US-L024 course payments HTTP contract', () => {
     expect(await service.readCheckout(sessionId)).toMatchObject({ paid: true, amountDkk: 499, userId: student.id, courseId: id });
     expect(payments.stored).toHaveLength(0);
   });
+  it.each(['', '/api'])('R3 price PATCH accepts only supported DKK amounts with the exact error contract (%s)', async prefix => {
+    for (const priceDkk of [1, 2, -1, 3.5, 1000000, Number.MAX_SAFE_INTEGER, '3', '', true, {}, undefined]) {
+      const before = (await courses.listCourses()).find(course => course.id === id)!.priceDkk;
+      const response = await request(prefix + `/courses/${id}/price`, admin, { priceDkk }, 'PATCH');
+      expect(response.status, JSON.stringify(priceDkk)).toBe(400);
+      expect(await response.json()).toEqual({ message: 'Enter 0 for free, or a whole number of DKK from 3 to 999,999.' });
+      expect((await courses.listCourses()).find(course => course.id === id)!.priceDkk).toBe(before);
+    }
+    for (const priceDkk of [null, 0, 3, 999999]) {
+      const response = await request(prefix + `/courses/${id}/price`, admin, { priceDkk }, 'PATCH');
+      expect(response.status).toBe(200); expect((await response.json()).priceDkk).toBe(priceDkk);
+    }
+  });
+  it.each(['', '/api'])('R3 checkout refuses invalid stored prices before calling the provider (%s)', async prefix => {
+    const create = vi.spyOn(service, 'createCheckout');
+    for (const priceDkk of [1, 2, -1, 3.5, 1000000, Number.MAX_SAFE_INTEGER, NaN, Infinity]) {
+      await courses.updateCoursePrice(id, { priceDkk });
+      const response = await request(prefix + coursePath + '/checkout', student, { returnUrl });
+      expect(response.status, String(priceDkk)).toBe(400);
+      expect(await response.json()).toEqual({ message: 'Enter 0 for free, or a whole number of DKK from 3 to 999,999.' });
+    }
+    expect(create).not.toHaveBeenCalled();
+    for (const priceDkk of [3, 999999]) {
+      await courses.updateCoursePrice(id, { priceDkk });
+      expect((await request(prefix + coursePath + '/checkout', student, { returnUrl })).status).toBe(200);
+    }
+    expect(create.mock.calls.map(call => call[0].amountDkk)).toEqual([3, 999999]);
+  });
   it('checkout refuses free, unpublished, unknown and enrolled courses', async () => {
     expect((await request('/users/me/courses/missing/checkout', student, { returnUrl })).status).toBe(404);
     expect((await request(`/courses/${id}/price`, admin, { priceDkk: 0 }, 'PATCH')).status).toBe(200);

@@ -12,7 +12,7 @@ export function fakeAuthCollection() {
   type Filter = Record<string, unknown>;
   const matches = (doc: MongoAuthDocument, filter: Filter) => Object.entries(filter).every(([key, value]) => {
     const actual = doc[key as keyof MongoAuthDocument];
-    if (value && typeof value === 'object' && '$ne' in value) return actual !== value.$ne;
+    if (value && typeof value === 'object' && '$ne' in value) return Array.isArray(actual) ? !actual.includes(value.$ne as string) : actual !== value.$ne;
     return Array.isArray(actual) ? actual.includes(value as string) : actual === value;
   });
   const operations = {
@@ -45,7 +45,16 @@ export function fakeAuthCollection() {
       const document = [...documents.values()].find(doc => matches(doc, filter));
       if (!document) return null;
       const before = structuredClone(document);
-      const next = { ...structuredClone(document), ...structuredClone(update.$set) };
+      const next = structuredClone(document);
+      for (const [key, value] of Object.entries(update.$set ?? {})) {
+        const fields = key.split('.');
+        let target = next as unknown as Record<string, unknown>;
+        for (const field of fields.slice(0, -1)) {
+          target[field] ??= {};
+          target = target[field] as Record<string, unknown>;
+        }
+        target[fields.at(-1)!] = structuredClone(value);
+      }
       if (update.$addToSet && !next.enrolledCourseIds.includes(update.$addToSet.enrolledCourseIds)) next.enrolledCourseIds.push(update.$addToSet.enrolledCourseIds);
       checkEmail(next);
       Object.assign(document, next);

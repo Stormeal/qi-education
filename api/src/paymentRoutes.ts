@@ -1,3 +1,4 @@
+import { coursePriceDkkSchema, coursePriceMessage } from './course.js';
 import { logError } from './errorLogger.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import { z } from 'zod';
@@ -41,9 +42,9 @@ async function recordPaidCheckout(session: CheckoutSession, deps: PaymentDepende
   return deps.enrollmentWrites.run(session.userId, async () => {
     const added = await deps.payments.add({ _id: session.id, userId: session.userId, courseId: session.courseId,
       amountDkk: session.amountDkk, stripeCustomerId: session.customerId!, paidAt: new Date().toISOString() });
-    const enrollment = await deps.auth.enrollUserInCourseWithChange(session.userId, session.courseId);
+    const enrollment = await deps.auth.enrollUserInCourseWithChange(session.userId, session.courseId, session.id);
     if (!enrollment) throw new Error('Payment enrollment was not confirmed.');
-    if (added && !enrollment.added) {
+    if (added && !enrollment.added && enrollment.purchaseSessionId !== session.id) {
       console.error('Duplicate course purchase', { sessionId: session.id, userId: session.userId, courseId: session.courseId });
     }
     return toAuthenticatedUser(enrollment.user);
@@ -80,6 +81,7 @@ export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): 
     const course = (await courses.listCourses()).find(c => c.id === String(request.params.id));
     if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
     if (course.status !== 'published') { response.status(403).json({ message: 'Only published courses accept enrollment.' }); return; }
+    if (!coursePriceDkkSchema.safeParse(course.priceDkk).success) { response.status(400).json({ message: coursePriceMessage }); return; }
     if (!(course.priceDkk && course.priceDkk > 0)) { response.status(400).json({ message: 'This course is free.' }); return; }
     const user = caller(request);
     if (user.enrolledCourseIds.includes(course.id)) { response.status(409).json({ message: 'Already enrolled in this course.' }); return; }

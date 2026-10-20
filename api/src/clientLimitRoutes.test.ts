@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as config from './config.js';
 import { InMemoryAuthRepository } from './authRepository.js';
-import { LocalMailSender } from './mailSender.js';
+import { LocalMailSender, type MailMessage } from './mailSender.js';
 import { InMemoryPasswordResetRepository } from './passwordResetRepository.js';
 import { createServer } from './server.js';
 import { InMemoryClientLimitRepository, MongoClientLimitRepository, type ClientLimitRepository } from './clientLimitRepository.js';
@@ -20,7 +20,8 @@ const signupPaths = ['/signup', '/auth/signup', '/api/signup', '/api/auth/signup
 const resetPaths = [reset, '/api' + reset];
 const signupBody = (i: number) => ({ displayName: 'New Learner', email: `client-${i}@example.test`, password: 'Password123!' });
 async function setup(dependencies: NonNullable<Parameters<typeof createServer>[0]> = {}) {
-  const auth = new InMemoryAuthRepository(), mail = new LocalMailSender(() => {}), tokens = new InMemoryPasswordResetRepository();
+  const auth = new InMemoryAuthRepository(), tokens = new InMemoryPasswordResetRepository();
+  const mail = { provider: 'brevo' as const, available: true, messages: [] as MailMessage[], async send(message: MailMessage) { this.messages.push({ ...message }); } };
   const server = createServer({ authRepository: auth, mailSender: mail, passwordResetRepository: tokens,
     passwordResetOptions: { appPublicUrl: 'https://example.test' }, muxVideoService: null, muxWebhookService: null,
     ...dependencies,
