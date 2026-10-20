@@ -20,7 +20,8 @@ Admins review what teachers submit before learners see it, and own pricing and c
   because category filters would not find it.
 - **Review history**: every action is stored with the revision, actor, date and return reason, and
   is never trimmed. Owners and admins see it; the public and learners do not.
-- **Admin-only fields**: price (`PATCH /courses/:id/price`, DKK, empty = free) and catalog metadata
+- **Admin-only fields**: price (`PATCH /courses/:id/price`, DKK; empty or 0 = free, otherwise a
+  whole number from 3 to 999,999, because Stripe cannot charge less than 2.50 DKK) and catalog metadata
   such as category (`PATCH /courses/:id/catalog-metadata`). Teachers' new courses get the defaults.
 - Review actions carry the loaded revision and version; a stale action is refused without a change.
 

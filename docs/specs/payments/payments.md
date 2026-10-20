@@ -37,6 +37,10 @@ payment pages; the API keeps the record of who paid for what.
 
 - A purchase is an enrollment that is never taken away. Refunds are made in the Stripe dashboard
   and do not remove access.
+- A price is free (empty or 0) or 3–999,999 whole DKK; checkout refuses a stored price outside that
+  range with 400.
+- A second distinct purchase of a course the account already has is detected atomically with the
+  enrollment, also across API instances (DEF-050).
 - `returnUrl` must be on an allowed CORS origin (400 "Return address is not allowed." otherwise).
 - A confirm for a session that belongs to another account or course answers 404 and stores nothing.
 - A second paid session for a course the account already has is stored and logged as

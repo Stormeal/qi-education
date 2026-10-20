@@ -6,14 +6,15 @@ messages hold them.
 
 ## Active work
 
-Defect fix pass 1, started 2026-10-20 on `main` (pushed state before it: `a65592d`, which includes
-US-L024, the exercise intro video and Codex X1–X5). Handoff and decisions:
-[handoffs/defect-pass-1-codex.md](handoffs/defect-pass-1-codex.md).
+None. Delivered locally on 2026-10-20, **not pushed** (last push `a65592d`):
 
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | DEF-047, 048, 052, 053, 049, 050, 051, 054, 055 and the API price range, one commit each | `api/src/**`, `api/test/**`, assigned defect rows and handoff Result | Done 2026-10-20; owner Codex; `main`; base `c25d1fa` (includes `3129083`); ten local commits, final delivery is the commit containing this row; API 2,241/85 files, journeys 16, build passed; full commit/test map and remaining external checks in handoff Result; next Claude spec/setup-doc follow-up, no push |
-| Claude | Price range in the admin price field; then check routine, specs | `app/**`, `docs/**` except Codex's rows | In progress |
+- Defect fix pass 1 by Codex: DEF-047 to DEF-055 and the API price range (`ff6f4a8` … `f368530`,
+  record in [history/handoffs](history/handoffs/defect-pass-1-codex.md)); app price check `c25d1fa`.
+- Career comparison cards and carousel `4b54201`; Start over `1257296`.
+
+Checks 2026-10-20 on the combined tree: `api:test` 2,241/2,241, `verify:journeys` 16/16,
+`app:test` 428/428, `app:build:pages` and `api:build` pass. Browser checks on the isolated servers
+for the cards (1,400/900/375 px), the suggestion tag and Start over.
 
 ## Waiting on Alex
 
@@ -22,7 +23,7 @@ US-L024, the exercise intro video and Codex X1–X5). Handoff and decisions:
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
-| Defect pass decisions | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Recorded in the handoff |
+| Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
 | Refund on full refund (option A) | Say yes to the refund design, or change it | Claude writes it up as the next task |
 | Extra Codex work | Paste assignments X6–X7 (X1–X5 done) from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |

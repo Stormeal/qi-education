@@ -36,8 +36,12 @@ Both send a notice so the owner hears about the change.
   when already confirmed. At most three confirmation mails per account per rolling hour (the
   signup mail counts; 429 `too-many-requests` with the minutes to wait) and 10 resend requests per
   network per hour. Only token hashes are stored, in `<collection>_email_confirmations`.
-- **Mail delivery**: Brevo in production; locally and in tests the complete message is printed to
-  the API's console instead. Missing production mail settings make reset requests answer 503.
+- **Mail delivery**: Brevo when hosted (production or a Vercel marker); locally and in tests the
+  complete message is printed to the API's console instead. A hosted API never prints mail; missing
+  hosted mail settings make reset requests answer 503 (DEF-048).
+- A reset link that was claimed before a password change cannot overwrite the newer password: the
+  final write checks the current credential and the reset is refused (DEF-047). A storage outage
+  during reset request, check or confirm answers the retryable 503 (DEF-053).
 
 ## Rules
 

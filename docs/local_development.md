@@ -77,9 +77,9 @@ Brevo is selected only with `NODE_ENV=production`; development/tests always
 record locally even if real credentials are present. Local stdout displays the
 complete recipient, subject and plain-text message, including the fragment link.
 Tests inject a recorder/output stub and never call Brevo. Reset tokens use memory
-in isolated/test mode, and configured Mongo in shared/hosted mode. The opt-in does
-not change mail selection: only NODE_ENV=production selects Brevo, including when
-a VERCEL marker alone makes the stores hosted.
+in isolated/test mode, and configured Mongo in shared/hosted mode. Mail follows the
+same hosted rule as storage (DEF-048, 2026-10-20): a hosted process (NODE_ENV=production
+or a VERCEL marker) uses Brevo or reports mail unavailable, and never prints mail.
 
 Production requires the Brevo key, sender address and frontend `APP_PUBLIC_URL`
 without a trailing slash. The agreed sender is `xqiacademy@gmail.com`; Alex

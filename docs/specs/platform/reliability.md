@@ -36,12 +36,14 @@ false success.
   down, the client answers a local 503 ("Local API is unavailable…") and never sends the request to
   the hosted API.
 - **Errors**: bodies are `{ message }` (plus `issues` for validation). Invalid JSON, oversized
-  bodies and unsupported encodings answer 400/413/415. A storage outage (account or course store
+  bodies and unsupported encodings answer 400/413/415. JSON bodies are limited to 100 KB, except a
+  course content save, which may be up to 4 MB (DEF-051). A malformed sign-in token answers 401. A storage outage (account or course store
   unavailable, or a MongoDB connection, server-selection, network-timeout or not-connected error,
   also when wrapped as `cause`) answers 503 `{ message, code: 'STORE_UNAVAILABLE', retryable: true }`
   with a fixed message for driver errors; a read-only freeze answers 503 `{ message, code:
   'READ_ONLY', retryable: false }`. Other failures a generic 500. Request bodies and internal errors
-  are never echoed. Driver outages are logged once ("Storage unavailable").
+  are never echoed. Driver outages are logged once ("Storage unavailable"). Error logs carry only the
+  operation and the error class/code, never headers, bodies, causes or links (DEF-049).
 - **Outage guidance in the app**: `ApiClientService.fetch` gives every 503 `STORE_UNAVAILABLE` the
   message "The service is briefly unavailable, so nothing was changed. Your work on this page is
   kept. Try again in a minute." (`code` and `retryable` kept), so every page that shows API errors
