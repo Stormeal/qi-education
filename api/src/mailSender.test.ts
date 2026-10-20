@@ -5,6 +5,16 @@ const settings = { BREVO_API_KEY: 'stub-key', MAIL_FROM_ADDRESS: 'sender@example
 const message = { to: 'user@example.test', subject: 'Subject', text: 'Plain message' };
 describe('US-P009 mail sender', () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+  it.each(['development', undefined])('DEF-048 hosted marker refuses local mail with NODE_ENV=%s', async mode => {
+    vi.stubEnv('NODE_ENV', mode); vi.stubEnv('VERCEL', '1');
+    const output = vi.fn(); const sender = new LocalMailSender(output);
+    const selected = createMailSender({});
+    expect(selected.provider).toBe('brevo'); expect(selected.available).toBe(false);
+    expect(createMailSender(settings).provider).toBe('brevo');
+    expect(sender.available).toBe(false);
+    await expect(sender.send({ ...message, text: '#token=HOSTED_CANARY' })).rejects.toThrow();
+    expect(output).not.toHaveBeenCalled(); expect(sender.messages).toEqual([]);
+  });
   it('AC01 sends the confirmed plain-text Brevo request with injected fetch only', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{"messageId":"stub"}', { status: 201 }));
     await new BrevoMailSender(settings, fetcher).send(message);

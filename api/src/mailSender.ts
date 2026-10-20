@@ -1,4 +1,4 @@
-import { apiConfig } from './config.js';
+import { apiConfig, getServicesMode } from './config.js';
 
 export type MailMessage = { to: string; subject: string; text: string };
 export interface MailSender {
@@ -53,7 +53,7 @@ export class BrevoMailSender implements MailSender {
 export class LocalMailSender implements MailSender {
   readonly provider = 'local';
   readonly messages: MailMessage[] = [];
-  get available() { return process.env.NODE_ENV !== 'production'; }
+  get available() { return getServicesMode() !== 'hosted'; }
   constructor(private readonly output: (message: string) => void = message => console.log(message)) {}
   async send(message: MailMessage): Promise<void> {
     if (!this.available) throw new Error('Mail delivery unavailable.');
@@ -65,6 +65,6 @@ export class LocalMailSender implements MailSender {
 
 export function createMailSender(settings: MailSettings = apiConfig): MailSender {
   // Credentials in a local .env must never cause a real send from development/tests.
-  if (process.env.NODE_ENV !== 'production') return new LocalMailSender();
+  if (getServicesMode() !== 'hosted') return new LocalMailSender();
   return new BrevoMailSender(settings);
 }
