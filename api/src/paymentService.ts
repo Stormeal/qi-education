@@ -1,0 +1,90 @@
+import { randomUUID } from 'node:crypto';
+import Stripe from 'stripe';
+import { z } from 'zod';
+import { apiConfig, getServicesMode, hasStripeConfig } from './config.js';
+
+export type CheckoutSession = {
+  id: string; paid: boolean; userId: string; courseId: string; amountDkk: number; customerId: string | null;
+};
+export type PaidCheckoutEvent = { sessionId: string } | null;
+export type CreateCheckoutInput = {
+  userId: string; email: string; courseId: string; courseTitle: string; amountDkk: number;
+  customerId: string | null; successUrl: string; cancelUrl: string;
+};
+export interface PaymentService {
+  createCheckout(input: CreateCheckoutInput): Promise<{ url: string }>;
+  readCheckout(sessionId: string): Promise<CheckoutSession | null>;
+  createPortal(customerId: string, returnUrl: string): Promise<{ url: string }>;
+  readWebhookEvent(rawBody: string, signature: string | undefined): PaidCheckoutEvent;
+}
+export class PaymentSignatureError extends Error {}
+
+function paidEvent(event: unknown): PaidCheckoutEvent {
+  const parsed = z.object({ type: z.string(), data: z.object({ object: z.object({ id: z.string(), payment_status: z.string().optional() }) }) }).parse(event);
+  if (parsed.type === 'checkout.session.async_payment_succeeded' ||
+    parsed.type === 'checkout.session.completed' && parsed.data.object.payment_status === 'paid') return { sessionId: parsed.data.object.id };
+  return null;
+}
+
+export class FakePaymentService implements PaymentService {
+  private readonly sessions = new Map<string, CheckoutSession>();
+  async createCheckout(input: CreateCheckoutInput): Promise<{ url: string }> {
+    const id = `fake_cs_${randomUUID()}`;
+    this.sessions.set(id, { id, paid: true, userId: input.userId, courseId: input.courseId,
+      amountDkk: input.amountDkk, customerId: input.customerId ?? `fake_cus_${input.userId}` });
+    return { url: input.successUrl.replace('{CHECKOUT_SESSION_ID}', id) };
+  }
+  async readCheckout(sessionId: string): Promise<CheckoutSession | null> {
+    return structuredClone(this.sessions.get(sessionId) ?? null);
+  }
+  async createPortal(_customerId: string, returnUrl: string): Promise<{ url: string }> { return { url: returnUrl }; }
+  readWebhookEvent(rawBody: string, signature: string | undefined): PaidCheckoutEvent {
+    if (signature !== 'fake-signature') throw new PaymentSignatureError('Invalid Stripe webhook signature.');
+    return paidEvent(JSON.parse(rawBody));
+  }
+}
+
+export class StripePaymentService implements PaymentService {
+  constructor(private readonly client: Stripe = new Stripe(apiConfig.STRIPE_SECRET_KEY!, { apiVersion: '2026-09-30.endive' }),
+    private readonly webhookSecret = apiConfig.STRIPE_WEBHOOK_SECRET) {}
+  async createCheckout(input: CreateCheckoutInput): Promise<{ url: string }> {
+    const session = await this.client.checkout.sessions.create({
+      mode: 'payment', success_url: input.successUrl, cancel_url: input.cancelUrl,
+      client_reference_id: input.userId, metadata: { userId: input.userId, courseId: input.courseId },
+      ...(input.customerId ? { customer: input.customerId } : { customer_creation: 'always', customer_email: input.email }),
+      payment_intent_data: { setup_future_usage: 'on_session' },
+      line_items: [{ quantity: 1, price_data: { currency: 'dkk', unit_amount: Math.round(input.amountDkk * 100), product_data: { name: input.courseTitle } } }],
+    });
+    if (!session.url) throw new Error('Checkout URL missing.');
+    return { url: session.url };
+  }
+  async readCheckout(sessionId: string): Promise<CheckoutSession | null> {
+    let session: Stripe.Checkout.Session;
+    try { session = await this.client.checkout.sessions.retrieve(sessionId); }
+    catch (error) {
+      if (error instanceof Stripe.errors.StripeInvalidRequestError && error.code === 'resource_missing') return null;
+      throw error;
+    }
+    // Only our one-time DKK course sessions may grant access.
+    if (session.mode !== 'payment' || session.currency !== 'dkk' || !session.metadata?.userId || !session.metadata?.courseId) return null;
+    return { id: session.id, paid: session.payment_status === 'paid', userId: session.metadata.userId,
+      courseId: session.metadata.courseId, amountDkk: (session.amount_total ?? 0) / 100,
+      customerId: typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null };
+  }
+  async createPortal(customerId: string, returnUrl: string): Promise<{ url: string }> {
+    const session = await this.client.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+    return { url: session.url };
+  }
+  readWebhookEvent(rawBody: string, signature: string | undefined): PaidCheckoutEvent {
+    if (!this.webhookSecret || !signature) throw new PaymentSignatureError('Invalid Stripe webhook signature.');
+    try { return paidEvent(this.client.webhooks.constructEvent(rawBody, signature, this.webhookSecret)); }
+    catch (error) {
+      if (error instanceof Stripe.errors.StripeSignatureVerificationError) throw new PaymentSignatureError('Invalid Stripe webhook signature.');
+      throw error;
+    }
+  }
+}
+export function createPaymentService(): PaymentService | null {
+  if (getServicesMode() === 'isolated') return new FakePaymentService();
+  return hasStripeConfig() ? new StripePaymentService() : null;
+}
