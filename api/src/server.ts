@@ -47,7 +47,7 @@ import {
 } from './careerPath.js';
 import { CareerPathConflictError, CareerPathSchemaError, createCareerPathRepository, type CareerPathRepository } from './careerPathRepository.js';
 import { createAccountCareersRepository, type AccountCareersRepository } from './accountCareersRepository.js';
-import { AccountCareersService } from './accountCareers.js';
+import { AccountCareersService, StoredCareerDefinitionError } from './accountCareers.js';
 import { registerAccountCareersRoutes } from './accountCareersRoutes.js';
 import { registerLearningProgressRoutes } from './learningProgress.js';
 import { registerLessonExtrasRoutes } from './lessonExtrasRoutes.js';
@@ -1602,7 +1602,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
       return;
     }
 
-    logError('Unexpected server error', error);
+    logError(error instanceof StoredCareerDefinitionError ? 'Invalid stored career definition' : 'Unexpected server error', error,
+      error instanceof StoredCareerDefinitionError ? { careerId: error.careerId } : {});
     response.status(500).json({ message: 'Unexpected server error' });
   });
 

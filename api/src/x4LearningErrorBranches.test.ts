@@ -148,6 +148,22 @@ describe.each(['', '/api'])('X4 learning semantic error branches (%s)', prefix =
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
 
+  it.each(['get', 'follow', 'unfollow', 'focus', 'declare', 'recognise'] as const)('DEF-054 stored career corruption is a server failure for %s', async operation => {
+    const broken = publishedCareer(); broken.title = '';
+    await paths.savePath({ _id: 'x4-career', revision: 2, published: broken, draft: broken, updatedAt: '' });
+    const routes = {
+      get: [careerRoot, 'GET', undefined], follow: [careerRoot + '/x4-career', 'PUT', undefined],
+      unfollow: [careerRoot + '/x4-career', 'DELETE', undefined], focus: ['/users/me/career-focus', 'PUT', { pathId: 'x4-career' }],
+      declare: ['/users/me/achievements', 'POST', { actionId: 'foundation-exam' }],
+      recognise: ['/users/me/achievements/cv', 'POST', { actionIds: ['foundation-exam'] }],
+    } as const;
+    const [path, method, body] = routes[operation];
+    await expectError(await request(path, method, body), 500, { message: 'Unexpected server error' });
+    expect(await accounts.get(userId)).toBeNull();
+    expect((await auth.findById(userId))?.enrolledCourseIds).toEqual(['x4-course']);
+    expect(console.error).toHaveBeenCalledWith('Invalid stored career definition', expect.objectContaining({ careerId: 'x4-career' }));
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain('"issues"');
+  });
   it.each([
     ['POST', '/notes', noteInput], ['PATCH', '/notes/existing', { text: 'Changed' }],
     ['DELETE', '/notes/existing', undefined], ['POST', '/lesson-feedback', feedbackInput],

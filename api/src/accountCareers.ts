@@ -12,6 +12,15 @@ export type AccountCareers = StoredAccountCareers & {
 export class AccountCareersError extends Error {
   constructor(readonly status: number, message: string, readonly code?: string) { super(message); }
 }
+export class StoredCareerDefinitionError extends Error {
+  constructor(readonly careerId: string) { super('Invalid stored career definition'); }
+}
+function storedCareerContent(path: CareerPathDocument): CareerPathContent {
+  const parsed = careerPathContentSchema.safeParse(path.published);
+  if (!parsed.success) throw new StoredCareerDefinitionError(path._id);
+  return parsed.data;
+}
+
 type Milestone = CareerPathContent['steps'][number];
 
 export function milestoneStates(steps: Milestone[], satisfied: Set<string>): Record<string, MilestoneState> {
@@ -53,7 +62,7 @@ export class AccountCareersService {
     const legacyId = legacy && paths.some(path => path._id === legacy.pathId) ? legacy.pathId : null;
     const initial: StoredAccountCareers = { followedPathIds: legacyId ? [legacyId] : [], focusPathId: legacyId, achievements: [] };
     const steps = paths.flatMap(path => {
-      const content = careerPathContentSchema.parse(path.published);
+      const content = storedCareerContent(path);
       return content.schemaVersion === 2 ? content.steps : [];
     });
     return { paths, initial, steps, completedActionIds: await this.completedActions(userId, steps) };
@@ -159,7 +168,7 @@ export class AccountCareersService {
   }
 
   private v2Steps(path: CareerPathDocument): Milestone[] {
-    const content = careerPathContentSchema.parse(path.published);
+    const content = storedCareerContent(path);
     return content.schemaVersion === 2 ? content.steps : [];
   }
 }
