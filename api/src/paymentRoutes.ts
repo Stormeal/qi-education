@@ -39,16 +39,14 @@ function checkoutReturn(returnUrl: string, success: boolean): string {
 async function recordPaidCheckout(session: CheckoutSession, deps: PaymentDependencies): Promise<AuthenticatedUser> {
   if (!session.paid || !session.customerId || !session.userId || !session.courseId) throw new Error('Invalid paid course session.');
   return deps.enrollmentWrites.run(session.userId, async () => {
-    const before = await deps.auth.findById(session.userId, { fresh: true });
-    if (!before) throw new Error('Payment account missing.');
     const added = await deps.payments.add({ _id: session.id, userId: session.userId, courseId: session.courseId,
       amountDkk: session.amountDkk, stripeCustomerId: session.customerId!, paidAt: new Date().toISOString() });
-    if (added && before.enrolledCourseIds.includes(session.courseId)) {
+    const enrollment = await deps.auth.enrollUserInCourseWithChange(session.userId, session.courseId);
+    if (!enrollment) throw new Error('Payment enrollment was not confirmed.');
+    if (added && !enrollment.added) {
       console.error('Duplicate course purchase', { sessionId: session.id, userId: session.userId, courseId: session.courseId });
     }
-    const user = await deps.auth.enrollUserInCourse(session.userId, session.courseId);
-    if (!user) throw new Error('Payment enrollment was not confirmed.');
-    return toAuthenticatedUser(user);
+    return toAuthenticatedUser(enrollment.user);
   });
 }
 

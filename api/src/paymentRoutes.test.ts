@@ -144,7 +144,7 @@ describe('US-L024 course payments HTTP contract', () => {
   });
   it('retries enrollment after payment was stored but enrollment failed', async () => {
     const sessionId = await start(); vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(auth, 'enrollUserInCourse').mockRejectedValueOnce(new Error('Account store unavailable'));
+    vi.spyOn(auth, 'enrollUserInCourseWithChange').mockRejectedValueOnce(new Error('Account store unavailable'));
     expect((await webhook(sessionId)).status).toBe(500);
     expect((await webhook(sessionId)).status).toBe(200);
     expect(payments.stored).toHaveLength(1);

@@ -21,6 +21,7 @@ export class ReadOnlyAuthRepository implements AuthRepository {
   listUsers(options?: { fresh?: boolean }) { return this.repository.listUsers(options); }
   countEnrolledUsers(courseId: string, users?: AuthUser[]) { return this.repository.countEnrolledUsers(courseId, users); }
   async createUser(_user: AuthUser): Promise<never> { throw new AuthReadOnlyError(); }
+  async enrollUserInCourseWithChange(_id: string, _courseId: string): Promise<never> { throw new AuthReadOnlyError(); }
   async enrollUserInCourse(_id: string, _courseId: string): Promise<never> { throw new AuthReadOnlyError(); }
   async updatePasswordHash(_id: string, _hash: string): Promise<never> { throw new AuthReadOnlyError(); }
   async confirmEmail(_id: string): Promise<never> { throw new AuthReadOnlyError(); }

@@ -11,6 +11,8 @@ import {
   hashPassword
 } from './auth.js';
 
+export type AuthEnrollmentMutation = { user: AuthUser; added: boolean };
+
 export type AuthAccessMutation = { user: AuthUser; previous: AuthUser | null };
 
 export interface AuthRepository {
@@ -27,6 +29,7 @@ export interface AuthRepository {
   updateStatusWithChange(userId: string, status: UserStatus): Promise<AuthAccessMutation | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
+  enrollUserInCourseWithChange(userId: string, courseId: string): Promise<AuthEnrollmentMutation | null>;
   updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null>;
   confirmEmail(userId: string): Promise<AuthUser | null>;
 }
@@ -82,22 +85,15 @@ export class InMemoryAuthRepository implements AuthRepository {
   }
 
   async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {
-    const index = this.users.findIndex((user) => user.id === userId);
-
-    if (index < 0) {
-      return null;
-    }
-
+    return (await this.enrollUserInCourseWithChange(userId, courseId))?.user ?? null;
+  }
+  async enrollUserInCourseWithChange(userId: string, courseId: string): Promise<AuthEnrollmentMutation | null> {
+    const index = this.users.findIndex(user => user.id === userId);
+    if (index < 0) return null;
     const user = this.users[index];
-
-    if (!user.enrolledCourseIds.includes(courseId)) {
-      this.users[index] = {
-        ...user,
-        enrolledCourseIds: [...user.enrolledCourseIds, courseId],
-      };
-    }
-
-    return this.users[index];
+    const added = !user.enrolledCourseIds.includes(courseId);
+    if (added) this.users[index] = { ...user, enrolledCourseIds: [...user.enrolledCourseIds, courseId] };
+    return { user: this.users[index], added };
   }
 
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
@@ -144,6 +140,7 @@ class UnavailableAuthRepository implements AuthRepository {
   async updateStatusWithChange(_userId: string, _status: UserStatus): Promise<AuthAccessMutation | null> { throw new AuthUnavailableError(); }
   async createUser(_user: AuthUser): Promise<AuthUser> { throw new AuthUnavailableError(); }
   async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
+  async enrollUserInCourseWithChange(_userId: string, _courseId: string): Promise<AuthEnrollmentMutation | null> { throw new AuthUnavailableError(); }
   async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async confirmEmail(_userId: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
 }

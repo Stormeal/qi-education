@@ -1,5 +1,5 @@
 import type { Collection } from 'mongodb';
-import type { AuthRepository, AuthAccessMutation } from './authRepository.js';
+import type { AuthRepository, AuthAccessMutation, AuthEnrollmentMutation } from './authRepository.js';
 import type { AuthUser, UserRole, UserStatus } from './auth.js';
 import { DuplicateAccountError } from './authStore.js';
 import { apiConfig } from './config.js';
@@ -55,10 +55,18 @@ export class MongoAuthRepository implements AuthRepository {
     return account(document);
   }
   async enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null> {
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId }, { $addToSet: { enrolledCourseIds: courseId } },
-      { returnDocument: 'after', includeResultMetadata: false, ...majority });
-    return document ? account(document) : null;
+    return (await this.enrollUserInCourseWithChange(userId, courseId))?.user ?? null;
   }
+  async enrollUserInCourseWithChange(userId: string, courseId: string): Promise<AuthEnrollmentMutation | null> {
+    // The preimage and add-only write are one atomic operation across instances.
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId }, { $addToSet: { enrolledCourseIds: courseId } },
+      { returnDocument: 'before', includeResultMetadata: false, ...majority });
+    if (!document) return null;
+    const user = account(document); const added = !user.enrolledCourseIds.includes(courseId);
+    if (added) user.enrolledCourseIds.push(courseId);
+    return { user, added };
+  }
+
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
     const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active', ...(expectedPasswordHash === undefined ? {} : { passwordHash: expectedPasswordHash }) }, { $set: { passwordHash } },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
