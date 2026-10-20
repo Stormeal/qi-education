@@ -1,4 +1,6 @@
-import type { Express, Request, Response } from 'express';
+import { isMongoConnectionError } from './storageErrors.js';
+import { AuthUnavailableError, AuthReadOnlyError } from './authRepository.js';
+import type { Express, NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import { hashPassword, passwordCredentialVersion, signupSchema } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
@@ -20,9 +22,12 @@ export function registerPasswordResetRoutes(app: Express, dependencies: {
   const { auth, tokens, sender, options = {} } = dependencies;
   const now = options.now ?? Date.now;
   const route = (handler: (request: Request, response: Response) => Promise<unknown>) =>
-    async (request: Request, response: Response) => {
+    async (request: Request, response: Response, next: NextFunction) => {
       try { await handler(request, response); }
-      catch { response.status(500).json(storageUnavailable); }
+      catch (error) {
+        if (isMongoConnectionError(error) || error instanceof AuthUnavailableError || error instanceof AuthReadOnlyError) next(error);
+        else response.status(500).json(storageUnavailable);
+      }
     };
 
   app.post('/auth/password-reset/request', route(async (request, response) => {

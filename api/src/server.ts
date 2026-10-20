@@ -1,3 +1,4 @@
+import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
 import { SignInLimit, type SignInLimitOptions } from './signInLimit.js';
@@ -1589,17 +1590,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
     // Driver errors can cross package boundaries or be wrapped by repositories.
     // Keep domain responses above intact, and never echo connection details.
-    const connectionErrors = new Set(['MongoServerSelectionError', 'MongoNetworkError', 'MongoNetworkTimeoutError', 'MongoNotConnectedError']);
-    const seen = new Set<unknown>();
-    let cause: unknown = error;
-    while (cause && typeof cause === 'object' && !seen.has(cause)) {
-      seen.add(cause);
-      if ('name' in cause && typeof cause.name === 'string' && connectionErrors.has(cause.name)) {
-        console.error('Storage unavailable', error);
-        response.status(503).json({ message: 'Storage is temporarily unavailable. Please try again.', code: 'STORE_UNAVAILABLE', retryable: true });
-        return;
-      }
-      cause = 'cause' in cause ? cause.cause : undefined;
+    if (isMongoConnectionError(error)) {
+      console.error('Storage unavailable', error);
+      response.status(503).json({ message: 'Storage is temporarily unavailable. Please try again.', code: 'STORE_UNAVAILABLE', retryable: true });
+      return;
     }
 
     console.error(error);

@@ -37,6 +37,17 @@ describe.each(['', '/api'])('Account recovery HTTP (%s)', prefix => {
   function request(action: string, body: unknown, origin = base) {
     return fetch(origin + prefix + '/auth/password-reset/' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   }
+  it.each(['request', 'check', 'confirm'])('DEF-053 maps %s Mongo outages to retryable 503', async action => {
+    const raw = action === 'request' ? '' : await issue();
+    const failure = Object.assign(new Error('private connection details'), { name: 'MongoNetworkError' });
+    if (action === 'request') vi.spyOn(auth, 'findByEmail').mockRejectedValueOnce(failure);
+    else vi.spyOn(tokens, 'findActive').mockRejectedValueOnce(new Error('private wrapper', { cause: failure }));
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const response = await request(action, { email: 'student@qi-education.local', token: raw, password: 'Changed456!' });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ message: 'Storage is temporarily unavailable. Please try again.', code: 'STORE_UNAVAILABLE', retryable: true });
+    expect(log).toHaveBeenCalledTimes(1);
+  });
   function token(index = 0) { return mail.messages[index].text.match(/#token=([A-Za-z0-9_-]+)/)![1]; }
   async function issue() { expect((await request('request', { email: 'student@qi-education.local' })).status).toBe(202); return token(); }
   async function invalidResponse(action: string, value: unknown) {
