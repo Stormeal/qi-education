@@ -20,6 +20,13 @@ employees' training goals. Revenue for TestHuset.
 - Owner overview, per member: billed career, own focus career, milestones achieved/ready/locked,
   completion % of career and add-on courses. No quiz scores, notes or lesson feedback.
 - Until US-O002, an approved organization runs as a free trial.
+- A person belongs to at most one organization (Alex, 2026-10-20).
+- An invite to an email without an account sends a mail that opens sign-up; the person joins the
+  organization once their email is confirmed (Alex, 2026-10-20).
+- An organization can have several owners. The original owner (the one who requested it) can
+  promote members to owners (Alex, 2026-10-20).
+- A site admin declines a request only with a reason. The requester gets it by email, sees it on
+  the request, and can correct the details and request again (Alex, 2026-10-20).
 
 ## US-O002: Organization billing (release 3)
 
