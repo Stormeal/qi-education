@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. Delivered locally on 2026-10-20, **not pushed** (last push `a65592d`):
+None. Pushed to `main` on 2026-10-20 (`f6da9ea`, version 0.1.353):
 
 - Defect fix pass 1 by Codex: DEF-047 to DEF-055 and the API price range (`ff6f4a8` … `f368530`,
   record in [history/handoffs](history/handoffs/defect-pass-1-codex.md)); app price check `c25d1fa`.
@@ -38,6 +38,8 @@ Alex (US-A004 curriculum, US-P001 browser runner, US-P003 multi-instance writes)
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Career cards, carousel and Start over on the hosted site: compare careers on a wide screen and a phone; Start over with a learner who has achievements (they must stay).
+- Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner.
 - Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal, and the Stripe destination `qi-academy-vercel` shows a delivered event.
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
