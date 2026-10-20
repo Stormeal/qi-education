@@ -18,7 +18,9 @@ describe('course details page', () => {
     ] }).compileComponents();
   });
 
-  function render(course: { priceDkk: number | null }, isEnrolled = true) {
+  let rendered: CourseViewPage;
+
+  function render(course: { priceDkk: number | null }, isEnrolled = true, purchaseStatus = 'idle', enrollmentError = '') {
     const fixture = TestBed.createComponent(CourseViewPage);
     const inputs = { appVersion: 'test', currentYear: 2026, student: { name: 'Learner', initials: 'L', role: 'Student' },
       authToken: 'session', userEmail: 'learner@example.test', userRoleLabel: 'Student', canAccessAdmin: false, canEditCourse: false,
@@ -26,11 +28,12 @@ describe('course details page', () => {
         thumbnailAssetId: '', category: 'Uncategorized', languages: [], rating: 0, ratingCount: 0, createdAt: '' },
       coursesLoading: false, coursesError: '', courseContent: content, courseContentLoading: false, courseContentError: '',
       priceSaving: false, priceSaveNotice: '', priceSaveNoticeError: false, catalogSaving: false, catalogSaveNotice: '', catalogSaveNoticeError: false,
-      isEnrolled, enrollmentSubmitting: false, enrollmentError: '', isFeedbackOpen: false,
+      isEnrolled, enrollmentSubmitting: false, enrollmentError, purchaseStatus, isFeedbackOpen: false,
       feedbackSubmitted: false, feedbackPage: '', feedbackRating: '', feedbackText: '', feedbackSubmitting: false, feedbackError: '', feedbackOptions: [],
     };
     for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
     fixture.detectChanges();
+    rendered = fixture.componentInstance;
     return fixture.nativeElement as HTMLElement;
   }
 
@@ -40,13 +43,43 @@ describe('course details page', () => {
     expect(item.querySelector('small')?.textContent).toBe('Exercise');
   });
 
-  it('US-L001 says a listed price is for information and enrolling is free', () => {
-    const priced = render({ priceDkk: 400 }, false);
-    expect(priced.querySelector('.course-price')?.textContent).toContain('400 DKK');
-    expect(priced.querySelector('.course-price-note')?.textContent).toBe('Price for information only. Enrolling is free.');
+  it('US-L024 offers to buy a priced course and emits the purchase', () => {
+    const page = render({ priceDkk: 499 }, false);
+    const started: string[] = [];
+    rendered.coursePurchaseStarted.subscribe(id => started.push(id));
+    const button = page.querySelector<HTMLButtonElement>('.course-enroll-body button')!;
+    expect(button.textContent?.trim()).toBe('Buy for 499 DKK');
+    expect(page.textContent).not.toContain('Price for information only');
+    button.click();
+    expect(started).toEqual(['course']);
   });
 
-  it('US-L001 shows no payment note on a free course', () => {
-    expect(render({ priceDkk: null }, false).querySelector('.course-price-note')).toBeNull();
+  it('US-L024 keeps Enroll on a free course', () => {
+    expect(render({ priceDkk: null }, false).querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll');
+    expect(render({ priceDkk: 0 }, false).querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll');
+  });
+
+  it.each([
+    ['confirming', 'Confirming payment'],
+    ['unpaid', 'The payment was not completed. You have not been charged.'],
+    ['unreachable', 'We could not confirm your payment yet. Do not pay again: if you were charged, the course appears in My Learning within a few minutes.'],
+    ['cancelled', 'Payment cancelled. You have not been charged.'],
+  ])('US-L024 shows the %s purchase message', (status, message) => {
+    expect(render({ priceDkk: 499 }, false, status).querySelector('.purchase-status')?.textContent).toContain(message);
+  });
+
+  it('US-L024 offers Try again after an unpaid return', () => {
+    expect(render({ priceDkk: 499 }, false, 'unpaid').querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Try again');
+  });
+
+  it('US-L024 confirms a paid purchase next to Start learning', () => {
+    const page = render({ priceDkk: 499 }, true, 'paid');
+    expect(page.querySelector('.purchase-status')?.textContent).toContain('Payment received');
+    expect(page.querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Start learning');
+  });
+
+  it('US-L024 shows a refused checkout next to the buy button', () => {
+    expect(render({ priceDkk: 499 }, false, 'idle', 'Purchases are temporarily unavailable.')
+      .querySelector('.course-enroll-body .course-error')?.textContent).toBe('Purchases are temporarily unavailable.');
   });
 });

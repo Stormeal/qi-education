@@ -1,5 +1,8 @@
 export type UserRole = 'student' | 'teacher' | 'admin';
 
+/** US-L024: where a course purchase stands on the course page. */
+export type CoursePurchaseStatus = 'idle' | 'redirecting' | 'confirming' | 'paid' | 'unpaid' | 'unreachable' | 'cancelled';
+
 export type LoginResponse = {
   token: string;
   user: {

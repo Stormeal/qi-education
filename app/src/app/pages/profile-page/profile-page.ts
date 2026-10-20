@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+import { ProfileService } from '../../services/profile.service';
 import { FeedbackOption } from '../../app.models';
 import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -87,6 +88,21 @@ export class ProfilePage {
     if (!result.ok) { this.passwordError.set(result.message); return; }
     this.currentPassword.set(''); this.newPassword.set(''); this.newPasswordRepeat.set('');
     this.passwordChanged.set(true);
+  }
+  // US-L024: receipts and the saved card live in Stripe's customer portal.
+  private readonly profiles = inject(ProfileService);
+  private assignLocation = (url: string) => window.location.assign(url);
+  protected readonly billingBusy = signal(false);
+  protected readonly billingMessage = signal('');
+
+  protected async openBillingPortal(): Promise<void> {
+    if (this.billingBusy()) return;
+    this.billingBusy.set(true);
+    this.billingMessage.set('');
+    const result = await this.profiles.openBillingPortal(this.authToken(), `${window.location.origin}${window.location.pathname}`);
+    this.billingBusy.set(false);
+    if (result.ok) this.assignLocation(result.url);
+    else this.billingMessage.set(result.message);
   }
   protected readonly goalsMaxLength = GOALS_MAX_LENGTH;
 

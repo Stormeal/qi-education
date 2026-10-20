@@ -78,3 +78,56 @@ describe('US-L013 change password on the profile page', () => {
     expect(page.status()).toBe('Password must include at least one number');
   });
 });
+
+describe('US-L024 payment and receipts on the profile page', () => {
+  let reply: () => Response;
+  let requests: { url: string; body: Record<string, string> }[];
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    requests = [];
+    const fetch = async (url: string, init: RequestInit) => {
+      requests.push({ url, body: JSON.parse(init.body as string) });
+      return reply();
+    };
+    TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: ApiClientService, useValue: { fetch } }] });
+  });
+
+  function setup() {
+    const fixture = TestBed.createComponent(ProfilePage);
+    const inputs = { appVersion: 'test', currentYear: 2026, displayName: 'Learner', email: 'learner@example.test', roleLabel: 'Student',
+      canAccessAdmin: false, memberSince: '', enrolledCount: 0, avatarColor: '#2f4f43', avatarColorOptions: ['#2f4f43'], bio: '', jobTitle: '',
+      company: '', learningGoals: '', profileSaving: false, profileSaved: false, profileDirty: false, isFeedbackOpen: false,
+      feedbackSubmitted: false, feedbackPage: '', feedbackRating: '', feedbackText: '', feedbackSubmitting: false, feedbackError: '',
+      feedbackOptions: [], authToken: 'session-token' };
+    Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
+    const assigned: string[] = [];
+    (fixture.componentInstance as unknown as { assignLocation: (url: string) => void }).assignLocation = url => assigned.push(url);
+    fixture.detectChanges();
+    const section = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[aria-labelledby="profile-billing-title"]')!;
+    const open = async () => {
+      section.querySelector<HTMLButtonElement>('button')!.click();
+      await vi.waitFor(() => { fixture.detectChanges(); expect(section.querySelector('button')!.disabled).toBe(false); });
+    };
+    return { section, open, assigned };
+  }
+
+  it('AC07 says there are no payments yet before the first purchase', async () => {
+    reply = () => new Response(JSON.stringify({ message: 'No payments yet.' }), { status: 404 });
+    const page = setup();
+    expect(page.section.querySelector('h2')?.textContent).toBe('Payment and receipts');
+    await page.open();
+    expect(page.section.querySelector('[role="status"]')?.textContent?.trim()).toBe('No payments yet.');
+    expect(page.assigned).toEqual([]);
+  });
+
+  it('AC07 opens the Stripe customer portal after a purchase', async () => {
+    reply = () => new Response(JSON.stringify({ url: 'https://billing.stripe.test/session' }), { status: 200 });
+    const page = setup();
+    await page.open();
+    expect(requests[0].url).toBe('/users/me/billing-portal');
+    expect(requests[0].body['returnUrl']).toBe(`${window.location.origin}${window.location.pathname}`);
+    expect(page.assigned).toEqual(['https://billing.stripe.test/session']);
+  });
+});

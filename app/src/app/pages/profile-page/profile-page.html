@@ -198,6 +198,19 @@
     </div>
   </form>
 
+  <section class="profile-card" aria-labelledby="profile-billing-title">
+    <div class="profile-section">
+      <h2 id="profile-billing-title" class="profile-label">Payment and receipts</h2>
+      <p class="profile-section-hint">See your saved card and receipts for courses you have bought. Opens a secure Stripe page.</p>
+    </div>
+    <div class="profile-actions">
+      <p class="profile-save-state" role="status" aria-live="polite">{{ billingMessage() }}</p>
+      <button appButton type="button" [disabled]="billingBusy()" (click)="openBillingPortal()">
+        {{ billingBusy() ? 'Opening…' : 'View card and receipts' }}
+      </button>
+    </div>
+  </section>
+
   <footer class="site-footer">
     <span class="footer-credit">
       Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S

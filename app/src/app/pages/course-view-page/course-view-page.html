@@ -252,9 +252,6 @@
             <p class="course-enroll-kicker">{{ currentCourse.level }} course</p>
             <h2>{{ currentCourse.title }}</h2>
             <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
-            @if (currentCourse.priceDkk !== null) {
-              <p class="course-price-note price-field-note">Price for information only. Enrolling is free.</p>
-            }
             <div class="course-price-meta">
               <span>{{ ratingLabel(currentCourse.rating) }}</span>
               <span>{{ ratingCountLabel(currentCourse.ratingCount) }}</span>
@@ -263,11 +260,38 @@
               <button appButton="primary" (click)="openLearningWorkspace(currentCourse.id)" fullWidth>
                 {{ isEnrolled() ? 'Start learning' : 'Preview course' }}
               </button>
+            } @else if (currentCourse.status === 'published' && isPriced(currentCourse.priceDkk)) {
+              <button
+                appButton="primary"
+                [disabled]="enrollmentSubmitting() || purchaseStatus() === 'confirming'"
+                (click)="coursePurchaseStarted.emit(currentCourse.id)"
+                fullWidth
+              >
+                @if (enrollmentSubmitting()) {
+                  <span class="button-spinner" aria-hidden="true"></span>
+                  <span>Opening payment...</span>
+                } @else {
+                  {{ purchaseStatus() === 'unpaid' ? 'Try again' : 'Buy for ' + coursePriceLabel(currentCourse.priceDkk) }}
+                }
+              </button>
+              @if (enrollmentError()) {
+                <p class="course-error" role="alert">{{ enrollmentError() }}</p>
+              }
             } @else if (currentCourse.status === 'published') {
               <button appButton="primary" (click)="openEnrollDialog()" fullWidth>Enroll</button>
             } @else {
               <p>Enrollment is closed for this course.</p>
             }
+
+            <p class="purchase-status" [class.purchase-status-warning]="purchaseStatus() === 'unreachable'" role="status" aria-live="polite">
+              @switch (purchaseStatus()) {
+                @case ('confirming') { Confirming payment... }
+                @case ('paid') { Payment received. The course is in My Learning. }
+                @case ('unpaid') { The payment was not completed. You have not been charged. }
+                @case ('unreachable') { We could not confirm your payment yet. Do not pay again: if you were charged, the course appears in My Learning within a few minutes. }
+                @case ('cancelled') { Payment cancelled. You have not been charged. }
+              }
+            </p>
 
             <div class="course-includes">
               <h3>This course includes</h3>
@@ -371,7 +395,7 @@
           (input)="updatePriceDraft(controlValue($event))"
         />
       </label>
-      <p class="price-field-note">Leave empty to keep the course free. All saved prices use DKK.</p>
+      <p class="price-field-note">Learners pay this price to enroll. Leave empty to keep the course free. Prices are in DKK.</p>
       @if (priceDraftError()) {
         <p class="price-field-note" role="alert">{{ priceDraftError() }}</p>
       }

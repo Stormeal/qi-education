@@ -45,6 +45,19 @@ export class ProfileService {
     }
   }
 
+  /** US-L024: a Stripe customer portal session (saved card, receipts) for this account. */
+  async openBillingPortal(token: string, returnUrl: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+    try {
+      const response = await this.apiClient.fetch('/users/me/billing-portal', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ returnUrl }),
+      });
+      const body = await response.json().catch(() => ({})) as { url?: string; message?: string };
+      return response.ok && body.url ? { ok: true, url: body.url } : { ok: false, message: body.message ?? 'Please try again.' };
+    } catch {
+      return { ok: false, message: 'Unable to reach the API. Please try again.' };
+    }
+  }
+
   loadProfile(userId: string): UserProfileDetails {
     if (!userId) {
       return this.emptyProfile();

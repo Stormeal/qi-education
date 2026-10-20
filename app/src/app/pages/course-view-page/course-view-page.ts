@@ -35,6 +35,7 @@ import {
   CourseContentDocument,
   CourseLanguage,
   CourseListItem,
+  CoursePurchaseStatus,
   FeedbackOption,
   StudentSummary,
 } from '../../app.models';
@@ -118,6 +119,7 @@ export class CourseViewPage {
   readonly isEnrolled = input.required<boolean>();
   readonly enrollmentSubmitting = input.required<boolean>();
   readonly enrollmentError = input.required<string>();
+  readonly purchaseStatus = input<CoursePurchaseStatus>('idle');
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();
   readonly feedbackPage = input.required<string>();
@@ -139,6 +141,7 @@ export class CourseViewPage {
   readonly coursePriceSaved = output<{ courseId: string; priceDkk: number | null }>();
   readonly courseCatalogSaved = output<{ courseId: string; metadata: CourseCatalogMetadataDraft }>();
   readonly courseEnrollmentConfirmed = output<string>();
+  readonly coursePurchaseStarted = output<string>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();
   readonly feedbackTextChanged = output<string>();
@@ -523,6 +526,10 @@ export class CourseViewPage {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join('');
+  }
+
+  protected isPriced(priceDkk: number | null): boolean {
+    return (priceDkk ?? 0) > 0;
   }
 
   protected coursePriceLabel(priceDkk: number | null): string {

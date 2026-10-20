@@ -624,6 +624,21 @@
 
 .course-price-meta { display: flex; flex-wrap: wrap; }
 
+// US-L024: stays in the DOM while empty so screen readers hear each change.
+.purchase-status {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.45;
+
+  &:empty { display: none; }
+}
+
+.purchase-status-warning {
+  border-left: 3px solid var(--color-highlight);
+  padding-left: 10px;
+}
+
 .course-includes {
   display: grid;
   gap: 8px;

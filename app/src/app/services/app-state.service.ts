@@ -14,10 +14,12 @@ import {
   CourseContentDocument,
   CourseCreateDraft,
   CourseListItem,
+  CoursePurchaseStatus,
   CourseSummary,
   FeedbackEntry,
   FeedbackOption,
   FeedbackTriageUpdate,
+  LoginResponse,
   LoginState,
   MuxVideoStatus,
   QUIZ_MAX_ANSWERS,
@@ -68,7 +70,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.318';
+  readonly appVersion = '0.1.319';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -153,6 +155,7 @@ export class AppStateService {
   readonly courseThumbnailError = signal('');
   readonly courseEnrollmentSubmitting = signal(false);
   readonly courseEnrollmentError = signal('');
+  readonly coursePurchaseStatus = signal<CoursePurchaseStatus>('idle');
   readonly courseContent = signal<CourseContentDocument | null>(null);
   readonly initialCourseDraftSnapshot = signal('');
   readonly initialCourseContentSnapshot = signal('');
@@ -316,6 +319,8 @@ export class AppStateService {
   private readonly pendingMuxPolls = new Set<string>();
   // Replaceable in tests: module-level fakes of the upload library are not applied on every platform.
   private createChunkedUpload = UpChunk.createUpload;
+  // Replaceable in tests: leaving for Stripe Checkout is a full page load.
+  private assignLocation = (url: string) => window.location.assign(url);
   private pendingCourseContentKey = '';
   private courseContentGeneration = 0;
   private courseOperationGeneration = 0;
@@ -644,6 +649,7 @@ export class AppStateService {
     this.courseThumbnailError.set('');
     this.courseEnrollmentError.set('');
     this.courseEnrollmentSubmitting.set(false);
+    this.coursePurchaseStatus.set('idle');
     this.courseContent.set(null);
     this.loadedCourseContentId.set(null);
     this.initialCourseDraftSnapshot.set('');
@@ -2279,21 +2285,75 @@ export class AppStateService {
         return;
       }
 
-      const loginState: LoginState = {
-        token,
-        user: result.login.user,
-        permissions: result.login.permissions,
-      };
-      this.resetCourseOperations();
-      this.loginState.set(loginState);
-      this.sessionService.updateStoredLoginState(loginState);
-      void this.loadCourseContentWhenNeeded();
+      this.applyEnrolledLogin(token, result.login);
     } catch {
       if (!isCurrent()) return;
       this.courseEnrollmentError.set('Unable to reach the API. Please try again.');
     } finally {
       if (!isCurrent()) return;
       this.courseEnrollmentSubmitting.set(false);
+    }
+  }
+
+  private applyEnrolledLogin(token: string, login: Omit<LoginResponse, 'token'>): void {
+    const loginState: LoginState = { token, user: login.user, permissions: login.permissions };
+    this.resetCourseOperations();
+    this.loginState.set(loginState);
+    this.sessionService.updateStoredLoginState(loginState);
+    void this.loadCourseContentWhenNeeded();
+  }
+
+  /** US-L024: leave for Stripe Checkout; Stripe sends the learner back to this page. */
+  async startCoursePurchase(courseId: string): Promise<void> {
+    const token = this.loginState()?.token;
+    if (!token || this.courseEnrollmentSubmitting()) {
+      this.courseEnrollmentError.set('Please log in again before buying.');
+      return;
+    }
+    const isCurrent = this.courseResponseIsCurrent();
+    this.courseEnrollmentSubmitting.set(true);
+    this.courseEnrollmentError.set('');
+    this.coursePurchaseStatus.set('idle');
+    try {
+      const result = await this.courseService.startCheckout(courseId, token, `${window.location.origin}${window.location.pathname}`);
+      if (!isCurrent()) return;
+      if (!result.ok) {
+        this.courseEnrollmentError.set(result.message);
+        this.courseEnrollmentSubmitting.set(false);
+        return;
+      }
+      // Stay "submitting" until the browser leaves, so the button cannot start a second checkout.
+      this.coursePurchaseStatus.set('redirecting');
+      this.assignLocation(result.url);
+    } catch {
+      if (!isCurrent()) return;
+      this.courseEnrollmentError.set('Unable to reach the API. Please try again.');
+      this.courseEnrollmentSubmitting.set(false);
+    }
+  }
+
+  /** US-L024: the course page was opened by Stripe's success or cancel redirect. */
+  async handleCoursePurchaseReturn(courseId: string, payment: string | null, sessionId: string | null): Promise<void> {
+    if (payment === 'cancelled') {
+      this.coursePurchaseStatus.set('cancelled');
+      return;
+    }
+    if (payment !== 'success' || !sessionId) return;
+    const token = this.loginState()?.token;
+    if (!token) {
+      this.coursePurchaseStatus.set('unreachable');
+      return;
+    }
+    const isCurrent = this.courseResponseIsCurrent();
+    this.coursePurchaseStatus.set('confirming');
+    try {
+      const result = await this.courseService.confirmCheckout(courseId, token, sessionId);
+      if (!isCurrent()) return;
+      if (result.status === 'paid') this.applyEnrolledLogin(token, result.login);
+      this.coursePurchaseStatus.set(result.status);
+    } catch {
+      if (!isCurrent()) return;
+      this.coursePurchaseStatus.set('unreachable');
     }
   }
 

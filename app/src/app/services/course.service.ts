@@ -101,6 +101,10 @@ export type CourseAttachmentDownloadResult =
       code?: string;
     };
 
+export type CheckoutConfirmation =
+  | { status: 'paid'; login: Omit<LoginResponse, 'token'> }
+  | { status: 'unpaid' | 'unreachable' };
+
 export type CourseEnrollmentResult =
   | {
       ok: true;
@@ -683,6 +687,32 @@ export class CourseService {
       ok: true,
       login: body,
     };
+  }
+
+  async startCheckout(courseId: string, token: string, returnUrl: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+    const response = await this.apiClient.fetch(`/users/me/courses/${encodeURIComponent(courseId)}/checkout`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ returnUrl }),
+    });
+    const body = (await response.json().catch(() => ({}))) as { url?: string; message?: string };
+    return response.ok && body.url ? { ok: true, url: body.url }
+      : { ok: false, message: body.message || 'Unable to start the payment. Please try again.' };
+  }
+
+  async confirmCheckout(courseId: string, token: string, sessionId: string): Promise<CheckoutConfirmation> {
+    const response = await this.apiClient.fetch(`/users/me/courses/${encodeURIComponent(courseId)}/checkout/confirm`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
+    const body = (await response.json().catch(() => ({}))) as { paid?: boolean } & Partial<Omit<LoginResponse, 'token'>>;
+    if (response.ok && body.paid && body.user && body.permissions) {
+      this.apiClient.invalidateCache('/me');
+      return { status: 'paid', login: { user: body.user, permissions: body.permissions } };
+    }
+    // 404: the session is not this account's checkout for this course, so nothing was charged for it here.
+    return (response.ok && body.paid === false) || response.status === 404 ? { status: 'unpaid' } : { status: 'unreachable' };
   }
 
   private splitMultilineList(value: string): string[] {
