@@ -33,7 +33,7 @@ Alex (US-A004 curriculum, US-P001 browser runner, US-P003 multi-instance writes)
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
-- Paid courses (US-L024) on the hosted site, after the push: buy a priced course with test card `4242 4242 4242 4242`, see it in My Learning, open **Payment and receipts**, and check that the Stripe destination `qi-academy-vercel` shows a delivered event.
+- Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal, and the Stripe destination `qi-academy-vercel` shows a delivered event.
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
 - Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.
