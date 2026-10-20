@@ -12,7 +12,7 @@ US-L024 paid courses for individuals. Started 2026-10-20 on `main` from `bd64928
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Plan Tasks 1–4: payments store, Stripe service + fake, routes, 402 guard, journey, doctor | `api/**`, `scripts/doctor.mjs`, `package-lock.json`; handoff [handoffs/US-L024-paid-courses-codex.md](handoffs/US-L024-paid-courses-codex.md) | Not started |
+| Codex | Plan Tasks 1–4: payments store, Stripe service + fake, routes, 402 guard, journey, doctor | `api/**`, `scripts/doctor.mjs`, `package-lock.json`; handoff [handoffs/US-L024-paid-courses-codex.md](handoffs/US-L024-paid-courses-codex.md) | In progress on `main`, base `3102208`; dependency commit `9e74a7d`; next: repository TDD |
 | Claude | Plan Tasks 5–7: purchase flow, course page, profile receipts, check routine, docs | `app/**`, `docs/**` except Codex's row | In progress |
 
 Not verified: hosted Stripe test-card purchase (after push, Alex). Pushed state before this item:
