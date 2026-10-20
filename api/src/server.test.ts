@@ -210,6 +210,7 @@ describe('QI Academy API', () => {
         storage: 'memory',
       },
       mail: { configured: false, provider: 'local' },
+      payments: { configured: true, keyMode: null },
       content: {
         storage: 'memory',
         configured: false,

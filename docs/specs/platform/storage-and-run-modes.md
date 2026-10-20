@@ -25,6 +25,7 @@ Startup prints one `Stores:` line; `/health/config` reports `mode`.
 | Course content, live/working snapshots, review history | MongoDB course-content collection |
 | Thumbnails and attachments | MongoDB asset repository |
 | Lesson notes, learning progress, career paths, account careers, profiles, instructor descriptions, reset tokens, email confirmation tokens, sign-in attempts, client limits, user change log | MongoDB, one collection each named `<collection>_<purpose>` |
+| Course payments | MongoDB `payments`, one document per paid Checkout session |
 | Feedback | Google Sheets (Feedback tab) |
 
 `<collection>` is `MONGODB_COURSE_CONTENT_COLLECTION`. Shared and hosted mode without the MongoDB

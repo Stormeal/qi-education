@@ -51,6 +51,20 @@ describe('US-L024 course purchase', () => {
     expect(state.enrolledCourseIds()).toContain('course-1');
   });
 
+  it('keeps the course list when payment is confirmed during the first page load', async () => {
+    const course = { id: 'course-1', title: 'Paid course', status: 'published', priceDkk: 499 } as never;
+    let finishList!: (courses: never[]) => void;
+    vi.spyOn(service, 'listCourses').mockImplementation(() => new Promise(done => { finishList = done; }));
+    vi.spyOn(service, 'preloadCourseThumbnails').mockResolvedValue(undefined as never);
+    vi.spyOn(service, 'confirmCheckout').mockResolvedValue({ status: 'paid',
+      login: { user: session(['course-1']).user, permissions: session().permissions } });
+    state.currentPath.set('/courses/course-1');
+    void (state as unknown as { loadCoursesWhenNeeded(): Promise<void> }).loadCoursesWhenNeeded();
+    await state.handleCoursePurchaseReturn('course-1', 'success', 'cs_1');
+    finishList([course]);
+    await vi.waitFor(() => expect(state.availableCourses().map(item => item.id)).toEqual(['course-1']));
+  });
+
   it('confirm on an enrolled course shows paid', async () => {
     state.loginState.set(session(['course-1']));
     vi.spyOn(service, 'confirmCheckout').mockResolvedValue({ status: 'paid',

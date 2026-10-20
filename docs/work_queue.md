@@ -1,22 +1,17 @@
 # Work queue
 
-Updated: 2026-10-19. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-20. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
 
-US-L024 paid courses for individuals. Started 2026-10-20 on `main` from `bd64928`. Contract:
-[stories/US-L024](stories/US-L024-paid-courses.md); plan:
-[superpowers/plans/2026-10-20-US-L024-paid-courses.md](superpowers/plans/2026-10-20-US-L024-paid-courses.md).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | Plan Tasks 1–4: payments store, Stripe service + fake, routes, 402 guard, journey, doctor | `api/**`, `scripts/doctor.mjs`, `package-lock.json`; handoff [handoffs/US-L024-paid-courses-codex.md](handoffs/US-L024-paid-courses-codex.md) | API implementation committed `9e74a7d`, `95b255b`, `6af4729`, `2e17a32`, `34d83b0`, `369b5a9` on `main` from `3102208`; 2026-10-20 payment tests 39/39, journeys 16/16, doctor/build pass. Full API: 1722/1725 pass with four workers; 3 exact health assertions need owner updates in `server.test.ts` and `isolatedServices.test.ts` (outside assigned scope). Independent review: invoice opt-in/pricing and overlapping first-purchase customer identity need design decisions before portal receipts are release-ready. Next: Claude/Alex integration and decisions; full Result in handoff. No push. |
-| Claude | Plan Tasks 5–7: purchase flow, course page, profile receipts, check routine, docs | `app/**`, `docs/**` except Codex's row | In progress |
-
-Not verified: hosted Stripe test-card purchase (after push, Alex). Pushed state before this item:
-`cc9fb6b`.
+None. US-L024 paid courses delivered locally on 2026-10-20, **not pushed**: API by Codex
+(`9e74a7d`…`369b5a9`, record in [history/handoffs](history/handoffs/US-L024-paid-courses-codex.md)),
+app by Claude (`5f87e59` and the integration commit). Behavior: [specs/payments](specs/payments/payments.md).
+Checks 2026-10-20: `api:test` 1,725/1,725, `app:test` 417/417, `verify:journeys` 16/16,
+`app:build:pages` and `api:build` pass; browser check on the isolated servers (fake Stripe): buy,
+return with "Payment received", Start learning, receipts button, phone width.
 
 ## Waiting on Alex
 
@@ -24,17 +19,23 @@ Not verified: hosted Stripe test-card purchase (after push, Alex). Pushed state 
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
+| Push US-L024 | Say "push" to Claude | `main` on GitHub contains the US-L024 commits |
+| Stripe Customer Portal | Stripe (Test mode) → **Settings** → **Billing** → **Customer portal** → **Activate** | The page shows a portal link |
+| Receipts decision (US-L024) | Choose: switch on invoice creation for course purchases (Stripe charges per invoice; the portal then lists them) or keep Stripe's emailed receipt only | Decision recorded in `specs/payments/payments.md` |
+| Extra Codex work | Paste assignments X1…X7 from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
 
-Every open story waits on a decision by Alex (US-A004 curriculum, US-P001 browser runner,
-US-P003 multi-instance writes). Ask which one, with defaults.
+US-O001 organizations (release 2): decided with Alex, needs its design pass (brainstorm → spec →
+plan). Codex assignment X5 drafts the API side first. Other open stories wait on a decision by
+Alex (US-A004 curriculum, US-P001 browser runner, US-P003 multi-instance writes).
 
 ## Open release checks
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Paid courses (US-L024) on the hosted site, after the push: buy a priced course with test card `4242 4242 4242 4242`, see it in My Learning, open **Payment and receipts**, and check that the Stripe destination `qi-academy-vercel` shows a delivered event.
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
 - Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.

@@ -193,6 +193,13 @@ textarea.profile-input {
 .profile-save-state {
   margin: 0;
   font-size: 13px;
+
+  // The receipts status is empty until clicked; without this its flex gap shifts the button.
+  &:empty { display: none; }
+}
+
+.profile-billing-actions > button {
+  margin-left: auto;
 }
 
 .profile-saved {
@@ -242,6 +249,10 @@ h2.profile-label {
 
   .profile-actions {
     justify-content: flex-start;
+  }
+
+  .profile-billing-actions > button {
+    margin-left: 0;
   }
 }
 

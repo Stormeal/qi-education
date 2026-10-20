@@ -19,6 +19,8 @@ public instructor description shown with their published courses.
 - **Moderation**: admins list every stored description and can clear one
   (`GET/DELETE /admin/instructor-profiles…`).
 - The private bio never flows into the public description.
+- **Payment and receipts** (every role): opens Stripe's customer portal for the account's saved
+  card and payment history, or says "No payments yet." (see [payments](../payments/payments.md)).
 
 ## Code
 

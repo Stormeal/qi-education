@@ -111,7 +111,7 @@ describe('US-P011 centralized service selection', () => {
     await load({ NODE_ENV: 'development' }); const { createServer } = await import('./server.js'); const server = createServer().listen(0, '127.0.0.1'); servers.push(server);
     await new Promise<void>(resolve => server.once('listening', resolve)); const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const health = await (await fetch(base + prefix + '/health/config')).json(); expect(health).toEqual({ status: 'ok', mode: 'isolated', courses: { storage: 'memory', readOnly: false }, auth: { configured: true, storage: 'memory' }, mail: { configured: false, provider: 'local' },
-      content: { storage: 'memory', configured: false }, assets: { storage: 'memory', configured: false }, mux: { configured: false, playbackPolicy: 'public' }, corsOrigins: ['http://example.test'], ranges: { feedback: 'Feedback!A:M' } });
+      payments: { configured: true, keyMode: null }, content: { storage: 'memory', configured: false }, assets: { storage: 'memory', configured: false }, mux: { configured: false, playbackPolicy: 'public' }, corsOrigins: ['http://example.test'], ranges: { feedback: 'Feedback!A:M' } });
     const response = await fetch(base + prefix + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'student@qi-education.local', password: 'wrong' }) });
     expect(response.status).toBe(401); expect(response.headers.get('x-qi-education-auth-storage')).toBe('memory'); expect(await response.json()).toEqual({ message: 'Invalid email or password' });
     expect(providers.sheets).not.toHaveBeenCalled(); expect(providers.mongo).not.toHaveBeenCalled(); expect(providers.mux).not.toHaveBeenCalled();

@@ -22,6 +22,7 @@ or names an old ID. Keep this table identical to the one in `AGENTS.md`.
 | profile, avatar, bio, job title, instructor description | `specs/accounts/profiles.md` |
 | catalog, `/courses`, carousel, search, filter, sort, category, course card | `specs/catalog/browse.md` |
 | course details, `/courses/:id`, enroll, enrollment, outline, price shown | `specs/catalog/course-details-and-enrollment.md` |
+| payment, buy, Stripe, checkout, receipts, billing portal, 402 | `specs/payments/payments.md` |
 | course editor, course form, steps, ownership, unsaved changes, draft recovery, save conflict, 409, 428 | `specs/authoring/course-editor.md` |
 | course builder, lesson, chapter, section, move lesson, exercise, attachment, file, thumbnail | `specs/authoring/lessons-and-builder.md` |
 | quiz, question, answer, pass mark, grading, quiz attempt, question image | `specs/authoring/quizzes.md` |
@@ -184,6 +185,7 @@ The backend uses interface-based repository abstraction with different implement
 | Course content (sections/components) | MongoDB | In-memory |
 | Course assets (thumbnails, attachments) | MongoDB | In-memory |
 | Progress, careers, notes, profiles, tokens | MongoDB | In-memory |
+| Course payments | MongoDB | In-memory (fake Stripe) |
 | Feedback | Google Sheets | In-memory |
 
 Local runs use in-memory stores unless `USE_SHARED_SERVICES=1`. Full table:

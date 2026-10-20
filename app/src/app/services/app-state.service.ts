@@ -70,7 +70,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.324';
+  readonly appVersion = '0.1.325';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2300,7 +2300,9 @@ export class AppStateService {
     this.resetCourseOperations();
     this.loginState.set(loginState);
     this.sessionService.updateStoredLoginState(loginState);
-    void this.loadCourseContentWhenNeeded();
+    // The reset above drops a course list load still in flight (a paid return lands on a fresh page).
+    if (this.availableCourses().length) void this.loadCourseContentWhenNeeded();
+    else void this.loadCoursesWhenNeeded();
   }
 
   /** US-L024: leave for Stripe Checkout; Stripe sends the learner back to this page. */

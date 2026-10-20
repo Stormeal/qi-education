@@ -1,7 +1,7 @@
 # US-O001 and US-O002: Organizations
 
 Decisions agreed with Alex on 2026-10-20 (brainstorming). Not designed in detail yet: each release
-gets its own design pass after [US-L024 paid courses](US-L024-paid-courses.md).
+gets its own design pass. Paid courses (US-L024) are delivered: [payments](../specs/payments/payments.md).
 
 ## Why
 
