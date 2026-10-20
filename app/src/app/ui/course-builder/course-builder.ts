@@ -38,7 +38,7 @@ import {
   lucideX,
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
-import { CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
+import { canHoldVideo, CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
 import { Button } from '../button/button';
 import { IconButton } from '../icon-button/icon-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
@@ -370,8 +370,11 @@ export class CourseBuilder {
     return 'Text content';
   }
 
+  protected readonly canHoldVideo = canHoldVideo;
+
+  // Video lessons and exercises share the link field and the video upload panel.
   protected hasSupportingUrl(component: CourseComponent): boolean {
-    return component.type === 'video' || component.type === 'exercise';
+    return canHoldVideo(component);
   }
 
   protected hasAttachmentPanel(component: CourseComponent): boolean {
@@ -463,7 +466,7 @@ export class CourseBuilder {
   }
 
   protected muxStatusLabel(component: CourseComponent): string {
-    if (component.type !== 'video' || !component.mux) {
+    if (!canHoldVideo(component) || !component.mux) {
       return 'Ready for upload';
     }
 
@@ -489,18 +492,20 @@ export class CourseBuilder {
   }
 
   protected muxUploadProgressValue(component: CourseComponent): number {
-    return component.type === 'video' ? (this.muxUploadProgress()[component.id] ?? 0) : 0;
+    return canHoldVideo(component) ? (this.muxUploadProgress()[component.id] ?? 0) : 0;
   }
 
   protected muxPlaybackId(component: CourseComponent): string {
-    return component.type === 'video' && component.mux?.status === 'ready'
+    return canHoldVideo(component) && component.mux?.status === 'ready'
       ? component.mux.playbackId
       : '';
   }
 
   protected muxStatusDescription(component: CourseComponent): string {
-    if (component.type !== 'video' || !component.mux) {
-      return 'Select a video file and QI Academy will prepare the Mux upload automatically.';
+    if (!canHoldVideo(component) || !component.mux) {
+      return component.type === 'exercise'
+        ? 'Optional intro video. It plays before the exercise description; without one, learners see the text only.'
+        : 'Select a video file and QI Academy will prepare the Mux upload automatically.';
     }
 
     if (this.muxVideoDelayed(component)) {
@@ -523,7 +528,7 @@ export class CourseBuilder {
   }
 
   private muxVideoDelayed(component: CourseComponent): boolean {
-    if (component.type !== 'video' || !component.mux || !['waiting', 'processing'].includes(component.mux.status)) return false;
+    if (!canHoldVideo(component) || !component.mux || !['waiting', 'processing'].includes(component.mux.status)) return false;
     const key = component.mux.uploadId || component.id;
     if (!this.videoPendingSince.has(key)) {
       const updated = Date.parse(this.courseContent()?.updatedAt ?? '');
@@ -1221,7 +1226,7 @@ export class CourseBuilder {
   protected canMoveComponent(component: CourseComponent): boolean {
     return !this.readOnly() && !this.courseContentSaving() && !this.courseSubmitting() &&
       this.muxUploadComponentId() !== component.id && this.attachmentUploadComponentId() !== component.id &&
-      !(component.type === 'video' && component.mux?.status === 'uploading');
+      !(canHoldVideo(component) && component.mux?.status === 'uploading');
   }
 
   private movableDragSource() {

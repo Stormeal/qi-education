@@ -15,6 +15,7 @@ import {
   CourseCreateDraft,
   CourseListItem,
   CoursePurchaseStatus,
+  canHoldVideo,
   CourseSummary,
   FeedbackEntry,
   FeedbackOption,
@@ -70,7 +71,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.337';
+  readonly appVersion = '0.1.338';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1169,6 +1170,7 @@ export class AppStateService {
           content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
           resourceUrl: component.resourceUrl,
           attachments: [],
+          ...(canHoldVideo(component) && component.mux ? { mux: component.mux } : {}),
         } as CourseComponent;
       }
 
@@ -1181,6 +1183,7 @@ export class AppStateService {
           content: component.type === 'quiz' ? this.primaryQuizQuestionText(component.quiz) : component.content,
           resourceUrl: component.resourceUrl,
           attachments: component.type === 'resources' || component.type === 'exercise' ? component.attachments : [],
+          ...(canHoldVideo(component) && component.mux ? { mux: component.mux } : {}),
         } as CourseComponent;
       }
 
@@ -1512,8 +1515,8 @@ export class AppStateService {
       return;
     }
 
-    if (component.type !== 'video') {
-      this.muxUploadError.set('Select a video component before uploading.');
+    if (!canHoldVideo(component)) {
+      this.muxUploadError.set('Only video and exercise lessons can have a video.');
       return;
     }
 
@@ -1603,7 +1606,7 @@ export class AppStateService {
       return;
     }
 
-    if (component.type !== 'video' || !component.mux) {
+    if (!canHoldVideo(component) || !component.mux) {
       return;
     }
 
@@ -1870,7 +1873,7 @@ export class AppStateService {
     if (!content || !source || !destination || !moved || !this.courseEditable() ||
       this.courseContentSaving() || this.courseSubmitting() || this.courseReviewPending() ||
       this.muxUploadComponentId() === moved.id || this.attachmentUploadComponentId() === moved.id ||
-      (moved.type === 'video' && moved.mux?.status === 'uploading') ||
+      (canHoldVideo(moved) && moved.mux?.status === 'uploading') ||
       ![sectionIndex, fromIndex, toIndex, toSectionIndex].every(index => Number.isInteger(index) && index >= 0) ||
       toIndex > destination.components.length || (sectionIndex === toSectionIndex && fromIndex === toIndex)) {
       return;
@@ -2487,7 +2490,7 @@ export class AppStateService {
       this.initialCourseContentSnapshot.set(this.serializeCourseContent(loadedContent));
       if (view === 'author') {
         for (const section of loadedContent.sections) for (const component of section.components) {
-          if (component.type === 'video' && component.mux && ['waiting', 'uploading', 'processing'].includes(component.mux.status)) {
+          if (canHoldVideo(component) && component.mux && ['waiting', 'uploading', 'processing'].includes(component.mux.status)) {
             void this.refreshMuxVideoUntilReady(courseId, component.id);
           }
         }
@@ -2769,7 +2772,7 @@ export class AppStateService {
   ): void {
     const wasClean = this.courseContent() && this.serializeCourseContent(this.courseContent()!) === this.initialCourseContentSnapshot();
     this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
-      if (component.type !== 'video' || !component.mux) {
+      if (!canHoldVideo(component) || !component.mux) {
         return component;
       }
 
@@ -2896,7 +2899,7 @@ export class AppStateService {
     const isCurrent = this.courseResponseIsCurrent();
     const initial = this.courseContent();
     const initialComponent = initial && this.findCourseComponent(initial, componentId);
-    const uploadId = initialComponent?.type === 'video' ? initialComponent.mux?.uploadId : undefined;
+    const uploadId = initialComponent && canHoldVideo(initialComponent) ? initialComponent.mux?.uploadId : undefined;
     const key = `${generation}:${courseId}:${componentId}:${uploadId}`;
     if (!token || !uploadId || this.pendingMuxPolls.has(key)) return;
     const stillEditing = () => {
@@ -2904,7 +2907,7 @@ export class AppStateService {
       const component = content && this.findCourseComponent(content, componentId);
       return isCurrent() && this.loginState()?.token === token && generation === this.courseContentGeneration &&
         this.isCourseEditorPage() && this.courseContentId() === courseId && this.canUseCourseEditor() &&
-        this.loadedCourseContentId() === courseId && component?.type === 'video' &&
+        this.loadedCourseContentId() === courseId && !!component && canHoldVideo(component) &&
         component.mux?.uploadId === uploadId && ['waiting', 'uploading', 'processing'].includes(component.mux.status);
     };
     this.pendingMuxPolls.add(key);
@@ -2919,16 +2922,16 @@ export class AppStateService {
           if (!stillEditing()) return;
           this.applyCourseBackgroundRefresh(loaded);
           const component = this.findCourseComponent(loaded, componentId);
-          if (component?.type === 'video' && component.mux?.uploadId === uploadId) {
+          if (component && canHoldVideo(component) && component.mux?.uploadId === uploadId) {
             // Media callbacks are independent of unsaved lesson text. Keep the
             // original draft revision and conflict guard, but show provider state.
             this.courseContent.update((current) => current ? { ...current, sections: current.sections.map((section) => ({
               ...section, components: section.components.map((local) =>
-                local.id === componentId && local.type === 'video' && local.mux?.uploadId === uploadId
+                local.id === componentId && canHoldVideo(local) && local.mux?.uploadId === uploadId
                   ? { ...local, mux: component.mux } : local),
             })) } : null);
           }
-          if (component?.type !== 'video' || !component.mux || component.mux.uploadId !== uploadId ||
+          if (!component || !canHoldVideo(component) || !component.mux || component.mux.uploadId !== uploadId ||
               ['ready', 'errored'].includes(component.mux.status)) return;
         } catch {
           // A transient read failure must not permanently stop processing updates.

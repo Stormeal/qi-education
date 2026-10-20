@@ -121,4 +121,20 @@ describe('US-T006 retained media and recovery', () => {
     expect((await create()).status).toBe(201);
   });
 
+  it('exercise intro video: upload, kept by a save, webhook ready, delete', async () => {
+    await content.updateCourseContent('course', updateCourseContentSchema.parse({ sections: [{ id: 's', title: 'Practice',
+      components: [{ id: 'exercise', type: 'exercise', title: 'Exercise', content: '- Do it' }] }] }).sections);
+    expect((await request('/courses/course/content/components/exercise/mux-upload', teacher, 'POST', { sectionId: 's' })).status).toBe(201);
+    const saved = await author();
+    expect(saved.sections[0].components[0].mux).toMatchObject({ uploadId: 'replacement', status: 'waiting' });
+    // The editor sends the whole outline back; the exercise must keep its video.
+    const save = await request('/courses/course/content', teacher, 'PATCH', { sections: saved.sections });
+    expect(save.status).toBe(200);
+    expect((await request('/webhooks/mux', undefined, 'POST', { type: 'video.asset.ready', data: { id: 'asset', upload_id: 'replacement',
+      passthrough: '{"c":"course","s":"s","m":"exercise"}', playback_ids: [{ id: 'playback', policy: 'public' }] } })).status).toBe(200);
+    expect((await author()).sections[0].components[0].mux).toMatchObject({ status: 'ready', playbackId: 'playback' });
+    expect((await request('/courses/course/content/components/exercise/mux-video', teacher, 'DELETE', { sectionId: 's' })).status).toBe(200);
+    expect((await author()).sections[0].components[0].mux).toBeUndefined();
+    expect(mux.removeVideo).toHaveBeenCalledWith(expect.objectContaining({ assetId: 'asset', uploadId: 'replacement' }));
+  });
 });

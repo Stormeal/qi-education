@@ -359,4 +359,30 @@ describe('learning page', () => {
     expect(text(body.querySelector('.curriculum-head'))).toContain('3 of 3 lessons complete');
     expect(button('Start now')).toBeUndefined();
   });
+
+  function withIntro(status: string): CourseContentDocument {
+    const copy = structuredClone(courseContent);
+    const exercise = copy.sections[1].components[0];
+    if (exercise.type !== 'exercise') throw new Error('Fixture changed');
+    exercise.mux = { provider: 'mux', uploadId: 'u', assetId: 'a', playbackId: 'intro-1', playbackPolicy: 'public',
+      status: status as 'ready', durationSeconds: 60, thumbnailUrl: '', errorMessage: '', captions: [] };
+    return copy;
+  }
+
+  it('exercise intro video plays first, then jumps to the description without completing the exercise', async () => {
+    const { body, fixture, text } = await setup(withIntro('ready'), ['video', 'text']);
+    const player = body.querySelector('.exercise-intro mux-player')!;
+    expect(player.getAttribute('playback-id')).toBe('intro-1');
+    expect(player.compareDocumentPosition(body.querySelector('.exercise-description')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    player.dispatchEvent(new Event('ended')); fixture.detectChanges();
+    expect(document.activeElement).toBe(body.querySelector('.exercise-description'));
+    expect(body.querySelector<HTMLInputElement>('.exercise-check input')!.checked).toBe(false);
+    expect(text(body.querySelector('.curriculum-head'))).toContain('2 of 3 lessons complete');
+  });
+
+  it('exercise with a video still processing shows the text only', async () => {
+    const { body } = await setup(withIntro('processing'), ['video', 'text']);
+    expect(body.querySelector('.exercise-intro')).toBeNull();
+    expect(body.querySelector('.exercise-description')).not.toBeNull();
+  });
 });

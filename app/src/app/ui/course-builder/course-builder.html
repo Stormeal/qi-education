@@ -10,7 +10,7 @@
             @if (component.content) {
               <div [innerHTML]="renderRichContent(component.content)"></div>
             }
-            @if (component.type === 'video' && muxPlaybackId(component)) {
+            @if (muxPlaybackId(component)) {
               <mux-player [attr.playback-id]="muxPlaybackId(component)" stream-type="on-demand" accent-color="#4f773e"></mux-player>
             }
             @if (component.resourceUrl) {
@@ -250,6 +250,7 @@
                 <option value="quiz">Quiz</option>
                 <option value="text">Text</option>
                 <option value="resources">Resources</option>
+                <option value="exercise">Exercise</option>
               </select>
             </label>
 
@@ -493,7 +494,7 @@
                   }
                 </div>
 
-                @if (component.type === 'video' && component.mux) {
+                @if (canHoldVideo(component) && component.mux) {
                   <button
                     appButton="danger"
                     size="sm"
@@ -530,13 +531,13 @@
                 }
               </div>
 
-              @if (muxUploadComponentId() === component.id || (component.type === 'video' && component.mux?.status === 'uploading')) {
+              @if (muxUploadComponentId() === component.id || (canHoldVideo(component) && component.mux?.status === 'uploading')) {
                 <app-progress-bar [value]="muxUploadProgressValue(component)" label="Video upload progress" size="sm" />
               }
             </section>
 
             <label class="builder-field">
-              <span>Fallback video URL</span>
+              <span>{{ component.type === 'exercise' ? 'Exercise link' : 'Fallback video URL' }}</span>
               <input
                 type="url"
                 [value]="component.resourceUrl"

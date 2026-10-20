@@ -3,6 +3,8 @@
 ## Purpose
 
 Teachers upload a video straight from the browser; learners watch it in the learning page.
+Video lessons and exercise lessons (an optional intro video, 2026-10-20) use the same upload,
+webhook and removal; everything below applies to both.
 
 ## Behavior
 

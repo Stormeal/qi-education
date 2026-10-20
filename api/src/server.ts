@@ -73,6 +73,7 @@ import {
   updateCourseSchema,
 } from './course.js';
 import {
+  canHoldVideo,
   createMuxUploadSchema,
   updateCourseContentSchema,
   type CourseContentSection,
@@ -1054,7 +1055,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
             ? {
                 ...section,
                 components: section.components.map((component) =>
-                  component.id === componentId && component.type === 'video'
+                  component.id === componentId && canHoldVideo(component)
                     ? {
                         ...component,
                         mux: {
@@ -1131,7 +1132,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
             ? {
                 ...section,
                 components: section.components.map((component) => {
-                  if (component.id !== componentId || component.type !== 'video') {
+                  if (component.id !== componentId || !canHoldVideo(component)) {
                     return component;
                   }
 
@@ -1152,7 +1153,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           : [stored?.sections ?? []];
         const removed = videoComponent.mux;
         const retained = snapshots.some((sections) => sections.some((section) => section.components.some((component) =>
-          component.type === 'video' && component.mux &&
+          canHoldVideo(component) && component.mux &&
           ((removed.assetId && component.mux.assetId === removed.assetId) ||
            (removed.uploadId && component.mux.uploadId === removed.uploadId)))));
         if (!retained) {
@@ -1777,7 +1778,7 @@ async function updateMuxVideoComponent(
   const updateSections = (sections: CourseContentSection[]) => sections.map((section) => ({
     ...section,
     components: section.components.map((component) => {
-      if (component.id !== passthrough.componentId || component.type !== 'video' || !component.mux) {
+      if (component.id !== passthrough.componentId || !canHoldVideo(component) || !component.mux) {
         return component;
       }
 
@@ -1873,7 +1874,7 @@ function findCourseVideoComponent(
   const section = sections.find((item) => item.id === sectionId);
   const component = section?.components.find((item) => item.id === componentId);
 
-  return component?.type === 'video' ? component : null;
+  return component && canHoldVideo(component) ? component : null;
 }
 
 function findCourseComponent(

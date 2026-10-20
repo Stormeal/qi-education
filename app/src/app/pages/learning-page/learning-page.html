@@ -158,7 +158,19 @@
                 </footer>
               </div>
             } @else if (lesson.type === 'exercise') {
-              <div class="reading-card">
+              @if (muxPlaybackId(lesson)) {
+                <div class="video-frame exercise-intro">
+                  <mux-player
+                    class="video-player"
+                    [attr.playback-id]="muxPlaybackId(lesson)"
+                    stream-type="on-demand"
+                    [attr.metadata-video-title]="lesson.title"
+                    [attr.metadata-viewer-user-id]="userEmail()"
+                    (ended)="exerciseIntroEnded()"
+                  ></mux-player>
+                </div>
+              }
+              <div class="reading-card exercise-description" tabindex="-1" role="region" aria-label="Exercise description">
                 <p class="exercise-kicker">
                   <span class="icon" aria-hidden="true" [innerHTML]="typeIcon('exercise')"></span>
                   Hands-on exercise{{ lesson.durationMinutes > 0 ? ', about ' + formatDuration(lesson.durationMinutes) : '' }}

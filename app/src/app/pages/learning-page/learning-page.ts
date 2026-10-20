@@ -47,6 +47,7 @@ import {
   QuizAssessmentResult,
   QuizQuestion,
   StudentSummary,
+  canHoldVideo,
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
@@ -202,7 +203,7 @@ export class LearningPage {
   protected readonly totalMinutes = computed(() => this.orderedComponents().reduce((total, component) => total + component.durationMinutes, 0));
   protected readonly progressSyncNotice = computed(() => this.learningProgress.accountSyncState() === 'pending' ? PROGRESS_SYNC_NOTICE : '');
   protected readonly captionLanguages = computed(() => [...new Set(this.orderedComponents().flatMap((component) =>
-    component.type === 'video' ? (component.mux?.captions ?? []).filter((caption) => caption.status === 'ready')
+    canHoldVideo(component) ? (component.mux?.captions ?? []).filter((caption) => caption.status === 'ready')
       .map((caption) => caption.name || caption.languageCode) : []))]);
   protected readonly updatedAt = computed(() => this.courseContent()?.updatedAt || this.course()?.createdAt || '');
 
@@ -414,6 +415,11 @@ export class LearningPage {
     this.startUpNext();
   }
 
+  // The intro video does not complete the exercise; it hands over to the description.
+  protected exerciseIntroEnded(): void {
+    this.host.nativeElement.querySelector<HTMLElement>('.exercise-description')?.focus();
+  }
+
   protected startNextNow(): void {
     this.cancelUpNext();
     this.goToNext();
@@ -621,11 +627,11 @@ export class LearningPage {
   }
 
   protected muxPlaybackId(component: CourseComponent | null): string {
-    return component?.type === 'video' && component.mux?.status === 'ready' ? component.mux.playbackId : '';
+    return component && canHoldVideo(component) && component.mux?.status === 'ready' ? component.mux.playbackId : '';
   }
 
   protected videoStatusText(component: CourseComponent): string {
-    if (component.type !== 'video' || !component.mux) return 'This video is being prepared.';
+    if (!canHoldVideo(component) || !component.mux) return 'This video is being prepared.';
     switch (component.mux.status) {
       case 'waiting':
       case 'uploading':

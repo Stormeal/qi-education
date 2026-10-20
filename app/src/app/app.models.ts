@@ -226,8 +226,10 @@ export type ResourcesCourseComponent = BaseCourseComponent & {
 };
 
 // US-L016: instructions in `content`, starter files as attachments, an optional link; the learner ticks it complete.
+// An optional intro video plays before the instructions.
 export type ExerciseCourseComponent = BaseCourseComponent & {
   type: 'exercise';
+  mux?: MuxVideo;
 };
 
 export type CourseComponent =
@@ -236,6 +238,13 @@ export type CourseComponent =
   | QuizCourseComponent
   | ResourcesCourseComponent
   | ExerciseCourseComponent;
+
+export type VideoCapableComponent = VideoCourseComponent | ExerciseCourseComponent;
+
+/** Video lessons and exercises (intro video) can carry a Mux video. */
+export function canHoldVideo(component: CourseComponent): component is VideoCapableComponent {
+  return component.type === 'video' || component.type === 'exercise';
+}
 
 export type CourseSection = {
   id: string;

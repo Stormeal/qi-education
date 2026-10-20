@@ -85,6 +85,8 @@ export const courseContentComponentSchema = z.discriminatedUnion('type', [
   }),
   baseCourseContentComponentSchema.extend({
     type: z.literal('exercise'),
+    // Optional intro video shown before the exercise description.
+    mux: muxVideoSchema.optional(),
   }),
 ]);
 
@@ -103,5 +105,8 @@ export const createMuxUploadSchema = z.object({
 });
 
 export type CourseContentComponent = z.infer<typeof courseContentComponentSchema>;
+export type VideoCapableComponent = Extract<CourseContentComponent, { type: 'video' | 'exercise' }>;
+export const canHoldVideo = (component: CourseContentComponent): component is VideoCapableComponent =>
+  component.type === 'video' || component.type === 'exercise';
 export type CourseContentSection = z.infer<typeof courseContentSectionSchema>;
 export type UpdateCourseContentInput = z.infer<typeof updateCourseContentSchema>;

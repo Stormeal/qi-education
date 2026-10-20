@@ -10,8 +10,9 @@ exercises, quizzes or video.
 - A course has **sections** (chapters) of **components** (lessons). Lesson types:
   - `text`: rich text, with optional files.
   - `resources`: files and links.
-  - `exercise`: instructions (a line starting with `-` becomes a list item), an optional link and
-    files. No solution or grading; it completes like a text lesson.
+  - `exercise`: instructions (a line starting with `-` becomes a list item), an optional
+    **Exercise link**, files, and an optional intro video uploaded like a video lesson's. No
+    solution or grading; it completes like a text lesson.
   - `quiz`: see [quizzes](quizzes.md).
   - `video`: see [video](video.md).
 - The builder (`ui/course-builder/`) adds, edits, reorders and removes lessons in a modal editor.

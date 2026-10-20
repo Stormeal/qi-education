@@ -14,7 +14,10 @@ lessons, keeps notes, gets the files and tells the teacher how a lesson went.
 - **Previous / Next** move through lessons in course order, disabled at the ends.
 - **Completion**: text, resources and exercise lessons have a complete action (exercises a check);
   a video completes once at 90% watched (seeking counts); a quiz on **Finish quiz** after a pass.
-- **Up next**: when a video ends or a lesson is completed while a next lesson exists, the next
+- **Exercise intro video**: an exercise with a ready video shows the player above the description;
+  when the video ends, focus and the view move to the description. The video does not complete the
+  exercise and does not start Up next. Without a ready video only the text is shown.
+- **Up next**: when a video lesson ends or a lesson is completed while a next lesson exists, the next
   lesson starts after 5 seconds unless the learner presses **Stay here** or Escape.
 - **Notes**: private notes per lesson, optionally at the current video time (text 1–2000
   characters, at most 500 per course). Only the author can read, edit or delete them.
