@@ -201,12 +201,12 @@
   <section class="profile-card" aria-labelledby="profile-billing-title">
     <div class="profile-section">
       <h2 id="profile-billing-title" class="profile-label">Payment and receipts</h2>
-      <p class="profile-section-hint">See your saved card and receipts for courses you have bought. Opens a secure Stripe page.</p>
+      <p class="profile-section-hint">Stripe emails a receipt after each purchase. Change your saved card on a secure Stripe page.</p>
     </div>
     <div class="profile-actions profile-billing-actions">
       <p class="profile-save-state" role="status" aria-live="polite">{{ billingMessage() }}</p>
       <button appButton type="button" [disabled]="billingBusy()" (click)="openBillingPortal()">
-        {{ billingBusy() ? 'Opening…' : 'View card and receipts' }}
+        {{ billingBusy() ? 'Opening…' : 'Manage saved card' }}
       </button>
     </div>
   </section>

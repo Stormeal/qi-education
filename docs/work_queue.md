@@ -20,8 +20,7 @@ return with "Payment received", Start learning, receipts button, phone width.
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Push US-L024 | Say "push" to Claude | `main` on GitHub contains the US-L024 commits |
-| Stripe Customer Portal | Stripe (Test mode) → **Settings** → **Billing** → **Customer portal** → **Activate** | The page shows a portal link |
-| Receipts decision (US-L024) | Choose: switch on invoice creation for course purchases (Stripe charges per invoice; the portal then lists them) or keep Stripe's emailed receipt only | Decision recorded in `specs/payments/payments.md` |
+| Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Extra Codex work | Paste assignments X1…X7 from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 

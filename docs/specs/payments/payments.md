@@ -25,8 +25,10 @@ payment pages; the API keeps the record of who paid for what.
   payment and enrolls; the other changes nothing. A storage failure answers 500 so Stripe retries.
 - `POST /users/me/courses/:id` (enroll) answers **402** "This course must be bought." for a priced
   course unless the caller is its author or an admin.
-- Profile → **Payment and receipts** → **View card and receipts** opens Stripe's customer portal
-  (`POST /users/me/billing-portal`); before any purchase it says "No payments yet."
+- Profile → **Payment and receipts** → **Manage saved card** opens Stripe's customer portal
+  (`POST /users/me/billing-portal`); before any purchase it says "No payments yet." The receipt
+  is the email Stripe sends after each payment (decided by Alex, 2026-10-20); purchases create no
+  invoices, so the portal shows the saved card only.
 - No Stripe key: buying and the portal answer 503 "Purchases are temporarily unavailable."
 - Isolated runs and tests use a fake payment service: checkout returns straight to the success
   address and the session reads as paid. Nothing calls Stripe.
@@ -61,9 +63,9 @@ payment pages; the API keeps the record of who paid for what.
 - The hosted site runs on Stripe **test** keys: anyone can "buy" with a test card, so priced
   courses are effectively still free there. Going live needs a live key, a new live-mode webhook
   destination with its own secret, and Stripe business verification.
-- The customer portal lists invoices, and one-time Checkout payments create none unless invoice
-  creation is switched on (Stripe charges for it). Until Alex decides, the portal shows the saved
-  card; Stripe's emailed receipt is the receipt. Found by Codex's review, not checked on Stripe.
+- Stripe sends receipt emails only in live mode, when **Settings → Customer emails → Successful
+  payments** is on; test-mode purchases get no receipt email.
+- Customer portal activated in test mode on 2026-10-20 (Alex).
 - Two first purchases opened in parallel create two Stripe customers; the portal then shows only
   the latest one's card and history. Rare; fixing it needs a stored customer per account.
 - Not verified against real Stripe: hosted Checkout, webhook signatures from a real delivery, the
