@@ -29,7 +29,8 @@
 - Priced, not enrolled: **Buy for N DKK** → Stripe Checkout (hosted) → back to the course page.
 - Enrolled (paid or not): **Open course**, as today.
 - The note "Price for information only. Enrolling is free." is removed.
-- No Stripe key configured: "Purchases are not available right now" instead of the buy button.
+- No Stripe key configured: clicking the buy button shows "Purchases are temporarily unavailable."
+  (the checkout's 503), so the page needs no separate configuration check.
 
 **Return from Stripe.** The success URL carries `{CHECKOUT_SESSION_ID}`. The page calls
 `POST /users/me/courses/:id/checkout/confirm` with it; the API asks Stripe whether the session is
@@ -44,7 +45,7 @@ paid. No polling. Three outcomes:
 Cancel at Stripe returns to `?payment=cancelled`: nothing charged, buy button shown.
 
 **Profile.** New section **Payment and receipts**: one button opening the Stripe customer portal
-(saved card, receipts). Before any purchase: "No payments yet."
+(saved card, receipts). Clicking it before any purchase shows "No payments yet."
 
 **Admin.** Price is set in catalog settings as today; its hint says learners pay this to enroll.
 
