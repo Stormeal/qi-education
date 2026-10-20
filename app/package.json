@@ -1,6 +1,6 @@
 {
   "name": "@qi-academy/app",
-  "version": "0.1.347",
+  "version": "0.1.348",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

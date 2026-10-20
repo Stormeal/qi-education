@@ -1,3 +1,4 @@
+import { freshAuthoringFetch } from './authoringTestRequest.js';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -81,6 +82,26 @@ describe('request error contract (DEF-008)', () => {
     thumbnailWrite.mockRestore(); attachmentWrite.mockRestore();
   });
 
+  it.each(['', '/api'])('DEF-051 saves a realistic multi-lesson document up to 4 MB (%s)', async prefix => {
+    const sections = [{ id: 's', title: 'Lessons', components: Array.from({ length: 6 }, (_, index) => ({
+      id: index === 0 ? 'text' : 'lesson-' + index, type: 'text', title: 'Lesson ' + index, content: 'x'.repeat(20000),
+    })) }];
+    expect(updateCourseContentSchema.safeParse({ sections }).success).toBe(true);
+    const body = JSON.stringify({ sections });
+    expect(Buffer.byteLength(body)).toBeGreaterThan(100 * 1024);
+    const response = await freshAuthoringFetch(base + prefix + '/courses/course/content', { method: 'PATCH',
+      headers: { authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: body.padEnd(4 * 1024 * 1024, ' ') });
+    expect(response.status).toBe(200);
+    expect((await content.getCourseContent('course'))?.sections[0].components).toHaveLength(6);
+  });
+  it.each(['', '/api'])('DEF-051 refuses content over 4 MB without changing stored lessons (%s)', async prefix => {
+    const before = structuredClone(await content.getCourseContent('course'));
+    const response = await freshAuthoringFetch(base + prefix + '/courses/course/content', { method: 'PATCH',
+      headers: { authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: '{}'.padEnd(4 * 1024 * 1024 + 1, ' ') });
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ message: 'Course content exceeds the 4 MB size limit.' });
+    expect(await content.getCourseContent('course')).toEqual(before);
+  });
   it('RD-02 classifies oversized JSON as 413', async () => {
     const response = await fetch(base + '/auth/login', { method: 'POST',
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'x'.repeat(102401) }) });

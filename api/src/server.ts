@@ -471,7 +471,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use(['/users/me/profile', '/api/users/me/profile'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
-  app.use(withRequestBodyErrors(express.json()));
+  const parseJson = withRequestBodyErrors(express.json());
+  const parseContentJson = withRequestBodyErrors(express.json({ limit: '4mb' }), 'Course content exceeds the 4 MB size limit.');
+  app.use((request, response, next) => {
+    const parser = request.method === 'PATCH' && /^\/(?:api\/)?courses\/[^/]+\/content\/?$/i.test(request.path) ? parseContentJson : parseJson;
+    parser(request, response, next);
+  });
   app.use((_request, response, next) => {
     response.setHeader('X-QI-Education-Auth-Storage', auth.storageType ?? 'memory');
     response.setHeader('X-QI-Education-Content-Storage', courseContent.storageType);
