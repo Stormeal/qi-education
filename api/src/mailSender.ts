@@ -1,3 +1,4 @@
+import { logError } from './errorLogger.js';
 import { apiConfig, getServicesMode } from './config.js';
 
 export type MailMessage = { to: string; subject: string; text: string };
@@ -39,11 +40,11 @@ export class BrevoMailSender implements MailSender {
         // Operators need the reason; log only the status and Brevo's short error code,
         // never its message, the recipient, the key or the mail text.
         const code = (await response.json().catch(() => null) as { code?: unknown } | null)?.code;
-        console.warn(`Mail provider refused: status=${response.status} code=${typeof code === 'string' && /^[a-z_]{1,40}$/.test(code) ? code : 'unknown'}`);
+        logError('Mail provider refused', { name: 'MailRefused', code: typeof code === 'string' ? code : 'unknown' }, { status: response.status }, 'warn');
         throw new MailRefused();
       }
     } catch (error) {
-      if (!(error instanceof MailRefused)) console.warn(`Mail provider unreachable: ${error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : 'Error'}`);
+      if (!(error instanceof MailRefused)) logError('Mail provider unreachable', error, {}, 'warn');
       // Never propagate provider response bodies, credentials or the reset link.
       throw new Error('Mail delivery unavailable.');
     }

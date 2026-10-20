@@ -92,10 +92,12 @@ describe('US-T006 retained media and recovery', () => {
   });
   it('VO-01/04 logs failed cleanup, permits repeat removal and reupload, and ignores an old callback', async () => {
     await video();
-    mux.removeVideo.mockRejectedValueOnce(new Error('Isolated provider failure'));
+    mux.removeVideo.mockRejectedValueOnce(Object.assign(new Error('PRIVATE_MUX_CANARY'), { request: { headers: { authorization: 'Bearer PRIVATE_MUX_CANARY' } }, cause: new Error('PRIVATE_MUX_CANARY') }));
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect((await remove()).status).toBe(200);
     expect(log).toHaveBeenCalledWith('Mux video cleanup required', expect.objectContaining({ courseId: 'course', assetId: 'asset', uploadId: 'upload' }));
+    expect(JSON.stringify(log.mock.calls)).not.toContain('PRIVATE_MUX_CANARY');
+    expect(log.mock.calls[0][1]).not.toHaveProperty('error');
     expect((await remove()).status).toBe(200);
     expect(mux.removeVideo).toHaveBeenCalledTimes(1);
     expect((await request('/courses/course/content/components/video/mux-upload', teacher, 'POST', { sectionId: 's' })).status).toBe(201);

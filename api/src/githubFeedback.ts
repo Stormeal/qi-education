@@ -1,3 +1,4 @@
+import { logError } from './errorLogger.js';
 import { apiConfig, hasGitHubFeedbackConfig } from './config.js';
 import type { FeedbackEntry } from './feedback.js';
 
@@ -50,7 +51,7 @@ export class ConfiguredGitHubFeedbackService implements GitHubFeedbackService {
       try {
         await this.addIssueToProject(issue.node_id);
       } catch (error) {
-        console.warn('Created GitHub feedback issue, but could not add it to the configured project.', error);
+        logError('Created GitHub feedback issue, but could not add it to the configured project.', error, {}, 'warn');
       }
     }
 

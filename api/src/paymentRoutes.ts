@@ -1,3 +1,4 @@
+import { logError } from './errorLogger.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import { z } from 'zod';
 import { getRolePermissions, toAuthenticatedUser, type AuthenticatedUser } from './auth.js';
@@ -90,7 +91,7 @@ export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): 
         courseTitle: course.title, amountDkk: course.priceDkk, customerId,
         successUrl: checkoutReturn(returnUrl, true), cancelUrl: checkoutReturn(returnUrl, false) }));
     } catch (error) {
-      console.error('Stripe checkout creation failed', error instanceof Error ? error.name : 'UnknownError');
+      logError('Stripe checkout creation failed', error);
       unavailable(response);
     }
   });

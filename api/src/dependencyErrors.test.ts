@@ -30,6 +30,19 @@ describe.each(['', '/api'])('US-P002-AC02 dependency errors (%s)', prefix => {
     return fetch(base + '/courses');
   }
 
+  it.each(['Error', 'MongoNetworkError'])('DEF-049 redacts nested provider canaries from global %s logs', async name => {
+    const canary = 'PRIVATE_BEARER_CANARY';
+    const error = Object.assign(new Error('https://example.test/reset#token=' + canary), { name,
+      code: 'SECRET_' + canary, request: { headers: { authorization: 'Bearer ' + canary } },
+      response: { body: { token: canary } }, cause: new Error(canary) });
+    const response = await failureResponse(error);
+    expect(response.status).toBe(name === 'Error' ? 500 : 503);
+    const entries = vi.mocked(console.error).mock.calls;
+    expect(entries).toHaveLength(1);
+    expect(entries[0][1]).toMatchObject({ errorClass: name });
+    expect(JSON.stringify(entries)).not.toContain(canary);
+    expect(entries.flat()).not.toContain(error);
+  });
   it.each([new AuthUnavailableError(), new CourseStoreUnavailableError()])(
     'US-P002-AC02 store outages are retryable and preserve the message: %s', async error => {
       const response = await failureResponse(error);
@@ -70,7 +83,7 @@ describe.each(['', '/api'])('US-P002-AC02 dependency errors (%s)', prefix => {
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ message: storageMessage, code: 'STORE_UNAVAILABLE', retryable: true });
     expect(console.error).toHaveBeenCalledTimes(1);
-    expect(console.error).toHaveBeenCalledWith('Storage unavailable', error);
+    expect(console.error).toHaveBeenCalledWith('Storage unavailable', { errorClass: 'MongoServerSelectionError' });
   });
 
   it('US-P002-AC02 unknown cyclic causes keep the generic 500', async () => {

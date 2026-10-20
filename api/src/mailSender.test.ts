@@ -42,17 +42,17 @@ describe('US-P009 mail sender', () => {
     await expect(refuse('{"code":"unauthorized","message":"Key stub-key not found for user@example.test"}')).rejects.toThrow('Mail delivery unavailable.');
     await expect(refuse('{"code":"user@example.test stub-key"}')).rejects.toThrow();
     await expect(refuse('not json')).rejects.toThrow();
-    expect(warn.mock.calls.map(call => call[0])).toEqual([
-      'Mail provider refused: status=401 code=unauthorized',
-      'Mail provider refused: status=401 code=unknown',
-      'Mail provider refused: status=401 code=unknown',
+    expect(warn.mock.calls).toEqual([
+      ['Mail provider refused', { errorClass: 'MailRefused', errorCode: 'unauthorized', status: 401 }],
+      ['Mail provider refused', { errorClass: 'MailRefused', status: 401 }],
+      ['Mail provider refused', { errorClass: 'MailRefused', errorCode: 'unknown', status: 401 }],
     ]);
   });
   it('AC03 logs only the error kind when the provider cannot be reached', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const failure = Object.assign(new Error('stub-key and private reset token'), { name: 'TimeoutError' });
     await expect(new BrevoMailSender(settings, vi.fn<typeof fetch>().mockRejectedValue(failure)).send(message)).rejects.toThrow('Mail delivery unavailable.');
-    expect(warn.mock.calls).toEqual([['Mail provider unreachable: TimeoutError']]);
+    expect(warn.mock.calls).toEqual([['Mail provider unreachable', { errorClass: 'TimeoutError' }]]);
   });
   it.each(['test', 'development'])('AC02 uses local recording even with credentials in %s', async mode => {
     vi.stubEnv('NODE_ENV', mode);

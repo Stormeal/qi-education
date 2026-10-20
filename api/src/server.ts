@@ -1,3 +1,4 @@
+import { logError } from './errorLogger.js';
 import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
@@ -228,7 +229,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           });
         } finally { response.send = send; }
       } catch (error) {
-        if (sendResponse || response.headersSent) console.error('Unable to finish course operation coordination.', error);
+        if (sendResponse || response.headersSent) logError('Unable to finish course operation coordination.', error);
         else next(error);
       } finally { sendResponse?.(); }
       });
@@ -564,7 +565,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         status: 'ok',
       });
     } catch (error) {
-      console.error('Course content storage health check failed.', error);
+      logError('Course content storage health check failed.', error);
       response.status(503).json({
         ...body,
         status: 'unavailable',
@@ -865,7 +866,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       response.json(learnerCourseContent(content));
     } catch (error) {
-      console.error(`Unable to load stored content for course ${courseId}.`, error);
+      logError('Unable to load stored course content.', error, { courseId });
       response.status(503).json({ message: 'Course content storage is unavailable.' });
     }
   }));
@@ -1047,7 +1048,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
             corsOrigin: request.header('origin') ?? getCorsOrigins()[0] ?? 'http://localhost:4200',
           });
         } catch (error) {
-          console.error('Mux upload creation failed; provider upload may require cleanup', { courseId, componentId, error });
+          logError('Mux upload creation failed; provider upload may require cleanup', error, { courseId, componentId });
           response.status(503).json({ message: 'Video uploads are temporarily unavailable. Your draft is saved; try uploading again.' });
           return;
         }
@@ -1162,7 +1163,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
             if (!muxVideo) throw new Error('Mux cleanup is not configured.');
             await muxVideo.removeVideo({ courseId, assetId: removed.assetId, uploadId: removed.uploadId });
           } catch (error) {
-            console.error('Mux video cleanup required', { courseId, assetId: removed.assetId, uploadId: removed.uploadId, error });
+            logError('Mux video cleanup required', error, { courseId, assetId: removed.assetId, uploadId: removed.uploadId });
           }
         }
 
@@ -1591,12 +1592,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
     // Driver errors can cross package boundaries or be wrapped by repositories.
     // Keep domain responses above intact, and never echo connection details.
     if (isMongoConnectionError(error)) {
-      console.error('Storage unavailable', error);
+      logError('Storage unavailable', error);
       response.status(503).json({ message: 'Storage is temporarily unavailable. Please try again.', code: 'STORE_UNAVAILABLE', retryable: true });
       return;
     }
 
-    console.error(error);
+    logError('Unexpected server error', error);
     response.status(500).json({ message: 'Unexpected server error' });
   });
 
