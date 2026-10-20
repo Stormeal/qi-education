@@ -12,7 +12,7 @@ US-L024 paid courses for individuals. Started 2026-10-20 on `main` from `bd64928
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Plan Tasks 1–4: payments store, Stripe service + fake, routes, 402 guard, journey, doctor | `api/**`, `scripts/doctor.mjs`, `package-lock.json`; handoff [handoffs/US-L024-paid-courses-codex.md](handoffs/US-L024-paid-courses-codex.md) | Implemented on `main`, base `3102208`; payment tests 39/39, journey 16/16, doctor/build pass; next: final review/checks. Full API suite has 3 health-shape assertion failures outside the assigned file scope. |
+| Codex | Plan Tasks 1–4: payments store, Stripe service + fake, routes, 402 guard, journey, doctor | `api/**`, `scripts/doctor.mjs`, `package-lock.json`; handoff [handoffs/US-L024-paid-courses-codex.md](handoffs/US-L024-paid-courses-codex.md) | API implementation committed `9e74a7d`, `95b255b`, `6af4729`, `2e17a32`, `34d83b0`, `369b5a9` on `main` from `3102208`; 2026-10-20 payment tests 39/39, journeys 16/16, doctor/build pass. Full API: 1722/1725 pass with four workers; 3 exact health assertions need owner updates in `server.test.ts` and `isolatedServices.test.ts` (outside assigned scope). Independent review: invoice opt-in/pricing and overlapping first-purchase customer identity need design decisions before portal receipts are release-ready. Next: Claude/Alex integration and decisions; full Result in handoff. No push. |
 | Claude | Plan Tasks 5–7: purchase flow, course page, profile receipts, check routine, docs | `app/**`, `docs/**` except Codex's row | In progress |
 
 Not verified: hosted Stripe test-card purchase (after push, Alex). Pushed state before this item:

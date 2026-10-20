@@ -41,4 +41,88 @@ Everything under `app/`, `docs/stories/**`, `docs/specs/**`, `docs/user_stories.
 
 ## Result
 
-(Codex: commits, checks run, anything not verified.)
+API Tasks 1–4 implemented on `main`, from `3102208`, 2026-10-20. No push. The HTTP
+contract is unchanged. Claude's concurrent app changes were preserved; only the explicitly
+required version line was staged from `app-state.service.ts` on each Codex commit.
+
+### Commits
+
+- `9e74a7d` — dependency-only install: exact `stripe@23.0.0`; installed SDK's API version
+  verified as `2026-09-30.endive`. Includes the required four-place version bump.
+- `95b255b` — in-memory/Mongo payments repository, majority writes and duplicate handling.
+- `6af4729` — Stripe adapter, offline fake, isolated configuration and key-mode reporting.
+- `2e17a32` — checkout, confirmation, both raw-body webhook paths, billing portal, health and 402 guard.
+- `34d83b0` — ignore unrelated webhook events; duplicate purchase, customer reuse and validation coverage.
+- `369b5a9` — paid-course release journey and doctor Stripe checks. Doctor resolves `dotenv`
+  from its owning API workspace, so a non-hoisted install works.
+
+### Verification
+
+- TDD: repository and service tests failed on missing modules before implementation; route
+  tests failed on missing routes / missing 402 before implementation. Unrelated-event regression
+  failed before its fix. Payment storage followed by a failed enrollment is retried safely.
+- Payment tests: **39 passed** (repository 4, service 12, routes 23). AC01–AC07 are mapped in
+  the route test names. Covers both delivery orders and a confirm/two-webhook race, foreign
+  sessions/origins, unpaid/unavailable providers, bad signatures, duplicate purchases, storage
+  failure/retry, saved customer reuse, disabled accounts and course price/archive changes.
+- `npm run verify:journeys`: **16 passed**, including paid purchase plus earlier free access
+  in memory and the isolated Mongo collection double. No real Mongo connection.
+- `npm run api:build`: **passed**.
+- `npm run doctor`: **passed**, against an isolated API on an ephemeral port. A separate
+  offline fixture verified both secret-presence messages and the local live-key warning;
+  no real keys or provider calls. The first doctor attempt exposed a missing root `dotenv`
+  dependency; resolving it from the API workspace fixed startup.
+- `npm run api:test`: first run **1718 passed / 3 failed (1721)**. After supplemental tests,
+  **1721 passed / 4 failed (1725)**: the same three health assertions, plus a 5-second
+  timeout in `clientLimitRoutes.test.ts`'s parallel Mongo budget case under concurrent load.
+  That file passed alone **20/20**. Final `npm run api:test` with four Vitest workers:
+  **1722 passed / 3 failed (1725), 73 files passed / 2 failed (75)**. Only the three
+  health-shape assertions below remain; the timeout did not recur.
+
+### Needed outside the assigned files
+
+Three existing exact health-response assertions omit the new
+`payments: { configured: true, keyMode: null }` field:
+
+- `api/src/server.test.ts:204`, `reports non-secret runtime configuration for diagnostics`.
+- `api/src/isolatedServices.test.ts:113`, `AC04 adds only health mode, preserves failed-demo-login
+  memory header`, for both root and `/api` paths.
+
+These are not priced-enrollment/402 failures, so the user's file boundary does not authorize
+editing them. Claude or Alex must update them before calling the whole API suite green.
+
+### Independent review and release limitations
+
+One independent, read-only API review found no Critical issues and confirmed the assigned
+race, foreign-session and redirect safeguards. Two Important design gaps remain; neither was
+silently folded into the agreed plan:
+
+1. **Portal purchase documents:** Checkout currently follows the plan and does not set
+   `invoice_creation.enabled`. Stripe's portal offers invoice history, and one-time Checkout
+   invoices require explicit opt-in. Invoice creation is separately priced, so Alex must decide
+   whether to enable it or revise the receipts promise before release. This is inferred from
+   the adapter parameters and official docs, not a hosted reproduction:
+   [portal features](https://docs.stripe.com/customer-management),
+   [one-time invoices and pricing note](https://docs.stripe.com/receipts#paid-invoices).
+2. **Overlapping first purchases:** open checkouts for two courses before completing either.
+   Both have no recorded customer, so the prescribed `customer_creation: always` creates
+   separate customers. Completing both leaves the portal pointing at only the latest payment's
+   customer, hiding the other's cards/history. A stable customer before payment requires a
+   revised persistence/provider design; current behavior retains the plan's latest-payment
+   lookup. The fake's deterministic per-user customer cannot prove this hosted behavior.
+
+Record these findings in the defect/product decision records during Claude's integration pass;
+those documents are outside Codex's assigned edit scope. Deferred Minor: focused offline SDK
+adapter tests (the assigned behavior tests use `FakePaymentService`).
+
+Rulings: enrollment retries even for an existing payment, because insert success does not prove
+enrollment success (cost: repeated harmless add-only writes); exact health tests remain untouched
+(cost: red full suite); invoice opt-in and stable customer storage await explicit design decisions
+(cost: incomplete portal history). Claude's UI/reload behavior, hosted signatures/Checkout/portal,
+and real Mongo remain outside this isolated API review. The new X1–X7 handoff was not selected:
+this assignment authorizes Tasks 1–4 only.
+
+Still not verified: browser integration (Claude's Task 7), live/test Stripe Checkout, actual
+signature verification against Stripe delivery, real MongoDB, portal activation/settings,
+receipt history and saved-card behavior. No shared-service mutation probes were run. Customer
+Portal activation and the hosted test-card check remain Alex's release steps.
