@@ -28,6 +28,9 @@ describe('US-L024 offline payments', () => {
   it('refuses a wrong or absent signature', () => {
     for (const signature of ['wrong', undefined]) expect(() => new FakePaymentService().readWebhookEvent('{}', signature)).toThrow(PaymentSignatureError);
   });
+  it('ignores unrelated events without requiring checkout fields', () => {
+    expect(new FakePaymentService().readWebhookEvent('{"type":"unrelated.event","data":{}}', 'fake-signature')).toBeNull();
+  });
   it.each([['sk_test_x', 'test'], ['sk_live_x', 'live'], [undefined, null]])('reports key mode without exposing the key', (key, expected) => {
     expect(config.stripeKeyMode(key)).toBe(expected);
   });

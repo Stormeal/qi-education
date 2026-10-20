@@ -111,6 +111,26 @@ describe('US-L024 course payments HTTP contract', () => {
     expect((await request(coursePath + '/checkout/confirm', student, { sessionId })).status).toBe(200);
     expect(payments.stored).toHaveLength(1);
   });
+  it('records and logs a second paid session while keeping one enrollment', async () => {
+    const first = await start(), second = await start();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const results = await Promise.all([webhook(first), webhook(second)]);
+    expect(results.map(r => r.status)).toEqual([200, 200]);
+    expect(payments.stored).toHaveLength(2);
+    expect((await auth.findById(student.id))!.enrolledCourseIds).toEqual([id]);
+    expect(log).toHaveBeenCalledWith('Duplicate course purchase', { sessionId: second, userId: student.id, courseId: id });
+  });
+  it('reuses the customer from the latest payment for a new checkout', async () => {
+    await payments.add({ _id: 'previous', userId: student.id, courseId: 'other-course', amountDkk: 100,
+      stripeCustomerId: 'cus_existing', paidAt: '2026-10-19T12:00:00.000Z' });
+    const session = await service.readCheckout(await start());
+    expect(session?.customerId).toBe('cus_existing');
+  });
+  it('refuses an empty session id and missing authentication', async () => {
+    expect((await request(coursePath + '/checkout/confirm', student, { sessionId: '' })).status).toBe(400);
+    const response = await fetch(base + coursePath + '/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ returnUrl }) });
+    expect(response.status).toBe(401);
+  });
   it('US-L024-AC06 webhook with a wrong signature answers 400 and stores nothing', async () => {
     expect((await webhook(await start(), 'wrong')).status).toBe(400);
     expect(payments.stored).toHaveLength(0);

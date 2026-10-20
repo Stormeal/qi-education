@@ -70,7 +70,7 @@ export function createPaymentWebhookHandler(deps: PaymentDependencies): RequestH
 }
 
 export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): void {
-  const { authenticate, auth, courses, payments, paymentService } = deps;
+  const { authenticate, courses, payments, paymentService } = deps;
   app.use(['/users/me/courses/:id/checkout', '/users/me/billing-portal'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });

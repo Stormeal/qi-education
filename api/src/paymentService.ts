@@ -20,6 +20,8 @@ export interface PaymentService {
 export class PaymentSignatureError extends Error {}
 
 function paidEvent(event: unknown): PaidCheckoutEvent {
+  const { type } = z.object({ type: z.string() }).parse(event);
+  if (type !== 'checkout.session.completed' && type !== 'checkout.session.async_payment_succeeded') return null;
   const parsed = z.object({ type: z.string(), data: z.object({ object: z.object({ id: z.string(), payment_status: z.string().optional() }) }) }).parse(event);
   if (parsed.type === 'checkout.session.async_payment_succeeded' ||
     parsed.type === 'checkout.session.completed' && parsed.data.object.payment_status === 'paid') return { sessionId: parsed.data.object.id };
