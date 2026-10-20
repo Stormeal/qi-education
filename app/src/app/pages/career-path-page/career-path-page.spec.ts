@@ -202,6 +202,48 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(text()).toContain('Recommended after AI Testing. You can start it now if you prefer.');
   });
 
+  describe('career cards on the choose step', () => {
+    const host = () => fixture.nativeElement as HTMLElement;
+    const titles = () => [...host().querySelectorAll('.cp-career-card h3')].map((h) => h.textContent?.trim());
+    async function choose(paths?: CareerPath[]) {
+      if (paths) (TestBed.inject(CareerPathService) as unknown as { paths: ReturnType<typeof signal<CareerPath[]>> }).paths.set(paths);
+      (fixture.componentInstance as unknown as { wizardStep: ReturnType<typeof signal<string>> }).wizardStep.set('choose-career');
+      await settle();
+    }
+
+    it('labels outcomes and milestones and summarises courses in one short line', async () => {
+      const analyst = { ...PATHS[0], outcomes: ['Design tests'], steps: PATHS[0].steps.map((step, index) => index === 0
+        ? { ...step, courses: [{ courseId: 'c1', title: 'Foundation course', placeholder: false, available: true }, ...step.courses] } : step) };
+      await choose([analyst, PATHS[1]]);
+      const card = host().querySelector<HTMLElement>('.cp-career-card[data-path="test-analyst"]')!;
+      expect([...card.querySelectorAll('.cp-card-label')].map((label) => label.textContent?.trim())).toEqual(["You'll be able to", 'Milestones']);
+      expect([...card.querySelectorAll('.cp-card-facts li')].map((item) => item.textContent?.trim())).toEqual(['2 milestones', '1 of 3 courses ready']);
+      const manager = host().querySelector<HTMLElement>('.cp-career-card[data-path="test-manager"]')!;
+      expect(manager.querySelector('.cp-card-label')?.textContent?.trim()).toBe('Milestones');
+      expect(manager.querySelector('.cp-card-facts')?.textContent).toContain('Courses coming soon');
+      expect(host().querySelector('.cp-career-nav')).toBeNull();
+    });
+
+    it('shows more than four careers as a carousel that steps one career at a time and wraps around', async () => {
+      const many = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => career(id, `Career ${id.toUpperCase()}`, [foundation]));
+      await choose(many);
+      expect(titles()).toEqual(['Career A', 'Career B', 'Career C', 'Career D']);
+      const previous = host().querySelector<HTMLButtonElement>('button[aria-label="Previous careers"]')!;
+      const next = host().querySelector<HTMLButtonElement>('button[aria-label="Next careers"]')!;
+      next.click(); await settle();
+      expect(titles()).toEqual(['Career B', 'Career C', 'Career D', 'Career E']);
+      next.click(); await settle();
+      expect(titles()).toEqual(['Career C', 'Career D', 'Career E', 'Career F']);
+      expect(host().querySelector('.cp-career-nav [aria-live]')?.textContent?.trim()).toBe('Careers 3 to 6 of 6');
+      // Buttons never disable (focus would be lost); the ends wrap instead.
+      expect(next.disabled || previous.disabled).toBe(false);
+      next.click(); await settle();
+      expect(titles()).toEqual(['Career A', 'Career B', 'Career C', 'Career D']);
+      previous.click(); await settle();
+      expect(titles()).toEqual(['Career C', 'Career D', 'Career E', 'Career F']);
+    });
+  });
+
   it('US-L023 career setup starts with a real, optional CV step', async () => {
     (fixture.componentInstance as unknown as { wizardStep: ReturnType<typeof signal<string>> }).wizardStep.set('upload');
     await settle();

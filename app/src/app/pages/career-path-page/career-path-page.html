@@ -131,7 +131,7 @@
           }
 
           @case ('choose-career') {
-            <div class="cp-step">
+            <div class="cp-step cp-step-choose">
               <p class="cp-step-kicker">Stage 03</p>
               <h2 class="cp-choose-heading">Compare careers and choose what to follow</h2>
               <p class="cp-step-intro">
@@ -141,46 +141,60 @@
               @if (saveError()) {
                 <p class="cp-notice is-error" role="alert">{{ saveError() }}</p>
               }
-              <div class="cp-career-grid">
-                @for (path of orderedPaths(); track path.id) {
+              @if (careerCarousel()) {
+                <div class="cp-career-nav">
+                  <p class="cp-career-range" aria-live="polite">{{ careerRangeLabel() }}</p>
+                  <button appIconButton label="Previous careers" (click)="moveCareers(-1)">
+                    <span aria-hidden="true" [innerHTML]="previousIcon"></span>
+                  </button>
+                  <button appIconButton label="Next careers" (click)="moveCareers(1)">
+                    <span aria-hidden="true" [innerHTML]="nextIcon"></span>
+                  </button>
+                </div>
+              }
+              <div class="cp-career-grid" [style.--cp-columns]="visiblePaths().length">
+                @for (path of visiblePaths(); track path.id) {
                   <article class="cp-career-card" [attr.data-path]="path.id" [class.is-draft-choice]="path.id === draftPathId()">
-                    @if (path.id === suggestedPathId()) {
-                      <span class="cp-career-recommended">Suggested from your answers</span>
-                    }
                     @if (isFollowed(path.id)) {
-                      <span class="cp-career-recommended">You follow this career</span>
+                      <span class="cp-card-tag">You follow this career</span>
+                    } @else if (path.id === suggestedPathId()) {
+                      <span class="cp-card-tag">Suggested from your answers</span>
                     }
                     <h3>{{ path.title }}</h3>
-                    <p>{{ path.summary }}</p>
+                    @if (path.summary) { <p class="cp-card-summary">{{ path.summary }}</p> }
                     @if (path.outcomes.length) {
-                      <ul class="cp-path-list" aria-label="Outcomes">
-                        @for (outcome of path.outcomes; track outcome) { <li>{{ outcome }}</li> }
+                      <h4 class="cp-card-label">You'll be able to</h4>
+                      <ul class="cp-card-outcomes">
+                        @for (outcome of path.outcomes; track outcome) {
+                          <li><span class="cp-card-check" aria-hidden="true" [innerHTML]="checkIcon"></span>{{ outcome }}</li>
+                        }
                       </ul>
                     }
-                    <ol class="cp-path-list" aria-label="Steps">
+                    <h4 class="cp-card-label">Milestones</h4>
+                    <ol class="cp-card-milestones">
                       @for (step of path.steps; track step.id) {
-                        <li>{{ step.title }}@if (!step.required) { <em> (optional)</em> }</li>
+                        <li>{{ step.title }}@if (!step.required) { <span class="cp-card-optional">optional</span> }</li>
                       }
                     </ol>
                     @let facts = pathFacts(path);
-                    <p class="cp-path-facts">
-                      {{ facts.required }} required {{ facts.required === 1 ? 'step' : 'steps' }}@if (facts.optional) { &middot; {{ facts.optional }} optional }
-                      @if (path.estimatedHours) { &middot; about {{ path.estimatedHours }} hours }
-                      &middot; {{ facts.available }} {{ facts.available === 1 ? 'course' : 'courses' }} available now
-                      @if (facts.preview) { &middot; {{ facts.preview }} not available yet }
-                    </p>
-                    <div class="cp-card-actions">
-                      @if (isFollowed(path.id)) {
-                        <button type="button" appButton="primary" [disabled]="saving()" (click)="view(path.id)">
-                          {{ saving() && path.id === draftPathId() ? 'Opening…' : 'View path' }}
-                        </button>
-                      } @else {
-                        <button type="button" appButton="primary" [disabled]="saving()" (click)="follow(path.id)">
-                          {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry following' : 'Follow this career' }}
-                        </button>
-                        <button type="button" appButton="ghost" [disabled]="saving()" (click)="view(path.id)">Preview</button>
-                      }
-                    </div>
+                    <footer class="cp-card-footer">
+                      <ul class="cp-card-facts">
+                        <li>{{ facts.milestones }} {{ facts.milestones === 1 ? 'milestone' : 'milestones' }}@if (path.estimatedHours) {, about {{ path.estimatedHours }} hours}</li>
+                        <li>{{ facts.available ? facts.available + ' of ' + facts.total + ' courses ready' : 'Courses coming soon' }}</li>
+                      </ul>
+                      <div class="cp-card-actions">
+                        @if (isFollowed(path.id)) {
+                          <button type="button" appButton="primary" fullWidth [disabled]="saving()" (click)="view(path.id)">
+                            {{ saving() && path.id === draftPathId() ? 'Opening…' : 'View path' }}
+                          </button>
+                        } @else {
+                          <button type="button" appButton="primary" fullWidth [disabled]="saving()" (click)="follow(path.id)">
+                            {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry following' : 'Follow this career' }}
+                          </button>
+                          <button type="button" appButton="ghost" fullWidth [disabled]="saving()" (click)="view(path.id)">Preview</button>
+                        }
+                      </div>
+                    </footer>
                   </article>
                 }
               </div>

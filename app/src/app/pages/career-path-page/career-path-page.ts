@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
+import { lucideCheck, lucideChevronLeft, lucideChevronRight } from '@ng-icons/lucide';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
 import { CareerTree } from '../../ui/career-tree/career-tree';
 import { CareerPathService } from '../../services/career-path.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { Button } from '../../ui/button/button';
+import { IconButton } from '../../ui/icon-button/icon-button';
 import { CvScan } from '../../ui/cv-scan/cv-scan';
 import { plural } from '../../utils/plural';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -27,9 +30,11 @@ const SUGGESTED_PATH_BY_ANSWER: [string, string][] = [
   ['technical', 'test-analyst'],
 ];
 
+const CAREER_WINDOW = 4;
+
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, CareerTree, CvScan, FeedbackDialog, PageHeader],
+  imports: [Button, CareerTree, CvScan, FeedbackDialog, IconButton, PageHeader],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -106,6 +111,26 @@ export class CareerPathPage {
     return [...this.careerPath.paths()].sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested));
   });
 
+  // More than four careers: show four at a time and step one career per click.
+  private readonly sanitizer = inject(DomSanitizer);
+  protected readonly checkIcon = this.sanitizer.bypassSecurityTrustHtml(lucideCheck);
+  protected readonly previousIcon = this.sanitizer.bypassSecurityTrustHtml(lucideChevronLeft);
+  protected readonly nextIcon = this.sanitizer.bypassSecurityTrustHtml(lucideChevronRight);
+  private readonly requestedCareerStart = signal(0);
+  protected readonly careerCarousel = computed(() => this.orderedPaths().length > CAREER_WINDOW);
+  protected readonly maxCareerStart = computed(() => Math.max(0, this.orderedPaths().length - CAREER_WINDOW));
+  protected readonly careerStart = computed(() => Math.min(this.requestedCareerStart(), this.maxCareerStart()));
+  protected readonly visiblePaths = computed(() =>
+    this.orderedPaths().slice(this.careerStart(), this.careerStart() + CAREER_WINDOW));
+  protected readonly careerRangeLabel = computed(() =>
+    `Careers ${this.careerStart() + 1} to ${this.careerStart() + this.visiblePaths().length} of ${this.orderedPaths().length}`);
+
+  // Wraps at the ends so the buttons never disable under keyboard focus.
+  protected moveCareers(step: 1 | -1): void {
+    const positions = this.maxCareerStart() + 1;
+    this.requestedCareerStart.set((this.careerStart() + step + positions) % positions);
+  }
+
   constructor() {
     // A saved selection opens straight on the learner's path.
     effect(() => {
@@ -119,10 +144,9 @@ export class CareerPathPage {
   protected pathFacts(path: CareerPath) {
     const courses = path.steps.flatMap((step) => step.courses);
     return {
-      required: path.steps.filter((step) => step.required).length,
-      optional: path.steps.filter((step) => !step.required).length,
+      milestones: path.steps.length,
       available: courses.filter((course) => course.available).length,
-      preview: courses.filter((course) => !course.available).length,
+      total: courses.length,
     };
   }
 

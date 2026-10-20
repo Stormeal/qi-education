@@ -10,6 +10,12 @@ the whole catalog in the way.
 - `/career-path` starts with a setup flow: intro, an optional **Upload your CV** step (the CV scan
   from [milestones and achievements](milestones-and-achievements.md)), a few questions, then a
   comparison of published careers.
+- **Comparison cards** (2026-10-20): title and summary, "You'll be able to" (outcomes), numbered
+  "Milestones" (optional ones marked), and a footer with the milestone count and "N of M courses
+  ready" or "Courses coming soon", then **Follow this career** / **Preview** (or **View path**).
+  Up to four cards share a row (two columns below 1100 px, one below 640 px). More than four
+  careers show four at a time with Previous/Next buttons that step one career and wrap around;
+  "Careers X to Y of N" is announced politely.
 - A milestone-format career shows **Scan my CV** beside the tree; saving reports
   "Saved N achievements from your CV." and the tree redraws.
 - **Following**: an account follows a set of careers (`PUT/DELETE /users/me/careers/:pathId`) and
