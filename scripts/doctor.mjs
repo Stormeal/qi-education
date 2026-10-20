@@ -1,9 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { parse as parseDotenv } from 'dotenv';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// dotenv belongs to the API workspace and need not be hoisted to the root.
+const { parse: parseDotenv } = createRequire(join(root, 'api', 'package.json'))('dotenv');
 const envPath = join(root, 'api', '.env');
 const options = new Set(process.argv.slice(2));
 const skipServer = options.has('--skip-server');
@@ -69,6 +71,14 @@ function checkEnv(env) {
   }
 
   const corsOrigin = env.get('CORS_ORIGIN') ?? '';
+
+  for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']) {
+    if (hasValue(env, key)) pass(`${key} is set.`);
+    else warn(`${key} is missing.`);
+  }
+  const stripeKey = env.get('STRIPE_SECRET_KEY') ?? '';
+  pass(`Stripe key mode: ${stripeKey.startsWith('sk_live_') ? 'live' : stripeKey.startsWith('sk_test_') ? 'test' : 'none'}`);
+  if (stripeKey.startsWith('sk_live_') && mode !== 'hosted') warn('Live Stripe key in a local run');
 
   if (!corsOrigin || corsOrigin.includes('http://localhost:4200')) {
     pass('CORS allows the Angular localhost origin.');

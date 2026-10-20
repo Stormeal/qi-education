@@ -15,6 +15,8 @@ import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository } from './feedbackRepository.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
+import { FakePaymentService } from './paymentService.js';
+import { InMemoryPaymentRepository } from './paymentRepository.js';
 
 const answers = ['a', 'b', 'c', 'd'].map((id) => ({ id, text: `Answer ${id}`, description: `Why ${id}`, isCorrect: id === 'b' }));
 const sections = [{ id: 'intro', title: 'Introduction', components: [
@@ -25,7 +27,7 @@ const sections = [{ id: 'intro', title: 'Introduction', components: [
 
 describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, enroll, learn (%s)', store => {
   let server: Server, base: string, auth: InMemoryAuthRepository;
-  let teacher: AuthUser, otherTeacher: AuthUser, admin: AuthUser, student: AuthUser;
+  let teacher: AuthUser, otherTeacher: AuthUser, admin: AuthUser, student: AuthUser, earlyLearner: AuthUser;
   let courseId = '';
 
   function request(path: string, user?: AuthUser, method = 'GET', body?: unknown, headers: Record<string, string> = {}) {
@@ -52,6 +54,7 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     teacher = (await auth.findByEmail('teacher@qi-education.local'))!;
     admin = (await auth.findByEmail('admin@qi-education.local'))!;
     student = (await auth.findByEmail('student@qi-education.local'))!;
+    earlyLearner = await auth.createUser({ ...student, id: 'early-learner', email: 'early-learner@example.test' });
     otherTeacher = await auth.createUser({ ...teacher, id: 'other-teacher', email: 'other-teacher@example.test' });
     const content = new InMemoryCourseContentRepository(), assets = new InMemoryCourseAssetRepository();
     if (store === 'mongodb') { Object.defineProperty(content, 'storageType', { value: 'mongodb' }); Object.defineProperty(assets, 'storageType', { value: 'mongodb' }); }
@@ -60,6 +63,7 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
       courseRepository: store === 'mongodb' ? new MongoCourseRepository(async () => collection) : new InMemoryCourseRepository(), courseContentRepository: content,
       courseAssetRepository: assets, feedbackRepository: new InMemoryFeedbackRepository(),
       muxVideoService: null, muxWebhookService: null,
+      paymentService: new FakePaymentService(), paymentRepository: new InMemoryPaymentRepository(),
       gitHubFeedbackService: { createIssueFromFeedback: async () => { throw new Error('The journey must never create a GitHub issue.'); } },
     }).listen(0);
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -105,13 +109,24 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect(await catalogIds()).toContain(courseId);
   });
 
-  it('4. the public sees an outline only; a learner must enroll to read lessons', async () => {
+  it('4. US-L024-AC01 AC02 AC03 the learner buys access; an earlier enrollment stays free', async () => {
     const outline = await (await request(`/courses/${courseId}/outline`)).json();
     expect(JSON.stringify(outline)).not.toContain('Private lesson body');
     expect(outline.sections[0].components.map((component: { title: string }) => component.title)).toEqual(['Welcome', 'Check', 'Files']);
     expect((await request(`/courses/${courseId}/content`, student)).status).toBe(403);
 
-    expect((await request(`/users/me/courses/${courseId}`, student, 'POST')).status).toBe(200);
+    expect((await request(`/users/me/courses/${courseId}`, earlyLearner, 'POST')).status).toBe(200);
+    expect((await request(`/courses/${courseId}/price`, admin, 'PATCH', { priceDkk: 100 })).status).toBe(200);
+    expect((await request(`/courses/${courseId}/content`, earlyLearner)).status).toBe(200);
+    expect((await request(`/users/me/courses/${courseId}`, student, 'POST')).status).toBe(402);
+    const checkout = await request(`/users/me/courses/${courseId}/checkout`, student, 'POST',
+      { returnUrl: `http://localhost:4200/courses/${courseId}` });
+    expect(checkout.status).toBe(200);
+    const sessionId = new URL((await checkout.json()).url).searchParams.get('session_id');
+    expect(sessionId).toMatch(/^fake_cs_/);
+    const confirmed = await request(`/users/me/courses/${courseId}/checkout/confirm`, student, 'POST', { sessionId });
+    expect(confirmed.status).toBe(200);
+    expect(await confirmed.json()).toMatchObject({ paid: true, user: { enrolledCourseIds: [courseId] } });
     const content = await request(`/courses/${courseId}/content`, student);
     expect(content.status).toBe(200);
     const body = JSON.stringify(await content.json());
