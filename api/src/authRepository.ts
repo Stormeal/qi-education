@@ -27,7 +27,7 @@ export interface AuthRepository {
   updateStatusWithChange(userId: string, status: UserStatus): Promise<AuthAccessMutation | null>;
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
-  updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null>;
+  updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null>;
   confirmEmail(userId: string): Promise<AuthUser | null>;
 }
 
@@ -100,8 +100,8 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.users[index];
   }
 
-  async updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null> {
-    const index = this.users.findIndex(user => user.id === userId && user.status === 'active');
+  async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
+    const index = this.users.findIndex(user => user.id === userId && user.status === 'active' && (expectedPasswordHash === undefined || user.passwordHash === expectedPasswordHash));
     if (index < 0) return null;
     this.users[index] = { ...this.users[index], passwordHash };
     return this.users[index];

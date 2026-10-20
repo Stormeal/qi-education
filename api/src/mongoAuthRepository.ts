@@ -59,8 +59,8 @@ export class MongoAuthRepository implements AuthRepository {
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
     return document ? account(document) : null;
   }
-  async updatePasswordHash(userId: string, passwordHash: string): Promise<AuthUser | null> {
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active' }, { $set: { passwordHash } },
+  async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active', ...(expectedPasswordHash === undefined ? {} : { passwordHash: expectedPasswordHash }) }, { $set: { passwordHash } },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
     return document ? account(document) : null;
   }

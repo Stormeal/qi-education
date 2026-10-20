@@ -28,7 +28,7 @@ export function registerChangePasswordRoute(app: Express, dependencies: {
       // Cancel before writing: a failed/uncertain cancellation must not leave a
       // changed password with legacy reset links still usable. Preserve mail slots.
       await tokens.invalidateAll(user.id);
-      const updated = await auth.updatePasswordHash(user.id, hashPassword(password.data));
+      const updated = await auth.updatePasswordHash(user.id, hashPassword(password.data), user.passwordHash);
       if (!updated) { response.status(503).json(unavailable); return; }
       await sendPasswordChangedNotice(sender, updated.email);
       response.status(204).end();

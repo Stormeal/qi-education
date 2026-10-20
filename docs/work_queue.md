@@ -12,7 +12,7 @@ US-L024, the exercise intro video and Codex X1–X5). Handoff and decisions:
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | DEF-047, 048, 052, 053, 049, 050, 051, 054, 055 and the API price range, one commit each | `api/**`, defect rows | Not started |
+| Codex | DEF-047, 048, 052, 053, 049, 050, 051, 054, 055 and the API price range, one commit each | `api/src/**`, `api/test/**`, assigned defect rows and handoff Result | In progress; owner Codex; `main`; base `c25d1fa` (includes `3129083`); next DEF-047 final-write race regression |
 | Claude | Price range in the admin price field; then check routine, specs | `app/**`, `docs/**` except Codex's rows | In progress |
 
 ## Waiting on Alex

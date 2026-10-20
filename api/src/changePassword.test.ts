@@ -179,6 +179,37 @@ describe.each(['', '/api'])('US-L013 isolated HTTP (%s)', prefix => {
       expect((await post('/auth/login', { email: users[0].email, password: newPassword }, null, origin)).status).toBe(200);
     } finally { writeRelease.resolve(); consumeRelease.resolve(); await profile; if (confirm) await confirm; }
   });
+  it.each(['memory', 'mongodb'])('DEF-047 refuses a stale reset paused at the final credential write (%s)', async kind => {
+    const repository = kind === 'memory' ? auth : accounts.repository();
+    const other = kind === 'memory' ? auth : accounts.repository();
+    const origin = await start(repository); const otherOrigin = await start(other);
+    const raw = await issue(users[0], origin); const entered = deferred(); const release = deferred();
+    const write = repository.updatePasswordHash.bind(repository);
+    vi.spyOn(repository, 'updatePasswordHash').mockImplementationOnce(async (...args) => {
+      entered.resolve(); await release.promise; return write(...args);
+    });
+    const reset = post('/auth/password-reset/confirm', { token: raw, password: 'Another123!' }, null, origin);
+    await entered.promise;
+    try { expect((await change(undefined, session(), otherOrigin)).status).toBe(204); }
+    finally { release.resolve(); }
+    const response = await reset;
+    expect(response.status).toBe(410); expect(await response.json()).toEqual(invalid);
+    expect((await post('/auth/login', { email: users[0].email, password: newPassword }, null, origin)).status).toBe(200);
+    await isInvalid(raw);
+  });
+  it('DEF-047 refuses a stale signed-in change across independent repositories', async () => {
+    const repository = accounts.repository(); const other = accounts.repository();
+    const origin = await start(repository); const otherOrigin = await start(other);
+    const entered = deferred(); const release = deferred(); const write = repository.updatePasswordHash.bind(repository);
+    vi.spyOn(repository, 'updatePasswordHash').mockImplementationOnce(async (...args) => {
+      entered.resolve(); await release.promise; return write(...args);
+    });
+    const stale = change(undefined, session(), origin); await entered.promise;
+    try { expect((await change({ currentPassword: oldPassword, newPassword: 'Newest789!' }, session(), otherOrigin)).status).toBe(204); }
+    finally { release.resolve(); }
+    expect((await stale).status).toBe(503);
+    expect((await post('/auth/login', { email: users[0].email, password: 'Newest789!' }, null, origin)).status).toBe(200);
+  });
   it('AC04 sets no-store for parser errors before authentication', async () => {
     const response = await fetch(base + prefix + '/users/me/password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{' });
     expect(response.status).toBe(400); expect(await response.json()).toEqual({ message: expect.any(String) }); expect(response.headers.get('cache-control')).toBe('no-store');
