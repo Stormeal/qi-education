@@ -6,11 +6,17 @@ messages hold them.
 
 ## Active work
 
-None. Pushed to `main` on 2026-10-19 (`776e45c`): US-L001 access policy (`b638953`, price note on the
-course page) and US-P005 course lock inspection (API `df01631` by Codex, build fix `14a9d61`,
-Admin page panel by Claude). Checks: `api:test` 1,686/1,686, `app:test` 397/397,
-`verify:journeys` 16/16, `app:build:pages` and `api:build` pass; Admin panel checked in the
-browser on the isolated servers (empty list only; listed states covered by tests).
+US-L024 paid courses for individuals. Started 2026-10-20 on `main` from `bd64928`. Contract:
+[stories/US-L024](stories/US-L024-paid-courses.md); plan:
+[superpowers/plans/2026-10-20-US-L024-paid-courses.md](superpowers/plans/2026-10-20-US-L024-paid-courses.md).
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | Plan Tasks 1–4: payments store, Stripe service + fake, routes, 402 guard, journey, doctor | `api/**`, `scripts/doctor.mjs`, `package-lock.json`; handoff [handoffs/US-L024-paid-courses-codex.md](handoffs/US-L024-paid-courses-codex.md) | Not started |
+| Claude | Plan Tasks 5–7: purchase flow, course page, profile receipts, check routine, docs | `app/**`, `docs/**` except Codex's row | In progress |
+
+Not verified: hosted Stripe test-card purchase (after push, Alex). Pushed state before this item:
+`cc9fb6b`.
 
 ## Waiting on Alex
 
