@@ -54,6 +54,19 @@ describe('course details page', () => {
     expect(started).toEqual(['course']);
   });
 
+  it('price field accepts free or 3 to 999,999 DKK only (Stripe minimum)', () => {
+    render({ priceDkk: null }, false);
+    const page = rendered as unknown as { updatePriceDraft(v: string): void; applyPriceDraft(id: string): void; priceDraftError(): string };
+    const saved: (number | null)[] = [];
+    rendered.coursePriceSaved.subscribe(event => saved.push(event.priceDkk));
+    for (const value of ['2', '1000000']) {
+      page.updatePriceDraft(value); page.applyPriceDraft('course');
+      expect(page.priceDraftError()).toBe('Enter 0 for free, or a whole number of DKK from 3 to 999,999.');
+    }
+    for (const value of ['', '0', '3', '999999']) { page.updatePriceDraft(value); page.applyPriceDraft('course'); }
+    expect(saved).toEqual([null, 0, 3, 999999]);
+  });
+
   it('US-L024 keeps Enroll on a free course', () => {
     expect(render({ priceDkk: null }, false).querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll');
     expect(render({ priceDkk: 0 }, false).querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll');

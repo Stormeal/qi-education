@@ -242,9 +242,10 @@ export class CourseViewPage {
 
   protected applyPriceDraft(courseId: string): void {
     const value = this.priceDraft().trim();
-    // An invalid amount used to be saved silently as free.
-    if (value && !/^\d+$/.test(value)) {
-      this.priceDraftError.set('Enter a whole number of DKK, or leave it empty to keep the course free.');
+    const amount = Number(value);
+    // An invalid amount used to be saved silently as free. Stripe cannot charge below 2.50 DKK.
+    if (value && (!/^\d+$/.test(value) || (amount !== 0 && (amount < 3 || amount > 999_999)))) {
+      this.priceDraftError.set('Enter 0 for free, or a whole number of DKK from 3 to 999,999.');
       return;
     }
 

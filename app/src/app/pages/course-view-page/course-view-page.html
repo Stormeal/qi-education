@@ -395,7 +395,7 @@
           (input)="updatePriceDraft(controlValue($event))"
         />
       </label>
-      <p class="price-field-note">Learners pay this price to enroll. Leave empty to keep the course free. Prices are in DKK.</p>
+      <p class="price-field-note">Learners pay this price to enroll: 3 to 999,999 DKK. Leave empty or enter 0 to keep the course free.</p>
       @if (priceDraftError()) {
         <p class="price-field-note" role="alert">{{ priceDraftError() }}</p>
       }
