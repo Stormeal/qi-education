@@ -37,6 +37,16 @@ describe('request error contract (DEF-008)', () => {
   });
   afterAll(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
 
+  it.each(['\u00e9'.repeat(43), '!'.repeat(43), 'a'.repeat(42)])('DEF-052 malformed signature returns 401 without error logs (%s)', async signature => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      for (const prefix of ['', '/api']) {
+        const response = await fetch(base + prefix + '/auth/me', { headers: { Authorization: 'Bearer e30.e30.' + signature } });
+        expect(response.status).toBe(401);
+      }
+      expect(log).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
+  });
   it.each(['/auth/login', '/login', '/api/auth/login', '/api/login'])('RD-01 returns safe 400 for malformed JSON on %s', async path => {
     const response = await fetch(base + path, { method: 'POST',
       headers: { 'Content-Type': 'application/json' }, body: '{"private":"do-not-echo",' });

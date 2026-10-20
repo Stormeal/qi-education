@@ -104,7 +104,7 @@ export function verifySessionToken(token: string, secret: string): SessionPayloa
   const [encodedHeader, encodedPayload, signature] = parts;
   const expectedSignature = createSignature(`${encodedHeader}.${encodedPayload}`, secret);
 
-  if (signature.length !== expectedSignature.length) {
+  if (!/^[A-Za-z0-9_-]+$/.test(signature) || Buffer.byteLength(signature) !== Buffer.byteLength(expectedSignature)) {
     return null;
   }
 
