@@ -53,6 +53,9 @@ import { createLessonNotesRepository, type LessonNotesRepository } from './lesso
 import { registerInstructorProfileRoutes } from './instructorProfileRoutes.js';
 import { createInstructorProfileRepository, type InstructorProfileRepository } from './instructorProfileRepository.js';
 import { registerAccountProfileRoutes } from './accountProfileRoutes.js';
+import { createPaymentRepository, type PaymentRepository } from './paymentRepository.js';
+import { createPaymentService, type PaymentService } from './paymentService.js';
+import { createPaymentWebhookHandler, registerPaymentRoutes } from './paymentRoutes.js';
 import { createAccountProfileRepository, type AccountProfileRepository } from './accountProfileRepository.js';
 import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
@@ -61,6 +64,7 @@ import {
   hasMongoAssetConfig,
   hasMongoConfig,
   hasMuxConfig,
+  stripeKeyMode,
 } from './config.js';
 import {
   createCourseSchema,
@@ -120,6 +124,8 @@ type ServerDependencies = {
   accountCareersRepository?: AccountCareersRepository;
   instructorProfileRepository?: InstructorProfileRepository;
   accountProfileRepository?: AccountProfileRepository;
+  paymentRepository?: PaymentRepository;
+  paymentService?: PaymentService | null;
   learningProgressRepository?: LearningProgressRepository;
   lessonNotesRepository?: LessonNotesRepository;
   courseRepository?: CourseRepository;
@@ -150,6 +156,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
   const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
   const accountProfiles = dependencies.accountProfileRepository ?? createAccountProfileRepository();
+  const payments = dependencies.paymentRepository ?? createPaymentRepository();
+  const paymentService = dependencies.paymentService === undefined ? createPaymentService() : dependencies.paymentService;
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
   const lessonNotes = dependencies.lessonNotesRepository ?? createLessonNotesRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
@@ -162,6 +170,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const signupWrites = new KeyedSerialQueue();
   const enrollmentWrites = new KeyedSerialQueue();
+  const paymentDependencies = { authenticate: authenticateRequest(auth), auth, courses, payments, paymentService, enrollmentWrites };
   const triageWrites = new KeyedSerialQueue();
   // Keep successfully created issues across failed saves in this API instance.
   // Once persisted, the feedback row itself supplies the link on future retries.
@@ -263,6 +272,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
     },
   );
+  app.post(['/webhooks/stripe', '/api/webhooks/stripe'],
+    withRequestBodyErrors(express.raw({ type: 'application/json' })), createPaymentWebhookHandler(paymentDependencies));
   app.put(
     ['/courses/:id/thumbnail', '/api/courses/:id/thumbnail'],
     authenticateRequest(auth),
@@ -504,6 +515,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         storage: auth.storageType ?? 'memory',
       },
       mail: { configured: hasMailConfig(), provider: mailSender.provider },
+      payments: { configured: Boolean(paymentService), keyMode: stripeKeyMode() },
       content: {
         storage: courseContent.storageType,
         configured: hasMongoConfig(),
@@ -668,6 +680,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerInstructorProfileRoutes(app, { authenticate: authenticateRequest(auth), requireCreator: requireCourseCreator,
     requireAdmin, profiles: instructorProfiles, auth, courses });
   registerAccountProfileRoutes(app, { authenticate: authenticateRequest(auth), profiles: accountProfiles });
+  registerPaymentRoutes(app, paymentDependencies);
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
     try {
@@ -682,6 +695,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       if (matchingCourse.status !== 'published') {
         response.status(403).json({ message: 'Only published courses accept enrollment.' });
+        return;
+      }
+
+      if ((matchingCourse.priceDkk ?? 0) > 0 && !canAuthorCourse(matchingCourse, authenticatedRequest.user)) {
+        response.status(402).json({ message: 'This course must be bought.' });
         return;
       }
 
