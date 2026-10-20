@@ -202,6 +202,39 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(text()).toContain('Recommended after AI Testing. You can start it now if you prefer.');
   });
 
+  describe('Start over', () => {
+    it('stops following every career after confirming and returns to Stage 01 with answers cleared', async () => {
+      (fixture.componentInstance as unknown as { questionAnswers: ReturnType<typeof signal<Record<string, boolean>>> })
+        .questionAnswers.set({ team: true });
+      await click('Start over');
+      expect(asked.at(-1)).toMatchObject({ title: 'Start your career path over?', confirmLabel: 'Start over' });
+      expect(asked.at(-1)?.message).toContain('stop following all 2 careers');
+      expect(asked.at(-1)?.message).toContain('achievements, completed courses and enrollments are kept');
+      expect(writes).toEqual(['unfollow test-analyst', 'unfollow test-manager']);
+      expect(careers()?.followedPathIds).toEqual([]);
+      expect(text()).toContain('Upload your CV');
+      expect((fixture.componentInstance as unknown as { questionAnswers(): Record<string, boolean> }).questionAnswers()).toEqual({});
+    });
+
+    it('changes nothing when cancelled', async () => {
+      vi.mocked(TestBed.inject(ConfirmService).ask).mockResolvedValueOnce(false);
+      await click('Start over');
+      expect(writes).toEqual([]);
+      expect(careers()?.followedPathIds).toEqual(['test-analyst', 'test-manager']);
+    });
+
+    it('reports a failure partway and finishes the rest when tried again', async () => {
+      failNext = true;
+      await click('Start over');
+      expect(writes).toEqual(['unfollow test-analyst']);
+      expect(text()).toContain('Not saved. Unable to reach the API.');
+      expect(text()).not.toContain('Upload your CV');
+      await click('Start over');
+      expect(careers()?.followedPathIds).toEqual([]);
+      expect(text()).toContain('Upload your CV');
+    });
+  });
+
   describe('career cards on the choose step', () => {
     const host = () => fixture.nativeElement as HTMLElement;
     const titles = () => [...host().querySelectorAll('.cp-career-card h3')].map((h) => h.textContent?.trim());

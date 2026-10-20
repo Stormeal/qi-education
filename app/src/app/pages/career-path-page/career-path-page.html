@@ -238,6 +238,9 @@
                       @if (followed) {
                         <button type="button" appButton="ghost" size="sm" class="cp-unfollow-button" [disabled]="saving()" (click)="unfollow(path)">Stop following</button>
                       }
+                      @if (followedPaths().length) {
+                        <button type="button" appButton="ghost" size="sm" [disabled]="saving()" (click)="startOver()">Start over</button>
+                      }
                     </div>
                   </div>
                   @if (followedPaths().length > 1) {

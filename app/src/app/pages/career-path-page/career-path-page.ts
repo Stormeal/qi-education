@@ -221,6 +221,32 @@ export class CareerPathPage {
     await this.save(path.id, () => this.careerPath.unfollow(path.id), false);
   }
 
+  /** Stops following every career and reopens setup at Stage 01; achievements and courses are kept. */
+  protected async startOver(): Promise<void> {
+    const followed = this.followedPaths();
+    if (this.saving() || !followed.length) return;
+    if (!await this.confirm.ask({ title: 'Start your career path over?', confirmLabel: 'Start over',
+      message: `You'll stop following all ${plural(followed.length, 'career')} and go back to the first step. ` +
+        'Your achievements, completed courses and enrollments are kept.' })) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    // One at a time; a failure stops here and a second Start over finishes what is left.
+    for (const path of followed) {
+      const result = await this.careerPath.unfollow(path.id);
+      if (!result.ok) {
+        this.saving.set(false);
+        this.saveError.set(`Not saved. ${result.message}`);
+        return;
+      }
+    }
+    this.saving.set(false);
+    this.questionAnswers.set({});
+    this.previewPathId.set('');
+    this.draftPathId.set('');
+    this.cvScanOpen.set(false);
+    this.showStep('upload');
+  }
+
   protected achievedCount(path: CareerPath): number {
     if (path.schemaVersion !== 2) return this.careerPath.progressFor(path).doneStepIds.size;
     const states = this.careerPath.careers()?.milestoneStates ?? {};

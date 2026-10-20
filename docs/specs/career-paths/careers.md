@@ -22,6 +22,10 @@ the whole catalog in the way.
   has one **focus** (`PUT /users/me/career-focus`), the career the page and Home show. Following
   again is harmless. Stopping following keeps every achievement and enrollment; if it was the
   focus, the page offers the remaining careers or the career choice.
+- **Start over** (2026-10-20, shown while the learner follows a career): after a confirmation it
+  stops following every career (focus clears) and reopens setup at Stage 01 with the questions
+  cleared. Achievements, completed courses and enrollments are kept. A failure partway shows "Not
+  saved."; pressing Start over again finishes the rest.
 - **Exploring** another published career shows its tree without changing goals or focus; recording
   an achievement there requires following it first.
 - **The tree**: stage columns read left to right with connector lines (green to achieved, blue to
