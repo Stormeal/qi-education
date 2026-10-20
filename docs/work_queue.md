@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. US-L024 paid courses delivered locally on 2026-10-20, **not pushed**: API by Codex
+None. US-L024 paid courses pushed to `main` on 2026-10-20 (`af434c4`, with Codex X1 and X2): API by Codex
 (`9e74a7d`…`369b5a9`, record in [history/handoffs](history/handoffs/US-L024-paid-courses-codex.md)),
 app by Claude (`5f87e59` and the integration commit). Behavior: [specs/payments](specs/payments/payments.md).
 Checks 2026-10-20: `api:test` 1,725/1,725, `app:test` 417/417, `verify:journeys` 16/16,
@@ -19,7 +19,6 @@ return with "Payment received", Start learning, receipts button, phone width.
 | --- | --- | --- |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
-| Push US-L024 | Say "push" to Claude | `main` on GitHub contains the US-L024 commits |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Extra Codex work | Paste assignments X1…X7 from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
