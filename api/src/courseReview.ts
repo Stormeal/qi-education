@@ -170,14 +170,14 @@ export class CourseReviewService {
 
 export function reviewedRepositories(metadata: CourseRepository, content: CourseContentRepository, assets: CourseAssetRepository) {
   const review = new CourseReviewService(metadata, content);
-  const courses: CourseRepository = {
+  const courses = {
     storageType: metadata.storageType,
     listCourses: () => review.list(), createCourse: (input, seed) => metadata.createCourse(input, seed),
     updateCourse: (id, input) => review.updateMetadata(id, input),
     updateCourseThumbnail: (id, input) => review.updateThumbnail(id, input.thumbnailAssetId),
     updateCoursePrice: async (id, input) => { const updated = await metadata.updateCoursePrice(id, input); return updated ? (await review.list()).find(course => course.id === id)! : null; },
     updateCourseCatalogMetadata: async (id, input) => { const updated = await metadata.updateCourseCatalogMetadata(id, input); return updated ? (await review.list()).find(course => course.id === id)! : null; },
-  };
+  } satisfies CourseRepository;
   const courseContent: CourseContentRepository = {
     storageType: content.storageType, checkHealth: () => content.checkHealth(),
     createEmptyCourseContent: (id, date) => content.createEmptyCourseContent(id, date),

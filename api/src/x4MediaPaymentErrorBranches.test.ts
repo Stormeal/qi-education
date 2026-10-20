@@ -1,3 +1,5 @@
+// DEF-055: obsolete adapter-null guards removed; non-null type and missing-course contracts
+// now covered by reviewAdapterContract.test.ts. The inventory below describes the audited baseline.
 /**
  * X4 inventory (line numbers refer to production sources at assignment start).
  * Unit: explicit handler decision/status exit, plus generic 500 and Mongo 503

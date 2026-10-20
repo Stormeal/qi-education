@@ -330,11 +330,6 @@ export function createServer(dependencies: ServerDependencies = {}) {
           throw error;
         }
 
-        if (!updatedCourse) {
-          await courseAssets.deleteAsset(uploadedAsset._id, courseId);
-          response.status(404).json({ message: 'Course not found' });
-          return;
-        }
         // Metadata already references the new asset; old-asset cleanup cannot roll it back.
         if (matchingCourse.thumbnailAssetId && matchingCourse.thumbnailAssetId !== uploadedAsset._id) {
           await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId, courseId);
@@ -1228,11 +1223,6 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (input.status !== current.status) throw new CourseReviewError(409, 'Use the explicit submission and review actions to change status.');
         await review.assertRevision(courseId, request.header('X-Course-Revision'));
         const updatedCourse = await courses.updateCourse(courseId, input);
-
-        if (!updatedCourse) {
-          response.status(404).json({ message: 'Course not found' });
-          return;
-        }
 
         response.json({ ...updatedCourse, review: await review.state(courseId) });
       } catch (error) {

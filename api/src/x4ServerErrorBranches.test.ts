@@ -1,3 +1,5 @@
+// DEF-055: obsolete adapter-null guards removed; non-null type and missing-course contracts
+// now covered by reviewAdapterContract.test.ts. The inventory below describes the audited baseline.
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
