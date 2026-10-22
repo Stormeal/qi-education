@@ -6,10 +6,10 @@ messages hold them.
 
 ## Active work
 
-| Owner | Item | Files | State |
-| --- | --- | --- | --- |
-| Claude Code | DEF-057 catalog settings category dropdown | `app/src/app/pages/course-view-page/**`, `docs/defects.md`, `docs/defects_resolved.md`, `docs/specs/authoring/review-and-publication.md`, this file | Fixed 2026-10-22 in `fix(DEF-057)`, not pushed; hosted check after deploy |
-| Codex | X6 INV-004 options note ([assignment](handoffs/codex-extra-assignments.md#x6-inv-004-options-note-feedback-issue-created-twice)) | One new test file under `api/src/`, `docs/handoffs/INV-004-options.md`. Not `docs/defects.md`: Claude adds the INV-004 link | Handed to Alex to paste, 2026-10-22 |
+None. Delivered 2026-10-22: DEF-057 (dropdowns show their stored value; record in
+`defects_resolved.md`) and Codex X6 (INV-004 reproduced as an expected failure in
+`api/src/multiInstanceFeedback.test.ts`; options in [handoffs/INV-004-options.md](handoffs/INV-004-options.md)),
+checked by Claude.
 
 Done on the hosted site 2026-10-22: AI Testing Specialist and Test Manager converted to the
 milestone format and published (Technical Tester already was); ISTQB Foundation repetition
@@ -30,8 +30,8 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
-| Extra Codex work | Paste assignment X7 after X6 finishes (X1–X5 done, X6 running) from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
-| Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
+| Extra Codex work | Paste assignment X7 (X1–X6 done) from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
+| Decisions | US-P003 (cross-instance writes; for feedback triage pick an INV-004 option in [handoffs/INV-004-options.md](handoffs/INV-004-options.md), Codex recommends C with B's marker), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
 
