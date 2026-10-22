@@ -152,6 +152,9 @@ npm --prefix api run import:rise -- "C:/Users/Alex/scorm-import/istqb-foundation
 npm --prefix api run import:rise -- "C:/Users/Alex/scorm-import/istqb-foundation" --email teacher@example.com
 ```
 
+In PowerShell write `npm.cmd` instead of `npm`: PowerShell's `npm` wrapper drops the `--`, so the
+importer never receives `--email` and only prints its usage line.
+
 - The dry run prints sections, lesson counts, video minutes, skipped files and problems, and
   sends nothing. A real run refuses to start while there are problems.
 - A real run goes to the hosted API (`--api` overrides it, for example `http://localhost:3001`),

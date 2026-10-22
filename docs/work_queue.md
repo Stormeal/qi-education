@@ -28,7 +28,7 @@ into `specs/authoring/course-editor.md` and close the story.
 
 | Item | What Alex does | How to tell it is done |
 | --- | --- | --- |
-| US-T015 hosted import (after US-A005) | Type the admin password when the import asks; then assign the teachers on the Publishing step | The draft shows 88 videos as ready and plays them |
+| US-T015 imported course `2127cfd3-d3ad-44b0-8946-9fff1d51a591` (imported 2026-10-22) | Open it in the editor: check videos show Ready and play, assign teachers on Publishing, upload compressed Kapitel 4 and 5, submit and publish | Videos play for a learner; story can close | The draft shows 88 videos as ready and plays them |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |

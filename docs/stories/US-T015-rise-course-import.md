@@ -125,7 +125,7 @@ See the [plan](../superpowers/plans/2026-10-22-US-T015-rise-course-import.md).
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
 | US-T015-AC01 | `riseImport.test.ts`, `riseImportCommand.test.ts`; dry run on the real export | Pass 2026-10-22: 7 sections, 138 lessons (88 video, 35 quiz, 8 resources, 7 text), 88 videos ≈ 472 min (rounded up per video), 2,119.9 MB; skipped Kapitel 4/5 PDFs, 7 continue and 1 hero block; no problems |
-| US-T015-AC02 | `riseImportRun.test.ts` (in-process API, in-memory stores, fake Mux); local run on ports 3001/4200 | Pass 2026-10-22 locally: draft with thumbnail, 138 lessons, 6 PDFs, quiz shown correctly in the editor; stopped at the first video (local Mux not configured) as expected. **Hosted run and video playback: not done** |
+| US-T015-AC02 | `riseImportRun.test.ts` (in-process API, in-memory stores, fake Mux); local run on ports 3001/4200 | Pass 2026-10-22 locally: draft with thumbnail, 138 lessons, 6 PDFs, quiz shown correctly in the editor; stopped at the first video (local Mux not configured) as expected. Hosted run 2026-10-22 as admin `stormlex@pm.me`: course `2127cfd3-d3ad-44b0-8946-9fff1d51a591`, 88 videos and 6 PDFs uploaded, Mux confirmed the first video via the hosted webhook. **Playback, teacher assignment, Kapitel 4/5 and publishing: Alex, not checked yet** |
 | US-T015-AC03 | `riseImport.test.ts`, `riseImportCommand.test.ts` | Pass 2026-10-22 |
 | US-T015-AC04 | `riseImportRun.test.ts` (simulated Mux webhook through `/webhooks/mux`) | Pass 2026-10-22 |
 | US-T015-AC05 | `riseImportRun.test.ts` | Pass 2026-10-22 |
