@@ -174,7 +174,9 @@ Each retained update runs `npm run api:test` and `npm run api:build` before comm
 | mongodb family | 7.2.0 to 7.7.0 | Retained; BSON 7.3.3, saslprep 1.6.1, connection-string-url 7.0.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `c2ffc4a` |
 | @types/node family | 25.6.0 to 25.9.9 | Retained under api/ with undici-types 7.24.6; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `178dee2` |
 | tsx family | 4.21.0 to 4.23.15 | Retained; API esbuild 0.28.2; app graph unchanged; typed CLI smoke passed | 2,431 passed + 2 expected failures | Pass | `5a57ee4` |
-| vitest family | 4.1.5 to 4.1.12 | Retained; eight API runner packages; app runner unchanged | 2,431 passed + 2 expected failures | Pass | This Vitest update commit |
+| vitest family | 4.1.5 to 4.1.12 | Retained; eight API runner packages; app runner unchanged | 2,431 passed + 2 expected failures | Pass | `cf7229a` |
+| zod | 4.3.6 to 4.6.7 | Reverted: omitted quiz points rejected as nonoptional; no test/source changes | 163 failed, 2,268 passed + 2 expected failures (4 files failed) | Pass | No dependency change retained |
+| Express proxy/query dependency family | proxy-addr 2.0.7 to 2.0.8; qs 6.15.1 to 6.16.1 | Retained API-only copies; Express 5.2.1 and body-parser 2.2.2 unchanged; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This HTTP dependency update commit |
 
 The Express attempt passed behavioral checks, but was outside the conservative no-major/app
 scope once its resolved transitive graph was inspected. Only this attempt's uncommitted changes
@@ -183,6 +185,8 @@ were reversed; the installed tree was then reconciled to the original lock. The 
 security-related family update with app tooling and the transitive major changes together.
 
 The first Vitest install hit npm 10.9.2 Arborist edgesOut while resolving newer optional peers, before any file change. Refreshing just the eight API family lock entries from exact-version registry metadata (including tarball integrity), followed by a normal lock-respecting npm install, succeeded without updating the existing Vite or app graph.
+
+Zod 4.6.7 failed existing US-T015-AC06 courseContent tests and import/learning/media fixtures because omitted quiz question points were rejected with expected nonoptional. The API manifest and only the Zod lock changes were reversed to 4.3.6; a lock-respecting install reconciled node_modules. The full suite after rollback passed all 2,431 tests plus 2 expected failures, and the build passed. This is a dependency compatibility finding, not a change to the existing validation contract. Claude/Alex should review schema default/optional semantics and the upstream change before retrying.
 
 ## Final state and handoff
 
