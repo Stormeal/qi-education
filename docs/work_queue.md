@@ -1,6 +1,6 @@
 # Work queue
 
-Updated: 2026-10-20. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-22. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
@@ -24,6 +24,10 @@ added to the Stripe test destination by Alex.
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
+
+US-T015 Rise course import: story and plan written 2026-10-22; Alex confirms or changes defaults
+D1–D12 in [the contract](stories/US-T015-rise-course-import.md), then it can start. The export is in
+`C:\Users\Alex\scorm-import\` (outside the repo).
 
 US-O001 organizations (release 2): decided with Alex, needs its design pass (brainstorm → spec →
 plan). Codex assignment X5 drafts the API side first. Other open stories wait on a decision by
