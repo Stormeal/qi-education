@@ -8,11 +8,14 @@ The API enforces every rule here; the UI only mirrors them.
 | Role | Can |
 | --- | --- |
 | `student` | Sign up (default role), browse, enroll in published courses, learn, keep notes, give feedback, follow careers, record achievements, edit own profile |
-| `teacher` | Everything a student can, plus create courses, author **own** courses, submit them for review, write a public instructor description |
+| `teacher` | Everything a student can, plus create courses, author the courses they are assigned to, submit them for review, write a public instructor description |
 | `admin` | Everything, plus author **any** course, review/return/publish/archive, set price and catalog metadata, manage users, triage feedback, curate careers, moderate instructor descriptions |
 
-- Every signed-in role may create a course draft and becomes its owner.
-- A course without an owner (legacy) is editable by admins only. Ownership never transfers.
+- Every signed-in role may create a course draft. A teacher who creates one becomes its first
+  assigned teacher; an admin who creates one starts it with no teachers.
+- Admins assign a course's teachers (0–20 teacher accounts, US-A005); every assigned, active teacher
+  can author it. A course with no teachers is editable by admins only. Teachers cannot change the
+  list. Courses stored before US-A005 read their owner as their only teacher.
 - A role or status change applies on the account's next request. A demoted teacher keeps their
   courses but cannot author them. An admin cannot change their own role or status.
 - Disabled accounts cannot sign in or use an existing session; their login fails like a wrong password.

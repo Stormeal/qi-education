@@ -137,12 +137,12 @@ See [the plan](../superpowers/plans/2026-10-22-US-A005-course-teachers.md).
 
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
-| US-A005-AC01 | API route test; panel spec; browser check on the isolated servers | Pending |
-| US-A005-AC02 | API test: a second teacher saves content and submits; courses-page spec | Pending |
+| US-A005-AC01 | API route test (Codex); `ui/course-teachers/course-teachers.spec.ts`; browser check on the isolated servers | Panel spec pass 2026-10-22; API and browser pending |
+| US-A005-AC02 | API test (Codex); `utils/course-permissions.spec.ts`, `courses-page.spec.ts` | App pass 2026-10-22; API pending |
 | US-A005-AC03 | API test after removal | Pending |
 | US-A005-AC04 | API route test | Pending |
 | US-A005-AC05 | API route test | Pending |
 | US-A005-AC06 | Repository tests (in-memory and MongoDB fake) | Pending |
-| US-A005-AC07 | `courseAccess` test; panel spec | Pending |
-| US-A005-AC08 | Panel spec | Pending |
+| US-A005-AC07 | API test (Codex); panel spec | Panel pass 2026-10-22; API pending |
+| US-A005-AC08 | `ui/course-teachers/course-teachers.spec.ts` | Pass 2026-10-22 |
 | US-A005-AC09 | Instructor profile route test | Pending |
