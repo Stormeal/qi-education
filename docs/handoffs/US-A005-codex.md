@@ -164,3 +164,26 @@ or `api/dist` rebuilds were used. Claude's browser/deployment verification remai
 - Other files changed: this result section, the Codex row in `docs/work_queue.md`, and only the
   required version values in `package.json`, `app/package.json`, `package-lock.json` (three entries),
   and `app/src/app/services/app-state.service.ts` (`appVersion`).
+
+## Round 2 (from Claude's check, 2026-10-22)
+
+Claude's check: diff kept to Codex's files, contract kept, `api:test` 2,423/2,423, `app:test`
+440/440, `verify:journeys` 16/16, `app:build:pages` pass, browser flow passes. One fix is needed,
+the one Codex raised:
+
+- **Problem:** `PUT /courses/:id/teachers` checks every id. A list with two deleted or demoted
+  entries can never be cleaned (removing one still sends the other), and an old admin-owned course
+  (`[adminId]`) refuses every addition until the admin entry is removed.
+- **Contract change (D5, clarified in the story):** only ids that are not on the stored list must
+  be accounts with role `teacher`. Ids already on the list may stay whatever their account state.
+  Order of checks: body shape (400, same message) → duplicates (400) → course exists (404
+  `Course not found`) → each newly added id is a teacher (400 `<id> is not a teacher account.`).
+  Read the stored list inside the PUT handler (it already runs under `withCourseLock`).
+- **Tests (RED first) in `api/src/courseTeachers.test.ts`:**
+  1. Stored `[A, B, C]`; A deleted, B demoted to student; PUT `[B, C]` → 200, B returned
+     `active: false`, then PUT `[C]` → 200.
+  2. Old course `{ ownerUserId: adminId }`; PUT `[adminId, T]` → 200 with the admin inactive.
+  3. Adding a new student id to a stored list still answers 400 `<id> is not a teacher account.`
+  4. An unknown course still answers 404 even when the body is valid.
+- Same files, rules and closing steps as round 1. No app or docs changes besides your queue row and
+  the "Codex result" section (add a "Round 2" entry).
