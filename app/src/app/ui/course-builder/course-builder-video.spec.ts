@@ -3,6 +3,11 @@ import { vi } from 'vitest';
 import { CourseBuilder } from './course-builder';
 import { CourseComponent } from '../../app.models';
 
+// jsdom cannot run the real Mux player; Mux skips its own registration when the tag already exists.
+vi.hoisted(() => {
+  if (!customElements.get('mux-player')) customElements.define('mux-player', class extends HTMLElement {});
+});
+
 describe('US-T006 video recovery guidance', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
   afterEach(() => { TestBed.resetTestingModule(); vi.restoreAllMocks(); });
