@@ -527,7 +527,7 @@
           (change)="updateCatalogCategory(controlValue($event))"
         >
           @for (category of catalogCategoryOptions; track category) {
-            <option [value]="category">{{ category }}</option>
+            <option [value]="category" [selected]="category === catalogCategoryDraft()">{{ category }}</option>
           }
         </select>
       </label>

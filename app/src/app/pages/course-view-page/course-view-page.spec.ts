@@ -67,6 +67,15 @@ describe('course details page', () => {
     expect(saved).toEqual([null, 0, 3, 999999]);
   });
 
+  it('DEF-057 catalog settings show the stored category, not the first option', async () => {
+    const page = render({ priceDkk: null });
+    const view = rendered as unknown as { openCatalogModal(course: unknown): void; course(): unknown };
+    view.openCatalogModal(view.course());
+    TestBed.tick();
+    await new Promise(resolve => setTimeout(resolve));
+    expect(page.querySelector<HTMLSelectElement>('.price-field select')?.value).toBe('Uncategorized');
+  });
+
   it('US-L024 keeps Enroll on a free course', () => {
     expect(render({ priceDkk: null }, false).querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll');
     expect(render({ priceDkk: 0 }, false).querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll');

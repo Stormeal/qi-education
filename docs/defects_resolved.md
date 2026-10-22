@@ -1456,3 +1456,23 @@ then verify that the Pages workflow accepts the hosted MongoDB account configura
   [desktop](history/verification/2026-10-22/DEF-056/navigation-desktop.png),
   [375px](history/verification/2026-10-22/DEF-056/navigation-375px.png).
 - Release limits: local verification only; no hosted mutation, push, or deployment performed.
+
+### DEF-057 - Catalog settings show the wrong category for an uncategorized course
+
+- Severity/state: P3 / Fixed 2026-10-22; owner Claude Code. Found on the hosted site while publishing
+  ISTQB Foundation repetition (the dialog showed Software Testing, **Save settings** stored
+  Uncategorized; choosing another category and back saved correctly).
+- Root cause: `[value]` on a `<select>` is applied before its `@for` options exist, so the browser
+  falls back to the first option while the component keeps the stored value. The same pattern was in
+  the catalog language and sort filters (`pages/courses-page/courses-page.html`) and the draft
+  recovery picker (`ui/course-draft-status/course-draft-status.html`); each showed the first option
+  whenever its starting value was not the first.
+- Resolution: each generated `<option>` now sets `[selected]` from the current value, in all four
+  places.
+- Delivery commit: the commit containing this resolution, `fix(DEF-057): dropdowns show their stored value`.
+- Regression evidence: `DEF-057 catalog settings show the stored category, not the first option` in
+  `course-view-page.spec.ts` failed before (`expected 'Software Testing' to be 'Uncategorized'`) and
+  passes after; `npm run app:test` 441 tests pass.
+- Browser check: isolated stores, ports 3001/4200, local admin; a new uncategorized course's Catalog
+  settings dialog shows Uncategorized. The language, sort and draft pickers were not browser-checked.
+- Release limits: not pushed; hosted check after deploy.

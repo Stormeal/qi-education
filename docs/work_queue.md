@@ -8,7 +8,7 @@ messages hold them.
 
 | Owner | Item | Files | State |
 | --- | --- | --- | --- |
-| Claude Code | DEF-057 catalog settings category dropdown | `app/src/app/pages/course-view-page/**`, `docs/defects.md`, `docs/defects_resolved.md`, `docs/specs/authoring/review-and-publication.md`, this file | In progress, started 2026-10-22 |
+| Claude Code | DEF-057 catalog settings category dropdown | `app/src/app/pages/course-view-page/**`, `docs/defects.md`, `docs/defects_resolved.md`, `docs/specs/authoring/review-and-publication.md`, this file | Fixed 2026-10-22 in `fix(DEF-057)`, not pushed; hosted check after deploy |
 | Codex | X6 INV-004 options note ([assignment](handoffs/codex-extra-assignments.md#x6-inv-004-options-note-feedback-issue-created-twice)) | One new test file under `api/src/`, `docs/handoffs/INV-004-options.md`. Not `docs/defects.md`: Claude adds the INV-004 link | Handed to Alex to paste, 2026-10-22 |
 
 Done on the hosted site 2026-10-22: AI Testing Specialist and Test Manager converted to the

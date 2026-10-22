@@ -341,7 +341,7 @@
               >
                 <option value="">All languages</option>
                 @for (language of languageFacets(); track language) {
-                  <option [value]="language">{{ language }}</option>
+                  <option [value]="language" [selected]="language === selectedLanguage()">{{ language }}</option>
                 }
               </select>
             </div>
@@ -354,7 +354,7 @@
               <span>Sort by</span>
               <select [value]="sortBy()" (change)="setSort(controlValue($event))">
                 @for (option of sortOptions; track option.value) {
-                  <option [value]="option.value">{{ option.label }}</option>
+                  <option [value]="option.value" [selected]="option.value === sortBy()">{{ option.label }}</option>
                 }
               </select>
             </label>

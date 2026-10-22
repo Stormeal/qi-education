@@ -4,7 +4,7 @@
     <p>A draft for this account and course is saved on this device. Restore it to continue, or discard it to use the saved course.</p>
     <label>Local draft
       <select [value]="selectedKey()" [disabled]="pending()" (change)="selectDraft($event)">
-        @for (draft of drafts(); track draft.key) { <option [value]="draft.key">{{ draft.draft.title || 'Untitled course' }} · {{ draftDate(draft.updatedAt) }}</option> }
+        @for (draft of drafts(); track draft.key) { <option [value]="draft.key" [selected]="draft.key === selectedKey()">{{ draft.draft.title || 'Untitled course' }} · {{ draftDate(draft.updatedAt) }}</option> }
       </select>
     </label>
     @if (!editable()) { <p>This revision cannot currently be edited. Your local draft is retained.</p> }
