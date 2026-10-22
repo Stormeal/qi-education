@@ -6,29 +6,18 @@ messages hold them.
 
 ## Active work
 
-US-A005 course teachers, on `main` from `d41b952`; contract
-[stories/US-A005](stories/US-A005-course-teachers.md), plan
-[superpowers/plans](superpowers/plans/2026-10-22-US-A005-course-teachers.md), handoff
-[history/handoffs/US-A005-codex.md](history/handoffs/US-A005-codex.md).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | Plan tasks 1–3: storage, authorization, admin routes (AC01–AC07, AC09 API) | `api/**` except `api/dist` | API done 2026-10-22, `main` from `aa9ada0` (contains `ca9d9dd`): `6fa0c98`, `4ea138a`, and this Task 3 delivery commit (`feat(US-A005): admin routes to read and assign course teachers`). API 2,423/2,423, journeys 16/16, no-emit TypeScript pass; review race fixed. Next: Claude browser check, story verification rows, and panel cleanup follow-up in handoff. Local commits only |
-| Codex | Round 2: keep stored entries when validating `PUT /courses/:id/teachers` (handoff "Round 2") | `api/**` except `api/dist` | Done 2026-10-22, `main` from `b30aaea`, in this delivery commit (`fix(US-A005): validate only newly assigned teachers`). Four cases tested RED → GREEN on both prefixes; API 2,431/2,431, journeys 16/16, no-emit TypeScript pass. Local commit only; no outside-file changes needed. Next: Claude final delivery record |
-| Claude Code | Plan tasks 4–6: app, Teachers panel (AC08), rules and specs | `app/**`, `docs/**` | Done 2026-10-22; both Codex checks done (round 2 `be7d43d`): `api:test` 2,431/2,431, `app:test` 440/440, `verify:journeys` 16/16, `app:build:pages` pass, browser flow passes. Pushed and deployed 2026-10-22 (`ded4ce2`, version 0.1.389; Vercel, Pages, CI green; the first Pages run failed on a CI-only Mux player test, fixed in `ded4ce2`). Open: Alex's hosted check of the Teachers panel, then close the story |
-
-US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built 2026-10-22 and
-pushed (`fc0cd68`, version 0.1.373; Vercel, Pages and CI green): `npm --prefix api run import:rise` (contract and verification
-table in [stories/US-T015](stories/US-T015-rise-course-import.md)). Checks: `api:test` 2,337/2,337,
-`app:test` 429/429, `verify:journeys` 16/16, `app:build:pages` pass; dry run on the real export
-clean; local import into the isolated API checked in the browser. Left: US-A005 (assign teachers) first, then the hosted import as an admin (Alex types the password) and a playback check; then fold
-into `specs/authoring/course-editor.md` and close the story.
+None. Delivered 2026-10-22 and closed: US-T015 (Rise SCORM import; the ISTQB Foundation
+repetition course was imported to the hosted site as course `2127cfd3-d3ad-44b0-8946-9fff1d51a591`)
+and US-A005 (admins assign course teachers, built with Codex; record in
+[history/handoffs](history/handoffs/US-A005-codex.md)). Behavior in
+[specs/authoring/course-editor.md](specs/authoring/course-editor.md),
+[specs/authoring/quizzes.md](specs/authoring/quizzes.md) and [business_rules.md](business_rules.md).
 
 ## Waiting on Alex
 
 | Item | What Alex does | How to tell it is done |
 | --- | --- | --- |
-| US-T015 imported course `2127cfd3-d3ad-44b0-8946-9fff1d51a591` (imported 2026-10-22) | Open it in the editor: check videos show Ready and play, assign teachers on Publishing, upload compressed Kapitel 4 and 5, submit and publish | Videos play for a learner; story can close | The draft shows 88 videos as ready and plays them |
+| ISTQB Foundation repetition course | Upload compressed Kapitel 4 and Kapitel 5 (over 4 MB, skipped by the import) in the editor, then submit and publish | The course is in the catalog with all 8 PDFs |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
@@ -52,8 +41,7 @@ Delivered work whose real-environment check has not been done. Tick off here whe
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
 - Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.
-- Teachers panel (US-A005) on the hosted site: as admin assign a teacher on a course's Publishing step, sign in as that teacher and open the course for editing, remove them again.
-- Mux: real upload, webhook delivery, processing delay and public playback on the hosted site; INV-019.
+- Mux: real upload, webhook delivery and playback in the editor checked 2026-10-22 with the 88 imported ISTQB videos. Still open: playback as a learner once the course is published; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).
 - Profiles and instructor descriptions on two devices against hosted MongoDB.

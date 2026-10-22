@@ -16,6 +16,14 @@ any course.
   at once (`PUT /courses/:id/teachers`, 0–20 teacher accounts), announces "Teachers saved", and on
   failure keeps the previous list with the error. It never touches the course draft. Teachers do
   not see the panel. `ownerUserId` is kept as a copy of the first teacher for older clients.
+- **Importing a Rise course** (US-T015): an operator command, `npm --prefix api run import:rise`
+  (`npm.cmd` in PowerShell), turns an extracted Articulate Rise SCORM export into a draft through the
+  API: Rise lessons become sections; videos (uploaded straight to Mux), knowledge checks (one quiz
+  per run of checks, pass mark = all questions), PDFs up to 4 MB and text become lessons; a short
+  heading names the next lesson. `--dry-run` sends nothing; `--course <id>` resumes and uploads
+  only what is missing; after the first video it waits up to 2 minutes for Mux's webhook. It signs
+  in as an admin; teachers are assigned afterwards. Other authoring tools are refused. Usage:
+  [local_development.md](../../local_development.md#import-a-rise-course-us-t015).
 - **Guided form** (`/courses/new`, `/courses/:id/edit`): steps Essentials → Learner fit →
   Thumbnail → Course content → Publishing, one open at a time, with a checkmark once its required
   fields are filled. Required fields (title, teacher, level, description) carry an asterisk.
@@ -44,6 +52,8 @@ any course.
 - API: `POST /courses`, `PATCH /courses/:id`, `PATCH /courses/:id/content`; authoring rights in
   `courseAccess.ts` (`canAuthorCourse`, `courseTeacherIds`); teacher list routes in
   `courseTeachersRoutes.ts`; revision checks in `courseReview.ts`.
+- Import: `api/src/riseImport.ts` (plan from the export), `riseImportRun.ts` (HTTP and resume),
+  `riseImportCommand.ts` and `riseImportCli.ts` (command line).
 - App: Teachers panel in `ui/course-teachers/`; `courseTeacherIds` and `canEditCourse` in
   `utils/course-permissions.ts`.
 
