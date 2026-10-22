@@ -6,19 +6,18 @@ messages hold them.
 
 ## Active work
 
-US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built and committed
-locally on 2026-10-22, not pushed: `npm --prefix api run import:rise` (contract and verification
+US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built 2026-10-22 and
+pushed (`fc0cd68`, version 0.1.373; Vercel, Pages and CI green): `npm --prefix api run import:rise` (contract and verification
 table in [stories/US-T015](stories/US-T015-rise-course-import.md)). Checks: `api:test` 2,337/2,337,
 `app:test` 429/429, `verify:journeys` 16/16, `app:build:pages` pass; dry run on the real export
-clean; local import into the isolated API checked in the browser. Left: Alex pushes, the hosted API
-deploys, then the hosted import (Alex types the teacher password) and a playback check; then fold
+clean; local import into the isolated API checked in the browser. Left: the hosted import (Alex types the teacher password) and a playback check; then fold
 into `specs/authoring/course-editor.md` and close the story.
 
 ## Waiting on Alex
 
 | Item | What Alex does | How to tell it is done |
 | --- | --- | --- |
-| US-T015 hosted import | Say "push"; once deployed, say which teacher account owns the course and type its password when the import asks | The draft shows 88 videos as ready and plays them |
+| US-T015 hosted import | Say which teacher account owns the course and type its password when the import asks | The draft shows 88 videos as ready and plays them |
 | Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
