@@ -35,8 +35,14 @@ payment pages; the API keeps the record of who paid for what.
 
 ## Rules
 
-- A purchase is an enrollment that is never taken away. Refunds are made in the Stripe dashboard
-  and do not remove access.
+- A purchase is an enrollment kept until the payment is **fully** refunded (US-L025, 2026-10-22).
+  Refunds are made in the Stripe dashboard; the webhook (`charge.refunded`, found through the
+  payment intent's Checkout session) marks the payment `refundedAt` and removes the enrollment
+  unless another unrefunded purchase of the same course remains. Partial refunds change nothing;
+  repeated, late or unknown refund events change nothing (unknown ones are logged as
+  `Refund for unknown payment`). A refunded purchase never grants access again, even if its paid
+  event is replayed. Progress, notes and achievements are kept, so buying again continues where
+  the learner left off.
 - A price is free (empty or 0) or 3–999,999 whole DKK; checkout refuses a stored price outside that
   range with 400.
 - A second distinct purchase of a course the account already has is detected atomically with the
@@ -56,11 +62,14 @@ payment pages; the API keeps the record of who paid for what.
   `AppStateService`; `startCheckout` / `confirmCheckout` in `course.service.ts`; return handling in
   `routes/course-view-route.ts`; the buy button and status in `pages/course-view-page/`; the portal
   button in `pages/profile-page/` with `openBillingPortal` in `profile.service.ts`.
-- Tests: `api/src/payment*.test.ts`, the paid purchase in `api/src/journey.test.ts`,
+- Tests: `api/src/payment*.test.ts`, `api/src/refund*.test.ts`, the paid purchase in `api/src/journey.test.ts`,
   `app/src/app/services/course-purchase.spec.ts`, the US-L024 cases in the course and profile
   page specs.
 - Config: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`; `npm run doctor` reports them and warns
   about a live key in a local run.
+
+- Stripe test destination `qi-academy-vercel` sends `checkout.session.completed`,
+  `checkout.session.async_payment_succeeded` and `charge.refunded` (added 2026-10-22).
 
 ## Limits
 

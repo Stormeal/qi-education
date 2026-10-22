@@ -6,14 +6,11 @@ messages hold them.
 
 ## Active work
 
-US-L025 a full refund removes access, started 2026-10-20 on `main` from `90564bb` (pushed).
-Contract: [stories/US-L025](stories/US-L025-refund-removes-access.md); handoff:
-[handoffs/US-L025-refunds-codex.md](handoffs/US-L025-refunds-codex.md).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | Refund webhook, payment and enrollment writes, tests (AC01-AC05) | `api/src/**`, `api/test/**`, assigned state/Result rows | API complete 2026-10-22; owner Codex; `main`; base `208fe29`; delivery is the commit containing this row; API 2,316 tests/88 files, journeys 16, build passed; next Claude review/spec fold-in and Alex hosted test after an authorized push; no push by Codex |
-| Claude | Review, then business rules and payments spec | `docs/**` | Waiting for Codex |
+None. US-L025 (a full refund removes access) delivered locally on 2026-10-22, **not pushed**: API by
+Codex `77b6038` (record in [history/handoffs](history/handoffs/US-L025-refunds-codex.md)); behavior in
+[specs/payments](specs/payments/payments.md). Checks 2026-10-22: `api:test` 2,316/2,316,
+`verify:journeys` 16/16, `app:test` 428/428, `app:build:pages` and `api:build` pass. `charge.refunded`
+added to the Stripe test destination by Alex.
 
 ## Waiting on Alex
 
@@ -36,6 +33,7 @@ Alex (US-A004 curriculum, US-P001 browser runner, US-P003 multi-instance writes)
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Refund (US-L025) on the hosted site, after the push: refund a test purchase in Stripe → Payments; the course leaves that learner's My Learning and the destination shows a delivered `charge.refunded`.
 - Career cards, carousel and Start over on the hosted site: compare careers on a wide screen and a phone; Start over with a learner who has achievements (they must stay).
 - Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner.
 - Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal, and the Stripe destination `qi-academy-vercel` shows a delivered event.

@@ -39,7 +39,8 @@ The API enforces every rule here; the UI only mirrors them.
 - New enrollment only in a published course; enrolling twice keeps one enrollment.
 - Archiving stops new enrollment; existing learners keep access.
 - Prices are DKK. Empty or 0 = free. A priced course is enrolled by buying it once through Stripe
-  and kept for good; authors, admins and anyone enrolled before the price was set never pay.
+  and kept unless the payment is fully refunded (US-L025); authors, admins and anyone enrolled before
+  the price was set never pay.
 - Careers and declarations never enroll anyone or grant content access.
 
 ## Progress and completion
