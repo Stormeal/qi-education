@@ -77,6 +77,16 @@ export class MongoAuthRepository implements AuthRepository {
     return { user, added, purchaseSessionId: added && purchaseSessionId ? purchaseSessionId : document.enrollmentPurchases?.[key] };
   }
 
+  async reconcileCoursePurchase(userId: string, courseId: string, remainingSessionId: string | null): Promise<AuthUser | null> {
+    const source = `enrollmentPurchases.${createHash('sha256').update(courseId).digest('hex')}`;
+    // Enrollment and its source move together, without replacing other account fields.
+    const update = remainingSessionId
+      ? { $addToSet: { enrolledCourseIds: courseId }, $set: { [source]: remainingSessionId } }
+      : { $pull: { enrolledCourseIds: courseId }, $unset: { [source]: '' as const } };
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId }, update,
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    return document ? account(document) : null;
+  }
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
     const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active', ...(expectedPasswordHash === undefined ? {} : { passwordHash: expectedPasswordHash }) }, { $set: { passwordHash } },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });

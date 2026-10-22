@@ -40,7 +40,7 @@ export function fakeAuthCollection() {
       checkEmail(document);
       documents.set(document._id, structuredClone(document)); return { acknowledged: true };
     },
-    async findOneAndUpdate(filter: Filter, update: { $set?: Partial<MongoAuthDocument>; $addToSet?: { enrolledCourseIds: string } }, options: { returnDocument?: string }) {
+    async findOneAndUpdate(filter: Filter, update: { $set?: Partial<MongoAuthDocument>; $addToSet?: { enrolledCourseIds: string }; $pull?: { enrolledCourseIds: string }; $unset?: Record<string, unknown> }, options: { returnDocument?: string }) {
       calls.writes.push({ filter, update, options });
       const document = [...documents.values()].find(doc => matches(doc, filter));
       if (!document) return null;
@@ -56,6 +56,12 @@ export function fakeAuthCollection() {
         target[fields.at(-1)!] = structuredClone(value);
       }
       if (update.$addToSet && !next.enrolledCourseIds.includes(update.$addToSet.enrolledCourseIds)) next.enrolledCourseIds.push(update.$addToSet.enrolledCourseIds);
+      if (update.$pull) next.enrolledCourseIds = next.enrolledCourseIds.filter(id => id !== update.$pull!.enrolledCourseIds);
+      for (const key of Object.keys(update.$unset ?? {})) {
+        const fields = key.split('.'); let target = next as unknown as Record<string, unknown>;
+        for (const field of fields.slice(0, -1)) target = (target?.[field] ?? {}) as Record<string, unknown>;
+        delete target[fields.at(-1)!];
+      }
       checkEmail(next);
       Object.assign(document, next);
       return structuredClone(options.returnDocument === 'before' ? before : document);

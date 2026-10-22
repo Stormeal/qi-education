@@ -36,18 +36,45 @@ function checkoutReturn(returnUrl: string, success: boolean): string {
 
 // Always retry the enrollment, including when the payment insert succeeded on an
 // earlier delivery whose enrollment failed. Mongo's session key deduplicates the
-// record across hosts; the auth repository's enrollment operation is add-only.
+// record across hosts. Refunded records must never grant enrollment again.
 async function recordPaidCheckout(session: CheckoutSession, deps: PaymentDependencies): Promise<AuthenticatedUser> {
   if (!session.paid || !session.customerId || !session.userId || !session.courseId) throw new Error('Invalid paid course session.');
   return deps.enrollmentWrites.run(session.userId, async () => {
     const added = await deps.payments.add({ _id: session.id, userId: session.userId, courseId: session.courseId,
       amountDkk: session.amountDkk, stripeCustomerId: session.customerId!, paidAt: new Date().toISOString() });
+    if ((await deps.payments.findById(session.id))?.refundedAt) return reconcileRefundedCourse(session.userId, session.courseId, deps);
     const enrollment = await deps.auth.enrollUserInCourseWithChange(session.userId, session.courseId, session.id);
     if (!enrollment) throw new Error('Payment enrollment was not confirmed.');
-    if (added && !enrollment.added && enrollment.purchaseSessionId !== session.id) {
+    if (added && !enrollment.added && enrollment.purchaseSessionId !== session.id &&
+      (!enrollment.purchaseSessionId || await deps.payments.findUnrefundedPurchase(session.userId, session.courseId, session.id))) {
       console.error('Duplicate course purchase', { sessionId: session.id, userId: session.userId, courseId: session.courseId });
     }
+    // A refund on another instance may have arrived while this grant was in flight.
+    if ((await deps.payments.findById(session.id))?.refundedAt) return reconcileRefundedCourse(session.userId, session.courseId, deps);
     return toAuthenticatedUser(enrollment.user);
+  });
+}
+
+// Recheck after the atomic account write: a competing purchase/refund may have
+// changed the remaining purchase while this instance awaited account storage.
+async function reconcileRefundedCourse(userId: string, courseId: string, deps: PaymentDependencies): Promise<AuthenticatedUser> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const remaining = await deps.payments.findUnrefundedPurchase(userId, courseId);
+    const user = await deps.auth.reconcileCoursePurchase(userId, courseId, remaining?._id ?? null);
+    if (!user) throw new Error('Refund enrollment reconciliation was not confirmed.');
+    const latest = await deps.payments.findUnrefundedPurchase(userId, courseId);
+    if (latest?._id === remaining?._id) return toAuthenticatedUser(user);
+  }
+  throw new Error('Concurrent payment changes require a retry.');
+}
+async function recordRefund(paymentIntentId: string, deps: PaymentDependencies): Promise<void> {
+  const session = await deps.paymentService!.findCheckoutByPaymentIntent(paymentIntentId);
+  if (!session) { console.warn('Refund for unknown payment', { paymentIntentId }); return; }
+  const payment = await deps.payments.findById(session.id);
+  if (!payment) { console.warn('Refund for unknown payment', { sessionId: session.id }); return; }
+  await deps.enrollmentWrites.run(payment.userId, async () => {
+    await deps.payments.markRefunded(payment._id, new Date().toISOString());
+    await reconcileRefundedCourse(payment.userId, payment.courseId, deps);
   });
 }
 
@@ -57,7 +84,8 @@ export function createPaymentWebhookHandler(deps: PaymentDependencies): RequestH
     try {
       const rawBody = Buffer.isBuffer(request.body) ? request.body.toString('utf8') : '';
       const event = deps.paymentService.readWebhookEvent(rawBody, request.header('stripe-signature'));
-      if (event) {
+      if (event && 'paymentIntentId' in event) await recordRefund(event.paymentIntentId, deps);
+      else if (event) {
         const session = await deps.paymentService.readCheckout(event.sessionId);
         if (session?.paid) await recordPaidCheckout(session, deps);
       }

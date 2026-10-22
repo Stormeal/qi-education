@@ -12,7 +12,7 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
-| US-L025 | A full refund removes access to a bought course | In progress | P2 | — | [stories/US-L025](stories/US-L025-refund-removes-access.md) |
+| US-L025 | A full refund removes access to a bought course | API complete; Claude review/specs pending | P2 | — | [stories/US-L025](stories/US-L025-refund-removes-access.md) |
 | US-O001 | Organizations: request, approval, invites, owner overview | Decided, not designed | P2 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |

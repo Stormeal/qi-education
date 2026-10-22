@@ -12,7 +12,7 @@ Contract: [stories/US-L025](stories/US-L025-refund-removes-access.md); handoff:
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Refund webhook, payment and enrollment writes, tests (AC01–AC05) | `api/**` | Not started |
+| Codex | Refund webhook, payment and enrollment writes, tests (AC01-AC05) | `api/src/**`, `api/test/**`, assigned state/Result rows | API complete 2026-10-22; owner Codex; `main`; base `208fe29`; delivery is the commit containing this row; API 2,316 tests/88 files, journeys 16, build passed; next Claude review/spec fold-in and Alex hosted test after an authorized push; no push by Codex |
 | Claude | Review, then business rules and payments spec | `docs/**` | Waiting for Codex |
 
 ## Waiting on Alex

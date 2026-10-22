@@ -30,6 +30,7 @@ export interface AuthRepository {
   createUser(user: AuthUser): Promise<AuthUser>;
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
   enrollUserInCourseWithChange(userId: string, courseId: string, purchaseSessionId?: string): Promise<AuthEnrollmentMutation | null>;
+  reconcileCoursePurchase(userId: string, courseId: string, remainingSessionId: string | null): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null>;
   confirmEmail(userId: string): Promise<AuthUser | null>;
 }
@@ -99,6 +100,19 @@ export class InMemoryAuthRepository implements AuthRepository {
     return { user: this.users[index], added, purchaseSessionId: this.enrollmentPurchases.get(key) };
   }
 
+  async reconcileCoursePurchase(userId: string, courseId: string, remainingSessionId: string | null): Promise<AuthUser | null> {
+    const index = this.users.findIndex(user => user.id === userId);
+    if (index < 0) return null;
+    const user = this.users[index], key = JSON.stringify([userId, courseId]);
+    if (remainingSessionId) {
+      this.users[index] = { ...user, enrolledCourseIds: [...new Set([...user.enrolledCourseIds, courseId])] };
+      this.enrollmentPurchases.set(key, remainingSessionId);
+    } else {
+      this.users[index] = { ...user, enrolledCourseIds: user.enrolledCourseIds.filter(id => id !== courseId) };
+      this.enrollmentPurchases.delete(key);
+    }
+    return this.users[index];
+  }
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
     const index = this.users.findIndex(user => user.id === userId && user.status === 'active' && (expectedPasswordHash === undefined || user.passwordHash === expectedPasswordHash));
     if (index < 0) return null;
@@ -144,6 +158,7 @@ class UnavailableAuthRepository implements AuthRepository {
   async createUser(_user: AuthUser): Promise<AuthUser> { throw new AuthUnavailableError(); }
   async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
   async enrollUserInCourseWithChange(_userId: string, _courseId: string): Promise<AuthEnrollmentMutation | null> { throw new AuthUnavailableError(); }
+  async reconcileCoursePurchase(_userId: string, _courseId: string, _remaining: string | null): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async confirmEmail(_userId: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
 }
