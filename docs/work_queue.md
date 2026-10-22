@@ -6,7 +6,12 @@ messages hold them.
 
 ## Active work
 
-None. Done on the hosted site 2026-10-22: AI Testing Specialist and Test Manager converted to the
+| Owner | Item | Files | State |
+| --- | --- | --- | --- |
+| Claude Code | DEF-057 catalog settings category dropdown | `app/src/app/pages/course-view-page/**`, `docs/defects.md`, `docs/defects_resolved.md`, `docs/specs/authoring/review-and-publication.md`, this file | In progress, started 2026-10-22 |
+| Codex | X6 INV-004 options note ([assignment](handoffs/codex-extra-assignments.md#x6-inv-004-options-note-feedback-issue-created-twice)) | One new test file under `api/src/`, `docs/handoffs/INV-004-options.md`. Not `docs/defects.md`: Claude adds the INV-004 link | Handed to Alex to paste, 2026-10-22 |
+
+Done on the hosted site 2026-10-22: AI Testing Specialist and Test Manager converted to the
 milestone format and published (Technical Tester already was); ISTQB Foundation repetition
 published at 1,999 DKK, category Software Testing, Danish, with Kapitel 4 and Kapitel 5 (split
 into del 1 and del 2 to stay under 4 MB). Learning-page sidebar scrolls on its own (spec updated).
@@ -25,7 +30,7 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
-| Extra Codex work | Paste assignments X6–X7 (X1–X5 done) from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
+| Extra Codex work | Paste assignment X7 after X6 finishes (X1–X5 done, X6 running) from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
 | Decisions | US-P003 (cross-instance writes), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
