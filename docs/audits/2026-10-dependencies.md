@@ -14,14 +14,15 @@ Audit counts are affected package entries, not unique CVEs or demonstrated explo
 | api | 11 | 2 | 3 | 5 | 1 | 11 |
 | app | 20 | 3 | 13 | 21 | 3 | 40 |
 
-Root outdated returned an empty object (exit 0), but concurrently inherits a critical shell-quote finding. Up-to-date direct packages are not necessarily vulnerability-free.
+Root outdated returned an empty object (exit 0), including a repeat with --prefer-online. Separate registry metadata nevertheless lists concurrently 10.0.6; it is included below. Concurrently also inherits a critical shell-quote finding. An empty outdated result is not evidence of vulnerability-free dependencies.
 
 ## Every outdated direct dependency
 
-Current is installed at inspection; wanted respects the original manifest range. The API candidates are provisional until their full tests/build pass.
+Current is installed at baseline inspection; wanted is the value reported by npm outdated. Latest below uses the separately fetched registry dist-tag, which differs from npm outdated for Angular and concurrently. The execution ledger records retained targets.
 
 | Scope/package | Current | Wanted | Latest | Step to latest | Affects | Recommendation |
 | --- | --- | --- | --- | --- | --- | --- |
+| root: concurrently | 9.2.1 | 9.2.1 (outdated returned no entry) | 10.0.6 | major | Root dev process orchestration | Claude/Alex: assess major separately; prioritize compatible shell-quote remediation. |
 | api: @mux/mux-node | 14.1.0 | 14.1.1 | 15.5.0 | major | API video SDK | Attempt 14.1.1 (patch); one package/family per verified commit. |
 | api: @rolldown/binding-linux-x64-gnu | not installed; locked 1.0.0-rc.17 | 1.0.0-rc.17 | 1.2.15 | minor | API test bundler Linux binary | Keep exact bundler-matching pin; do not update independently. |
 | api: @types/node | 25.6.0 | 25.9.9 | 26.6.5 | major | API Node compile-time declarations | Attempt 25.9.9 (minor); one package/family per verified commit. |
@@ -33,21 +34,21 @@ Current is installed at inspection; wanted respects the original manifest range.
 | api: typescript | 6.0.3 | 6.0.3 | 7.0.2 | major | TypeScript compiler | Defer major upgrade to Claude/Alex. |
 | api: vitest | 4.1.5 | 4.1.12 | 5.0.5 | major | Test runner | Attempt 4.1.12 (patch); one package/family per verified commit. |
 | api: zod | 4.3.6 | 4.6.7 | 4.6.7 | minor | API validation | Attempt 4.6.7 (minor); one package/family per verified commit. |
-| app: @angular/build | 21.2.10 | 21.2.10 | 21.2.28 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/cli | 21.2.10 | 21.2.10 | 21.2.28 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/common | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/compiler | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/compiler-cli | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/core | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/forms | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/platform-browser | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
-| app: @angular/router | 21.2.10 | 21.2.10 | 21.2.25 | patch | undefined | Prioritize coordinated Angular patch update with app tests and Pages build; outside X7 scope. |
+| app: @angular/build | 21.2.10 | 21.2.10 | 22.2.4 | major | App build pipeline | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/cli | 21.2.10 | 21.2.10 | 22.2.4 | major | App CLI and development tools | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/common | 21.2.10 | 21.2.10 | 22.2.3 | major | App common framework APIs | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/compiler | 21.2.10 | 21.2.10 | 22.2.3 | major | App template compiler | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/compiler-cli | 21.2.10 | 21.2.10 | 22.2.3 | major | App ahead-of-time compilation | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/core | 21.2.10 | 21.2.10 | 22.2.3 | major | App framework runtime | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/forms | 21.2.10 | 21.2.10 | 22.2.3 | major | App form handling | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/platform-browser | 21.2.10 | 21.2.10 | 22.2.3 | major | App browser rendering | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
+| app: @angular/router | 21.2.10 | 21.2.10 | 22.2.3 | major | App routing | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
 | app: @mux/mux-player | 3.13.0 | 3.14.0 | 3.14.0 | minor | App video playback | Defer to Claude/Alex; no app upgrades in X7. |
 | app: @ng-icons/core | 33.2.2 | 33.4.0 | 36.1.0 | major | App icons | Defer to Claude/Alex; no app upgrades in X7. |
 | app: @ng-icons/lucide | 33.2.2 | 33.4.0 | 36.1.0 | major | App icon data | Defer to Claude/Alex; no app upgrades in X7. |
 | app: @rollup/rollup-linux-x64-gnu | not installed; locked 4.60.2 | 4.60.2 | 4.65.0 | minor | App build Linux binary | Defer to Claude/Alex; no app upgrades in X7. |
 | app: @tailwindcss/postcss | 4.2.4 | 4.3.3 | 4.3.3 | minor | App CSS build integration | Defer to Claude/Alex; no app upgrades in X7. |
-| app: jsdom | 28.1.0 | 28.1.0 | 29.1.1 | major | App browser simulation | Defer to Claude/Alex; no app upgrades in X7. |
+| app: jsdom | 28.1.0 | 28.1.0 | 30.1.3 | major | App browser simulation | Defer to Claude/Alex; no app upgrades in X7. |
 | app: postcss | 8.5.13 | 8.5.31 | 8.5.31 | patch | CSS/build tooling | Defer to Claude/Alex; no app upgrades in X7. |
 | app: prettier | 3.8.3 | 3.9.10 | 3.9.10 | minor | App formatting | Defer to Claude/Alex; no app upgrades in X7. |
 | app: tailwindcss | 4.2.4 | 4.3.3 | 4.3.3 | minor | App CSS compiler | Defer to Claude/Alex; no app upgrades in X7. |
@@ -82,7 +83,7 @@ All 42 distinct package names from the three audit results are included. Version
 | body-parser | api, app | 2.2.2 | 2.4.0 | minor | low | HTTP request parsing | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
 | brace-expansion | app | 5.0.6 | 5.0.12 | patch | high | Build glob handling | Claude/Alex: update owning app/tooling family and run app checks. |
 | browserslist | app | 4.28.2 | 4.29.4 | minor | high | App browser targets | Claude/Alex: update owning app/tooling family and run app checks. |
-| concurrently | root | 9.2.1 | 10.0.6 | major | critical | Root dev process orchestration | Direct version is latest; root owner should address shell-quote without audit --force. |
+| concurrently | root | 9.2.1 | 10.0.6 | major | critical | Root dev process orchestration | Root owner: assess major separately and address shell-quote without audit --force. |
 | esbuild | api, app | 0.27.7, 0.27.3 | 0.28.2 | minor | low | API CLI / app transforms | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
 | fast-uri | app | 3.1.2 | 4.2.3 | major | high | App URI/schema parsing | Claude/Alex: update owning app/tooling family and run app checks. |
 | hono | app | 4.12.18 | 4.13.13 | minor | high | App CLI MCP server | Claude/Alex: update owning app/tooling family and run app checks. |
@@ -171,14 +172,14 @@ Each retained update runs `npm run api:test` and `npm run api:build` before comm
 | @mux/mux-node | 14.1.0 to 14.1.1 | Retained; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `ddce9c3` |
 | express | 5.2.1 to 5.3.0 | Reverted before commit: shared app tooling changed and content-disposition/content-type moved to major 2 | 2,431 passed + 2 expected failures before rollback | Pass before rollback | No dependency change retained |
 | mongodb family | 7.2.0 to 7.7.0 | Retained; BSON 7.3.3, saslprep 1.6.1, connection-string-url 7.0.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `c2ffc4a` |
+| @types/node family | 25.6.0 to 25.9.9 | Retained under api/ with undici-types 7.24.6; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `178dee2` |
+| tsx family | 4.21.0 to 4.23.15 | Retained; API esbuild 0.28.2; app graph unchanged; typed CLI smoke passed | 2,431 passed + 2 expected failures | Pass | This tsx update commit |
 
 The Express attempt passed behavioral checks, but was outside the conservative no-major/app
 scope once its resolved transitive graph was inspected. Only this attempt's uncommitted changes
 were reversed; the installed tree was then reconciled to the original lock. The full app graph
 (including development dependencies) again matches baseline. Recommend Claude/Alex review this
 security-related family update with app tooling and the transitive major changes together.
-
-| @types/node family | 25.6.0 to 25.9.9 | Retained under api/ with undici-types 7.24.6; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This Node types update commit |
 
 ## Final state and handoff
 
