@@ -9,7 +9,10 @@ messages hold them.
 None. Delivered 2026-10-22: DEF-057 (dropdowns show their stored value; record in
 `defects_resolved.md`) and Codex X6 (INV-004 reproduced as an expected failure in
 `api/src/multiInstanceFeedback.test.ts`; options in [handoffs/INV-004-options.md](handoffs/INV-004-options.md)),
-checked by Claude.
+checked by Claude. Codex X7 (API patch and minor updates: Mux 14.1.1, MongoDB driver 7.7,
+Node types, tsx, Vitest 4.1.12, Vite 8.3 with its Linux bundler binary, `proxy-addr`/`qs`; report in
+[audits/2026-10-dependencies.md](audits/2026-10-dependencies.md)), checked by Claude: frontend
+lockfile entries unchanged, all checks pass. Real MongoDB with driver 7.7 not exercised before push.
 
 Done on the hosted site 2026-10-22: AI Testing Specialist and Test Manager converted to the
 milestone format and published (Technical Tester already was); ISTQB Foundation repetition
@@ -30,7 +33,7 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
-| Extra Codex work | Paste assignment X7 (X1–X6 done) from [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md) one at a time | Each ends with a Codex summary and a commit starting with its ID |
+| Dependency follow-ups (X7 report) | Decide what to schedule from [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md): app audit has 3 critical and 21 high entries, mostly build and dev tooling (Angular CLI/build, `tar`, `piscina`), the critical ones fixed by Angular 22 or patch releases; root `concurrently`/`shell-quote` (critical, dev only); API Zod 4.6 (reverted, 163 test failures), Express 5.3 and the SOCKS/`ip-address` family (reverted) | A story or defect per item you want done |
 | Decisions | US-P003 (cross-instance writes; for feedback triage pick an INV-004 option in [handoffs/INV-004-options.md](handoffs/INV-004-options.md), Codex recommends C with B's marker), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
