@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-None. US-L025 (a full refund removes access) delivered locally on 2026-10-22, **not pushed**: API by
+None. US-L025 (a full refund removes access) pushed to `main` on 2026-10-22 (`6c9362b`): API by
 Codex `77b6038` (record in [history/handoffs](history/handoffs/US-L025-refunds-codex.md)); behavior in
 [specs/payments](specs/payments/payments.md). Checks 2026-10-22: `api:test` 2,316/2,316,
 `verify:journeys` 16/16, `app:test` 428/428, `app:build:pages` and `api:build` pass. `charge.refunded`
