@@ -1431,3 +1431,28 @@ regressions passed after the fix. Existing records above are retained unchanged.
 Hosted workflow execution remains unverified; no push or deployment was authorized.
 This delivery record has its own required aligned version bump. Next: authorized push,
 then verify that the Pages workflow accepts the hosted MongoDB account configuration.
+
+### DEF-056 — Navigation links misleadingly imply dropdowns
+
+- Severity/state: P3 / Verified locally. Reported by Alex and fixed 2026-10-22; owner Codex.
+- Tested base/environment: `4e32b97`, source inspection plus an isolated built-app browser preview
+  using disposable in-memory API stores (ports 4318/4319), synthetic teacher account, no shared data.
+- Reproduction: Catalog and My Learning in the primary navigation rendered downward chevrons,
+  but activated ordinary router links to `/courses` and `/library`, with no dropdown.
+- Expected/source: direct page links must not imply menus; disclosure indicators belong to controls
+  that expand. User feedback and `specs/platform/ui-foundation.md`.
+- Impact/root cause: users expected dropdowns because decorative `nav-chevron` spans and styles
+  advertised an interaction absent from the `RouterLink` implementation.
+- Resolution: removed both decorative spans and the unused `.with-chevron`/`.nav-chevron` rules
+  from the shared page header and the obsolete app-level copy. Navigation targets, active states,
+  the real profile menu, and functional course accordions are preserved.
+- Delivery commit: the commit containing this resolution, `fix(DEF-056): remove misleading navigation chevrons`.
+- Regression evidence: `npm run app:test` passes all 440 app tests plus UI foundation checks;
+  existing PageHeader base-href routing and ProfileMenu open/close tests pass. No new test was
+  added merely to assert removal of decorative markup. `npm run app:build:pages` passes, with
+  existing test-setup/jsdom and CommonJS/bundle warnings only.
+- Browser checks: both links navigate to their expected Pages-base routes; profile menu opens;
+  no misleading arrows on desktop or in a 375px-wide iframe viewport. Screenshots:
+  [desktop](history/verification/2026-10-22/DEF-056/navigation-desktop.png),
+  [375px](history/verification/2026-10-22/DEF-056/navigation-375px.png).
+- Release limits: local verification only; no hosted mutation, push, or deployment performed.

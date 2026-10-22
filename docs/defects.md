@@ -16,7 +16,7 @@ Capture user data only in anonymized form.
 
 When a defect is fixed, move its whole record to `defects_resolved.md` with the resolution date,
 fixing commit, passing regression checks and any remaining release checks. Never delete or reuse IDs.
-Next free IDs: DEF-056, INV-020.
+Next free IDs: DEF-057, INV-020.
 
 ## Open defects
 

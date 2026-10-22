@@ -11,20 +11,18 @@
     </a>
     <a [href]="aboutHref()" (click)="navigateToAnchor($event, aboutHref())">About</a>
     <a
-      class="tab-link with-chevron"
+      class="tab-link"
       [routerLink]="coursesHref"
       [class.active]="activeSection() === 'courses'"
     >
       Catalog
-      <span class="nav-chevron" aria-hidden="true"></span>
     </a>
     <a
-      class="tab-link with-chevron"
+      class="tab-link"
       [routerLink]="libraryHref"
       [class.active]="activeSection() === 'library'"
     >
       My Learning
-      <span class="nav-chevron" aria-hidden="true"></span>
     </a>
   </div>
   <app-profile-menu

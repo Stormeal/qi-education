@@ -33,6 +33,8 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   `scripts/hardcoded-colors-baseline.json`.
 - Structural controls (accordion headers, list rows, menu items, answer options) may stay native
   `<button>`s, but use the design values and the global ring.
+- Primary navigation links (including Catalog and My Learning) have no dropdown chevrons.
+  Use disclosure indicators only on controls that actually expand content or open a menu.
 - No dark theme.
 
 ## Code
