@@ -3,10 +3,6 @@ import { vi } from 'vitest';
 import { CourseBuilder } from './course-builder';
 import { CourseComponent } from '../../app.models';
 
-// jsdom cannot run the real Mux player; Mux skips its own registration when the tag already exists.
-vi.hoisted(() => {
-  if (!customElements.get('mux-player')) customElements.define('mux-player', class extends HTMLElement {});
-});
 
 describe('US-T006 video recovery guidance', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
@@ -68,7 +64,9 @@ describe('exercise intro video in the builder', () => {
   });
 
   it('lets the teacher delete an uploaded intro video', () => {
-    const host = openExercise({ uploadId: 'u', assetId: 'a', playbackId: 'p', status: 'ready', captions: [] });
+    // A processing video has no player: jsdom cannot run the real Mux player, and on CI another
+    // spec file can register it before any stand-in (the specs share one environment).
+    const host = openExercise({ uploadId: 'u', assetId: 'a', playbackId: 'p', status: 'processing', captions: [] });
     expect([...host.querySelectorAll('.mux-upload-panel button')].map(b => b.textContent?.trim())).toContain('Delete video');
   });
 });
