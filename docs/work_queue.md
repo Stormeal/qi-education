@@ -6,6 +6,16 @@ messages hold them.
 
 ## Active work
 
+US-A005 course teachers, on `main` from `d41b952`; contract
+[stories/US-A005](stories/US-A005-course-teachers.md), plan
+[superpowers/plans](superpowers/plans/2026-10-22-US-A005-course-teachers.md), handoff
+[handoffs/US-A005-codex.md](handoffs/US-A005-codex.md).
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | Plan tasks 1–3: storage, authorization, admin routes (AC01–AC07, AC09 API) | `api/**` except `api/dist` | Started 2026-10-22 |
+| Claude Code | Plan tasks 4–6: app, Teachers panel (AC08), rules and specs | `app/**`, `docs/**` | Started 2026-10-22 |
+
 US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built 2026-10-22 and
 pushed (`fc0cd68`, version 0.1.373; Vercel, Pages and CI green): `npm --prefix api run import:rise` (contract and verification
 table in [stories/US-T015](stories/US-T015-rise-course-import.md)). Checks: `api:test` 2,337/2,337,
