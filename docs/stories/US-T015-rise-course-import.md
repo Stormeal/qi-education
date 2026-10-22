@@ -31,8 +31,8 @@ Observed on 2026-10-22 in `C:\Users\Alex\scorm-import\istqb-foundation-repetitio
   500 characters (1,140), 2 PDFs above the 4 MB attachment limit (Kapitel 4: 4.4 MB, Kapitel 5:
   6.6 MB).
 
-Success: running the importer once gives a draft course of 7 sections and 138 lessons (88 video, 35
-quiz, 8 resources, 7 text), with every video playing from Mux. The teacher then reviews it and submits it like any other draft.
+Success: running the importer once gives a draft course of 7 sections and 141 lessons (88 video, 35
+quiz, 8 resources, 10 text), with every video playing from Mux. The teacher then reviews it and submits it like any other draft.
 
 ## Decisions (confirm or change)
 
@@ -44,7 +44,7 @@ quiz, 8 resources, 7 text), with every video playing from Mux. The teacher then 
 | D4 | Lesson titles | A video takes its topic heading ("01.01 Hvad er test?"), or the Rise lesson title when there is none; a second video in one topic gets " (del 2)". A quiz is "Videnstjek: <topic heading>". A resources lesson takes the PDF's original name without ".pdf". |
 | D5 | Quiz grading | Pass mark = every question in the quiz. Multiple-response questions keep all their correct answers. Answer labels "a)", "b)" are kept as written. |
 | D6 | Feedback | Each answer's Rise feedback becomes that answer's description. The correct answer's feedback also becomes the question's explanation, which learners see after answering. |
-| D7 | Text over our limits | Raise the answer text limit from 300 to 600 characters and the answer description limit from 500 to 1,500 (API schema and editor field), rather than shortening imported text. Nothing is ever cut silently. |
+| D7 | Text over our limits | Raise the answer text limit from 300 to 600 characters, and the answer description and question explanation limits to 1,500 (from 500 and 1,000), rather than shortening imported text. Nothing is ever cut silently. The editor has no length cap on these fields, so only the API changes. |
 | D8 | PDFs over 4 MB | Skipped, with each name listed in the import report. The resources lesson is still created. The teacher uploads a compressed copy in the course editor before submitting for review. |
 | D9 | Course details | Title, description and teacher name come from Rise (title trimmed; description as plain text). Level "Foundation". The cover image becomes the thumbnail. Category, language and price stay admin settings. |
 | D10 | Owner | The teacher account the importer signs in as. Alex types its password when asked; it is never stored or passed on the command line. |
@@ -97,9 +97,9 @@ Feature: Import a Rise course
     Then it stops with the API's message and creates nothing
 
   Scenario: US-T015-AC06 Long quiz text is kept whole
-    Given an answer of 460 characters and answer feedback of 1,140 characters
+    Given an answer of 460 characters and correct-answer feedback of 1,140 characters
     When the course is imported
-    Then both are stored in full and the course editor accepts them
+    Then the answer, its description and the question's explanation are stored in full
 ```
 
 ## UI and accessibility
@@ -129,4 +129,4 @@ See the [plan](../superpowers/plans/2026-10-22-US-T015-rise-course-import.md).
 | US-T015-AC03 | `api/src/riseImport.test.ts` | Pending |
 | US-T015-AC04 | `api/src/riseImportRun.test.ts` | Pending |
 | US-T015-AC05 | `api/src/riseImportRun.test.ts` | Pending |
-| US-T015-AC06 | `api/src/riseImport.test.ts`, course-builder spec | Pending |
+| US-T015-AC06 | `api/src/courseContent.test.ts` | Pass 2026-10-22 |
