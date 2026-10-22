@@ -20,6 +20,7 @@ export interface CourseRepository {
   createCourse(input: CreateCourseInput, seed?: CourseSeed): Promise<Course>;
   updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null>;
   updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null>;
+  updateCourseTeachers(id: string, teacherIds: string[]): Promise<Course | null>;
   updateCourseCatalogMetadata(id: string, input: UpdateCourseCatalogMetadataInput): Promise<Course | null>;
   updateCourseThumbnail(id: string, input: UpdateCourseThumbnailInput): Promise<Course | null>;
 }
@@ -28,6 +29,7 @@ export type CourseSeed = {
   id: string;
   createdAt: string;
   ownerUserId?: string;
+  teacherIds?: string[];
 };
 
 export class InMemoryCourseRepository implements CourseRepository {
@@ -67,6 +69,7 @@ export class InMemoryCourseRepository implements CourseRepository {
       ...input,
       id: seed?.id ?? randomUUID(),
       ownerUserId: seed?.ownerUserId ?? '',
+      ...(seed?.teacherIds !== undefined ? { teacherIds: [...seed.teacherIds], ownerUserId: seed.teacherIds[0] ?? '' } : {}),
       createdAt: seed?.createdAt ?? new Date().toISOString()
     };
 
@@ -106,6 +109,14 @@ export class InMemoryCourseRepository implements CourseRepository {
       priceDkk: input.priceDkk,
     };
 
+    this.courses[index] = updated;
+    return updated;
+  }
+
+  async updateCourseTeachers(id: string, teacherIds: string[]): Promise<Course | null> {
+    const index = this.courses.findIndex(course => course.id === id);
+    if (index < 0) return null;
+    const updated = { ...this.courses[index], teacherIds: [...teacherIds], ownerUserId: teacherIds[0] ?? '' };
     this.courses[index] = updated;
     return updated;
   }

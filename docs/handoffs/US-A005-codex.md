@@ -71,5 +71,15 @@ GET /instructors: a published course counts for every id in courseTeacherIds(cou
 
 ## Codex result
 
-(Codex fills this in: commits, tests run and results, files changed, any rulings or test updates,
-anything needed outside its file list.)
+- Started on `main` at `aa9ada0`; required `ca9d9dd` is an ancestor. Remote fetched;
+  local main is eight commits ahead, with no incoming commits or initial local changes.
+- Pre-flight: Task 1's optional list/helper and repository write match Tasks 2 and 3's consumers.
+  Task 2's authorization uses the same legacy fallback as Task 3's admin read.
+- Ruling: use this result section as the execution ledger; omit skill scratch files and worktree
+  creation because the explicit assignment restricts writes and requires this shared `main`.
+- Ruling: PUT returns `{ teachers }` as the handoff and plan specify (the story also contains an
+  older "returns the updated course" sentence). Cost if wrong: an API consumer would need adapting.
+- Task 1: storage tests RED (six expected failures: missing helper/write and ignored seeded lists)
+  → GREEN (14/14 focused, full API 2,343/2,343 across 93 files).
+  `courseRequestReads.ts` already delegates every write and clears reads; verified without changing it.
+  Root `npx tsc` resolved the wrong executable; using the installed API TypeScript binary instead.

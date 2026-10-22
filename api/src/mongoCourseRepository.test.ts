@@ -39,6 +39,23 @@ describe.each(['memory', 'mongo'])('US-P015 CourseRepository contract (%s)', kin
     }
     expect((await repository.listCourses()).filter(course => ['a', 'b', 'c'].includes(course.id)).map(course => course.id)).toEqual(['a', 'b', 'c']);
   });
+  it('US-A005-AC06 preserves legacy owners and stores teacher lists with the first teacher mirrored', async () => {
+    const { repository, fake } = setup();
+    const legacy = await repository.createCourse(input, seed);
+    expect(legacy.ownerUserId).toBe('teacher');
+    expect(legacy.teacherIds).toBeUndefined();
+    expect(await repository.createCourse(input, { ...seed, id: 'seeded', teacherIds: ['B', 'A'] }))
+      .toMatchObject({ teacherIds: ['B', 'A'], ownerUserId: 'B' });
+    expect(await repository.updateCourseTeachers(seed.id, ['A', 'B']))
+      .toMatchObject({ teacherIds: ['A', 'B'], ownerUserId: 'A' });
+    expect((await repository.listCourses()).find(course => course.id === seed.id))
+      .toMatchObject({ teacherIds: ['A', 'B'], ownerUserId: 'A' });
+    if (kind === 'mongo') expect(fake.calls.writes).toContainEqual({ filter: { _id: seed.id },
+      update: { $set: { teacherIds: ['A', 'B'], ownerUserId: 'A' } },
+      options: { returnDocument: 'after', includeResultMetadata: false, writeConcern: { w: 'majority' } } });
+    expect(await repository.updateCourseTeachers(seed.id, [])).toMatchObject({ teacherIds: [], ownerUserId: '' });
+    expect(await repository.updateCourseTeachers('missing', [])).toBeNull();
+  });
 });
 
 describe('US-P015 Mongo storage semantics', () => {

@@ -13,7 +13,7 @@ US-A005 course teachers, on `main` from `d41b952`; contract
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Plan tasks 1–3: storage, authorization, admin routes (AC01–AC07, AC09 API) | `api/**` except `api/dist` | Started 2026-10-22 |
+| Codex | Plan tasks 1–3: storage, authorization, admin routes (AC01–AC07, AC09 API) | `api/**` except `api/dist` | In progress 2026-10-22, `main` from `aa9ada0` (contains `ca9d9dd`). Next: Task 1 storage tests RED → GREEN |
 | Claude Code | Plan tasks 4–6: app, Teachers panel (AC08), rules and specs | `app/**`, `docs/**` | Done 2026-10-22 (`786b083`, `a499855`, `c3b0d48`; app:test 440/440, app:build:pages pass). Open: browser check once Codex's routes land |
 
 US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built 2026-10-22 and

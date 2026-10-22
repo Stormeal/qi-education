@@ -13,7 +13,7 @@ const majority = { writeConcern: { w: 'majority' as const } };
 function dto(document: MongoCourseDocument): Course {
   return structuredClone(Object.fromEntries(courseFields.map(field => [field, field === 'id' ? document._id : document[field]])) as Course);
 }
-function fields(input: object, allowed: string[]): Partial<Omit<Course, 'id' | 'createdAt' | 'ownerUserId'>> {
+function fields(input: object, allowed: string[]): Partial<Omit<Course, 'id' | 'createdAt'>> {
   return structuredClone(Object.fromEntries(Object.entries(input).filter(([key]) => allowed.includes(key))));
 }
 export class MongoCourseRepository implements CourseRepository {
@@ -30,7 +30,8 @@ export class MongoCourseRepository implements CourseRepository {
     this.index ??= collection.createIndex({ createdAt: 1, _id: 1 }).catch(error => { this.index = undefined; throw error; });
     await this.index;
     const document = { ...fields(input, Object.keys(createCourseSchema.shape)), _id: seed?.id ?? randomUUID(),
-      createdAt: seed?.createdAt ?? new Date().toISOString(), ownerUserId: seed?.ownerUserId ?? '' } as MongoCourseDocument;
+      createdAt: seed?.createdAt ?? new Date().toISOString(), ownerUserId: seed?.ownerUserId ?? '',
+      ...(seed?.teacherIds !== undefined ? { teacherIds: [...seed.teacherIds], ownerUserId: seed.teacherIds[0] ?? '' } : {}) } as MongoCourseDocument;
     const result = await collection.insertOne(document, majority);
     if (!result.acknowledged) throw new Error('Course creation was not confirmed.');
     return dto(document);
@@ -39,11 +40,14 @@ export class MongoCourseRepository implements CourseRepository {
     return this.update(id, fields(input, Object.keys(updateCourseSchema.shape)));
   }
   updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null> { return this.update(id, { priceDkk: input.priceDkk }); }
+  updateCourseTeachers(id: string, teacherIds: string[]): Promise<Course | null> {
+    return this.update(id, { teacherIds: [...teacherIds], ownerUserId: teacherIds[0] ?? '' });
+  }
   updateCourseThumbnail(id: string, input: UpdateCourseThumbnailInput): Promise<Course | null> { return this.update(id, { thumbnailAssetId: input.thumbnailAssetId }); }
   updateCourseCatalogMetadata(id: string, input: UpdateCourseCatalogMetadataInput): Promise<Course | null> {
     return this.update(id, fields(input, Object.keys(updateCourseCatalogMetadataSchema.shape)));
   }
-  private async update(id: string, input: Partial<Omit<Course, 'id' | 'createdAt' | 'ownerUserId'>>): Promise<Course | null> {
+  private async update(id: string, input: Partial<Omit<Course, 'id' | 'createdAt'>>): Promise<Course | null> {
     const document = await (await this.collection()).findOneAndUpdate({ _id: id }, { $set: input },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
     return document ? dto(document) : null;
