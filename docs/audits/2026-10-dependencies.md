@@ -14,7 +14,7 @@ Audit counts are affected package entries, not unique CVEs or demonstrated explo
 | api | 11 | 2 | 3 | 5 | 1 | 11 |
 | app | 20 | 3 | 13 | 21 | 3 | 40 |
 
-Root outdated returned an empty object (exit 0), including a repeat with --prefer-online. Separate registry metadata nevertheless lists concurrently 10.0.6; it is included below. Concurrently also inherits a critical shell-quote finding. An empty outdated result is not evidence of vulnerability-free dependencies.
+Root outdated returned an empty object (exit 0), including repeats with --prefer-online and --include-workspace-root=true. Separate registry metadata nevertheless lists concurrently 10.0.6; it is included below. Concurrently also inherits a critical shell-quote finding. An empty outdated result is not evidence of vulnerability-free dependencies.
 
 ## Every outdated direct dependency
 
@@ -23,17 +23,17 @@ Current is installed at baseline inspection; wanted is the value reported by npm
 | Scope/package | Current | Wanted | Latest | Step to latest | Affects | Recommendation |
 | --- | --- | --- | --- | --- | --- | --- |
 | root: concurrently | 9.2.1 | 9.2.1 (outdated returned no entry) | 10.0.6 | major | Root dev process orchestration | Claude/Alex: assess major separately; prioritize compatible shell-quote remediation. |
-| api: @mux/mux-node | 14.1.0 | 14.1.1 | 15.5.0 | major | API video SDK | Attempt 14.1.1 (patch); one package/family per verified commit. |
-| api: @rolldown/binding-linux-x64-gnu | not installed; locked 1.0.0-rc.17 | 1.0.0-rc.17 | 1.2.15 | minor | API test bundler Linux binary | Keep exact bundler-matching pin; do not update independently. |
-| api: @types/node | 25.6.0 | 25.9.9 | 26.6.5 | major | API Node compile-time declarations | Attempt 25.9.9 (minor); one package/family per verified commit. |
+| api: @mux/mux-node | 14.1.0 | 14.1.1 | 15.5.0 | major | API video SDK | Retained 14.1.1 (patch); defer major/SDK rename to Claude/Alex. |
+| api: @rolldown/binding-linux-x64-gnu | not installed; locked 1.0.0-rc.17 | 1.0.0-rc.17 | 1.2.15 | minor | API test bundler Linux binary | Updated together with the API Vite/Rolldown family to matching 1.2.15; never bump the binding independently. |
+| api: @types/node | 25.6.0 | 25.9.9 | 26.6.5 | major | API Node compile-time declarations | Retained 25.9.9 (minor); defer major 26 to Claude/Alex. |
 | api: dotenv | 17.4.2 | 17.4.2 | 18.0.8 | major | API environment loading | Defer major upgrade to Claude/Alex. |
-| api: express | 5.2.1 | 5.3.0 | 5.3.0 | minor | API HTTP handling | Attempt 5.3.0 (minor); one package/family per verified commit. |
+| api: express | 5.2.1 | 5.3.0 | 5.3.0 | minor | API HTTP handling | Reverted broader update; retained compatible API proxy-addr/qs fixes separately. Review transitive major changes before retrying. |
 | api: googleapis | 171.4.0 | 171.4.0 | 187.0.0 | major | API feedback Sheets client | Defer major upgrade to Claude/Alex. |
-| api: mongodb | 7.2.0 | 7.7.0 | 7.7.0 | minor | API storage driver | Attempt 7.7.0 (minor); one package/family per verified commit. |
-| api: tsx | 4.21.0 | 4.23.15 | 4.23.15 | minor | API dev/import/maintenance CLI | Attempt 4.23.15 (minor); one package/family per verified commit. |
+| api: mongodb | 7.2.0 | 7.7.0 | 7.7.0 | minor | API storage driver | Retained 7.7.0 (minor); real database integration remains unverified. |
+| api: tsx | 4.21.0 | 4.23.15 | 4.23.15 | minor | API dev/import/maintenance CLI | Retained 4.23.15 (minor), including API-local esbuild 0.28.2. |
 | api: typescript | 6.0.3 | 6.0.3 | 7.0.2 | major | TypeScript compiler | Defer major upgrade to Claude/Alex. |
-| api: vitest | 4.1.5 | 4.1.12 | 5.0.5 | major | Test runner | Attempt 4.1.12 (patch); one package/family per verified commit. |
-| api: zod | 4.3.6 | 4.6.7 | 4.6.7 | minor | API validation | Attempt 4.6.7 (minor); one package/family per verified commit. |
+| api: vitest | 4.1.5 | 4.1.12 | 5.0.5 | major | Test runner | Retained 4.1.12 family (patch); defer major 5 to Claude/Alex. |
+| api: zod | 4.3.6 | 4.6.7 | 4.6.7 | minor | API validation | Reverted after 163 test failures; retain 4.3.6 pending schema compatibility review. |
 | app: @angular/build | 21.2.10 | 21.2.10 | 22.2.4 | major | App build pipeline | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
 | app: @angular/cli | 21.2.10 | 21.2.10 | 22.2.4 | major | App CLI and development tools | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
 | app: @angular/common | 21.2.10 | 21.2.10 | 22.2.3 | major | App common framework APIs | Claude/Alex: review Angular 22 migration separately; first assess the 21.2 patch family reported by npm outdated. App checks and supported Node/TypeScript versions required. |
@@ -54,6 +54,8 @@ Current is installed at baseline inspection; wanted is the value reported by npm
 | app: tailwindcss | 4.2.4 | 4.3.3 | 4.3.3 | minor | App CSS compiler | Defer to Claude/Alex; no app upgrades in X7. |
 | app: typescript | 5.9.3 | 5.9.3 | 7.0.2 | major | TypeScript compiler | Defer to Claude/Alex; no app upgrades in X7. |
 | app: vitest | 4.1.5 | 4.1.12 | 5.0.5 | major | Test runner | Defer to Claude/Alex; no app upgrades in X7. |
+
+Registry Angular 22 latest requires Node ^22.22.3 or a newer supported major; this run uses 22.13.0. Do not treat the registry latest column as a compatible Angular target.
 
 API @types/node stays on major 25, already used by the project. Node runtime remains 22; type declarations do not prove availability of newer Node APIs. Consider aligning these separately. Pre-1.0 minor updates and prerelease-to-stable moves need compatibility review rather than treating them as ordinary safe patches.
 
@@ -176,7 +178,8 @@ Each retained update runs `npm run api:test` and `npm run api:build` before comm
 | tsx family | 4.21.0 to 4.23.15 | Retained; API esbuild 0.28.2; app graph unchanged; typed CLI smoke passed | 2,431 passed + 2 expected failures | Pass | `5a57ee4` |
 | vitest family | 4.1.5 to 4.1.12 | Retained; eight API runner packages; app runner unchanged | 2,431 passed + 2 expected failures | Pass | `cf7229a` |
 | zod | 4.3.6 to 4.6.7 | Reverted: omitted quiz points rejected as nonoptional; no test/source changes | 163 failed, 2,268 passed + 2 expected failures (4 files failed) | Pass | No dependency change retained |
-| Express proxy/query dependency family | proxy-addr 2.0.7 to 2.0.8; qs 6.15.1 to 6.16.1 | Retained API-only copies; Express 5.2.1 and body-parser 2.2.2 unchanged; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This HTTP dependency update commit |
+| Express proxy/query dependency family | proxy-addr 2.0.7 to 2.0.8; qs 6.15.1 to 6.16.1 | Retained API-only copies; Express 5.2.1 and body-parser 2.2.2 unchanged; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `13dabae` |
+| Vite test bundler family | Vite 8.0.10 to 8.3.5; Rolldown rc.17 to 1.2.15 | Retained; matching native pin/bindings; PostCSS 8.5.31, nanoid 3.3.20, source-map-js 1.2.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This Vite family update commit |
 
 The Express attempt passed behavioral checks, but was outside the conservative no-major/app
 scope once its resolved transitive graph was inspected. Only this attempt's uncommitted changes
@@ -187,6 +190,8 @@ security-related family update with app tooling and the transitive major changes
 The first Vitest install hit npm 10.9.2 Arborist edgesOut while resolving newer optional peers, before any file change. Refreshing just the eight API family lock entries from exact-version registry metadata (including tarball integrity), followed by a normal lock-respecting npm install, succeeded without updating the existing Vite or app graph.
 
 Zod 4.6.7 failed existing US-T015-AC06 courseContent tests and import/learning/media fixtures because omitted quiz question points were rejected with expected nonoptional. The API manifest and only the Zod lock changes were reversed to 4.3.6; a lock-respecting install reconciled node_modules. The full suite after rollback passed all 2,431 tests plus 2 expected failures, and the build passed. This is a dependency compatibility finding, not a change to the existing validation contract. Claude/Alex should review schema default/optional semantics and the upstream change before retrying.
+
+The Vite family was resolved in a separate temporary manifest, with optional peers omitted only in that temporary resolution. Exact registry tarball/integrity entries were transplanted under api/ and installed normally in the shared tree. Existing package major numbers were checked before applying. This couples Vite 8.3.5 to Rolldown and every native binding at 1.2.15, including the explicit Linux optional pin; pluginutils moves from rc.17 to 1.0.1 and internal OXC types from 0.127.0 to 0.155.0. Both runtime engines admit Node 22.13.0. The Vite CLI and full tests exercise the Windows binary; Linux native execution remains a release check. No independent binary bump or app bundler update was made.
 
 ## Final state and handoff
 
