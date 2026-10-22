@@ -16,7 +16,7 @@ Audit counts are affected package entries, not unique CVEs or demonstrated explo
 
 Root outdated returned an empty object (exit 0), including repeats with --prefer-online and --include-workspace-root=true. Separate registry metadata nevertheless lists concurrently 10.0.6; it is included below. Concurrently also inherits a critical shell-quote finding. An empty outdated result is not evidence of vulnerability-free dependencies.
 
-## Every outdated direct dependency
+## Every outdated dependency reported
 
 Current is installed at baseline inspection; wanted is the value reported by npm outdated. Latest below uses the separately fetched registry dist-tag, which differs from npm outdated for Angular and concurrently. The execution ledger records retained targets.
 
@@ -31,6 +31,8 @@ Current is installed at baseline inspection; wanted is the value reported by npm
 | api: googleapis | 171.4.0 | 171.4.0 | 187.0.0 | major | API feedback Sheets client | Defer major upgrade to Claude/Alex. |
 | api: mongodb | 7.2.0 | 7.7.0 | 7.7.0 | minor | API storage driver | Retained 7.7.0 (minor); real database integration remains unverified. |
 | api: tsx | 4.21.0 | 4.23.15 | 4.23.15 | minor | API dev/import/maintenance CLI | Retained 4.23.15 (minor), including API-local esbuild 0.28.2. |
+| api: socks (transitive; observed while isolating the peer) | 2.8.9 | 2.8.10 | 2.8.10 | patch | MongoDB SOCKS proxy adapter | Reverted address-family isolation after optional GCP peer conflict; coordinate with Claude/Alex. |
+| api: side-channel (transitive; query-family range check) | 1.1.0 | 1.1.1 | 1.1.1 | patch | qs request-query support | API-local 1.1.1 satisfies qs 6.16.1; app copy unchanged. |
 | api: typescript | 6.0.3 | 6.0.3 | 7.0.2 | major | TypeScript compiler | Defer major upgrade to Claude/Alex. |
 | api: vitest | 4.1.5 | 4.1.12 | 5.0.5 | major | Test runner | Retained 4.1.12 family (patch); defer major 5 to Claude/Alex. |
 | api: zod | 4.3.6 | 4.6.7 | 4.6.7 | minor | API validation | Reverted after 163 test failures; retain 4.3.6 pending schema compatibility review. |
@@ -79,34 +81,34 @@ All 42 distinct package names from the three audit results are included. Version
 | @modelcontextprotocol/sdk | app | 1.26.0 | 1.32.1 | minor | high | App CLI MCP tooling | Claude/Alex: update owning app/tooling family and run app checks. |
 | @sigstore/core | app | 3.2.0 | 4.0.1 | major | moderate | App package signature tooling | Claude/Alex: update owning app/tooling family and run app checks. |
 | @sigstore/verify | app | 3.1.0 | 4.1.2 | major | moderate | App package verification | Claude/Alex: update owning app/tooling family and run app checks. |
-| @vitest/mocker | api, app | 4.1.5 | 5.0.5 | major | moderate | Test mocking server | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| @vitest/mocker | api, app | 4.1.5 | 5.0.5 | major | moderate | Test mocking server | API path updated to 4.1.12. App copies remain for Claude/Alex. |
 | argparse | app | 1.0.10 | 3.0.3 | major | moderate | App DOCX import dependency | Do not accept audit's proposed mammoth 0.3.29 downgrade. Review a current-family transitive/upstream remedy and CV import regressions. |
 | baseline-browser-mapping | app | 2.10.24 | 2.11.30 | minor | moderate | App browser targeting | Claude/Alex: update owning app/tooling family and run app checks. |
-| body-parser | api, app | 2.2.2 | 2.4.0 | minor | low | HTTP request parsing | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| body-parser | api, app | 2.2.2 | 2.4.0 | minor | low | HTTP request parsing | Deferred: 2.4.0 requires content-type major 2; review with Express family. Remaining API finding and app path need Claude/Alex. |
 | brace-expansion | app | 5.0.6 | 5.0.12 | patch | high | Build glob handling | Claude/Alex: update owning app/tooling family and run app checks. |
 | browserslist | app | 4.28.2 | 4.29.4 | minor | high | App browser targets | Claude/Alex: update owning app/tooling family and run app checks. |
 | concurrently | root | 9.2.1 | 10.0.6 | major | critical | Root dev process orchestration | Root owner: assess major separately and address shell-quote without audit --force. |
-| esbuild | api, app | 0.27.7, 0.27.3 | 0.28.2 | minor | low | API CLI / app transforms | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| esbuild | api, app | 0.27.7, 0.27.3 | 0.28.2 | minor | low | API CLI / app transforms | API path updated to 0.28.2. App copies remain for Claude/Alex. |
 | fast-uri | app | 3.1.2 | 4.2.3 | major | high | App URI/schema parsing | Claude/Alex: update owning app/tooling family and run app checks. |
 | hono | app | 4.12.18 | 4.13.13 | minor | high | App CLI MCP server | Claude/Alex: update owning app/tooling family and run app checks. |
 | http-cache-semantics | app | 4.2.0 | 4.3.0 | minor | high | App package HTTP caching | Claude/Alex: update owning app/tooling family and run app checks. |
 | immutable | app | 5.1.5 | 5.1.9 | patch | high | App Sass/build structures | Claude/Alex: update owning app/tooling family and run app checks. |
-| ip-address | api, app | 10.2.0 | 10.7.4 | minor | high | Proxy/address handling | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| ip-address | api, app | 10.2.0 | 10.7.4 | minor | high | Proxy/address handling | Deferred: isolating SOCKS/address exposed an incompatible optional GCP auth peer in MongoDB. Coordinate driver/Google peer layout; app copies unchanged. |
 | mammoth | app | 1.13.0 | 1.13.0 | none | moderate | App DOCX CV extraction | Do not accept audit's proposed mammoth 0.3.29 downgrade. Review a current-family transitive/upstream remedy and CV import regressions. |
-| nanoid | api, app | 3.3.12 | 6.0.2 | major | high | Build/test identifiers | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| nanoid | api, app | 3.3.12 | 6.0.2 | major | high | Build/test identifiers | API path updated to 3.3.20 (compatible major 3, not registry major 6). App copies remain for Claude/Alex. |
 | pacote | app | 21.3.1 | 22.0.1 | major | high | App CLI package fetching | Claude/Alex: update owning app/tooling family and run app checks. |
 | piscina | app | 5.1.4 | 5.3.2 | minor | critical | App build worker pool | Claude/Alex: update owning app/tooling family and run app checks. |
-| postcss | api, app | 8.5.13 | 8.5.31 | patch | high | CSS/build tooling | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
-| proxy-addr | api, app | 2.0.7 | 2.0.8 | patch | critical | Trusted proxy address parsing | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
-| qs | api, app | 6.15.1 | 6.16.1 | minor | moderate | HTTP query parsing | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| postcss | api, app | 8.5.13 | 8.5.31 | patch | high | CSS/build tooling | API path updated to 8.5.31. App copies remain for Claude/Alex. |
+| proxy-addr | api, app | 2.0.7 | 2.0.8 | patch | critical | Trusted proxy address parsing | API path updated to 2.0.8. App copies remain for Claude/Alex. |
+| qs | api, app | 6.15.1 | 6.16.1 | minor | moderate | HTTP query parsing | API path updated to 6.16.1. App copies remain for Claude/Alex. |
 | shell-quote | root | 1.8.3 | 1.12.0 | minor | critical | Root dev command quoting | Root owner: refresh supported transitive versions; no root update here. |
 | sigstore | app | 4.1.0 | 5.0.0 | major | high | App signature verification | Claude/Alex: update owning app/tooling family and run app checks. |
-| source-map-js | api, app | 1.2.1 | 1.2.2 | patch | high | Build/test source maps | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| source-map-js | api, app | 1.2.1 | 1.2.2 | patch | high | Build/test source maps | API path updated to 1.2.2. App copies remain for Claude/Alex. |
 | sprintf-js | app | 1.0.3 | 1.1.3 | minor | moderate | App DOCX import formatting | Do not accept audit's proposed mammoth 0.3.29 downgrade. Review a current-family transitive/upstream remedy and CV import regressions. |
 | tar | app | 7.5.15 | 7.5.22 | patch | critical | App CLI archive extraction | Claude/Alex: update owning app/tooling family and run app checks. |
 | undici | app | 7.24.4, 6.25.0 | 8.12.3 | major | high | App tooling HTTP client | Claude/Alex: update owning app/tooling family and run app checks. |
-| vite | api, app | 8.0.10, 7.3.2 | 8.3.5 | minor, major | high | API test / app dev/build tooling | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
-| vitest | api, app | 4.1.5 | 5.0.5 | major | moderate | Test runner | Try owning API family update; preserve app copies. Remaining app paths need Claude/Alex. |
+| vite | api, app | 8.0.10, 7.3.2 | 8.3.5 | minor, major | high | API test / app dev/build tooling | API path updated to 8.3.5. App copies remain for Claude/Alex. |
+| vitest | api, app | 4.1.5 | 5.0.5 | major | moderate | Test runner | API path updated to 4.1.12. App copies remain for Claude/Alex. |
 
 ### Audit advisory evidence
 
@@ -179,7 +181,9 @@ Each retained update runs `npm run api:test` and `npm run api:build` before comm
 | vitest family | 4.1.5 to 4.1.12 | Retained; eight API runner packages; app runner unchanged | 2,431 passed + 2 expected failures | Pass | `cf7229a` |
 | zod | 4.3.6 to 4.6.7 | Reverted: omitted quiz points rejected as nonoptional; no test/source changes | 163 failed, 2,268 passed + 2 expected failures (4 files failed) | Pass | No dependency change retained |
 | Express proxy/query dependency family | proxy-addr 2.0.7 to 2.0.8; qs 6.15.1 to 6.16.1 | Retained API-only copies; Express 5.2.1 and body-parser 2.2.2 unchanged; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `13dabae` |
-| Vite test bundler family | Vite 8.0.10 to 8.3.5; Rolldown rc.17 to 1.2.15 | Retained; matching native pin/bindings; PostCSS 8.5.31, nanoid 3.3.20, source-map-js 1.2.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This Vite family update commit |
+| Vite test bundler family | Vite 8.0.10 to 8.3.5; Rolldown rc.17 to 1.2.15 | Retained; matching native pin/bindings; PostCSS 8.5.31, nanoid 3.3.20, source-map-js 1.2.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `6b985bf` |
+| MongoDB SOCKS/address family | SOCKS 2.8.9 to 2.8.10; ip-address 10.2.0 to 10.7.4 | Reverted before commit: API driver relocation exposed incompatible optional Google auth peer | 2,431 passed + 2 expected failures | Pass | No dependency change retained |
+| qs support dependency | side-channel 1.1.0 to 1.1.1 | Retained API-local patch; satisfies qs range and preserves app copy | 2,431 passed + 2 expected failures | Pass | This final X7 query-support commit |
 
 The Express attempt passed behavioral checks, but was outside the conservative no-major/app
 scope once its resolved transitive graph was inspected. Only this attempt's uncommitted changes
@@ -193,6 +197,22 @@ Zod 4.6.7 failed existing US-T015-AC06 courseContent tests and import/learning/m
 
 The Vite family was resolved in a separate temporary manifest, with optional peers omitted only in that temporary resolution. Exact registry tarball/integrity entries were transplanted under api/ and installed normally in the shared tree. Existing package major numbers were checked before applying. This couples Vite 8.3.5 to Rolldown and every native binding at 1.2.15, including the explicit Linux optional pin; pluginutils moves from rc.17 to 1.0.1 and internal OXC types from 0.127.0 to 0.155.0. Both runtime engines admit Node 22.13.0. The Vite CLI and full tests exercise the Windows binary; Linux native execution remains a release check. No independent binary bump or app bundler update was made.
 
+The attempted address family moved MongoDB 7.7.0 under api/ to resolve local SOCKS 2.8.10 and ip-address 10.7.4. Full tests/build passed, but range review showed that this placement also exposed Google API's gcp-metadata 8.1.2 to MongoDB's optional ^7.0.1 peer. Root MongoDB previously had no visible GCP peer. Installing a different Google-auth major or changing that auth layout is beyond this conservative update scope. The whole uncommitted address attempt (including temporary SOCKS declaration) was reverted; MongoDB remains 7.7.0 in its prior root location, SOCKS 2.8.9 and ip-address 10.2.0.
+
+Review also caught qs 6.16.1 requiring side-channel ^1.1.1 while the shared root copy was 1.1.0. A separate API-local side-channel 1.1.1 patch satisfies the new range and preserves app resolution. The targeted npm ls check for qs/side-channel/MongoDB/gcp-metadata now exits 0. Final full tests passed (94 files, 2,431 passed plus 2 expected failures), and the build passed. Read-only rereview found no missing required dependencies or invalid ranges across the full API dependency/dev/optional/peer graph, and no changed app dependency edges.
+
 ## Final state and handoff
 
-Remaining candidates and final re-audit pending. Real MongoDB, Stripe, Mux, Sheets, Brevo, GitHub and Linux deployment integrations are not exercised. App/root updates and majors remain with Claude and Alex.
+Repeated all six outdated/audit commands after the retained changes, and repeated the API audit after the address rollback. Eight package/family commits were retained; the final ledger row refers to this commit because a commit cannot embed its own hash. Final outdated output contains 0 root, 9 API and 20 app entries; the API native binary entry is absent on Windows even though its wanted/latest versions match. The separate root registry finding remains listed above. No new vulnerable package names appeared. Final layout and check results are recorded in the execution ledger.
+
+| Scope | Low | Moderate | High | Critical | Total audit entries |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| root | 0 | 0 | 0 | 2 | 2 |
+| api | 1 | 0 | 1 | 0 | 2 |
+| app | 3 | 13 | 21 | 3 | 40 |
+
+The remaining API findings are body-parser 2.2.2 (low) and ip-address 10.2.0 (high). The address fix needs the optional-peer layout resolved without introducing an unsupported Google-auth major. The [body-parser 2.4.0 metadata](https://registry.npmjs.org/body-parser/2.4.0) requires content-type major 2, as does the deferred Express family transition; leave this to Claude/Alex for a compatibility change. Root shell-quote/concurrently and app critical/high findings remain priorities in their own scope. The app package declarations and complete lockfile dependency/dev/optional/peer graph retain their baseline versions; only the required product-version fields change.
+
+App updates (including Angular, CSS/build tooling, icons, Mux player and test tools) and all direct major upgrades are listed above for Claude/Alex. API major targets deferred: Mux 15/renamed SDK, Node types 26, dotenv 18, googleapis 187, TypeScript 7, Vitest 5. Zod 4.6.7, Express 5.3.0, and the SOCKS/address family were reverted for the documented test/scope/peer reasons.
+
+Real MongoDB, Stripe, Mux, Sheets, Brevo, GitHub and Linux deployment integrations were not exercised. No app build or app test suite was run; app dependency preservation is a graph comparison, not frontend execution evidence. No production source or tests were edited, and nothing was pushed or deployed.
