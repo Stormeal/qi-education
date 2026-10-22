@@ -168,6 +168,53 @@ describe.each(['', '/api'])('US-A005 course teacher HTTP (%s)', prefix => {
   }
   async function storedCourse() { return (await courses.listCourses()).find(course => course.id === 'c')!; }
 
+  it('US-A005-AC05 Round 2 removes deleted and demoted teachers one at a time', async () => {
+    const deletedId = 'deleted-teacher-a';
+    await courses.updateCourseTeachers('c', [deletedId, teacherB.id, teacherA.id]);
+    await auth.updateRole(teacherB.id, 'student');
+    const removedDeleted = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherB.id, teacherA.id] });
+    expect(removedDeleted.status).toBe(200);
+    expect(await removedDeleted.json()).toEqual({ teachers: [teacherView(teacherB, false), teacherView(teacherA)] });
+    expect(await storedCourse()).toMatchObject({ teacherIds: [teacherB.id, teacherA.id], ownerUserId: teacherB.id });
+    const removedDemoted = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherA.id] });
+    expect(removedDemoted.status).toBe(200);
+    expect(await removedDemoted.json()).toEqual({ teachers: [teacherView(teacherA)] });
+    expect(await storedCourse()).toMatchObject({ teacherIds: [teacherA.id], ownerUserId: teacherA.id });
+  });
+
+  it('US-A005-AC05 Round 2 adds a teacher while retaining a legacy admin owner as inactive', async () => {
+    await courses.createCourse(metadata, { id: 'legacy-round-2', createdAt: 'x', ownerUserId: admin.id });
+    const response = await request('/courses/legacy-round-2/teachers', admin, 'PUT', { teacherIds: [admin.id, teacherA.id] });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ teachers: [teacherView(admin, false), teacherView(teacherA)] });
+    expect((await courses.listCourses()).find(course => course.id === 'legacy-round-2'))
+      .toMatchObject({ teacherIds: [admin.id, teacherA.id], ownerUserId: admin.id });
+  });
+
+  it('US-A005-AC05 Round 2 still refuses a newly added student without changing the list', async () => {
+    const before = await storedCourse();
+    const response = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherA.id, teacherB.id, student.id] });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: `${student.id} is not a teacher account.` });
+    expect(await storedCourse()).toEqual(before);
+  });
+
+  it('US-A005-AC05 Round 2 checks shape and duplicates before course existence, then existence before new accounts', async () => {
+    for (const [body, message] of [
+      [{ teacherIds: null }, 'Teachers must be a list of at most 20 account ids.'],
+      [{ teacherIds: [student.id, student.id] }, 'Each teacher can be listed once.'],
+    ] as const) {
+      const response = await request('/courses/missing/teachers', admin, 'PUT', body);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ message });
+    }
+    for (const teacherIds of [[teacherA.id], [student.id], ['unknown-teacher']]) {
+      const response = await request('/courses/missing/teachers', admin, 'PUT', { teacherIds });
+      expect(response.status).toBe(404);
+      expect(await response.json()).toEqual({ message: 'Course not found' });
+    }
+  });
+
   it('US-A005-AC01 an admin replaces the list and reads names and email in stored order', async () => {
     const before = await content.getCourseContent('c');
     const expected = { teachers: [teacherView(teacherB), teacherView(teacherA)] };

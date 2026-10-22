@@ -165,6 +165,29 @@ or `api/dist` rebuilds were used. Claude's browser/deployment verification remai
   required version values in `package.json`, `app/package.json`, `package-lock.json` (three entries),
   and `app/src/app/services/app-state.service.ts` (`appVersion`).
 
+### Round 2 result (Codex, 2026-10-22)
+
+- Started on clean shared `main` at `b30aaea` (`docs(US-A005): Codex check and round 2 handoff`);
+  fetched remote state, with no incoming commits. Scope: clarified D5 / US-A005-AC05 only.
+- Wrote the four requested regression cases first, each exercised under `/courses` and `/api/courses`.
+  RED: six expected failures (retained demoted account, retained legacy admin, missing-course
+  precedence); the newly added student rejection already passed and remains a regression guard.
+- Changed only `api/src/courseTeachersRoutes.ts`: after shape and duplicate checks, read the
+  course inside the locked handler, return the exact 404 when absent, and require role `teacher`
+  only for IDs absent from `courseTeacherIds(course)`. Retained entries may remain deleted,
+  demoted, or disabled; the response still marks them inactive, and the owner mirror is preserved.
+- GREEN: focused `courseTeachers.test.ts` **86/86**; final `npm --prefix api test`
+  **2,431/2,431** across 93 files; `npm run verify:journeys` **16/16**;
+  `node api/node_modules/typescript/bin/tsc --noEmit -p api/tsconfig.json` and `git diff --check`
+  passed. All checks ran before the local delivery commit, using only isolated in-process stores.
+- Delivered in the commit containing this entry: `fix(US-A005): validate only newly assigned teachers`.
+  Files: `api/src/courseTeachersRoutes.ts`, `api/src/courseTeachers.test.ts`, this Round 2 result,
+  the Round 2 queue row, and the four required version locations (root/app package versions,
+  three lockfile entries, and the single `appVersion` line). No `api/dist` rebuild, shared-service
+  mutation, push, or deployment. No existing test expectations were changed.
+- This clarified contract supersedes Round 1's whole-list validation ruling and the proposed
+  bulk-cleanup panel follow-up. No app behavior or additional outside-file changes are needed.
+
 ## Round 2 (from Claude's check, 2026-10-22)
 
 Claude's check: diff kept to Codex's files, contract kept, `api:test` 2,423/2,423, `app:test`

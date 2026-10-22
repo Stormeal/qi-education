@@ -14,7 +14,7 @@ US-A005 course teachers, on `main` from `d41b952`; contract
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
 | Codex | Plan tasks 1–3: storage, authorization, admin routes (AC01–AC07, AC09 API) | `api/**` except `api/dist` | API done 2026-10-22, `main` from `aa9ada0` (contains `ca9d9dd`): `6fa0c98`, `4ea138a`, and this Task 3 delivery commit (`feat(US-A005): admin routes to read and assign course teachers`). API 2,423/2,423, journeys 16/16, no-emit TypeScript pass; review race fixed. Next: Claude browser check, story verification rows, and panel cleanup follow-up in handoff. Local commits only |
-| Codex | Round 2: keep stored entries when validating `PUT /courses/:id/teachers` (handoff "Round 2") | `api/**` except `api/dist` | Handed over 2026-10-22 |
+| Codex | Round 2: keep stored entries when validating `PUT /courses/:id/teachers` (handoff "Round 2") | `api/**` except `api/dist` | Done 2026-10-22, `main` from `b30aaea`, in this delivery commit (`fix(US-A005): validate only newly assigned teachers`). Four cases tested RED → GREEN on both prefixes; API 2,431/2,431, journeys 16/16, no-emit TypeScript pass. Local commit only; no outside-file changes needed. Next: Claude final delivery record |
 | Claude Code | Plan tasks 4–6: app, Teachers panel (AC08), rules and specs | `app/**`, `docs/**` | Done 2026-10-22; Codex check done (`42e6b40`): all suites green, browser flow passes. Waiting on Codex round 2, then push |
 
 US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built 2026-10-22 and

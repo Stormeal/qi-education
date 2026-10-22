@@ -38,8 +38,11 @@ export function registerCourseTeachersRoutes(app: Express, dependencies: {
     if (new Set(teacherIds).size !== teacherIds.length) {
       response.status(400).json({ message: 'Each teacher can be listed once.' }); return;
     }
+    const course = (await courses.listCourses()).find(item => item.id === String(request.params.id));
+    if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
+    const storedIds = new Set(courseTeacherIds(course));
     for (const id of teacherIds) {
-      if ((await auth.findById(id))?.role !== 'teacher') {
+      if (!storedIds.has(id) && (await auth.findById(id))?.role !== 'teacher') {
         response.status(400).json({ message: `${id} is not a teacher account.` }); return;
       }
     }
