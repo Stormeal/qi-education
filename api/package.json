@@ -10,7 +10,8 @@
     "test": "vitest run",
     "auth:hash-password": "tsx src/hashPassword.ts",
     "db:backup": "tsx src/backupDatabaseCli.ts",
-    "db:restore": "tsx src/restoreDatabaseCli.ts"
+    "db:restore": "tsx src/restoreDatabaseCli.ts",
+    "import:rise": "tsx src/riseImportCli.ts"
   },
   "keywords": [],
   "author": "",

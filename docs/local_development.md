@@ -142,6 +142,25 @@ an explicit test API, set
 browser before interacting. Browser tests should set that override before app startup.
 Do not use production users to create/delete audit courses or trigger issue creation.
 
+## Import a Rise course (US-T015)
+
+Unzip the SCORM export outside the repo first (for example `C:\Users\Alex\scorm-import\<name>`).
+The importer only reads Articulate Rise exports (`scormcontent/runtime-data.js`).
+
+```bash
+npm --prefix api run import:rise -- "C:/Users/Alex/scorm-import/istqb-foundation" --dry-run
+npm --prefix api run import:rise -- "C:/Users/Alex/scorm-import/istqb-foundation" --email teacher@example.com
+```
+
+- The dry run prints sections, lesson counts, video minutes, skipped files and problems, and
+  sends nothing. A real run refuses to start while there are problems.
+- A real run goes to the hosted API (`--api` overrides it, for example `http://localhost:3001`),
+  asks for the teacher's password without echoing it (or reads `QI_IMPORT_PASSWORD`) and creates
+  a draft owned by that teacher. Videos only finish on the hosted API: Mux reports them there.
+- If it stops, it prints `Resume with: --course <id>`. Wait a minute, then run the same command
+  with that flag: it uploads only what is missing.
+- PDFs over 4 MB are skipped and listed; upload compressed copies in the course editor.
+
 ## Checks
 
 | Command | Coverage |
