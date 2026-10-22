@@ -157,6 +157,11 @@ npm --prefix api run import:rise -- "C:/Users/Alex/scorm-import/istqb-foundation
 - A real run goes to the hosted API (`--api` overrides it, for example `http://localhost:3001`),
   asks for the teacher's password without echoing it (or reads `QI_IMPORT_PASSWORD`) and creates
   a draft owned by that teacher. Videos only finish on the hosted API: Mux reports them there.
+- Push the importer's commits and let the hosted API deploy before a real run: the hosted API must
+  accept the longer quiz text (answers 600, feedback and explanations 1,500 characters), or saving
+  the lessons answers 400.
+- After the first video the importer waits up to 2 minutes for Mux's webhook to reach the hosted
+  API. If it never does, it stops before sending the rest; check `npx vercel logs`.
 - If it stops, it prints `Resume with: --course <id>`. Wait a minute, then run the same command
   with that flag: it uploads only what is missing.
 - PDFs over 4 MB are skipped and listed; upload compressed copies in the course editor.

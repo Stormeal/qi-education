@@ -44,11 +44,11 @@ quiz, 8 resources, 7 text; checked by the dry run on 2026-10-22), with every vid
 | D4 | Lesson titles | A video takes its topic heading ("01.01 Hvad er test?"), or the Rise lesson title when there is none; a second video in one topic gets " (del 2)". A quiz is "Videnstjek: <topic heading>". A resources lesson takes the PDF's original name without ".pdf". A heading outside a topic title that fits a title (≤ 200 characters) names the next video or text lesson instead of becoming a lesson ("04.06 Løsning \| Grænseværdianalyse"). |
 | D5 | Quiz grading | Pass mark = every question in the quiz. Multiple-response questions keep all their correct answers. Answer labels "a)", "b)" are kept as written. |
 | D6 | Feedback | Each answer's Rise feedback becomes that answer's description. The correct answer's feedback also becomes the question's explanation, which learners see after answering. |
-| D7 | Text over our limits | Raise the answer text limit from 300 to 600 characters, and the answer description and question explanation limits to 1,500 (from 500 and 1,000), rather than shortening imported text. Nothing is ever cut silently. The editor has no length cap on these fields, so only the API changes. |
+| D7 | Text over our limits | Raise the answer text limit from 300 to 600 characters, and the answer description and question explanation limits to 1,500 (from 500 and 1,000), rather than shortening imported text. Nothing is ever cut silently. The editor's explanation field allows 1,500 characters too; answers have no editor cap. |
 | D8 | PDFs over 4 MB | Skipped, with each name listed in the import report. The resources lesson is still created. The teacher uploads a compressed copy in the course editor before submitting for review. |
 | D9 | Course details | Title, description and teacher name come from Rise (title trimmed; description as plain text). Level "Foundation". The cover image becomes the thumbnail. Category, language and price stay admin settings. |
 | D10 | Owner | The teacher account the importer signs in as. Alex types its password when asked; it is never stored or passed on the command line. |
-| D11 | Where it runs | A dry run reads and checks everything without writing. The real run goes to the hosted API, because Mux only reports finished videos there. The result is a draft, invisible to learners until an admin publishes it. |
+| D11 | Where it runs | A dry run reads and checks everything without writing. The real run goes to the hosted API, because Mux only reports finished videos there. The result is a draft, invisible to learners until an admin publishes it. Order: push, confirm the hosted API answers with the new quiz limits, then import. After the first video the importer waits up to 2 minutes for Mux's webhook and stops if it never arrives. |
 | D12 | Mux cost | Fits the Launch plan (checked by Alex 2026-10-22: $100 usage credit/month, 100k free delivery minutes). Uploads use `basic` quality. Full run-throughs of this course: about 230 a month inside the free minutes. |
 
 ## Scope
@@ -124,9 +124,9 @@ See the [plan](../superpowers/plans/2026-10-22-US-T015-rise-course-import.md).
 
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
-| US-T015-AC01 | `api/src/riseImport.test.ts`, then the dry run on the real export | Pending |
-| US-T015-AC02 | `api/src/riseImportRun.test.ts` (in-process API, in-memory stores, fake Mux); then the hosted run and a browser check of the draft | Pending |
-| US-T015-AC03 | `api/src/riseImport.test.ts` | Pending |
-| US-T015-AC04 | `api/src/riseImportRun.test.ts` | Pending |
-| US-T015-AC05 | `api/src/riseImportRun.test.ts` | Pending |
+| US-T015-AC01 | `riseImport.test.ts`, `riseImportCommand.test.ts`; dry run on the real export | Pass 2026-10-22: 7 sections, 138 lessons (88 video, 35 quiz, 8 resources, 7 text), 88 videos ≈ 472 min (rounded up per video), 2,119.9 MB; skipped Kapitel 4/5 PDFs, 7 continue and 1 hero block; no problems |
+| US-T015-AC02 | `riseImportRun.test.ts` (in-process API, in-memory stores, fake Mux); local run on ports 3001/4200 | Pass 2026-10-22 locally: draft with thumbnail, 138 lessons, 6 PDFs, quiz shown correctly in the editor; stopped at the first video (local Mux not configured) as expected. **Hosted run and video playback: not done** |
+| US-T015-AC03 | `riseImport.test.ts`, `riseImportCommand.test.ts` | Pass 2026-10-22 |
+| US-T015-AC04 | `riseImportRun.test.ts` (simulated Mux webhook through `/webhooks/mux`) | Pass 2026-10-22 |
+| US-T015-AC05 | `riseImportRun.test.ts` | Pass 2026-10-22 |
 | US-T015-AC06 | `api/src/courseContent.test.ts` | Pass 2026-10-22 |

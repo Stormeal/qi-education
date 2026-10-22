@@ -106,6 +106,14 @@ describe('US-T011 quiz authoring interactions', () => {
     expect(host.querySelector('.quiz-question-card')!.querySelector('.quiz-question-attention')).toBeNull();
     expect(host.querySelector('.quiz-question-card')!.textContent).toContain('1 correct answer');
   });
+  it('US-T015-AC06 lets the explanation field hold an imported 1,500-character explanation', () => {
+    const { fixture, host, doc, open } = setup();
+    const quiz = doc.sections[0].components[0] as Extract<CourseContentDocument['sections'][number]['components'][number], { type: 'quiz' }>;
+    quiz.quiz.questions[0].explanation = 'Imported Rise feedback';
+    fixture.componentRef.setInput('courseContent', structuredClone(doc)); fixture.detectChanges();
+    open();
+    expect(host.querySelector<HTMLTextAreaElement>('.quiz-explanation textarea')!.maxLength).toBe(1500);
+  });
   it('AC05 labels answer text and explanation fields and connects toggle to its content', () => {
     const { host, open } = setup(); open();
     const trigger = host.querySelector('.quiz-question-trigger')!;
