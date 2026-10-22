@@ -173,13 +173,16 @@ Each retained update runs `npm run api:test` and `npm run api:build` before comm
 | express | 5.2.1 to 5.3.0 | Reverted before commit: shared app tooling changed and content-disposition/content-type moved to major 2 | 2,431 passed + 2 expected failures before rollback | Pass before rollback | No dependency change retained |
 | mongodb family | 7.2.0 to 7.7.0 | Retained; BSON 7.3.3, saslprep 1.6.1, connection-string-url 7.0.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `c2ffc4a` |
 | @types/node family | 25.6.0 to 25.9.9 | Retained under api/ with undici-types 7.24.6; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `178dee2` |
-| tsx family | 4.21.0 to 4.23.15 | Retained; API esbuild 0.28.2; app graph unchanged; typed CLI smoke passed | 2,431 passed + 2 expected failures | Pass | This tsx update commit |
+| tsx family | 4.21.0 to 4.23.15 | Retained; API esbuild 0.28.2; app graph unchanged; typed CLI smoke passed | 2,431 passed + 2 expected failures | Pass | `5a57ee4` |
+| vitest family | 4.1.5 to 4.1.12 | Retained; eight API runner packages; app runner unchanged | 2,431 passed + 2 expected failures | Pass | This Vitest update commit |
 
 The Express attempt passed behavioral checks, but was outside the conservative no-major/app
 scope once its resolved transitive graph was inspected. Only this attempt's uncommitted changes
 were reversed; the installed tree was then reconciled to the original lock. The full app graph
 (including development dependencies) again matches baseline. Recommend Claude/Alex review this
 security-related family update with app tooling and the transitive major changes together.
+
+The first Vitest install hit npm 10.9.2 Arborist edgesOut while resolving newer optional peers, before any file change. Refreshing just the eight API family lock entries from exact-version registry metadata (including tarball integrity), followed by a normal lock-respecting npm install, succeeded without updating the existing Vite or app graph.
 
 ## Final state and handoff
 
