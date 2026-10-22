@@ -10,7 +10,9 @@ lessons, keeps notes, gets the files and tells the teacher how a lesson went.
 - URL `/library/:id`. Opening it directly or refreshing restores the session first and then loads
   the course; access needs ownership, admin role, or enrollment in a published or archived course.
 - **Sidebar**: overall progress ("7 of 24 lessons complete", percentage, time left), then each
-  section with its completed count. It can be hidden for a wider player (not remembered).
+  section with its completed count. It can be hidden for a wider player (not remembered). Above
+  960px it stays in view at most one screen tall and scrolls on its own, so a learner can browse
+  long chapters while a video plays; narrower screens stack it under the lesson.
 - **Previous / Next** move through lessons in course order, disabled at the ends.
 - **Completion**: text, resources and exercise lessons have a complete action (exercises a check);
   a video completes once at 90% watched (seeking counts); a quiz on **Finish quiz** after a pass.

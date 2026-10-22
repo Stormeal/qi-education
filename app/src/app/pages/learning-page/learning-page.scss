@@ -750,6 +750,13 @@
 /* Curriculum */
 
 .curriculum {
+  /* Stays in view and scrolls on its own, so learners can browse long chapters while a video plays. */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-left: 1px solid var(--color-border);
   background: var(--color-surface-card);
 }
@@ -971,6 +978,9 @@
   }
 
   .curriculum {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
     border-top: 1px solid var(--color-border);
     border-left: 0;
   }

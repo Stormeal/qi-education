@@ -6,7 +6,12 @@ messages hold them.
 
 ## Active work
 
-None. Delivered 2026-10-22 and closed: US-T015 (Rise SCORM import; the ISTQB Foundation
+None. Done on the hosted site 2026-10-22: AI Testing Specialist and Test Manager converted to the
+milestone format and published (Technical Tester already was); ISTQB Foundation repetition
+published at 1,999 DKK, category Software Testing, Danish, with Kapitel 4 and Kapitel 5 (split
+into del 1 and del 2 to stay under 4 MB). Learning-page sidebar scrolls on its own (spec updated).
+
+Delivered 2026-10-22 and closed: US-T015 (Rise SCORM import; the ISTQB Foundation
 repetition course was imported to the hosted site as course `2127cfd3-d3ad-44b0-8946-9fff1d51a591`)
 and US-A005 (admins assign course teachers, built with Codex; record in
 [history/handoffs](history/handoffs/US-A005-codex.md)). Behavior in
@@ -17,8 +22,6 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 
 | Item | What Alex does | How to tell it is done |
 | --- | --- | --- |
-| ISTQB Foundation repetition course | Upload compressed Kapitel 4 and Kapitel 5 (over 4 MB, skipped by the import) in the editor, then submit and publish | The course is in the catalog with all 8 PDFs |
-| Hosted careers to milestone format | Admin page → **Career paths**: open each of the three careers (Technical Tester, Test Manager, AI Testing Specialist), click **Convert to milestone format**, check stages and actions, publish | Career Path shows Locked/Ready states instead of "Recommended later" |
 | US-A004-AC04 curriculum review | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (later) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
@@ -41,7 +44,7 @@ Delivered work whose real-environment check has not been done. Tick off here whe
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
 - Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.
-- Mux: real upload, webhook delivery and playback in the editor checked 2026-10-22 with the 88 imported ISTQB videos. Still open: playback as a learner once the course is published; INV-019.
+- Mux: real upload, webhook delivery and playback in the editor checked 2026-10-22 with the 88 imported ISTQB videos. Playback in the learner view checked as admin 2026-10-22 (no spinner). Still open: playback with a real learner account; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).
 - Profiles and instructor descriptions on two devices against hosted MongoDB.
