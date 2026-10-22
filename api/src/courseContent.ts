@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 const quizAnswerOptionSchema = z.object({
   id: z.string().trim().min(1).max(120),
-  text: z.string().trim().max(300).default(''),
-  description: z.string().trim().max(500).default(''),
+  text: z.string().trim().max(600).default(''),
+  description: z.string().trim().max(1500).default(''),
   isCorrect: z.boolean().default(false),
 });
 
