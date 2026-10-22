@@ -64,9 +64,26 @@ describe('US-T015 planRiseImport', () => {
     expect(summarizePlan(plan).join('\n')).toMatch(/01\) Grundlæggende: 7 lessons \(4 video, 1 quiz, 1 resources, 1 text\)/);
   });
 
+  it('uses a short heading outside a topic title as the next lesson title, not as a lesson of its own', async () => {
+    const prose = `<p>Inden du går i gang med introduktionsvideoen, ${'anbefaler vi at du læser syllabus. '.repeat(6)}</p>`;
+    const folder = await riseExport([{ id: 'L1', title: 'Introduktion', items: [
+      heading('h0', '<p>Introduktion til kurset</p>'), heading('h1', prose), video('v0', 'Intro.mp4'),
+      heading('h2', 'Syllabus'), attachment('p0', 'Syllabus.pdf'),
+      divider('d1'), heading('h3', '04.05 Grænseværdianalyse'), video('v1', 'a.mp4'),
+      heading('h4', '04.06 Løsning | Grænseværdianalyse'), video('v2', 'b.mp4'),
+    ] }], { 'Intro.mp4': 1, 'Syllabus.pdf': 1, 'a.mp4': 1, 'b.mp4': 1 });
+
+    const [section] = (await planRiseImport(folder)).sections;
+
+    expect(section.components.map((component) => [component.id, component.type, component.title])).toEqual([
+      ['h1', 'text', 'Introduktion til kurset'], ['v0', 'video', 'Introduktion'], ['p0', 'resources', 'Syllabus v.1'],
+      ['v1', 'video', '04.05 Grænseværdianalyse'], ['v2', 'video', '04.06 Løsning | Grænseværdianalyse']]);
+    expect(section.components[0].content).toMatch(/^<p>Inden du går i gang/);
+  });
+
   it('cleans Rise HTML: plain quiz text, safe tags only in text lessons', async () => {
     const folder = await riseExport([{ id: 'L1', title: 'Intro', items: [
-      heading('h0', '<div data-editor-id="x"><p><span style="font-size: 1.6rem">Læs <strong>syllabus</strong></span></p><p></p><script>x()</script><a href="javascript:x()">bad</a></div>'),
+      paragraph('h0', '<div data-editor-id="x"><p><span style="font-size: 1.6rem">Læs <strong>syllabus</strong></span></p><p></p><script>x()</script><a href="javascript:x()">bad</a></div>'),
       check('k1', 'MULTIPLE_CHOICE', '<div data-editor-id="x"><p><span style="font-size: 2.4rem"><strong>Hvilket?</strong></span></p><p></p><p>Vælg ÉN&nbsp;mulighed &amp; svar</p></div>',
         [answer('a', '<p>a)&nbsp;Rigtig</p>', true, '<p>Korrekt, &quot;rigtig&quot;</p>'), answer('b', '<p>b) Forkert</p>', false)]),
     ] }]);

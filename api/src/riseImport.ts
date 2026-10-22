@@ -80,6 +80,8 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
     const components: CourseContentComponent[] = [];
     let topic: string | null = null;
     let headingIsTopic = false;
+    // Rise labels a block with a heading above it; it names the next lesson rather than being one.
+    let pendingTitle: string | null = null;
     let videosInTopic = 0;
     let openQuiz: Extract<CourseContentComponent, { type: 'quiz' }> | null = null;
     const base = (id: string, title: string) => ({ id, title, durationMinutes: 0, content: '', resourceUrl: '', attachments: [] });
@@ -88,7 +90,7 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
       const first = block.items?.[0];
       if (block.type !== 'knowledgeCheck') openQuiz = null;
       if (block.variant === 'numbered divider') {
-        topic = null; headingIsTopic = true; videosInTopic = 0;
+        topic = null; headingIsTopic = true; videosInTopic = 0; pendingTitle = null;
         continue;
       }
       if (block.variant === 'heading' && headingIsTopic) {
@@ -96,7 +98,13 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
         continue;
       }
       headingIsTopic = false;
+      if (block.variant === 'heading' && (block.items ?? []).length === 1 && riseText(first?.heading).length <= 200) {
+        pendingTitle = riseText(first?.heading);
+        continue;
+      }
       const title = topic ?? sectionTitle;
+      const label = pendingTitle;
+      pendingTitle = null;
 
       if (block.type === 'knowledgeCheck') {
         if (!openQuiz) {
@@ -114,7 +122,7 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
       } else if (block.variant === 'video' && first?.media?.video?.key) {
         const media = first.media.video;
         videosInTopic += 1;
-        components.push({ ...base(block.id, videosInTopic > 1 ? `${title} (del ${videosInTopic})` : title),
+        components.push({ ...base(block.id, label ?? (videosInTopic > 1 ? `${title} (del ${videosInTopic})` : title)),
           type: 'video', durationMinutes: Math.ceil((media.duration ?? 0) / 60) });
         const name = decodeURIComponent(media.key!);
         const size = await fileSize(name);
@@ -129,7 +137,7 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
         else if (size !== null) plan.attachments.push({ sectionId: lesson.id, componentId: block.id, path: join(assets, name), fileName,
           contentType: media.mimeType || 'application/pdf', sizeBytes: size });
       } else if (block.type === 'text' && first) {
-        components.push({ ...base(block.id, title), type: 'text',
+        components.push({ ...base(block.id, label ?? title), type: 'text',
           content: (block.items ?? []).map((item) => riseHtml(`${item.heading ?? ''}${item.paragraph ?? ''}`)).join('') });
       } else {
         const kind = block.variant ?? block.type ?? 'unknown';

@@ -31,8 +31,8 @@ Observed on 2026-10-22 in `C:\Users\Alex\scorm-import\istqb-foundation-repetitio
   500 characters (1,140), 2 PDFs above the 4 MB attachment limit (Kapitel 4: 4.4 MB, Kapitel 5:
   6.6 MB).
 
-Success: running the importer once gives a draft course of 7 sections and 141 lessons (88 video, 35
-quiz, 8 resources, 10 text), with every video playing from Mux. The teacher then reviews it and submits it like any other draft.
+Success: running the importer once gives a draft course of 7 sections and 138 lessons (88 video, 35
+quiz, 8 resources, 7 text; checked by the dry run on 2026-10-22), with every video playing from Mux. The teacher then reviews it and submits it like any other draft.
 
 ## Decisions (confirm or change)
 
@@ -41,7 +41,7 @@ quiz, 8 resources, 10 text), with every video playing from Mux. The teacher then
 | D1 | How SCORM gets in | Converted into native lessons by a command-line importer that Claude runs on Alex's PC against the API. Not a SCORM player, and no upload page (the host refuses bodies over 4.5 MB). |
 | D2 | Which exports | Articulate Rise only. Storyline, Captivate and other tools compile slides to JavaScript and are refused with a clear message. |
 | D3 | Structure | Rise lesson → section. Video → video lesson. Consecutive knowledge checks → one quiz lesson. PDF → resources lesson. Other text → text lesson. Dividers, "continue" buttons and the hero image are dropped. |
-| D4 | Lesson titles | A video takes its topic heading ("01.01 Hvad er test?"), or the Rise lesson title when there is none; a second video in one topic gets " (del 2)". A quiz is "Videnstjek: <topic heading>". A resources lesson takes the PDF's original name without ".pdf". |
+| D4 | Lesson titles | A video takes its topic heading ("01.01 Hvad er test?"), or the Rise lesson title when there is none; a second video in one topic gets " (del 2)". A quiz is "Videnstjek: <topic heading>". A resources lesson takes the PDF's original name without ".pdf". A heading outside a topic title that fits a title (≤ 200 characters) names the next video or text lesson instead of becoming a lesson ("04.06 Løsning \| Grænseværdianalyse"). |
 | D5 | Quiz grading | Pass mark = every question in the quiz. Multiple-response questions keep all their correct answers. Answer labels "a)", "b)" are kept as written. |
 | D6 | Feedback | Each answer's Rise feedback becomes that answer's description. The correct answer's feedback also becomes the question's explanation, which learners see after answering. |
 | D7 | Text over our limits | Raise the answer text limit from 300 to 600 characters, and the answer description and question explanation limits to 1,500 (from 500 and 1,000), rather than shortening imported text. Nothing is ever cut silently. The editor has no length cap on these fields, so only the API changes. |
