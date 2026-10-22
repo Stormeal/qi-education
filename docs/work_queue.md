@@ -28,10 +28,6 @@ into `specs/authoring/course-editor.md` and close the story.
 
 ## Next candidate
 
-US-T015 Rise course import: story and plan written 2026-10-22; Alex confirms or changes defaults
-D1–D12 in [the contract](stories/US-T015-rise-course-import.md), then it can start. The export is in
-`C:\Users\Alex\scorm-import\` (outside the repo).
-
 US-O001 organizations (release 2): decided with Alex, needs its design pass (brainstorm → spec →
 plan). Codex assignment X5 drafts the API side first. Other open stories wait on a decision by
 Alex (US-A004 curriculum, US-P001 browser runner, US-P003 multi-instance writes).
