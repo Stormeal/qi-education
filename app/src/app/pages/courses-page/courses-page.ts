@@ -20,6 +20,7 @@ import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
+import { courseTeacherIds } from '../../utils/course-permissions';
 
 type CourseCollectionTab = 'popular' | 'newest';
 type CourseCatalogView = 'published' | 'drafts';
@@ -199,7 +200,7 @@ export class CoursesPage {
 
   protected readonly creatorCourses = computed(() =>
     this.courses().filter((course) =>
-      this.canAccessAdmin() || (!!this.userId() && course.ownerUserId === this.userId()),
+      this.canAccessAdmin() || (!!this.userId() && courseTeacherIds(course).includes(this.userId())),
     ),
   );
 

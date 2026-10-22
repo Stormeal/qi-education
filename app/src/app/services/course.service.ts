@@ -20,6 +20,9 @@ export function courseRevisionHeaders(revision?: CourseRevision | null): Record<
   return revision ? { 'X-Course-Revision': JSON.stringify({ version: revision.version, revisionId: revision.revisionId }) } : {};
 }
 
+export type CourseTeacher = { id: string; displayName: string; email: string; active: boolean };
+export type CourseTeachersResult = { ok: true; teachers: CourseTeacher[] } | { ok: false; message: string };
+
 export type CourseSaveResult =
   | {
       ok: true;
@@ -464,6 +467,33 @@ export class CourseService {
       ok: true,
       course: body,
     };
+  }
+
+  /** US-A005: admins read and replace the teachers of a course. */
+  loadCourseTeachers(courseId: string, token: string): Promise<CourseTeachersResult> {
+    return this.courseTeachersRequest(courseId, token, 'GET', undefined, 'Unable to load course teachers.');
+  }
+
+  saveCourseTeachers(courseId: string, teacherIds: string[], token: string): Promise<CourseTeachersResult> {
+    return this.courseTeachersRequest(courseId, token, 'PUT', { teacherIds }, 'Unable to save course teachers.');
+  }
+
+  private async courseTeachersRequest(courseId: string, token: string, method: 'GET' | 'PUT', body: unknown,
+    fallback: string): Promise<CourseTeachersResult> {
+    try {
+      const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/teachers`, {
+        method,
+        headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), authorization: `Bearer ${token}` },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+      const answer = (await response.json().catch(() => ({}))) as { teachers?: CourseTeacher[]; message?: string };
+      if (!response.ok || !Array.isArray(answer.teachers)) return { ok: false, message: answer.message || fallback };
+      // Edit rights in course lists follow the teacher list.
+      if (method === 'PUT') this.apiClient.invalidateCache('/courses');
+      return { ok: true, teachers: answer.teachers };
+    } catch {
+      return { ok: false, message: fallback };
+    }
   }
 
   /** Loads every question image of this content once. A failed image just stays hidden. */

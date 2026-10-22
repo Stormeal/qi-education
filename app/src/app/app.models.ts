@@ -84,6 +84,8 @@ export type CourseLanguage = (typeof COURSE_LANGUAGES)[number];
 export type CourseListItem = {
   id: string;
   ownerUserId: string;
+  /** US-A005: absent on courses stored before teacher lists; read through courseTeacherIds. */
+  teacherIds?: string[];
   title: string;
   description: string;
   requirements: string[];

@@ -116,6 +116,21 @@ function ids(courses: CourseListItem[]): string[] {
 }
 
 describe('owned course drafts (DEF-001)', () => {
+  it('US-A005-AC02 lists a co-taught draft under My drafts for its second teacher', async () => {
+    const { fixture } = await createPage([
+      Object.assign(makeCourse({ id: 'shared', title: 'Co-taught draft', status: 'draft' }), { ownerUserId: 'teacher-b', teacherIds: ['teacher-b', 'teacher-a'] }),
+      Object.assign(makeCourse({ id: 'removed', title: 'Course I was removed from', status: 'draft' }), { ownerUserId: 'teacher-b', teacherIds: ['teacher-b'] }),
+    ]);
+    fixture.componentRef.setInput('canCreateCourses', true);
+    fixture.detectChanges();
+    Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((button) => button.textContent?.includes('My drafts'))!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Co-taught draft');
+    expect(fixture.nativeElement.textContent).not.toContain('Course I was removed from');
+  });
+
   it('uses authenticated IDs instead of matching instructor names', async () => {
     const { fixture } = await createPage([
       Object.assign(makeCourse({ id: 'mine', title: 'My renamed course', status: 'draft', teacher: 'Renamed instructor' }), { ownerUserId: 'teacher-a' }),
