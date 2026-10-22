@@ -809,7 +809,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const seed = {
           id: randomUUID(),
           createdAt: new Date().toISOString(),
-          ownerUserId: (request as AuthenticatedRequest).user.id,
+          teacherIds: (request as AuthenticatedRequest).user.role === 'teacher' ? [(request as AuthenticatedRequest).user.id] : [],
         };
 
         await courseContent.createEmptyCourseContent(seed.id, seed.createdAt);

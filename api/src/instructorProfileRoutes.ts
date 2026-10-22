@@ -2,6 +2,7 @@ import type { Express, NextFunction, Request, RequestHandler, Response } from 'e
 import type { AuthenticatedUser } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
 import type { CourseRepository } from './courseRepository.js';
+import { courseTeacherIds } from './course.js';
 import { instructorProfileSchema } from './instructorProfile.js';
 import { InstructorProfileUnavailableError, type InstructorProfileRepository } from './instructorProfileRepository.js';
 
@@ -43,9 +44,11 @@ export function registerInstructorProfileRoutes(app: Express, dependencies: {
     const [saved, catalog] = await Promise.all([profiles.list(), courses.listCourses()]);
     const publishedByOwner = new Map<string, string[]>();
     for (const course of catalog) {
-      if (course.status !== 'published' || !course.ownerUserId) continue;
-      const ids = publishedByOwner.get(course.ownerUserId) ?? [];
-      ids.push(course.id); publishedByOwner.set(course.ownerUserId, ids);
+      if (course.status !== 'published') continue;
+      for (const teacherId of courseTeacherIds(course)) {
+        const ids = publishedByOwner.get(teacherId) ?? [];
+        ids.push(course.id); publishedByOwner.set(teacherId, ids);
+      }
     }
     response.json(saved.filter(profile => profile.description && publishedByOwner.has(profile._id))
       .map(profile => ({ description: profile.description, courseIds: publishedByOwner.get(profile._id)! })));

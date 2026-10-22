@@ -90,16 +90,17 @@ describe('course authoring ownership (DEF-001)', () => {
     };
   }
 
-  it.each([['teacher', ''], ['admin', '/api']] as const)('assigns the authenticated %s as owner and ignores forged ownership', async (role, prefix) => {
+  it.each([['teacher', ''], ['admin', '/api']] as const)('sets the %s creator\'s teacher list and ignores forged ownership', async (role, prefix) => {
     const user = role === 'teacher' ? owner : admin;
     const response = await freshAuthoringFetch(`${baseUrl}${prefix}/courses`, {
       method: 'POST', headers: headers(user), body: JSON.stringify({ ...metadata, ownerUserId: otherTeacher.id }),
     });
     expect(response.status).toBe(201);
     const created = await response.json();
-    expect(created.ownerUserId).toBe(user.id);
-    expect((await courses.listCourses()).find((course) => course.id === created.id)).toMatchObject({ ownerUserId: user.id });
-    expect((await courses.listCourses()).find(course => course.id === created.id)).toMatchObject({ ownerUserId: user.id });
+    const teacherIds = role === 'teacher' ? [user.id] : [];
+    expect(created).toMatchObject({ teacherIds, ownerUserId: teacherIds[0] ?? '' });
+    expect((await courses.listCourses()).find(course => course.id === created.id))
+      .toMatchObject({ teacherIds, ownerUserId: teacherIds[0] ?? '' });
   });
 
   for (const prefix of ['', '/api']) {

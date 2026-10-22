@@ -1,10 +1,10 @@
 import type { AuthenticatedUser } from './auth.js';
-import type { Course } from './course.js';
+import { courseTeacherIds, type Course } from './course.js';
 import type { CourseContentDocument } from './courseContentRepository.js';
 
 export function canAuthorCourse(course: Course, user?: AuthenticatedUser): boolean {
   return !!user && (user.role === 'admin' ||
-    (user.role === 'teacher' && !!course.ownerUserId && course.ownerUserId === user.id));
+    (user.role === 'teacher' && user.status === 'active' && courseTeacherIds(course).includes(user.id)));
 }
 
 export function canLearnCourse(course: Course, user?: AuthenticatedUser): boolean {

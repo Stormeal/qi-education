@@ -83,3 +83,11 @@ GET /instructors: a published course counts for every id in courseTeacherIds(cou
   → GREEN (14/14 focused, full API 2,343/2,343 across 93 files).
   `courseRequestReads.ts` already delegates every write and clears reads; verified without changing it.
   Root `npx tsc` resolved the wrong executable; using the installed API TypeScript binary instead.
+- Task 1 complete: `6fa0c98` (`0.1.382`); installed API `tsc --noEmit` passed.
+- Task 2: focused tests RED (10 failures: secondary author rejected, disabled helper allowed,
+  creators missing lists, second instructor missing) → GREEN (64/64).
+- Ruling: update `courseOwnership.test.ts`'s creator test to expect the teacher's singleton list
+  and the admin's empty list; remove its duplicate stored-owner assertion. The suite exposed its
+  old admin-owner expectation; D2 supersedes that behavior. Cost if wrong: old admin ownership
+  expectations would need restoring, contrary to the agreed contract. No other existing test changed.
+- Task 2 complete: full API 2,357/2,357 across 93 files; installed API `tsc --noEmit` passed.

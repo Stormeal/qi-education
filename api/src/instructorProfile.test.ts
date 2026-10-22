@@ -62,6 +62,20 @@ describe.each(['', '/api'])('US-T007 instructor profile HTTP (%s)', prefix => {
     expect(await response.json()).toEqual([]);
   });
 
+  it('US-A005-AC09 lists a published course under every assigned teacher', async () => {
+    const second = await auth.createUser({ ...teacher, id: 'second-teacher', email: 'second@example.test' });
+    await profiles.save(teacher.id, 'First teacher description');
+    await profiles.save(second.id, 'Second teacher description');
+    const seed = (await courses.listCourses())[0];
+    await courses.createCourse({ ...seed, status: 'published' }, { id: 'shared', createdAt: seed.createdAt, teacherIds: [teacher.id, second.id] });
+    await courses.createCourse({ ...seed, status: 'published' }, { id: 'empty', createdAt: seed.createdAt, teacherIds: [] });
+    await courses.createCourse({ ...seed, status: 'draft' }, { id: 'draft', createdAt: seed.createdAt, teacherIds: [teacher.id, second.id] });
+    expect(await (await request('/instructors')).json()).toEqual([
+      { description: 'First teacher description', courseIds: ['shared'] },
+      { description: 'Second teacher description', courseIds: ['shared'] },
+    ]);
+  });
+
   it('AC03 reads no description as an empty string for both teacher and admin', async () => {
     for (const user of [teacher, admin]) {
       const response = await request('/users/me/instructor-profile', user);
