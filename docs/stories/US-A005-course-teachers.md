@@ -79,7 +79,7 @@ Feature: Course teachers
     Given a course stored before this change with ownerUserId T
     When anyone reads or authors it
     Then T is its only teacher and keeps authoring it
-    And the first admin save of its teachers stores teacherIds and drops ownerUserId
+    And the first admin save of its teachers stores teacherIds, keeping ownerUserId as a copy of the first teacher
 
   Scenario: US-A005-AC07 Inactive teachers lose access but stay visible
     Given an assigned teacher who is disabled or no longer has the teacher role
@@ -112,12 +112,16 @@ Empty state: "No teachers yet. Only admins can edit this course." Buttons use th
 
 - `Course` gains `teacherIds: string[]`. Responses keep `ownerUserId` = `teacherIds[0] ?? ''` so the
   frontend that is live while the API deploys keeps working (it only shows edit links from it).
-- Reading: `teacherIds ?? (ownerUserId ? [ownerUserId] : [])`, in both the in-memory and MongoDB
-  repositories. No manual migration.
+- Reading: `teacherIds ?? (ownerUserId ? [ownerUserId] : [])` through one helper, `courseTeacherIds`.
+  No manual migration. Courses an admin created before this change read as that admin; the panel
+  shows them as Inactive, removable.
 - `POST /courses`: a teacher creator is stored as `teacherIds: [creator]`; an admin creator as `[]`.
 - New `PUT /courses/:id/teachers` (also under `/api`), `requireAdmin`, `withCourseLock`, body
   `{ teacherIds: string[] }`; 404 for an unknown course; 400 per D5; returns the updated course.
-  MongoDB writes `teacherIds` and unsets `ownerUserId`.
+  Every write stores `teacherIds` and sets `ownerUserId` to its first entry (or `''`).
+- New `GET /courses/:id/teachers`, admin-only: `{ teachers: [{ id, displayName, email, active }] }` in
+  stored order, so the panel can name assigned teachers (the user search returns at most 50).
+  `PUT` answers with the same shape.
 - `canAuthorCourse(course, user)`: admin, or role `teacher`, status active, and `user.id` in the
   normalized list. `canEditCourse` in the app does the same with the list it receives.
 - `/instructors`: a published course counts for every id in its list.
@@ -127,7 +131,7 @@ Empty state: "No teachers yet. Only admins can edit this course." Buttons use th
 
 ## Implementation checklist
 
-See the plan (written after this contract is approved).
+See [the plan](../superpowers/plans/2026-10-22-US-A005-course-teachers.md).
 
 ## Verification and delivery
 
