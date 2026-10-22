@@ -1,0 +1,21 @@
+:host { display: block; }
+.course-teachers { display: grid; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.course-teachers h4, .course-teachers p { margin: 0; }
+.course-teachers-hint, .course-teachers-email, .course-teachers-status { color: var(--color-text-muted); }
+.course-teachers-list, .course-teachers-results { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.course-teachers-list li, .course-teachers-results li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control);
+  background: var(--color-surface-card);
+}
+.course-teachers-person { display: grid; flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.course-teachers-name { font-weight: 600; color: var(--color-text); }
+.course-teachers-search { display: grid; gap: 8px; }
+.course-teachers-search label { font-weight: 600; }
+.course-teachers-search-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.course-teachers-search input {
+  flex: 1 1 220px; box-sizing: border-box; min-height: 40px; padding: 8px 10px; font: inherit; color: var(--color-text);
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); background: var(--color-surface-card);
+}
+.course-teachers-error { color: var(--color-danger); }
+.course-teachers-status:empty { display: none; }

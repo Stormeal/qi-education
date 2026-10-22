@@ -1,0 +1,55 @@
+<section class="course-teachers" aria-labelledby="course-teachers-title">
+  <h4 id="course-teachers-title">Teachers</h4>
+  <p class="course-teachers-hint">Assigned teachers can edit this course and submit it for review.</p>
+
+  @if (loading()) {
+    <p role="status">Loading teachers...</p>
+  } @else {
+    @if (teachers().length) {
+      <ul class="course-teachers-list">
+        @for (teacher of teachers(); track teacher.id; let index = $index) {
+          <li>
+            <span class="course-teachers-person">
+              <span class="course-teachers-name">{{ name(teacher) }}</span>
+              @if (teacher.email) { <span class="course-teachers-email">{{ teacher.email }}</span> }
+            </span>
+            @if (!teacher.active) { <span appChip>Inactive</span> }
+            <button appButton="ghost" size="sm" type="button" [disabled]="saving()"
+              [attr.aria-label]="'Remove ' + name(teacher)" (click)="remove(index)">Remove</button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p>No teachers yet. Only admins can edit this course.</p>
+    }
+
+    <form class="course-teachers-search" (submit)="search($event)">
+      <label for="course-teachers-query">Find a teacher by name or email</label>
+      <div class="course-teachers-search-row">
+        <input id="course-teachers-query" type="search" maxlength="100" [value]="query()"
+          (input)="query.set($any($event.target).value)" />
+        <button appButton type="submit" [loading]="searching()" [disabled]="searching()">Search</button>
+      </div>
+    </form>
+
+    @if (results().length) {
+      <ul class="course-teachers-results">
+        @for (user of results(); track user.id) {
+          <li>
+            <span class="course-teachers-person">
+              <span class="course-teachers-name">{{ user.displayName }}</span>
+              <span class="course-teachers-email">{{ user.email }}</span>
+            </span>
+            <button appButton size="sm" type="button" [disabled]="saving()"
+              [attr.aria-label]="'Add ' + user.displayName" (click)="add(user)">Add</button>
+          </li>
+        }
+      </ul>
+    } @else if (searched() && !searching()) {
+      <p>No active teachers match that search.</p>
+    }
+  }
+
+  @if (error()) { <p class="course-teachers-error" role="alert">{{ error() }}</p> }
+  <p class="course-teachers-status" role="status">{{ saving() ? 'Saving teachers...' : status() }}</p>
+</section>
