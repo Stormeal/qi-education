@@ -12,7 +12,8 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
-| US-T015 | Import a course exported from Articulate Rise (SCORM) | Proposed, defaults to confirm | P2 | — | [stories/US-T015](stories/US-T015-rise-course-import.md) |
+| US-T015 | Import a course exported from Articulate Rise (SCORM) | In progress (hosted import open) | P2 | — | [stories/US-T015](stories/US-T015-rise-course-import.md) |
+| US-A005 | Admins assign one or more teachers to a course | Ready | P2 | — | [stories/US-A005](stories/US-A005-course-teachers.md) |
 | US-O001 | Organizations: request, approval, invites, owner overview | Decided, not designed | P2 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
@@ -29,9 +30,18 @@ release concern; P2 affects a core journey; P3 improves convenience.
 **As a teacher moving from our old platform, I want a SCORM course export to become a normal QI
 Academy course, so that it does not have to be rebuilt by hand.**
 
-State: Proposed. The first export (ISTQB Foundation repetition, Rise 360, 2.18 GB, 88 videos) was
+State: In progress (built and pushed; the hosted import is open). The first export (ISTQB Foundation repetition, Rise 360, 2.18 GB, 88 videos) was
 inspected on 2026-10-22. Decisions D1–D12 are defaults to confirm or change; scenarios AC01–AC06,
 mapping and plan are in [stories/US-T015-rise-course-import.md](stories/US-T015-rise-course-import.md).
+
+### US-A005 — Admins assign a course's teachers
+
+**As an admin, I want to assign one or more teachers to a course, so that several teachers can
+author it and an imported course gets its real teachers.**
+
+State: Ready. Design agreed with Alex on 2026-10-22 (co-authors, one teacher list, a Teachers panel
+on the Publishing step). Decisions D1–D6 and scenarios AC01–AC09 are in
+[stories/US-A005-course-teachers.md](stories/US-A005-course-teachers.md).
 
 ### US-A004 — Curate career milestone graphs and map TestHuset courses
 
