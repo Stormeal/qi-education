@@ -141,7 +141,7 @@ See [the plan](../superpowers/plans/2026-10-22-US-A005-course-teachers.md).
 | US-A005-AC02 | `courseTeachers.test.ts` (second teacher saves, uploads, submits); `course-permissions.spec.ts`, `courses-page.spec.ts`; browser: assigned teacher's author view 200 | Pass 2026-10-22 |
 | US-A005-AC03 | `courseTeachers.test.ts` (incl. a save queued behind the removal); browser: author view 403 after removal | Pass 2026-10-22 |
 | US-A005-AC04 | `courseTeachers.test.ts`, `routePermissions.test.ts`; browser: teacher PUT 403 | Pass 2026-10-22 |
-| US-A005-AC05 | `courseTeachers.test.ts` | Pass 2026-10-22 for new ids; stale-entry rule (D5 clarification) pending with Codex |
+| US-A005-AC05 | `courseTeachers.test.ts` | Pass 2026-10-22, incl. the D5 clarification (stored entries may stay; Codex round 2) |
 | US-A005-AC06 | `courseTeachers.test.ts`, `mongoCourseRepository.test.ts` | Pass 2026-10-22 |
 | US-A005-AC07 | `courseTeachers.test.ts`; panel spec | Pass 2026-10-22 |
 | US-A005-AC08 | `ui/course-teachers/course-teachers.spec.ts` | Pass 2026-10-22 |
