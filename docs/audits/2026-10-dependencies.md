@@ -168,7 +168,15 @@ Each retained update runs `npm run api:test` and `npm run api:build` before comm
 
 | Package/family | Before to target | Result | Full API tests | API build | Commit |
 | --- | --- | --- | --- | --- | --- |
-| @mux/mux-node | 14.1.0 to 14.1.1 | Retained; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This first X7 update commit |
+| @mux/mux-node | 14.1.0 to 14.1.1 | Retained; app graph unchanged | 2,431 passed + 2 expected failures | Pass | `ddce9c3` |
+| express | 5.2.1 to 5.3.0 | Reverted before commit: shared app tooling changed and content-disposition/content-type moved to major 2 | 2,431 passed + 2 expected failures before rollback | Pass before rollback | No dependency change retained |
+| mongodb family | 7.2.0 to 7.7.0 | Retained; BSON 7.3.3, saslprep 1.6.1, connection-string-url 7.0.2; app graph unchanged | 2,431 passed + 2 expected failures | Pass | This MongoDB update commit |
+
+The Express attempt passed behavioral checks, but was outside the conservative no-major/app
+scope once its resolved transitive graph was inspected. Only this attempt's uncommitted changes
+were reversed; the installed tree was then reconciled to the original lock. The full app graph
+(including development dependencies) again matches baseline. Recommend Claude/Alex review this
+security-related family update with app tooling and the transitive major changes together.
 
 ## Final state and handoff
 
