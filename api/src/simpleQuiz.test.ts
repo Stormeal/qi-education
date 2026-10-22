@@ -42,9 +42,9 @@ describe('US-T013 simple quiz rules', () => {
     Object.assign(q, { points: 'obsolete field' });
     expect(updateCourseContentSchema.parse({ sections }).sections[0].components[0]).toMatchObject({ quiz: { questions: [{ points: 1, explanation: '' }] } });
   });
-  it('AC01 bounds explanation at 1000 characters without trimming its stored value', () => {
+  it('AC01 bounds explanation at 1500 characters (US-T015) without trimming its stored value', () => {
     const sections = outline();
-    sections[0].components[0].quiz.questions[0].explanation = ' '.repeat(1000);
+    sections[0].components[0].quiz.questions[0].explanation = ' '.repeat(1500);
     expect(updateCourseContentSchema.safeParse({ sections }).success).toBe(true);
     sections[0].components[0].quiz.questions[0].explanation += 'x';
     expect(updateCourseContentSchema.safeParse({ sections }).success).toBe(false);
