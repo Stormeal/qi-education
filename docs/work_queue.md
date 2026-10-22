@@ -15,7 +15,7 @@ US-A005 course teachers, on `main` from `d41b952`; contract
 | --- | --- | --- | --- |
 | Codex | Plan tasks 1–3: storage, authorization, admin routes (AC01–AC07, AC09 API) | `api/**` except `api/dist` | API done 2026-10-22, `main` from `aa9ada0` (contains `ca9d9dd`): `6fa0c98`, `4ea138a`, and this Task 3 delivery commit (`feat(US-A005): admin routes to read and assign course teachers`). API 2,423/2,423, journeys 16/16, no-emit TypeScript pass; review race fixed. Next: Claude browser check, story verification rows, and panel cleanup follow-up in handoff. Local commits only |
 | Codex | Round 2: keep stored entries when validating `PUT /courses/:id/teachers` (handoff "Round 2") | `api/**` except `api/dist` | Done 2026-10-22, `main` from `b30aaea`, in this delivery commit (`fix(US-A005): validate only newly assigned teachers`). Four cases tested RED → GREEN on both prefixes; API 2,431/2,431, journeys 16/16, no-emit TypeScript pass. Local commit only; no outside-file changes needed. Next: Claude final delivery record |
-| Claude Code | Plan tasks 4–6: app, Teachers panel (AC08), rules and specs | `app/**`, `docs/**` | Done 2026-10-22; both Codex checks done (round 2 `be7d43d`): `api:test` 2,431/2,431, `app:test` 440/440, `verify:journeys` 16/16, `app:build:pages` pass, browser flow passes. Ready to push; then a hosted check and close the story |
+| Claude Code | Plan tasks 4–6: app, Teachers panel (AC08), rules and specs | `app/**`, `docs/**` | Done 2026-10-22; both Codex checks done (round 2 `be7d43d`): `api:test` 2,431/2,431, `app:test` 440/440, `verify:journeys` 16/16, `app:build:pages` pass, browser flow passes. Pushed and deployed 2026-10-22 (`ded4ce2`, version 0.1.389; Vercel, Pages, CI green; the first Pages run failed on a CI-only Mux player test, fixed in `ded4ce2`). Open: Alex's hosted check of the Teachers panel, then close the story |
 
 US-T015 Rise course import, owner Claude Code, on `main` from `8cb07af`. Built 2026-10-22 and
 pushed (`fc0cd68`, version 0.1.373; Vercel, Pages and CI green): `npm --prefix api run import:rise` (contract and verification
@@ -52,6 +52,7 @@ Delivered work whose real-environment check has not been done. Tick off here whe
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
 - Email confirmation (US-L014) on the hosted site: sign up with a real address, receive the Brevo mail, open the link on a phone, Home notice gone. Notice at phone width not checked.
+- Teachers panel (US-A005) on the hosted site: as admin assign a teacher on a course's Publishing step, sign in as that teacher and open the course for editing, remove them again.
 - Mux: real upload, webhook delivery, processing delay and public playback on the hosted site; INV-019.
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).
