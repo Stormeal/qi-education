@@ -7,8 +7,9 @@ immediate feedback.
 
 ## Behavior
 
-- A quiz has questions with **2–6 answer options**, one or more marked correct, an optional
-  explanation (≤1000 characters) and an optional image with alternative text (≤300 characters).
+- A quiz has questions with **2–6 answer options** (answer text ≤600 characters, stored answer
+  feedback ≤1,500), one or more marked correct, an optional explanation (≤1,500 characters, raised
+  for imported Rise quizzes in US-T015) and an optional image with alternative text (≤300 characters).
   Every question is worth one point; the teacher sets the pass mark.
 - In the builder, a new question opens and gets focus; other questions collapse to a summary
   (text, answer count, whether a correct answer is set) with `aria-expanded` headers. Readiness
