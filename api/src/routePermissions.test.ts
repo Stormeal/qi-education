@@ -55,6 +55,8 @@ const permissionTable: Record<string, Permission> = {
   'GET /admin/users/changes': 'admin',
   'POST /admin/users/:userId/password-reset': 'admin',
   'GET /admin/course-locks': 'admin',
+  'GET /courses/:id/teachers': 'admin',
+  'PUT /courses/:id/teachers': 'admin',
   'POST /auth/login': 'public',
   'POST /login': 'public',
   'POST /auth/signup': 'public',

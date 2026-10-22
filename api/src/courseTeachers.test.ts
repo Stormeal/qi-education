@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
 import { InMemoryAuthRepository } from './authRepository.js';
 import { apiConfig } from './config.js';
@@ -161,5 +161,208 @@ describe.each(['', '/api'])('US-A005 course teacher HTTP (%s)', prefix => {
     expect(body.review.course).toMatchObject({ teacherIds, ownerUserId: teacherIds[0] ?? '' });
     expect((await courses.listCourses()).find(course => course.id === body.id))
       .toMatchObject({ teacherIds, ownerUserId: teacherIds[0] ?? '' });
+  });
+
+  function teacherView(user: AuthUser, active = true) {
+    return { id: user.id, displayName: user.displayName, email: user.email, active };
+  }
+  async function storedCourse() { return (await courses.listCourses()).find(course => course.id === 'c')!; }
+
+  it('US-A005-AC01 an admin replaces the list and reads names and email in stored order', async () => {
+    const before = await content.getCourseContent('c');
+    const expected = { teachers: [teacherView(teacherB), teacherView(teacherA)] };
+    const replaced = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherB.id, teacherA.id] });
+    expect(replaced.status).toBe(200);
+    expect(await replaced.json()).toEqual(expected);
+    const read = await request('/courses/c/teachers', admin);
+    expect(read.status).toBe(200);
+    expect(read.headers.get('cache-control')).toBe('private, no-store');
+    expect(read.headers.get('vary')).toContain('Authorization');
+    expect(await read.json()).toEqual(expected);
+    expect(await storedCourse()).toMatchObject({ teacherIds: [teacherB.id, teacherA.id], ownerUserId: teacherB.id, teacher: metadata.teacher });
+    expect(await content.getCourseContent('c')).toEqual(before);
+  });
+
+  it.each(['GET', 'PUT'])('US-A005-AC04 %s requires an admin and preserves the list on refusal', async method => {
+    const before = await storedCourse();
+    for (const user of [teacherA, student]) {
+      const denied = await request('/courses/c/teachers', user, method, method === 'PUT' ? { teacherIds: [] } : undefined);
+      expect(denied.status).toBe(403);
+    }
+    expect((await request('/courses/c/teachers', undefined, method)).status).toBe(401);
+    expect((await fetch(base + '/courses/c/teachers', { method, headers: { authorization: 'Bearer invalid' } })).status).toBe(401);
+    expect(await storedCourse()).toEqual(before);
+  });
+
+  it.each([
+    ['unknown', 'ghost is not a teacher account.'],
+    ['student', 'student'],
+    ['admin', 'admin'],
+    ['duplicates', 'Each teacher can be listed once.'],
+    ['trimmed duplicates', 'Each teacher can be listed once.'],
+    ['too many', 'Teachers must be a list of at most 20 account ids.'],
+  ])('US-A005-AC05 refuses %s without changing the stored list', async (kind, message) => {
+    const teacherIds = kind === 'unknown' ? ['ghost'] : kind === 'student' ? [student.id] : kind === 'admin' ? [admin.id] :
+      kind === 'duplicates' ? [teacherA.id, teacherA.id] : kind === 'trimmed duplicates' ? [teacherA.id, ` ${teacherA.id} `] :
+      Array.from({ length: 21 }, (_, i) => `t${i}`);
+    const before = await storedCourse();
+    const response = await request('/courses/c/teachers', admin, 'PUT', { teacherIds });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: kind === 'student' ? `${student.id} is not a teacher account.` :
+      kind === 'admin' ? `${admin.id} is not a teacher account.` : message });
+    expect(await storedCourse()).toEqual(before);
+  });
+
+  it.each([{}, [], { teacherIds: null }, { teacherIds: 'teacher' }, { teacherIds: [1] },
+    { teacherIds: [''] }, { teacherIds: ['   '] }, { teacherIds: ['x'.repeat(121)] },
+  ].map(body => [body]))('US-A005-AC05 refuses malformed body %j before any assignment', async body => {
+    const before = await storedCourse();
+    const response = await request('/courses/c/teachers', admin, 'PUT', body);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: 'Teachers must be a list of at most 20 account ids.' });
+    expect(await storedCourse()).toEqual(before);
+  });
+
+  it('US-A005-AC05 accepts exactly 20 teacher accounts and trims ids before storing', async () => {
+    const ids = [teacherA.id, teacherB.id];
+    for (let i = 2; i < 20; i++) {
+      const user = await auth.createUser({ ...teacherA, id: `t${i}`, email: `t${i}@example.test` });
+      ids.push(user.id);
+    }
+    const response = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: ids.map(id => ` ${id} `) });
+    expect(response.status).toBe(200);
+    expect((await response.json()).teachers.map((teacher: { id: string }) => teacher.id)).toEqual(ids);
+    expect((await storedCourse()).teacherIds).toEqual(ids);
+  });
+
+  it('US-A005-AC06 an old admin-owned course lists that admin as inactive and converts on first save', async () => {
+    await courses.createCourse(metadata, { id: 'legacy-admin', createdAt: 'x', ownerUserId: admin.id });
+    const read = await request('/courses/legacy-admin/teachers', admin);
+    expect(read.status).toBe(200);
+    expect(await read.json()).toEqual({ teachers: [teacherView(admin, false)] });
+    expect((await courses.listCourses()).find(course => course.id === 'legacy-admin')?.teacherIds).toBeUndefined();
+    const saved = await request('/courses/legacy-admin/teachers', admin, 'PUT', { teacherIds: [teacherB.id] });
+    expect(saved.status).toBe(200);
+    expect((await courses.listCourses()).find(course => course.id === 'legacy-admin'))
+      .toMatchObject({ teacherIds: [teacherB.id], ownerUserId: teacherB.id });
+  });
+
+  it('US-A005-AC07 disabled teachers may be assigned and disabled or demoted accounts stay visible as inactive', async () => {
+    await auth.updateStatus(teacherA.id, 'disabled');
+    const replaced = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherA.id, teacherB.id] });
+    expect(replaced.status).toBe(200);
+    expect(await replaced.json()).toEqual({ teachers: [teacherView(teacherA, false), teacherView(teacherB)] });
+    await auth.updateRole(teacherB.id, 'student');
+    const read = await request('/courses/c/teachers', admin);
+    expect(read.status).toBe(200);
+    expect(await read.json()).toEqual({ teachers: [teacherView(teacherA, false), teacherView(teacherB, false)] });
+    const removed = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [] });
+    expect(removed.status).toBe(200);
+    expect(await removed.json()).toEqual({ teachers: [] });
+  });
+
+  it('returns a deleted account as an inactive blank entry', async () => {
+    await courses.updateCourseTeachers('c', ['deleted', teacherB.id]);
+    const response = await request('/courses/c/teachers', admin);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ teachers: [
+      { id: 'deleted', displayName: '', email: '', active: false }, teacherView(teacherB),
+    ] });
+  });
+
+  it.each(['GET', 'PUT'])('%s answers the exact 404 for an unknown course', async method => {
+    const response = await request('/courses/missing/teachers', admin, method, method === 'PUT' ? { teacherIds: [] } : undefined);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ message: 'Course not found' });
+  });
+
+  it('accepts an empty list, after which only admins author', async () => {
+    const response = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [] });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ teachers: [] });
+    expect(await storedCourse()).toMatchObject({ teacherIds: [], ownerUserId: '' });
+    expect((await request('/courses/c/content', teacherA, 'PATCH', { sections: [] })).status).toBe(403);
+    expect((await request('/courses/c/content', teacherB, 'PATCH', { sections: [] })).status).toBe(403);
+    expect((await request('/courses/c/content', admin, 'PATCH', { sections: [] })).status).toBe(200);
+  });
+
+  it('US-A005-AC03 an admin removes the creator while their editor is open and their next save is refused', async () => {
+    const loaded = await request('/courses/c/content?view=author', teacherA);
+    const state = (await loaded.json()).review;
+    expect(loaded.status).toBe(200);
+    const removed = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherB.id] });
+    expect(removed.status).toBe(200);
+    expect(await removed.json()).toEqual({ teachers: [teacherView(teacherB)] });
+    const refused = await fetch(base + '/courses/c/content', { method: 'PATCH',
+      headers: { ...headers(teacherA), 'X-Course-Revision': JSON.stringify({ version: state.version, revisionId: state.revisionId }) },
+      body: JSON.stringify({ sections: [] }) });
+    expect(refused.status).toBe(403);
+    expect((await request('/courses/c/content', teacherB, 'PATCH', { sections: [] })).status).toBe(200);
+  });
+
+  it('US-A005-AC03 rechecks a teacher save queued behind an admin removing that teacher', async () => {
+    const state = (await (await request('/courses/c/content?view=author', teacherA)).json()).review;
+    const lock = content.withCourseMutationLock.bind(content);
+    let enterFirst!: () => void;
+    let enterSecond!: () => void;
+    let releaseFirst!: () => void;
+    const firstEntered = new Promise<void>(resolve => { enterFirst = resolve; });
+    const secondQueued = new Promise<void>(resolve => { enterSecond = resolve; });
+    const release = new Promise<void>(resolve => { releaseFirst = resolve; });
+    let calls = 0;
+    vi.spyOn(content, 'withCourseMutationLock').mockImplementation(async (id, operation) => {
+      const order = ++calls;
+      if (order === 2) enterSecond();
+      return lock(id, async () => {
+        if (order === 1) { enterFirst(); await release; }
+        return operation();
+      });
+    });
+    const removal = request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherB.id] });
+    let save!: Promise<Response>;
+    try {
+      await firstEntered;
+      save = fetch(base + '/courses/c/content', { method: 'PATCH',
+        headers: { ...headers(teacherA), 'X-Course-Revision': JSON.stringify({ version: state.version, revisionId: state.revisionId }) },
+        body: JSON.stringify({ sections: [] }) });
+      await secondQueued;
+    } finally { releaseFirst(); }
+    expect((await removal).status).toBe(200);
+    const refused = await save;
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toEqual({ message: 'You do not have permission to edit this course.' });
+    expect(await content.getCourseContent('c')).toBeNull();
+  });
+
+  it.each(['published', 'ready-for-review', 'archived'] as const)('assigns teachers to a %s course immediately without editing or creating a revision', async status => {
+    await courses.createCourse({ ...metadata, status }, { id: 'live', createdAt: 'x', teacherIds: [] });
+    for (const query of ['', '?view=author']) {
+      const response = await request(`/courses/live/teachers${query}`, admin, 'PUT', { teacherIds: [teacherA.id] });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ teachers: [teacherView(teacherA)] });
+    }
+    expect((await courses.listCourses()).find(course => course.id === 'live')).toMatchObject({ status, teacherIds: [teacherA.id] });
+    expect(await content.getCourseContent('live')).toBeNull();
+  });
+
+  it('releases the course mutation lock before returning the saved teacher list', async () => {
+    const lock = content.withCourseMutationLock.bind(content);
+    let released = false;
+    vi.spyOn(content, 'withCourseMutationLock').mockImplementation(async (id, operation) => {
+      const result = await lock(id, operation);
+      released = true;
+      return result;
+    });
+    const response = await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [teacherB.id] });
+    expect(response.status).toBe(200);
+    expect(released).toBe(true);
+    expect(await response.json()).toEqual({ teachers: [teacherView(teacherB)] });
+  });
+
+  it('US-A005-AC04 an assigned teacher cannot forge the list through a metadata save', async () => {
+    const response = await request('/courses/c', teacherA, 'PATCH', { ...metadata, teacherIds: [], ownerUserId: '' });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ teacherIds: [teacherA.id, teacherB.id], ownerUserId: teacherA.id });
+    expect(await storedCourse()).toMatchObject({ teacherIds: [teacherA.id, teacherB.id], ownerUserId: teacherA.id });
   });
 });

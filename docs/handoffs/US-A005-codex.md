@@ -75,7 +75,7 @@ GET /instructors: a published course counts for every id in courseTeacherIds(cou
   local main is eight commits ahead, with no incoming commits or initial local changes.
 - Pre-flight: Task 1's optional list/helper and repository write match Tasks 2 and 3's consumers.
   Task 2's authorization uses the same legacy fallback as Task 3's admin read.
-- Ruling: use this result section as the execution ledger; omit skill scratch files and worktree
+- Execution: use this result section as the execution ledger; omit skill scratch files and worktree
   creation because the explicit assignment restricts writes and requires this shared `main`.
 - Ruling: PUT returns `{ teachers }` as the handoff and plan specify (the story also contains an
   older "returns the updated course" sentence). Cost if wrong: an API consumer would need adapting.
@@ -89,5 +89,78 @@ GET /instructors: a published course counts for every id in courseTeacherIds(cou
 - Ruling: update `courseOwnership.test.ts`'s creator test to expect the teacher's singleton list
   and the admin's empty list; remove its duplicate stored-owner assertion. The suite exposed its
   old admin-owner expectation; D2 supersedes that behavior. Cost if wrong: old admin ownership
-  expectations would need restoring, contrary to the agreed contract. No other existing test changed.
+  expectations would need restoring, contrary to the agreed contract. No other existing ownership
+  test or repository fake needed updating.
 - Task 2 complete: full API 2,357/2,357 across 93 files; installed API `tsc --noEmit` passed.
+- Task 2 delivery: `4ea138a` (`0.1.383`).
+- Task 3 RED: new endpoints returned 404; after route wiring, six lifecycle regressions returned
+  409 because `withCourseLock` classified teacher assignment as a draft edit.
+- Ruling: exempt `/teachers` from that wrapper's author scope, including `?view=author`, while
+  retaining its course mutation lock. D4 requires immediate assignment in every lifecycle state.
+  This necessary `server.ts` change extends beyond the two originally noted locations, but remains
+  inside the assigned API scope. Cost if wrong: admin assignment would need a lifecycle restriction
+  that contradicts the agreed immediate-save contract.
+- Malformed JSON literals retain the existing parser's 400 response; route shape tests exercise
+  valid JSON objects/arrays with malformed or missing `teacherIds`.
+- Task 3 focused tests: 76/76 GREEN, installed API `tsc --noEmit` passed.
+- Existing test update: `api/src/routePermissions.test.ts` now classifies the new GET and PUT
+  routes as admin-only; the full suite initially caught five missing inventory/classification
+  assertions, then the permission suite passed 172/172. No permission assertion was weakened.
+- Independent read-only review: one Important finding, no Critical/Minor findings.
+  A teacher save could pass authorization, queue behind an admin removing that teacher, then
+  save after removal. Deterministic regression on both URL prefixes was RED (200 instead of 403).
+  Fixed by checking the freshly read assignment inside the lock before revision checks/writes;
+  teacher suite now 78/78 GREEN. Final full API and journey checks passed after this fix.
+- Ruling on review's declined behavior: preserve strict whole-list teacher-role validation exactly
+  as requested. With multiple deleted/demoted entries, removing just one still submits another
+  invalid entry and fails; clients must submit a cleaned full list. Changing API validation would
+  contradict the fixed contract. Cost: the current panel needs a bulk cleanup affordance for this
+  edge case. Disabled teachers are valid retained entries and do not cause this validation failure.
+- Outside assigned files, follow-up for Claude:
+  - `app/src/app/ui/course-teachers/course-teachers.ts`, `.html`, `.spec.ts`: provide a way to submit
+    a cleaned full list when several assignments reference deleted/demoted accounts (for example,
+    a deliberate "Remove inactive teachers" action), and test that case. This is a product/UI
+    follow-up; no API contract change was made.
+  - `docs/stories/US-A005-course-teachers.md`: fill API verification rows from the evidence below
+    and retain the story until Claude's isolated browser check and any agreed cleanup follow-up.
+    Story retirement/backlog/spec edits remain Claude's files.
+
+### Scenario evidence for Claude's story verification table
+
+| Scenario | Automated evidence (2026-10-22, isolated in-process stores) |
+| --- | --- |
+| AC01 | `courseTeachers.test.ts`: admin replaces/reads list with names, email, order; mirror persisted, free-text teacher and review content untouched |
+| AC02 | Second assigned teacher saves lessons, uploads a real in-memory attachment, submits for review; catalog response carries both teacher IDs |
+| AC03 | Removed creator cannot reopen/save; admin removal with editor open rejects loaded draft save; queued save behind removal rejects with 403 before content write |
+| AC04 | Assigned teacher/student get 403 on GET/PUT; missing/invalid token gets 401; forged assignment in metadata save ignored; permission inventory covers routes and aliases |
+| AC05 | Exact 400 messages, unknown/student/admin IDs, duplicate/trimmed duplicate, malformed lists, over 20; unchanged persisted list on refusal; exactly 20 accepted |
+| AC06 | Legacy fallback helper, memory/Mongo fake persistence and atomic mirror update; legacy teacher still authors; legacy admin shown inactive, first save stores list |
+| AC07 | Disabled/demoted current accounts denied via existing token; helper denies disabled teacher; disabled accounts valid assignments; disabled/demoted/deleted entries read inactive |
+| AC09 | `instructorProfile.test.ts`: published shared course appears under both descriptions; draft and empty-list courses excluded |
+
+`courseTeachers.test.ts` exercises both `/courses` and `/api/courses`; Mongo tests use the local
+fake collection, never a database connection. No shared services, browser servers, ports 3001/4200,
+or `api/dist` rebuilds were used. Claude's browser/deployment verification remains separate.
+
+### Final delivery
+
+- API Tasks 1–3 complete. Commits: `6fa0c98` (storage), `4ea138a` (authoring/instructors),
+  and this delivery commit, `feat(US-A005): admin routes to read and assign course teachers`.
+  Each commit has its required patch bump in all four version locations.
+- Final commands, all passing before the delivery commit:
+  - `npm --prefix api test`: **2,423/2,423**, 93 files.
+  - `npm run verify:journeys`: **16/16** (memory and fake Mongo, no shared connections).
+  - `node api/node_modules/typescript/bin/tsc --noEmit -p api/tsconfig.json`: pass, no emit.
+  - `git diff --check`: pass.
+- Final review: Important queued-authorization finding fixed with RED → GREEN regression and
+  full green suite; no Critical findings or deferred minors. Exact-contract limitation and
+  outside-file follow-ups are recorded above. No push or deployment performed.
+- API production files changed: `course.ts`, `courseRepository.ts`, `mongoCourseRepository.ts`,
+  `courseStore.ts`, `courseReview.ts`, `courseAccess.ts`, `instructorProfileRoutes.ts`, `server.ts`,
+  and new `courseTeachersRoutes.ts` (all under `api/src/`).
+- API test files changed: new `courseTeachers.test.ts`, extended `mongoCourseRepository.test.ts`
+  and `instructorProfile.test.ts`, adjusted `courseOwnership.test.ts` and `routePermissions.test.ts`
+  for the new creation rule and route inventory respectively.
+- Other files changed: this result section, the Codex row in `docs/work_queue.md`, and only the
+  required version values in `package.json`, `app/package.json`, `package-lock.json` (three entries),
+  and `app/src/app/services/app-state.service.ts` (`appVersion`).

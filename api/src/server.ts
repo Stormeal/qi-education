@@ -37,6 +37,7 @@ import { registerPasswordResetRoutes, type PasswordResetOptions } from './passwo
 import { registerChangePasswordRoute } from './changePasswordRoutes.js';
 import { registerAdminUserRoutes } from './adminUsersRoutes.js';
 import { registerCourseLocksRoutes } from './courseLocksRoutes.js';
+import { registerCourseTeachersRoutes } from './courseTeachersRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -191,9 +192,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   const withCourseLock = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     async (request: Request, response: Response, next: NextFunction) => {
-      const author = request.query.view === 'author' || request.path.endsWith('/review') ||
-        (['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && /^\/(?:api\/)?courses\//.test(request.path) &&
-          !/\/(price|catalog-metadata|quiz-attempts)$/.test(request.path));
+      const authorWrite = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && /^\/(?:api\/)?courses\//.test(request.path) &&
+        !/\/(price|catalog-metadata|quiz-attempts|teachers)\/?$/.test(request.path);
+      const author = !/\/teachers\/?$/.test(request.path) &&
+        (request.query.view === 'author' || request.path.endsWith('/review') || authorWrite);
       return reviewScope.run({ author, user: (request as Partial<AuthenticatedRequest>).user }, async () => {
       let sendResponse: (() => void) | undefined;
       try {
@@ -218,6 +220,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
         try {
           await courseContent.withCourseMutationLock(courseId, async () => {
             clearCourseRequestReads();
+            // Assignment may have changed while this request waited for the lock.
+            if (authorWrite) {
+              const course = (await storedCourses.listCourses()).find(item => item.id === courseId);
+              if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
+              if (!canAuthorCourse(course, (request as Partial<AuthenticatedRequest>).user)) {
+                response.status(403).json({ message: 'You do not have permission to edit this course.' }); return;
+              }
+            }
             if (author && ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && !request.path.endsWith('/review')) {
               if (request.header('X-Course-Revision')) await review.assertRevision(courseId, request.header('X-Course-Revision'));
               await review.assertEditable(courseId);
@@ -584,6 +594,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
   registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
+  registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
