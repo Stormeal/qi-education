@@ -25,10 +25,14 @@ describe('US-T015 runRiseImport', () => {
   let content: InMemoryCourseContentRepository;
   let received: { path: string; bytes: string }[];
   let plan: ImportPlan;
+  const started = new Map<string, { uploadId: string; courseId: string; sectionId: string }>();
+  let muxConfirms: boolean;
   const mux = {
-    createDirectUpload: vi.fn(async ({ componentId }: { componentId: string }) => ({
-      uploadId: `upload-${componentId}-${mux.createDirectUpload.mock.calls.length}`, uploadUrl: `${uploadUrl}/${componentId}`, playbackPolicy: 'public' as const,
-    })),
+    createDirectUpload: vi.fn(async ({ courseId, sectionId, componentId }: { courseId: string; sectionId: string; componentId: string }) => {
+      const uploadId = `upload-${componentId}-${mux.createDirectUpload.mock.calls.length}`;
+      started.set(componentId, { uploadId, courseId, sectionId });
+      return { uploadId, uploadUrl: `${uploadUrl}/${componentId}`, playbackPolicy: 'public' as const };
+    }),
     removeVideo: vi.fn(async () => undefined),
   };
   let uploadUrl: string;
@@ -39,12 +43,22 @@ describe('US-T015 runRiseImport', () => {
 
   beforeEach(async () => {
     received = [];
+    started.clear();
+    muxConfirms = true;
     mux.createDirectUpload.mockClear();
     mux.removeVideo.mockClear();
     [uploads, uploadUrl] = await listen(createHttpServer((request, response) => {
       const chunks: Buffer[] = [];
       request.on('data', (chunk: Buffer) => chunks.push(chunk));
-      request.on('end', () => { received.push({ path: request.url ?? '', bytes: Buffer.concat(chunks).toString() }); response.end(); });
+      request.on('end', async () => {
+        received.push({ path: request.url ?? '', bytes: Buffer.concat(chunks).toString() });
+        // Like Mux: a finished upload reports video.upload.asset_created to the API's webhook.
+        const upload = started.get((request.url ?? '').slice(1))!;
+        if (muxConfirms) await fetch(`${apiUrl}/webhooks/mux`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          type: 'video.upload.asset_created', data: { id: upload.uploadId, asset_id: `asset-${(request.url ?? '').slice(1)}`,
+            new_asset_settings: { passthrough: JSON.stringify({ c: upload.courseId, s: upload.sectionId, m: (request.url ?? '').slice(1) }) } } }) });
+        response.end();
+      });
     }));
     auth = new InMemoryAuthRepository();
     courses = new InMemoryCourseRepository();
@@ -112,11 +126,7 @@ describe('US-T015 runRiseImport', () => {
     const failure = await runRiseImport(plan, { apiUrl, ...teacher, fetch: failSecondUpload }).catch((error: unknown) => error);
     expect(failure).toMatchObject({ message: expect.stringMatching(/network dropped/), courseId: expect.any(String) });
     const courseId = (failure as { courseId: string }).courseId;
-    // Mux's video.upload.asset_created webhook marks the finished upload.
-    const finished = (await saved(courseId))[0];
-    expect((await fetch(`${apiUrl}/webhooks/mux`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'video.upload.asset_created',
-      data: { id: finished.type === 'video' && finished.mux?.uploadId, asset_id: 'asset-1', new_asset_settings: { passthrough: JSON.stringify({ c: courseId, s: 'L1', m: 'v1' }) } } }) })).status).toBe(200);
-    expect((await saved(courseId))[0]).toMatchObject({ mux: { assetId: 'asset-1', status: 'processing' } });
+    expect((await saved(courseId))[0]).toMatchObject({ mux: { assetId: 'asset-v1', status: 'processing' } });
     const courseCount = (await courses.listCourses()).length;
     const requests: string[] = [];
     const recordRequests: typeof fetch = async (input, init) => { requests.push(`${init?.method ?? 'GET'} ${new URL(String(input)).pathname}`); return fetch(input, init); };
@@ -130,6 +140,30 @@ describe('US-T015 runRiseImport', () => {
     expect(mux.createDirectUpload.mock.calls.map(([call]) => call.componentId)).toEqual(['v1', 'v2', 'v2']);
     expect(received.map((upload) => upload.path)).toEqual(['/v1', '/v2']);
     expect((await saved(courseId))[1].attachments).toHaveLength(1);
+  });
+
+  it('US-T015-AC04 resume uploads a thumbnail that failed the first time', async () => {
+    const failThumbnail: typeof fetch = async (input, init) => {
+      if (String(input).endsWith('/thumbnail')) throw new Error('network dropped');
+      return fetch(input, init);
+    };
+    const failure = await runRiseImport(plan, { apiUrl, ...teacher, fetch: failThumbnail }).catch((error: unknown) => error) as { courseId: string };
+
+    await runRiseImport(plan, { apiUrl, ...teacher, courseId: failure.courseId });
+
+    expect((await authorView(failure.courseId)).review.course.thumbnailAssetId).not.toBe('');
+  });
+
+  it('stops after the first video when Mux never confirms it, before uploading the rest', async () => {
+    muxConfirms = false;
+    const waits: number[] = [];
+
+    const failure = await runRiseImport(plan, { apiUrl, ...teacher, wait: async (ms) => { waits.push(ms); } }).catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ courseId: expect.any(String),
+      message: 'Mux has not confirmed the first video after 2 minutes. Check the Mux webhook in the hosted API log, then resume.' });
+    expect(received.map((upload) => upload.path)).toEqual(['/v1']);
+    expect(waits.reduce((total, ms) => total + ms, 0)).toBe(120_000);
   });
 
   it('US-T015-AC05 stops on a student account or a wrong password and creates nothing', async () => {

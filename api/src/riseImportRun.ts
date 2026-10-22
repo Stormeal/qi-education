@@ -4,7 +4,7 @@ import type { ImportFile, ImportPlan } from './riseImport.js';
 
 export type ImportOptions = {
   apiUrl: string; email: string; password: string; courseId?: string;
-  fetch?: typeof fetch; readFile?: (path: string) => Promise<Buffer>; log?: (line: string) => void;
+  fetch?: typeof fetch; readFile?: (path: string) => Promise<Buffer>; log?: (line: string) => void; wait?: (ms: number) => Promise<void>;
 };
 
 /** Carries the course id once the course exists, so the caller can offer a resume. */
@@ -12,19 +12,22 @@ export class RiseImportError extends Error {
   constructor(message: string, readonly courseId: string | null) { super(message); }
 }
 
-type Review = { version: number; revisionId: string | null };
+type Review = { version: number; revisionId: string | null; course?: { thumbnailAssetId?: string } };
 type ContentAnswer = { sections?: CourseContentSection[]; review?: Review };
 
 // The API stores the same characters; matching on them lets a resume recognise its own uploads.
 const asciiFileName = (name: string) => name.replace(/[^a-zA-Z0-9._ -]/g, '-');
 const megabytes = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
+const MUX_CONFIRM_MS = 120_000;
+const MUX_POLL_MS = 5_000;
 
 export async function runRiseImport(plan: ImportPlan, options: ImportOptions):
   Promise<{ courseId: string; videosUploaded: number; attachmentsUploaded: number }> {
   const send = options.fetch ?? fetch;
   const read = options.readFile ?? readFile;
   const log = options.log ?? (() => undefined);
+  const wait = options.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const api = options.apiUrl.replace(/\/+$/, '');
   let courseId = options.courseId ?? null;
   let token = '';
@@ -59,10 +62,10 @@ export async function runRiseImport(plan: ImportPlan, options: ImportOptions):
   if (!current.sections?.length) {
     const revision = JSON.stringify({ version: current.review?.version, revisionId: current.review?.revisionId ?? null });
     current = await call('Save lessons', `/courses/${courseId}/content`, json('PATCH', { sections: plan.sections }, { 'X-Course-Revision': revision })) as ContentAnswer;
-    if (plan.thumbnail) {
-      await call('Upload thumbnail', `/courses/${courseId}/thumbnail`,
-        { method: 'PUT', headers: { 'Content-Type': plan.thumbnail.contentType }, body: await bytes(plan.thumbnail) });
-    }
+  }
+  if (plan.thumbnail && !current.review?.course?.thumbnailAssetId) {
+    await call('Upload thumbnail', `/courses/${courseId}/thumbnail`,
+      { method: 'PUT', headers: { 'Content-Type': plan.thumbnail.contentType }, body: await bytes(plan.thumbnail) });
   }
   const lesson = (file: ImportFile): CourseContentComponent => {
     const found = current.sections?.find((section) => section.id === file.sectionId)?.components.find((component) => component.id === file.componentId);
@@ -81,6 +84,19 @@ export async function runRiseImport(plan: ImportPlan, options: ImportOptions):
     attachmentsUploaded += 1;
   }
 
+  // Without the webhook no video ever finishes, so prove it works before sending the other gigabytes.
+  const confirmMux = async (file: ImportFile) => {
+    for (let waited = 0; ; waited += MUX_POLL_MS) {
+      const view = await call('Check Mux', `/courses/${courseId}/content?view=author`) as ContentAnswer;
+      const component = view.sections?.find((section) => section.id === file.sectionId)?.components.find((item) => item.id === file.componentId);
+      if (component && 'mux' in component && component.mux?.assetId) return;
+      if (waited >= MUX_CONFIRM_MS) {
+        throw new RiseImportError('Mux has not confirmed the first video after 2 minutes. Check the Mux webhook in the hosted API log, then resume.', courseId);
+      }
+      await wait(MUX_POLL_MS);
+    }
+  };
+
   let videosUploaded = 0;
   for (const [index, file] of plan.videos.entries()) {
     const component = lesson(file);
@@ -97,6 +113,7 @@ export async function runRiseImport(plan: ImportPlan, options: ImportOptions):
       throw new RiseImportError(`Upload video ${component.title}: ${message(error)}`, courseId);
     }
     videosUploaded += 1;
+    if (videosUploaded === 1) await confirmMux(file);
   }
 
   return { courseId, videosUploaded, attachmentsUploaded };
