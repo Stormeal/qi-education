@@ -25,10 +25,13 @@ export class CourseTeachers {
   protected readonly error = signal('');
   protected readonly status = signal('');
   private readonly found = signal<AdminUser[]>([]);
+  private readonly matches = computed(() => this.found().filter((user) => user.role === 'teacher' && user.status === 'active'));
   protected readonly results = computed(() => {
     const assigned = new Set(this.teachers().map((teacher) => teacher.id));
-    return this.found().filter((user) => user.role === 'teacher' && user.status === 'active' && !assigned.has(user.id));
+    return this.matches().filter((user) => !assigned.has(user.id));
   });
+  // Matches that are all assigned already are not "no match".
+  protected readonly noMatch = computed(() => this.searched() && this.matches().length === 0);
   // Answers for a course the panel no longer shows are dropped.
   private request = 0;
 

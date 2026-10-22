@@ -31,7 +31,7 @@ submit it; removing one takes their access away at once.
 | D2 | Model | One list, `teacherIds`. A teacher who creates a course becomes its first entry; an admin who creates one starts with an empty list. Admins can add or remove anyone, the creator included. Replaces "ownership never transfers". |
 | D3 | Where admins assign | A Teachers panel on the course editor's Publishing step, admins only. Teachers see nothing new. |
 | D4 | When it applies | Immediately, like the price: an admin-only route writes the course record; no review step. |
-| D5 | Limits | 0–20 teachers, no duplicates, each an existing account with role `teacher`. An empty list means only admins can author. |
+| D5 | Limits | 0–20 teachers, no duplicates. Each newly added id must be an account with role `teacher`; entries already on the list may stay when they were deleted or demoted (they cannot author and show as Inactive), so an admin can always remove one at a time. An empty list means only admins can author. (Clarified 2026-10-22 in the Codex check.) |
 | D6 | Learner-facing name | The free-text "Teacher" field is unchanged. A published course links to the instructor descriptions of all its assigned teachers. |
 
 ## Scope
@@ -137,12 +137,12 @@ See [the plan](../superpowers/plans/2026-10-22-US-A005-course-teachers.md).
 
 | Scenario | Test or manual check | Result/evidence |
 | --- | --- | --- |
-| US-A005-AC01 | API route test (Codex); `ui/course-teachers/course-teachers.spec.ts`; browser check on the isolated servers | Panel spec pass 2026-10-22; API and browser pending |
-| US-A005-AC02 | API test (Codex); `utils/course-permissions.spec.ts`, `courses-page.spec.ts` | App pass 2026-10-22; API pending |
-| US-A005-AC03 | API test after removal | Pending |
-| US-A005-AC04 | API route test | Pending |
-| US-A005-AC05 | API route test | Pending |
-| US-A005-AC06 | Repository tests (in-memory and MongoDB fake) | Pending |
-| US-A005-AC07 | API test (Codex); panel spec | Panel pass 2026-10-22; API pending |
+| US-A005-AC01 | `api/src/courseTeachers.test.ts`; `ui/course-teachers/course-teachers.spec.ts`; browser check | Pass 2026-10-22: API, panel, and in the browser (admin assigned Teacher Demo on a published course, saved without review; desktop and 375 px width) |
+| US-A005-AC02 | `courseTeachers.test.ts` (second teacher saves, uploads, submits); `course-permissions.spec.ts`, `courses-page.spec.ts`; browser: assigned teacher's author view 200 | Pass 2026-10-22 |
+| US-A005-AC03 | `courseTeachers.test.ts` (incl. a save queued behind the removal); browser: author view 403 after removal | Pass 2026-10-22 |
+| US-A005-AC04 | `courseTeachers.test.ts`, `routePermissions.test.ts`; browser: teacher PUT 403 | Pass 2026-10-22 |
+| US-A005-AC05 | `courseTeachers.test.ts` | Pass 2026-10-22 for new ids; stale-entry rule (D5 clarification) pending with Codex |
+| US-A005-AC06 | `courseTeachers.test.ts`, `mongoCourseRepository.test.ts` | Pass 2026-10-22 |
+| US-A005-AC07 | `courseTeachers.test.ts`; panel spec | Pass 2026-10-22 |
 | US-A005-AC08 | `ui/course-teachers/course-teachers.spec.ts` | Pass 2026-10-22 |
-| US-A005-AC09 | Instructor profile route test | Pending |
+| US-A005-AC09 | `instructorProfile.test.ts` | Pass 2026-10-22 |

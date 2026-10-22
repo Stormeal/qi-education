@@ -66,6 +66,7 @@ describe('US-A005 Teachers panel', () => {
     expect(courses.saveCourseTeachers).toHaveBeenCalledWith('course-1', ['A', 'B'], 'admin-token');
     expect(host.querySelectorAll('.course-teachers-list li')).toHaveLength(2);
     expect(host.querySelector('[role="status"]')!.textContent).toContain('Teachers saved');
+    expect(host.textContent).not.toContain('No active teachers match that search.');
   });
 
   it('US-A005-AC07 marks an inactive teacher and still lets the admin remove them', async () => {
