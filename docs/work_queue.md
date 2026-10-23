@@ -6,12 +6,18 @@ messages hold them.
 
 ## Active work
 
-| Owner | Item | Scope and files | State |
-| --- | --- | --- | --- |
-| Codex | US-O001 release 1, Track A (API) | Tasks A1–A6 plus A7 integration follow-up in [the plan](superpowers/plans/2026-10-23-organizations-release-1.md); files and verification in [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md) | done A7 2026-10-23; main, base 96446bd; delivery A7 (this commit). Amendment 3693445 implemented. API 2555 passed + 2 expected failures; build passed; journeys 18/18; route regressions 27/27. Browser and real-service checks not verified. |
-| Claude Code | US-O001 release 1, Track B (app) | Tasks B1–B6; `app/**`, docs | Starting 2026-10-23 |
-
-Contract: [stories/US-O001-release-1.md](stories/US-O001-release-1.md), approved by Alex 2026-10-23.
+US-O001 release 1 (organizations) built and checked locally 2026-10-23, not pushed. Codex A1–A7
+(API) and Claude B1–B5 (app) committed; Claude checked Codex's diff (own files only, contract kept).
+Checks: API 2,554 passed + 2 expected failures (one load-sensitive timeout in
+`clientLimitRoutes.test.ts` AC05/AC06 passed on rerun, not touched by this work), app 490, journeys
+18, both builds. Browser on isolated servers: AC01–AC05, AC08, AC10, AC11 passed (request, approve,
+invite, wrong account, sign-up through an invitation with email confirmation, add-on request and
+approval with price, free enroll in a 499 DKK course, My Learning, leave). Not browser-checked:
+AC09 billed career (no published career locally; API tests cover it), AC12 suspend (API tests).
+Open decision for Alex: the confirmed default "started courses stay listed, locked, after leaving"
+is not built; leaving removes them from My Learning. Contract:
+[stories/US-O001-release-1.md](stories/US-O001-release-1.md); Codex record
+[handoffs/US-O001-codex.md](handoffs/US-O001-codex.md).
 
 Delivered 2026-10-22: DEF-057 (dropdowns show their stored value; record in
 `defects_resolved.md`) and Codex X6 (INV-004 reproduced as an expected failure in
