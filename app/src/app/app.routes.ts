@@ -58,6 +58,11 @@ export const routes: Routes = [
       import('./routes/organization-route').then((module) => module.OrganizationRoute),
   },
   {
+    path: 'join-organization',
+    loadComponent: () =>
+      import('./routes/join-organization-route').then((module) => module.JoinOrganizationRoute),
+  },
+  {
     path: 'courses/new',
     canDeactivate: [unsavedCourseGuard],
     loadComponent: () =>

@@ -1,0 +1,64 @@
+<main class="min-h-[100dvh] bg-[var(--shell-bg)] px-4 py-4 text-[var(--ink)] sm:px-6 lg:px-8 lg:py-6">
+  <section
+    class="mx-auto w-full max-w-xl rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel-base)] shadow-[0_30px_80px_rgba(23,27,74,0.12)]"
+  >
+    <div class="border-b border-[var(--panel-border)] px-6 py-6 sm:px-10">
+      <app-brand-link />
+    </div>
+
+    <div class="grid gap-5 px-6 py-8 sm:px-10">
+      @switch (step()) {
+        @case ('checking') {
+          <h1 class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)]">Opening your invitation</h1>
+          <p role="status" class="text-[15px] leading-6 text-[var(--muted)]">One moment.</p>
+        }
+
+        @case ('invalid') {
+          <h1 class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)]">This invitation does not work</h1>
+          <p role="alert" class="text-[15px] leading-6 text-[var(--muted)]">This invitation is no longer valid. Ask the owner for a new one.</p>
+          <a appButton="secondary" routerLink="/">Go to QI Academy</a>
+        }
+
+        @case ('error') {
+          <h1 class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)]">We could not open the invitation</h1>
+          <p role="alert" class="text-[15px] leading-6 text-[var(--muted)]">{{ error() }}</p>
+        }
+
+        @case ('joined') {
+          <h1 class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)]">You joined {{ invitation()?.organizationName }}.</h1>
+          <p role="status" class="text-[15px] leading-6 text-[var(--muted)]">Your organization’s courses are ready for you.</p>
+          <a appButton="primary" routerLink="/organization">Open your organization</a>
+        }
+
+        @case ('pending-email') {
+          <h1 class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)]">Almost there</h1>
+          <p role="status" class="text-[15px] leading-6 text-[var(--muted)]">Confirm your email to finish joining. We sent you a confirmation link.</p>
+        }
+
+        @case ('ready') {
+          @if (invitation(); as current) {
+            <p class="eyebrow">Invitation</p>
+            <h1 class="!mb-0 text-[28px] font-extrabold leading-[1.1] text-[var(--form-ink)]">Join {{ current.organizationName }}</h1>
+            <p class="rounded-2xl bg-[var(--panel-muted,#f4f1ea)] p-4 text-[15px] leading-6">{{ current.consentText }}</p>
+            <p class="text-[15px] leading-6 text-[var(--muted)]">The invitation is for <strong>{{ current.email }}</strong>.</p>
+
+            @if (error()) { <p role="alert" class="text-[15px] leading-6 text-[var(--danger,#b42318)]">{{ error() }}</p> }
+
+            @if (!authToken()) {
+              <div class="flex flex-wrap gap-3">
+                <button appButton="primary" type="button" (click)="requestAuth('signup')">Create an account</button>
+                <button appButton="secondary" type="button" (click)="requestAuth('login')">Sign in</button>
+              </div>
+            } @else if (wrongAccount()) {
+              <p role="alert" class="text-[15px] leading-6">This invitation is for {{ current.email }}. Sign in with that address.</p>
+            } @else {
+              <button appButton="primary" type="button" [disabled]="busy()" (click)="accept()">
+                {{ busy() ? 'Joining…' : 'Accept and join' }}
+              </button>
+            }
+          }
+        }
+      }
+    </div>
+  </section>
+</main>
