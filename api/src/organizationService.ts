@@ -71,9 +71,11 @@ export class OrganizationService {
         pendingInvitation: membership?.state === 'pending-email' || invited };
     }
     const organization = await this.organization(membership.orgId), prices = await this.prices();
+    const openCourseIds = await this.openCourseIds(userId), started = new Set(membership.startedCourseIds);
     return { organization, role: membership.role, isOriginalOwner: organization.originalOwnerId === userId,
       careerId: membership.careerId, seatPriceDkk: membership.careerId ? prices.careers[membership.careerId] ?? null : null,
-      openCourseIds: await this.openCourseIds(userId), courseRequests: await Promise.all((await this.repository.listCourseRequests(organization.id))
+      openCourseIds, startedCourseIds: openCourseIds.filter(id => started.has(id)),
+      courseRequests: await Promise.all((await this.repository.listCourseRequests(organization.id))
         .filter(v => v.userId === userId).map(v => this.courseRequestView(v))) };
   }
   async listRequests(state = 'pending') {

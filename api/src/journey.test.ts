@@ -234,11 +234,16 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect((await request(`/organizations/${orgId}/members/${member.id}/career`, student, 'PUT', { careerId: 'organization-journey' })).status).toBe(200);
     expect(await (await request('/users/me/organization', member)).json()).toMatchObject({ openCourseIds: [courseId] });
     expect((await request(`/courses/${courseId}/content`, member)).status).toBe(403);
-    expect((await request(`/users/me/courses/${courseId}`, member, 'POST')).status).toBe(200);
+    const organizationEnrollment = await request(`/users/me/courses/${courseId}`, member, 'POST');
+    expect(organizationEnrollment.status).toBe(200);
+    expect((await organizationEnrollment.json()).user.enrolledCourseIds).toEqual([courseId]);
+    expect((await (await request('/auth/me', member)).json()).user.enrolledCourseIds).toEqual([courseId]);
+    expect(await (await request('/users/me/organization', member)).json()).toMatchObject({ startedCourseIds: [courseId] });
     expect((await auth.findById(member.id))!.enrolledCourseIds).toEqual([]);
     expect((await request(`/courses/${courseId}/content`, member)).status).toBe(200);
     expect((await request(`/organizations/${orgId}/members/${member.id}`, student, 'DELETE')).status).toBe(204);
     expect((await request(`/courses/${courseId}/content`, member)).status).toBe(403);
+    expect((await (await request('/auth/me', member)).json()).user.enrolledCourseIds).toEqual([]);
     expect((await auth.findById(member.id))!.enrolledCourseIds).toEqual([]);
   });
 

@@ -180,6 +180,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const organizationStore = dependencies.organizationRepository ?? createOrganizationRepository();
   const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
     careers: careerPaths, courses, options: dependencies.organizationOptions });
+  const withOrganizationCourses = async (user: AuthenticatedUser): Promise<AuthenticatedUser> => ({
+    ...user,
+    enrolledCourseIds: [...new Set([...user.enrolledCourseIds, ...await organizations.learnableOrgCourseIds(user.id)])],
+  });
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const signupWrites = new KeyedSerialQueue();
   const enrollmentWrites = new KeyedSerialQueue();
@@ -642,7 +646,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
         await signInLimit.clear(input.email);
         try { await organizations.activatePendingMembership(user.id); }
         catch { /* Organization activation retries at the next sign-in or /auth/me. */ }
-        response.json(createAuthResponse(user, authTokenSecret));
+        const result = createAuthResponse(user, authTokenSecret);
+        response.json({ ...result, user: await withOrganizationCourses(result.user) });
       } catch (error) {
         await signInLimit.complete(input.email, reservation.ticket, 'cancel');
         throw error;
@@ -702,11 +707,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
     const authenticatedRequest = request as AuthenticatedRequest;
     try { await organizations.activatePendingMembership(authenticatedRequest.user.id); }
     catch { /* Read the current membership below; a later request retries activation. */ }
-    let membership;
-    try { membership = await organizationStore.getMembership(authenticatedRequest.user.id); }
+    let membership, publicUser: AuthenticatedUser;
+    try {
+      membership = await organizationStore.getMembership(authenticatedRequest.user.id);
+      publicUser = await withOrganizationCourses(authenticatedRequest.user);
+    }
     catch { response.status(503).json({ message: 'Organizations are temporarily unavailable. Please try again.' }); return; }
     response.json({
-      user: authenticatedRequest.user,
+      user: publicUser,
       permissions: getRolePermissions(authenticatedRequest.user.role),
       organization: membership?.state === 'active' ? { id: membership.orgId, role: membership.role } : null,
     });
@@ -734,7 +742,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
 
       if (!authenticatedRequest.user.enrolledCourseIds.includes(courseId) && await organizations.startCourse(authenticatedRequest.user.id, courseId)) {
-        response.json({ user: authenticatedRequest.user, permissions: getRolePermissions(authenticatedRequest.user.role) });
+        response.json({ user: await withOrganizationCourses(authenticatedRequest.user), permissions: getRolePermissions(authenticatedRequest.user.role) });
         return;
       }
       if ((matchingCourse.priceDkk ?? 0) > 0 && !authenticatedRequest.user.enrolledCourseIds.includes(courseId) && !canAuthorCourse(matchingCourse, authenticatedRequest.user)) {

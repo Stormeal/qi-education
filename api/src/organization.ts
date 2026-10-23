@@ -21,7 +21,7 @@ export type CourseRequest = { id: string; userId: string; userName: string; cour
   state: 'pending' | 'approved' | 'declined'; addOnPriceDkk: number | null; createdAt: string };
 export type Prices = { careers: Record<string, number>; courses: Record<string, number> };
 export type MyOrganization = { organization: Organization; role: 'member' | 'owner'; isOriginalOwner: boolean;
-  careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; courseRequests: CourseRequest[] };
+  careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; startedCourseIds: string[]; courseRequests: CourseRequest[] };
 export type StoredOrgRequest = OrgRequest & { userId: string };
 export type StoredInvitation = Invitation & { orgId: string; tokenHash: string; acceptedBy?: string; joining?: boolean };
 export type StoredCourseRequest = CourseRequest & { orgId: string };

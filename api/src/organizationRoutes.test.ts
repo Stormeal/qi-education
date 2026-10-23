@@ -51,6 +51,52 @@ async function setup() {
 type Role = 'owner' | 'member' | 'foreign' | 'admin' | 'guest';
 const roles: Role[] = ['owner', 'member', 'foreign', 'admin', 'guest'];
 describe.each(['', '/api'])('US-O001 HTTP permission matrix (%s)', prefix => {
+  it('A7 projects started organization courses in enroll, auth/me, me and both sign-in replies without storing them', async () => {
+    const f = await setup();
+    await f.auth.enrollUserInCourse(f.member.id, 'outside');
+    expect(await (await f.request(prefix + '/users/me/organization', f.member)).json()).toMatchObject({
+      openCourseIds: ['included'], startedCourseIds: [],
+    });
+    expect((await (await f.request(prefix + '/auth/me', f.member)).json()).user.enrolledCourseIds).toEqual(['outside']);
+    for (let i = 0; i < 2; i++) {
+      const enrolled = await f.request(prefix + '/users/me/courses/included', f.member, 'POST');
+      expect(enrolled.status).toBe(200);
+      expect((await enrolled.json()).user.enrolledCourseIds).toEqual(['outside', 'included']);
+      expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).toEqual(['outside']);
+    }
+    for (const path of ['/auth/me', '/me']) {
+      const response = await f.request(prefix + path, f.member);
+      expect(response.status).toBe(200);
+      expect((await response.json()).user.enrolledCourseIds).toEqual(['outside', 'included']);
+    }
+    for (const path of ['/auth/login', '/login']) {
+      const response = await f.request(prefix + path, undefined, 'POST', { email: f.member.email, password: 'Password123!' });
+      expect(response.status).toBe(200);
+      const result = await response.json();
+      expect(result.token).toEqual(expect.any(String));
+      expect(result.user.enrolledCourseIds).toEqual(['outside', 'included']);
+      expect(result.user).not.toHaveProperty('passwordHash');
+    }
+    expect(await (await f.request(prefix + '/users/me/organization', f.member)).json()).toMatchObject({ startedCourseIds: ['included'] });
+    expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).toEqual(['outside']);
+  });
+  it.each(['leave', 'suspend'])('A7 removes organization enrollments from responses after %s while retaining personal courses', async action => {
+    const f = await setup(); await f.auth.enrollUserInCourse(f.member.id, 'outside');
+    expect((await f.request(prefix + '/users/me/courses/included', f.member, 'POST')).status).toBe(200);
+    expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).toEqual(['outside']);
+    if (action === 'leave') expect((await f.request(prefix + '/users/me/organization', f.member, 'DELETE')).status).toBe(204);
+    else expect((await f.request(prefix + `/admin/organizations/${f.orgId}/suspend`, f.admin, 'POST')).status).toBe(200);
+    for (const path of ['/auth/me', '/me']) {
+      const response = await f.request(prefix + path, f.member);
+      expect(response.status).toBe(200);
+      expect((await response.json()).user.enrolledCourseIds).toEqual(['outside']);
+    }
+    const login = await f.request(prefix + '/auth/login', undefined, 'POST', { email: f.member.email, password: 'Password123!' });
+    expect(login.status).toBe(200); expect((await login.json()).user.enrolledCourseIds).toEqual(['outside']);
+    const mine = await (await f.request(prefix + '/users/me/organization', f.member)).json();
+    expect(mine).toMatchObject(action === 'suspend' ? { startedCourseIds: [] } : { organization: null });
+    expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).toEqual(['outside']);
+  });
   it.each(roles)('checks every organization route as %s with private responses', async role => {
     const f = await setup(), who = role === 'guest' ? undefined : f[role];
     const signed = role !== 'guest', admin = role === 'admin', owner = role === 'owner';
@@ -110,8 +156,10 @@ describe.each(['', '/api'])('US-O001 HTTP permission matrix (%s)', prefix => {
     expect(checkout.status).toBe(200); const sessionId = new URL((await checkout.json()).url).searchParams.get('session_id');
     expect((await f.request(prefix + '/users/me/courses/included/checkout/confirm', f.member, 'POST', { sessionId })).status).toBe(200);
     expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).toContain('included');
+    expect((await (await f.request(prefix + '/auth/me', f.member)).json()).user.enrolledCourseIds).toEqual(['included']);
     await f.request(prefix + '/users/me/organization', f.member, 'DELETE');
     expect((await f.request(prefix + '/courses/included/content', f.member)).status).toBe(200);
+    expect((await (await f.request(prefix + '/auth/me', f.member)).json()).user.enrolledCourseIds).toEqual(['included']);
   });
   it('AC04 confirms pending membership and auth/me retries a previously missed activation', async () => {
     const f = await setup();
