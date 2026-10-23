@@ -19,6 +19,8 @@ exercises, quizzes or video.
   Lessons move between chapters by dragging (onto a lesson or a chapter's end, including empty or
   collapsed chapters) or with a labelled chapter select. A move keeps the lesson's ID, content and
   media, and is saved like any other outline change.
+- Chapters move with **Move chapter up** / **Move chapter down** in their header (disabled at the
+  ends); a chapter keeps its lessons. Refused while a lesson in it is uploading (2026-10-24).
 - Moves and media actions are refused while the outline is busy (saving, uploading, recovering,
   submitted for review).
 - **Attachments**: at most 4 MB each. Text and resources lessons accept their listed document and

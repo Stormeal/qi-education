@@ -18,6 +18,7 @@ import {
   lucideCheck,
   lucideChevronDown,
   lucideChevronRight,
+  lucideChevronUp,
   lucideCircleHelp,
   lucideClock3,
   lucideDownload,
@@ -90,6 +91,7 @@ export class CourseBuilder {
   protected readonly checkIcon = this.asSafeIcon(lucideCheck);
   protected readonly chevronDownIcon = this.asSafeIcon(lucideChevronDown);
   protected readonly chevronRightIcon = this.asSafeIcon(lucideChevronRight);
+  protected readonly chevronUpIcon = this.asSafeIcon(lucideChevronUp);
   protected readonly circleHelpIcon = this.asSafeIcon(lucideCircleHelp);
   protected readonly clockIcon = this.asSafeIcon(lucideClock3);
   protected readonly listIcon = this.asSafeIcon(lucideList);
@@ -135,6 +137,7 @@ export class CourseBuilder {
   readonly courseEditorBufferChanged = output<boolean>();
   readonly courseFocusedBufferChanged = output<CourseEditorBuffer | null>();
   readonly courseSectionRemoved = output<number>();
+  readonly courseSectionMoved = output<{ fromIndex: number; toIndex: number }>();
   readonly courseSectionTitleChanged = output<{ sectionIndex: number; value: string }>();
   readonly courseComponentAdded = output<{ sectionIndex: number; type: CourseComponentType }>();
   readonly courseComponentRemoved = output<{ sectionIndex: number; componentIndex: number }>();

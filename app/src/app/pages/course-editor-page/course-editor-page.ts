@@ -154,6 +154,7 @@ export class CourseEditorPage {
   readonly courseComponentQuizImageRemoved = output<{ sectionIndex: number; componentIndex: number; questionIndex: number }>();
   readonly courseComponentQuizQuestionEdited =
     output<{ sectionIndex: number; componentIndex: number; questionIndex: number; edit: QuizQuestionEdit }>();
+  readonly courseSectionMoved = output<{ fromIndex: number; toIndex: number }>();
   readonly courseComponentMoved = output<{ sectionIndex: number; fromIndex: number; toIndex: number; toSectionIndex?: number }>();
   readonly feedbackClosed = output<void>();
   readonly feedbackRatingSelected = output<string>();

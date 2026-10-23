@@ -122,4 +122,30 @@ describe('US-T012 state, route and save integration', () => {
     expect(state.courseContent()!.sections[2].components[0]).toEqual(content.sections[0].components[0]);
     expect(state.hasUnsavedCourseChanges()).toBe(true);
   });
+  const order = () => state.courseContent()!.sections.map(section => section.id);
+  const chapterButtons = (label: string) => [...(harness.fixture.nativeElement as HTMLElement)
+    .querySelectorAll<HTMLButtonElement>(`button[aria-label="${label}"]`)];
+  it('moves a chapter with all its lessons and marks the course changed', () => {
+    state.moveCourseSection(1, 0);
+    expect(order()).toEqual(['target', 'source', 'empty']);
+    expect(state.courseContent()!.sections[1]).toEqual(content.sections[0]);
+    expect(state.hasUnsavedCourseChanges()).toBe(true);
+  });
+  it('offers Move chapter up and down, disabled at the ends, and moves on click', () => {
+    harness.detectChanges();
+    const up = chapterButtons('Move chapter up'), down = chapterButtons('Move chapter down');
+    expect(up.map(button => button.disabled)).toEqual([true, false, false]);
+    expect(down.map(button => button.disabled)).toEqual([false, false, true]);
+    down[0].click();
+    expect(order()).toEqual(['target', 'source', 'empty']);
+  });
+  it.each(['upload', 'saving', 'submitting', 'read-only', 'out of range'])('refuses a chapter move during %s', blocked => {
+    if (blocked === 'upload') state.muxUploadComponentId.set('video');
+    if (blocked === 'saving') state.courseContentSaving.set(true);
+    if (blocked === 'submitting') state.courseSubmitting.set(true);
+    if (blocked === 'read-only') state.courseReview.set({ ...content.review!, editable: false });
+    state.moveCourseSection(0, blocked === 'out of range' ? 3 : 1);
+    expect(order()).toEqual(['source', 'target', 'empty']);
+    expect(state.hasUnsavedCourseChanges()).toBe(false);
+  });
 });

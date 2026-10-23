@@ -95,6 +95,22 @@
               <span>{{ sectionDuration(sectionIndex) }}</span>
             </span>
             <button
+              appIconButton="ghost"
+              label="Move chapter up"
+              [disabled]="sectionIndex === 0 || courseContentSaving() || courseSubmitting()"
+              (click)="courseSectionMoved.emit({ fromIndex: sectionIndex, toIndex: sectionIndex - 1 })"
+            >
+              <span class="inline-icon" aria-hidden="true" [innerHTML]="chevronUpIcon"></span>
+            </button>
+            <button
+              appIconButton="ghost"
+              label="Move chapter down"
+              [disabled]="$last || courseContentSaving() || courseSubmitting()"
+              (click)="courseSectionMoved.emit({ fromIndex: sectionIndex, toIndex: sectionIndex + 1 })"
+            >
+              <span class="inline-icon" aria-hidden="true" [innerHTML]="chevronDownIcon"></span>
+            </button>
+            <button
               appIconButton="danger"
               label="Remove section"
               [disabled]="courseContentSaving() || courseSubmitting()"

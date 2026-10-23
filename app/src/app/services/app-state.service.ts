@@ -72,7 +72,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.428';
+  readonly appVersion = '0.1.429';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1869,6 +1869,22 @@ export class AppStateService {
       });
       return { ...component, resourceUrl: '', quiz: { ...component.quiz, questions } };
     });
+  }
+
+  /** Moves a chapter, with all its lessons, to another position. */
+  moveCourseSection(fromIndex: number, toIndex: number): void {
+    const content = this.courseContent();
+    const moved = content?.sections[fromIndex];
+    const uploading = moved?.components.some(component => component.id === this.muxUploadComponentId() ||
+      component.id === this.attachmentUploadComponentId() || (canHoldVideo(component) && component.mux?.status === 'uploading'));
+    if (!content || !moved || uploading || !this.courseEditable() || this.courseContentSaving() || this.courseSubmitting() ||
+      this.courseReviewPending() || !Number.isInteger(toIndex) || toIndex < 0 || toIndex >= content.sections.length || toIndex === fromIndex) {
+      return;
+    }
+    const sections = content.sections.filter((_, index) => index !== fromIndex);
+    sections.splice(toIndex, 0, moved);
+    this.courseContent.set({ ...content, sections });
+    this.courseContentError.set('');
   }
 
   moveCourseComponent(sectionIndex: number, fromIndex: number, toIndex: number, toSectionIndex = sectionIndex): void {
