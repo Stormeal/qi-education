@@ -1,0 +1,248 @@
+<main class="page-shell org-shell">
+  <app-page-header
+    activeSection="profile"
+    [displayName]="displayName()"
+    [email]="userEmail()"
+    [roleLabel]="userRoleLabel()"
+    [canAccessAdmin]="canAccessAdmin()"
+    (homeClicked)="homeClicked.emit()"
+    (coursesClicked)="coursesClicked.emit()"
+    (libraryClicked)="libraryClicked.emit()"
+    (feedbackOpened)="feedbackOpened.emit()"
+    (loggedOut)="loggedOut.emit()"
+    (adminClicked)="adminClicked.emit()"
+    (careerPathClicked)="careerPathClicked.emit()"
+  />
+
+  @if (state() === 'loading') {
+    <p class="org-status" role="status">Loading your organization…</p>
+  } @else if (state() === 'error') {
+    <section class="org-panel">
+      <p role="alert">{{ loadError() }}</p>
+      <button appButton="secondary" type="button" (click)="load()">Try again</button>
+    </section>
+  } @else if (membership(); as mine) {
+    <header class="org-heading">
+      <p class="eyebrow">{{ isOwner() ? 'Owner' : 'Member' }}</p>
+      <h1>{{ mine.organization.displayName }}</h1>
+      <p class="org-sub">{{ mine.organization.companyName }} · CVR {{ mine.organization.cvr }}</p>
+      @if (mine.organization.state === 'suspended') {
+        <p class="org-warning" role="status">This organization is suspended. Its courses are closed and owners cannot invite people.</p>
+      }
+    </header>
+
+    @if (actionError()) { <p class="org-error" role="alert">{{ actionError() }}</p> }
+    @if (notice()) { <p class="org-notice" role="status">{{ notice() }}</p> }
+
+    <section class="org-panel" aria-labelledby="org-mine">
+      <h2 id="org-mine">Your training</h2>
+      @if (mine.careerId) {
+        <p class="org-gives">Your organization gives you: <strong>{{ careerTitle(mine.careerId) || 'a career' }}</strong></p>
+      } @else {
+        <p class="org-muted">An owner has not chosen a career for you yet.</p>
+      }
+      @if (openCourses().length) {
+        <ul class="org-courses">
+          @for (course of openCourses(); track course.id) { <li>{{ course.title }}</li> }
+        </ul>
+      }
+
+      <div class="org-request-course">
+        <label for="org-request-course">Request another course</label>
+        <div class="org-inline">
+          <select id="org-request-course" [value]="requestCourseId()" (change)="requestCourseId.set(inputValue($event))">
+            <option value="">Choose a course</option>
+            @for (course of requestableCourses(); track course.id) {
+              <option [value]="course.id" [selected]="course.id === requestCourseId()">{{ course.title }}</option>
+            }
+          </select>
+          <button appButton="secondary" type="button" [disabled]="busy()" (click)="requestCourse()">Request course</button>
+        </div>
+      </div>
+
+      @if (mine.courseRequests.length) {
+        <h3>Your course requests</h3>
+        <ul class="org-list">
+          @for (request of mine.courseRequests; track request.id) {
+            <li><span>{{ courseTitle(request.courseId) }}</span><span class="org-chip" [attr.data-state]="request.state">{{ request.state }}</span></li>
+          }
+        </ul>
+      }
+    </section>
+
+    @if (isOwner()) {
+      <section class="org-panel" aria-labelledby="org-members">
+        <h2 id="org-members">Members</h2>
+        <div class="org-table-wrap">
+          <table class="org-table">
+            <thead><tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Career</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              @for (member of members(); track member.userId) {
+                <tr>
+                  <td><strong>{{ member.name }}</strong><small>{{ member.email }}</small></td>
+                  <td>{{ member.role === 'owner' ? 'Owner' : 'Member' }}</td>
+                  <td>
+                    <label class="visually-hidden" [for]="'career-' + member.userId">Career for {{ member.name }}</label>
+                    <select [id]="'career-' + member.userId" [disabled]="busy()" (change)="setCareer(member, inputValue($event))">
+                      <option value="" [selected]="!member.careerId">No career</option>
+                      @for (path of careers(); track path.id) {
+                        <option [value]="path.id" [selected]="path.id === member.careerId">{{ careerOptionLabel(path.id, path.title) }}</option>
+                      }
+                    </select>
+                  </td>
+                  <td class="org-actions">
+                    @if (mine.isOriginalOwner && member.role === 'member') {
+                      <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="promote(member)">Promote to owner</button>
+                    }
+                    @if (member.userId !== userId()) {
+                      <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="remove(member)">Remove</button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="org-panel" aria-labelledby="org-invitations">
+        <h2 id="org-invitations">Invitations</h2>
+        <form class="org-inline" (submit)="invite($event)">
+          <div class="org-field">
+            <label for="org-invite-email">Invite by email</label>
+            <input id="org-invite-email" type="email" autocomplete="off" [value]="inviteEmail()"
+              [disabled]="mine.organization.state === 'suspended'" (input)="inviteEmail.set(inputValue($event))" />
+          </div>
+          <button appButton="primary" type="submit" [disabled]="busy() || mine.organization.state === 'suspended'">Send invitation</button>
+        </form>
+        <p class="org-muted">Invitations last 14 days. The email says that joining shares the person’s career and course progress with {{ mine.organization.displayName }}.</p>
+        @if (invitations().length) {
+          <ul class="org-list">
+            @for (invitation of invitations(); track invitation.id) {
+              <li>
+                <span>{{ invitation.email }}</span>
+                @if (invitation.state === 'not-sent') {
+                  <span class="org-chip" data-state="declined">Not sent. Try again.</span>
+                } @else {
+                  <span class="org-chip" [attr.data-state]="invitation.state">{{ invitation.state }}</span>
+                }
+                @if (invitation.state === 'sent' || invitation.state === 'not-sent' || invitation.state === 'expired') {
+                  <span class="org-actions">
+                    <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="resend(invitation)">Resend</button>
+                    @if (invitation.state !== 'expired') {
+                      <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="cancel(invitation)">Cancel</button>
+                    }
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="org-panel" aria-labelledby="org-course-requests">
+        <h2 id="org-course-requests">Course requests</h2>
+        @if (pendingCourseRequests().length) {
+          <ul class="org-list">
+            @for (request of pendingCourseRequests(); track request.id) {
+              <li>
+                <span><strong>{{ courseTitle(request.courseId) }}</strong><small>{{ request.userName }} · {{ priceLabel(request.addOnPriceDkk) }}</small></span>
+                <span class="org-actions">
+                  <button appButton="primary" size="sm" type="button" [disabled]="busy()" (click)="decide(request, 'approve')">Approve</button>
+                  <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="decide(request, 'decline')">Decline</button>
+                </span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="org-muted">No course requests waiting.</p>
+        }
+      </section>
+    }
+
+    <section class="org-panel org-leave">
+      <button appButton="danger" type="button" [disabled]="busy()" (click)="leave()">Leave organization</button>
+    </section>
+  } @else {
+    <header class="org-heading">
+      <p class="eyebrow">Organizations</p>
+      <h1>Request an organization</h1>
+      <p class="org-sub">Bring your team in, give each person a career to train for and approve extra courses. A site admin reviews every request.</p>
+    </header>
+
+    @if (pendingInvitation()) {
+      <p class="org-notice" role="status">You have an invitation waiting. Open the link in the invitation email to join.</p>
+    }
+    @if (actionError()) { <p class="org-error" role="alert">{{ actionError() }}</p> }
+
+    @if (request(); as current) {
+      @if (!editing()) {
+        <section class="org-panel" aria-labelledby="org-request-state">
+          <h2 id="org-request-state">{{ current.displayName }}</h2>
+          @if (current.state === 'pending') {
+            <p><span class="org-chip" data-state="pending">Pending</span> A site admin will review your request. You get an email when it is decided.</p>
+          } @else if (current.state === 'declined') {
+            <p><span class="org-chip" data-state="declined">Declined</span></p>
+            <p class="org-reason"><strong>Reason:</strong> {{ current.declineReason }}</p>
+            <button appButton="primary" type="button" (click)="startCorrection()">Correct and resubmit</button>
+          }
+        </section>
+      }
+    }
+
+    @if (showForm()) {
+      <form class="org-panel org-form" novalidate (submit)="submitRequest($event)">
+        @for (field of [
+          { key: 'displayName', label: 'Organization name', type: 'text', hint: 'Shown to members, for example your team name.' },
+          { key: 'companyName', label: 'Company name', type: 'text', hint: '' },
+          { key: 'cvr', label: 'CVR number', type: 'text', hint: '8 digits.' },
+          { key: 'billingEmail', label: 'Billing contact email', type: 'email', hint: 'Used when billing starts. Nothing is charged now.' }
+        ]; track field.key) {
+          <div class="org-field">
+            <label [for]="'org-' + field.key">{{ field.label }}</label>
+            <input [id]="'org-' + field.key" [type]="field.type" [attr.inputmode]="field.key === 'cvr' ? 'numeric' : null"
+              [value]="$any(form())[field.key]" [attr.aria-invalid]="$any(formErrors())[field.key] ? true : null"
+              [attr.aria-describedby]="'org-' + field.key + '-help'"
+              (input)="updateForm($any(field.key), inputValue($event))" />
+            <small [id]="'org-' + field.key + '-help'" [class.org-field-error]="$any(formErrors())[field.key]">
+              {{ $any(formErrors())[field.key] || field.hint }}
+            </small>
+          </div>
+        }
+        <div class="org-field">
+          <label for="org-message">Message to the site admin (optional)</label>
+          <textarea id="org-message" rows="3" maxlength="1000" [value]="form().message" (input)="updateForm('message', inputValue($event))"></textarea>
+        </div>
+        <p class="org-muted">As owner you will see what your members train for. Members agree to share their career and course progress when they join.</p>
+        <div class="org-inline">
+          <button appButton="primary" type="submit" [disabled]="busy()">Send request</button>
+          @if (editing()) { <button appButton="ghost" type="button" (click)="editing.set(false)">Cancel</button> }
+        </div>
+      </form>
+    }
+  }
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ currentYear() }}</span>
+    </span>
+    <span class="footer-version">Version {{ appVersion() }}</span>
+  </footer>
+</main>
+
+@if (isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="feedbackSubmitted()"
+    [page]="feedbackPage()"
+    [rating]="feedbackRating()"
+    [text]="feedbackText()"
+    [submitting]="feedbackSubmitting()"
+    [error]="feedbackError()"
+    [options]="feedbackOptions()"
+    (closed)="feedbackClosed.emit()"
+    (ratingSelected)="feedbackRatingSelected.emit($event)"
+    (textChanged)="feedbackTextChanged.emit($event)"
+    (submittedClicked)="feedbackSubmittedClicked.emit()"
+  />
+}

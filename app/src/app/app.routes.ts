@@ -53,6 +53,11 @@ export const routes: Routes = [
       import('./routes/career-path-route').then((module) => module.CareerPathRoute),
   },
   {
+    path: 'organization',
+    loadComponent: () =>
+      import('./routes/organization-route').then((module) => module.OrganizationRoute),
+  },
+  {
     path: 'courses/new',
     canDeactivate: [unsavedCourseGuard],
     loadComponent: () =>

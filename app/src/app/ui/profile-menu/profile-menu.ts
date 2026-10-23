@@ -57,6 +57,11 @@ export class ProfileMenu {
     void this.router.navigateByUrl('/profile');
   }
 
+  protected selectOrganization(): void {
+    this.closeMenu();
+    void this.router.navigateByUrl('/organization');
+  }
+
   protected selectSettings(): void {
     this.settingsSelected.emit();
     this.closeMenu();
