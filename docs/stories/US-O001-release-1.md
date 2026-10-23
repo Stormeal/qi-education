@@ -15,8 +15,9 @@
   display name, company name, CVR, billing contact email and a message; the last owner cannot leave
   until another owner exists; only the original owner promotes members.
 - Defaults confirmed by Alex 2026-10-23: invitations expire after 14 days; site admins can suspend and
-  reactivate an organization; organization courses a member started stay listed but locked after
-  leaving.
+  reactivate an organization. Changed by Alex 2026-10-24: after leaving (or removal, or suspension)
+  organization courses disappear from My Learning; the member's progress stays stored and comes
+  back if they rejoin with access to the course or buy it.
 
 ## Problem and outcome
 

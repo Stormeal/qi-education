@@ -14,8 +14,8 @@ Checks: API 2,554 passed + 2 expected failures (one load-sensitive timeout in
 invite, wrong account, sign-up through an invitation with email confirmation, add-on request and
 approval with price, free enroll in a 499 DKK course, My Learning, leave). Not browser-checked:
 AC09 billed career (no published career locally; API tests cover it), AC12 suspend (API tests).
-Open decision for Alex: the confirmed default "started courses stay listed, locked, after leaving"
-is not built; leaving removes them from My Learning. Contract:
+Leaving removes organization courses from My Learning; progress is kept (Alex, 2026-10-24,
+recorded in the contract). Contract:
 [stories/US-O001-release-1.md](stories/US-O001-release-1.md); Codex record
 [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md).
 
