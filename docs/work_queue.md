@@ -8,7 +8,7 @@ messages hold them.
 
 | Owner | Item | Scope and files | State |
 | --- | --- | --- | --- |
-| Codex | US-O001 release 1, Track A (API) | Tasks A1–A6 in [the plan](superpowers/plans/2026-10-23-organizations-release-1.md); files in [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md) | In progress 2026-10-23; main, base ecf1eb6; AC01–AC12; A1 0d80dea, A2 df36ee1 delivered; A3 89ce8b7, A4 a59317c delivered; A5 4157e48 delivered; A6 verified (API 2549 + 2 expected failures, build, journeys 18/18); recording delivery commit |
+| Codex | US-O001 release 1, Track A (API) | Tasks A1–A6 in [the plan](superpowers/plans/2026-10-23-organizations-release-1.md); files and verification in [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md) | done 2026-10-23; main, base ecf1eb6, delivery 94c9228. API 2549 passed + 2 expected failures; build passed; journeys 18/18. Frozen ecf1eb6 contract; concurrent 3693445 amendments need integration follow-up. Browser and real-service checks not verified. |
 | Claude Code | US-O001 release 1, Track B (app) | Tasks B1–B6; `app/**`, docs | Starting 2026-10-23 |
 
 Contract: [stories/US-O001-release-1.md](stories/US-O001-release-1.md), approved by Alex 2026-10-23.
