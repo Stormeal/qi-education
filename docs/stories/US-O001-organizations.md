@@ -29,6 +29,8 @@ US-O001 moves into **release 1** (internal, mid-December 2026), except the owner
   nothing is charged** until US-O002 (Alex).
 
 **Release 2:** owner overview of members' careers, milestones and completion.
+
+Release 1 contract (spec, awaiting approval): [US-O001-release-1.md](US-O001-release-1.md).
 **Release 3:** US-O002 billing, unchanged.
 
 Open for the design pass: whether a seat or add-on opens a *priced* course during release 1 (the
