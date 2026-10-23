@@ -44,7 +44,7 @@ Release 1 (internal, mid-December 2026) comes first; see Releases in
 [user_stories.md](user_stories.md). Ready to start without waiting on anyone: US-P018-AC04 (server
 dependency findings, a good Codex item) and the live-site checks below. US-P018-AC01–AC03 wait on
 the hosting budget and Alex. Requests from the department interviews are added as they arrive.
-US-O001 organizations moves to release 2 (design pass in Q1 2027).
+US-O001 organizations is in release 1 (except the owner overview, see the release split in its story): it needs its design pass now (brainstorm, spec, plan), starting from the X5 API draft in [handoffs/US-O001-api-draft.md](handoffs/US-O001-api-draft.md). It is the largest release 1 item.
 
 ## Open release checks
 

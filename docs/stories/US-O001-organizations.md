@@ -8,7 +8,35 @@ gets its own design pass. Paid courses (US-L024) are delivered: [payments](../sp
 Customers want one place for their QA staff to train individually, and an overview of their
 employees' training goals. Revenue for TestHuset.
 
-## US-O001: Organizations without billing (release 2)
+## Release split (Alex, 2026-10-23)
+
+US-O001 moves into **release 1** (internal, mid-December 2026), except the owner overview.
+
+**Release 1:**
+- Any signed-in user (student or teacher) requests an organization; a site admin approves or
+  declines with a reason. Owning an organization is not a role: the requester keeps their role.
+- Organization owners invite by email. An email without an account gets a sign-up link and the new
+  account joins once its email is confirmed (Alex). An existing account accepts the invitation in
+  the app. Accepting is the consent to share progress.
+- Invitations expire after 14 days and can be resent or cancelled (default, confirm or change).
+- Members list; an owner removes a member; a member leaves. Progress and own courses stay with the
+  account.
+- Site admin view: organizations and pending requests, approve/decline, suspend an organization
+  (suspend is a default, confirm or change).
+- Emails: request received, approved, declined with reason, invitation, member joined.
+- Billed career per member, course add-on requests (owner approves or declines) and prices: a
+  monthly seat price per career and an add-on price per course, set by admins. **Shown only,
+  nothing is charged** until US-O002 (Alex).
+
+**Release 2:** owner overview of members' careers, milestones and completion.
+**Release 3:** US-O002 billing, unchanged.
+
+Open for the design pass: whether a seat or add-on opens a *priced* course during release 1 (the
+API draft's question 1). Default: courses stay free during the internal period, so no access change
+is needed in release 1. Note: ISTQB Foundation repetition is published at 1,999 DKK today; set it to
+0 before colleagues enroll if the free-access default holds.
+
+## US-O001: Organizations without billing (original plan)
 
 - Any user fills in an organization request form; it is **pending** until a site admin approves.
 - The owner invites people by email. The invite says "Joining shares your career and course

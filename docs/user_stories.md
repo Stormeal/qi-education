@@ -17,8 +17,8 @@ department); new requests enter here as Proposed stories.
 
 | Release | Target | Goal | In scope |
 | --- | --- | --- | --- |
-| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-P003 feedback part / INV-004 (Should) |
-| 2, public launch | Around Q2 2027 | Sell to individuals and offer organizations as a free trial | US-O001, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
+| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-P003 feedback part / INV-004 (Should) |
+| 2, public launch | Around Q2 2027 | Sell to individuals and organizations | US-O001 owner overview, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
 | 3, organization billing | After launch, 2027 | Paid organization seats | US-O002 |
 
 Release 1 decisions (built as defaults, confirm or change): courses stay free during the internal
@@ -30,7 +30,7 @@ budget, curriculum owner, backup developer.
 
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
-| US-O001 | Organizations: request, approval, invites, owner overview | Decided, not designed | P2 | — | [stories/US-O001](stories/US-O001-organizations.md) |
+| US-O001 | Organizations: request, approval, invites, owner overview | Decided, not designed; release 1 except owner overview | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
