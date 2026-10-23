@@ -18,7 +18,7 @@ const emptyForm = (): OrgRequestInput => ({ displayName: '', companyName: '', cv
   selector: 'app-organization-page',
   imports: [Button, FeedbackDialog, PageHeader],
   templateUrl: './organization-page.html',
-  styleUrl: './organization-page.scss',
+  styleUrls: ['../../app.scss', './organization-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationPage {

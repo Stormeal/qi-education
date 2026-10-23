@@ -75,14 +75,14 @@
         <h2 id="org-members">Members</h2>
         <div class="org-table-wrap">
           <table class="org-table">
-            <thead><tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Career</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <thead><tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Career</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
             <tbody>
               @for (member of members(); track member.userId) {
                 <tr>
                   <td><strong>{{ member.name }}</strong><small>{{ member.email }}</small></td>
                   <td>{{ member.role === 'owner' ? 'Owner' : 'Member' }}</td>
                   <td>
-                    <label class="visually-hidden" [for]="'career-' + member.userId">Career for {{ member.name }}</label>
+                    <label class="sr-only" [for]="'career-' + member.userId">Career for {{ member.name }}</label>
                     <select [id]="'career-' + member.userId" [disabled]="busy()" (change)="setCareer(member, inputValue($event))">
                       <option value="" [selected]="!member.careerId">No career</option>
                       @for (path of careers(); track path.id) {
