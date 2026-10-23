@@ -1,10 +1,12 @@
 import type { Collection, Document } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
+import { CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
 import { OrganizationError, type Organization, type OrganizationMembership, type Prices,
   type StoredOrgRequest, type StoredInvitation, type StoredCourseRequest } from './organization.js';
 
 export interface OrganizationRepository {
+  withOrganizationLock<T>(orgId: string, operation: () => Promise<T>): Promise<T>;
   createRequest(value: StoredOrgRequest): Promise<void>;
   findPendingOrLatestRequest(userId: string): Promise<StoredOrgRequest | null>;
   updateRequest(id: string, expectedState: StoredOrgRequest['state'], patch: Partial<StoredOrgRequest>): Promise<boolean>;
@@ -114,7 +116,11 @@ class MongoStore implements Store {
 }
 
 class Repository implements OrganizationRepository {
-  constructor(private store: Store) {}
+  constructor(private store: Store, private lock: CourseMutationLock) {}
+  async withOrganizationLock<T>(orgId: string, operation: () => Promise<T>): Promise<T> {
+    try { return await this.lock.run(orgId, operation); }
+    catch (error) { if (error instanceof CourseBusyError) throw new OrganizationError(409, 'Organization is being updated. Try again shortly.'); throw error; }
+  }
   async createRequest(v: StoredOrgRequest) { if (!await this.store.insert('requests', v.id, v)) throw new OrganizationError(409, 'An organization request is already pending'); }
   async findPendingOrLatestRequest(userId: string) { return (await this.store.list('requests')).filter(v => v.userId === userId).sort((a,b) => Number(b.state === 'pending') - Number(a.state === 'pending') || b.submittedAt.localeCompare(a.submittedAt))[0] ?? null; }
   updateRequest(id: string, state: StoredOrgRequest['state'], patch: Partial<StoredOrgRequest>) { return this.store.update('requests', id, { state }, patch); }
@@ -145,8 +151,11 @@ class Repository implements OrganizationRepository {
   setCareerPrice(id: string, dkk: number | null) { return this.setPrice('careers', id, dkk); }
   setCoursePrice(id: string, dkk: number | null) { return this.setPrice('courses', id, dkk); }
 }
-export class InMemoryOrganizationRepository extends Repository { constructor() { super(new MemoryStore()); } }
+export class InMemoryOrganizationRepository extends Repository { constructor() { super(new MemoryStore(), new InMemoryCourseMutationLock()); } }
+const mongoCollections: OrganizationCollections = async table => (await getMongoDatabase()).collection(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_${table === 'organizations' ? 'organizations' : `organization_${table}`}`);
 export class MongoOrganizationRepository extends Repository {
-  constructor(collections: OrganizationCollections = async table => (await getMongoDatabase()).collection(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_${table === 'organizations' ? 'organizations' : `organization_${table}`}`)) { super(new MongoStore(collections)); }
+  constructor(collections: OrganizationCollections = mongoCollections, lock: CourseMutationLock = collections === mongoCollections
+    ? new MongoCourseMutationLock(async () => (await getMongoDatabase()).collection(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_organization_locks`))
+    : new InMemoryCourseMutationLock()) { super(new MongoStore(collections), lock); }
 }
 export function createOrganizationRepository(): OrganizationRepository { return hasMongoConfig() ? new MongoOrganizationRepository() : new InMemoryOrganizationRepository(); }

@@ -3,12 +3,15 @@ import type { z } from 'zod';
 import type { AuthUser } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
 import type { MailSender } from './mailSender.js';
+import type { CareerPathRepository } from './careerPathRepository.js';
+import type { CourseRepository } from './courseRepository.js';
 import type { OrganizationRepository } from './organizationRepository.js';
 import { KeyedSerialQueue } from './keyedSerialQueue.js';
 import { apiConfig } from './config.js';
 import { resetTokenHash } from './passwordResetDelivery.js';
 import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema, inviteSchema,
-  type OrgRequest, type MyOrganization, type StoredOrgRequest, type Organization, type StoredInvitation, type Invitation } from './organization.js';
+  type OrgRequest, type MyOrganization, type StoredOrgRequest, type Organization, type StoredInvitation, type Invitation,
+  type Member, type OrganizationMembership, type StoredCourseRequest, type CourseRequest } from './organization.js';
 
 type User = Pick<AuthUser, 'id' | 'email' | 'displayName'>;
 export type OrganizationOptions = { now?: () => number; newToken?: () => string; appPublicUrl?: string };
@@ -19,7 +22,7 @@ export class OrganizationService {
   private readonly now: () => number;
   private readonly writes = new KeyedSerialQueue();
   constructor(private readonly dependencies: { repository: OrganizationRepository; auth: AuthRepository;
-    sender: MailSender; options?: OrganizationOptions }) {
+    sender: MailSender; options?: OrganizationOptions; careers?: CareerPathRepository; courses?: CourseRepository }) {
     this.repository = dependencies.repository; this.auth = dependencies.auth; this.sender = dependencies.sender;
     this.now = dependencies.options?.now ?? Date.now;
   }
@@ -72,7 +75,8 @@ export class OrganizationService {
     const organization = await this.organization(membership.orgId), prices = await this.prices();
     return { organization, role: membership.role, isOriginalOwner: organization.originalOwnerId === userId,
       careerId: membership.careerId, seatPriceDkk: membership.careerId ? prices.careers[membership.careerId] ?? null : null,
-      openCourseIds: [], courseRequests: (await this.repository.listCourseRequests(organization.id)).filter(v => v.userId === userId).map(({ orgId: _orgId, ...v }) => v) };
+      openCourseIds: await this.openCourseIds(userId), courseRequests: await Promise.all((await this.repository.listCourseRequests(organization.id))
+        .filter(v => v.userId === userId).map(v => this.courseRequestView(v))) };
   }
   async listRequests(state = 'pending') {
     return Promise.all((await this.repository.listRequests(state)).map(async value => {
@@ -238,5 +242,109 @@ export class OrganizationService {
     if (organization.state !== 'active') return false;
     if (!await this.repository.updateMembership(userId, membership.orgId, { state: 'active' }, 'pending-email')) return false;
     await this.memberJoined(organization, account); return true;
+  }
+
+  private async membership(userId: string, orgId: string) {
+    await this.account(userId);
+    const member = await this.repository.getMembership(userId);
+    if (!member || member.orgId !== orgId) throw new OrganizationError(404, 'Organization not found');
+    if (member.state !== 'active') throw new OrganizationError(403, 'Not allowed');
+    return member;
+  }
+  private async memberView(member: OrganizationMembership): Promise<Member> {
+    const user = await this.auth.findById(member.userId, { fresh: true });
+    return { userId: member.userId, name: user?.displayName ?? '', email: user?.email ?? '', role: member.role,
+      careerId: member.careerId, joinedAt: member.joinedAt };
+  }
+  async listMembers(ownerId: string, orgId: string) {
+    await this.owner(ownerId, orgId);
+    return Promise.all((await this.repository.listMembers(orgId)).filter(v => v.state === 'active').map(v => this.memberView(v)));
+  }
+  private async remove(userId: string, orgId: string) {
+    const member = await this.repository.getMembership(userId);
+    if (!member || member.orgId !== orgId) throw new OrganizationError(404, 'Member not found');
+    if (member.role === 'owner' && (await this.repository.listMembers(orgId)).filter(v => v.role === 'owner' && v.state === 'active').length <= 1) {
+      throw new OrganizationError(409, 'Make another member an owner first');
+    }
+    if (!await this.repository.deleteMembership(userId, orgId)) throw new OrganizationError(404, 'Member not found');
+  }
+  async removeMember(ownerId: string, orgId: string, userId: string) {
+    return this.repository.withOrganizationLock(orgId, async () => { await this.owner(ownerId, orgId); await this.remove(userId, orgId); });
+  }
+  async leave(userId: string) {
+    const member = await this.repository.getMembership(userId);
+    if (!member) throw new OrganizationError(404, 'Organization not found');
+    return this.repository.withOrganizationLock(member.orgId, async () => { await this.account(userId); await this.remove(userId, member.orgId); });
+  }
+  async promote(ownerId: string, orgId: string, userId: string) {
+    return this.repository.withOrganizationLock(orgId, async () => {
+      const org = await this.owner(ownerId, orgId);
+      if (org.originalOwnerId !== ownerId) throw new OrganizationError(403, 'Only the original owner can promote members');
+      await this.membership(userId, orgId);
+      if (!await this.repository.updateMembership(userId, orgId, { role: 'owner' })) throw new OrganizationError(404, 'Member not found');
+      return this.memberView((await this.repository.getMembership(userId))!);
+    });
+  }
+  async setCareer(ownerId: string, orgId: string, userId: string, careerId: string | null) {
+    return this.repository.withOrganizationLock(orgId, async () => {
+      await this.owner(ownerId, orgId); await this.membership(userId, orgId);
+      if (careerId !== null && !(await this.dependencies.careers?.listPaths())?.some(v => v._id === careerId && v.published)) {
+        throw new OrganizationError(400, 'Choose a published career');
+      }
+      if (!await this.repository.updateMembership(userId, orgId, { careerId })) throw new OrganizationError(404, 'Member not found');
+      return this.memberView((await this.repository.getMembership(userId))!);
+    });
+  }
+  async openCourseIds(userId: string): Promise<string[]> {
+    const member = await this.repository.getMembership(userId);
+    if (member?.state !== 'active' || (await this.repository.getOrganization(member.orgId))?.state !== 'active') return [];
+    const user = await this.auth.findById(userId, { fresh: true }); if (user?.status !== 'active') return [];
+    const ids = new Set<string>();
+    const career = member.careerId ? (await this.dependencies.careers?.listPaths())?.find(v => v._id === member.careerId)?.published : null;
+    for (const step of career?.steps ?? []) {
+      for (const course of step.courses) if (course.courseId) ids.add(course.courseId);
+      for (const action of step.actions) if (action.kind === 'course' && action.courseId) ids.add(action.courseId);
+    }
+    for (const request of await this.repository.listCourseRequests(member.orgId)) if (request.userId === userId && request.state === 'approved') ids.add(request.courseId);
+    const published = new Set((await this.dependencies.courses?.listCourses() ?? []).filter(v => v.status === 'published').map(v => v.id));
+    return [...ids].filter(id => published.has(id));
+  }
+  async startCourse(userId: string, courseId: string): Promise<boolean> {
+    const member = await this.repository.getMembership(userId); if (!member) return false;
+    return this.repository.withOrganizationLock(member.orgId, async () => {
+      const current = await this.repository.getMembership(userId);
+      if (current?.orgId !== member.orgId || !(await this.openCourseIds(userId)).includes(courseId)) return false;
+      return this.repository.updateMembership(userId, member.orgId, { startedCourseIds: [...new Set([...current.startedCourseIds, courseId])] });
+    });
+  }
+  async learnableOrgCourseIds(userId: string) {
+    const started = new Set((await this.repository.getMembership(userId))?.startedCourseIds ?? []);
+    return (await this.openCourseIds(userId)).filter(id => started.has(id));
+  }
+  private async courseRequestView({ orgId: _orgId, ...value }: StoredCourseRequest): Promise<CourseRequest> {
+    return { ...value, addOnPriceDkk: (await this.prices()).courses[value.courseId] ?? null };
+  }
+  async requestCourse(userId: string, orgId: string, courseId: string) {
+    const member = await this.membership(userId, orgId);
+    if ((await this.organization(orgId)).state !== 'active') throw new OrganizationError(409, 'Organization is suspended');
+    if (!(await this.dependencies.courses?.listCourses())?.some(v => v.id === courseId && v.status === 'published')) throw new OrganizationError(400, 'Choose a published course');
+    if ((await this.openCourseIds(userId)).includes(courseId)) throw new OrganizationError(409, 'This course is already included');
+    const account = await this.account(member.userId), value: StoredCourseRequest = { id: randomUUID(), orgId, userId,
+      userName: account.displayName, courseId, state: 'pending', addOnPriceDkk: (await this.prices()).courses[courseId] ?? null,
+      createdAt: new Date(this.now()).toISOString() };
+    if (!await this.repository.createCourseRequest(value)) throw new OrganizationError(409, 'A course request is already pending');
+    return this.courseRequestView(value);
+  }
+  async listCourseRequests(ownerId: string, orgId: string) {
+    await this.owner(ownerId, orgId);
+    return Promise.all((await this.repository.listCourseRequests(orgId)).map(v => this.courseRequestView(v)));
+  }
+  async decideCourseRequest(ownerId: string, orgId: string, id: string, action: string) {
+    await this.owner(ownerId, orgId);
+    if (!['approve', 'decline'].includes(action)) throw new OrganizationError(400, 'Invalid decision');
+    const request = (await this.repository.listCourseRequests(orgId)).find(v => v.id === id);
+    if (!request) throw new OrganizationError(404, 'Course request not found');
+    if (!await this.repository.decideCourseRequest(id, action === 'approve' ? 'approved' : 'declined')) throw new OrganizationError(409, 'Course request is no longer pending');
+    return this.courseRequestView((await this.repository.listCourseRequests(orgId)).find(v => v.id === id)!);
   }
 }
