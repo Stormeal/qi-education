@@ -4,7 +4,7 @@
 
 - Story: US-O001, release 1 part ([backlog](../user_stories.md), decisions in
   [US-O001-organizations.md](US-O001-organizations.md))
-- State: Proposed, design agreed with Alex 2026-10-23, awaiting spec approval
+- State: Ready, approved by Alex 2026-10-23 (deck "Organizations: Release 1 Pitch")
 - Owner: Codex (`api/src/**`), Claude Code (`app/**`, docs)
 - Related: X5 API draft [handoffs/US-O001-api-draft.md](../handoffs/US-O001-api-draft.md) (input
   only; release 1 deliberately leaves out its job queue, transactions, audit log and paging)
@@ -14,7 +14,7 @@
   published course linked from any of its milestones, optional ones included; request form asks for
   display name, company name, CVR, billing contact email and a message; the last owner cannot leave
   until another owner exists; only the original owner promotes members.
-- Defaults (confirm or change): invitations expire after 14 days; site admins can suspend and
+- Defaults confirmed by Alex 2026-10-23: invitations expire after 14 days; site admins can suspend and
   reactivate an organization; organization courses a member started stay listed but locked after
   leaving.
 

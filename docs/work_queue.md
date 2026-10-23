@@ -6,7 +6,14 @@ messages hold them.
 
 ## Active work
 
-None. Delivered 2026-10-22: DEF-057 (dropdowns show their stored value; record in
+| Owner | Item | Scope and files | State |
+| --- | --- | --- | --- |
+| Codex | US-O001 release 1, Track A (API) | Tasks A1–A6 in [the plan](superpowers/plans/2026-10-23-organizations-release-1.md); files in [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md) | Prompt handed to Alex 2026-10-23 |
+| Claude Code | US-O001 release 1, Track B (app) | Tasks B1–B6; `app/**`, docs | Starting 2026-10-23 |
+
+Contract: [stories/US-O001-release-1.md](stories/US-O001-release-1.md), approved by Alex 2026-10-23.
+
+Delivered 2026-10-22: DEF-057 (dropdowns show their stored value; record in
 `defects_resolved.md`) and Codex X6 (INV-004 reproduced as an expected failure in
 `api/src/multiInstanceFeedback.test.ts`; options in [handoffs/INV-004-options.md](handoffs/INV-004-options.md)),
 checked by Claude. Codex X7 (API patch and minor updates: Mux 14.1.1, MongoDB driver 7.7,
