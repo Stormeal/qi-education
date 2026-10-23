@@ -156,6 +156,7 @@ type Organization = { id: string; displayName: string; companyName: string; cvr:
 type MyOrganization = { organization: Organization; role: 'member' | 'owner';
   isOriginalOwner: boolean; careerId: string | null; seatPriceDkk: number | null;
   openCourseIds: string[];            // empty while the organization is suspended
+  startedCourseIds: string[];         // organization courses this member enrolled in (amended 2026-10-23)
   courseRequests: CourseRequest[] };  // own requests
 type Member = { userId: string; name: string; email: string; role: 'member' | 'owner';
   careerId: string | null; joinedAt: string };
@@ -202,7 +203,10 @@ Changed existing behavior:
   `200` without payment and records the course in the membership's started-course list, **not** in
   `enrolledCourseIds`. Other courses behave as today.
 - `canLearnCourse` and My Learning include organization-started courses while the membership is
-  active and the organization is not suspended.
+  active and the organization is not suspended. **The user object that `GET /auth/me`, sign-in and
+  the enroll reply return lists those courses in `enrolledCourseIds`** (computed when answering,
+  never stored), so the app's My Learning and course pages need no separate list. Amended
+  2026-10-23 (Claude, additive; the stored `enrolledCourseIds` is unchanged).
 - `GET /auth/me` adds `organization: { id, role } | null`.
 - Email confirmation: confirming the email also activates a `pending-email` membership. Sign-in and
   `GET /auth/me` retry that activation, so a failure there is not lost.
