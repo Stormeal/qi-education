@@ -1,7 +1,7 @@
 import type { Collection, Document } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
-import { CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
+import { AmbiguousCourseWriteError, protectCourseWrite, CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
 import { OrganizationError, type Organization, type OrganizationMembership, type Prices,
   type StoredOrgRequest, type StoredInvitation, type StoredCourseRequest } from './organization.js';
 
@@ -52,7 +52,12 @@ class MemoryStore implements Store {
   async list<K extends Table>(name: K): Promise<Tables[K][]> { return structuredClone([...this.table(name).values()]) as Tables[K][]; }
   async insert<K extends Table>(name: K, id: string, value: Tables[K]) {
     const table = this.table(name);
-    const conflicts = [...table.values()].some(other => {
+    if (table.has(id) || this.conflicts(name, id, value)) return false;
+    table.set(id, structuredClone(value)); return true;
+  }
+  private conflicts(name: Table, id: string, value: RecordValue) {
+    return [...this.table(name).entries()].some(([key, other]) => {
+      if (key === id) return false;
       if (name === 'requests') return open(value) && open(other) && (value as StoredOrgRequest).userId === (other as StoredOrgRequest).userId;
       if (name === 'invitations') { const a = value as StoredInvitation, b = other as StoredInvitation;
         return a.tokenHash === b.tokenHash || (open(a) && open(b) && a.orgId === b.orgId && a.email === b.email); }
@@ -60,13 +65,13 @@ class MemoryStore implements Store {
         return open(a) && open(b) && a.userId === b.userId && a.courseId === b.courseId; }
       return false;
     });
-    if (table.has(id) || conflicts) return false;
-    table.set(id, structuredClone(value)); return true;
   }
   async update<K extends Table>(name: K, id: string, expected: Partial<Tables[K]>, patch: Partial<Tables[K]>) {
     const table = this.table(name), value = table.get(id);
     if (!value || !Object.entries(expected).every(([key, v]) => (value as unknown as Record<string, unknown>)[key] === v)) return false;
-    table.set(id, structuredClone({ ...value, ...patch }) as RecordValue); return true;
+    const next = structuredClone({ ...value, ...patch }) as RecordValue;
+    if (this.conflicts(name, id, next)) throw new OrganizationError(409, 'Conflicting organization state');
+    table.set(id, next); return true;
   }
   async delete<K extends Table>(name: K, id: string, expected: Partial<Tables[K]>) {
     const value = this.table(name).get(id);
@@ -102,16 +107,24 @@ class MongoStore implements Store {
     return (await (await this.collection(table)).find({}).toArray()).map(({ _id, open: _open, ...value }) => value as Tables[K]);
   }
   async insert<K extends Table>(table: K, id: string, value: Tables[K]) {
-    try { await (await this.collection(table)).insertOne({ ...value, _id: id, ...(table === 'invitations' ? { open: open(value) } : {}) }); return true; }
-    catch (error) { if (duplicate(error)) return false; throw error; }
+    const collection = await this.collection(table);
+    try { await protectCourseWrite(() => collection.insertOne({ ...value, _id: id, ...(table === 'invitations' ? { open: open(value) } : {}) })); return true; }
+    catch (error) { if (error instanceof AmbiguousCourseWriteError && duplicate(error.cause)) return false; throw error; }
   }
   async update<K extends Table>(table: K, id: string, expected: Partial<Tables[K]>, patch: Partial<Tables[K]>) {
     const state = 'state' in patch ? { open: ['sent', 'not-sent'].includes(String(patch.state)) } : {};
-    const result = await (await this.collection(table)).updateOne({ _id: id, ...expected }, { $set: { ...patch, ...(table === 'invitations' ? state : {}) } });
-    return result.matchedCount === 1;
+    const collection = await this.collection(table);
+    try {
+      const result = await protectCourseWrite(() => collection.updateOne({ _id: id, ...expected }, { $set: { ...patch, ...(table === 'invitations' ? state : {}) } }));
+      return result.matchedCount === 1;
+    } catch (error) {
+      if (error instanceof AmbiguousCourseWriteError && duplicate(error.cause)) throw new OrganizationError(409, 'Conflicting organization state');
+      throw error;
+    }
   }
   async delete<K extends Table>(table: K, id: string, expected: Partial<Tables[K]>) {
-    return (await (await this.collection(table)).deleteOne({ _id: id, ...expected })).deletedCount === 1;
+    const collection = await this.collection(table);
+    return (await protectCourseWrite(() => collection.deleteOne({ _id: id, ...expected }))).deletedCount === 1;
   }
 }
 

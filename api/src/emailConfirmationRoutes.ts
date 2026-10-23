@@ -13,6 +13,7 @@ const unavailable = { message: 'Email confirmation is temporarily unavailable. P
 export function registerEmailConfirmationRoutes(app: Express, dependencies: {
   auth: AuthRepository; tokens: EmailConfirmationRepository; sender: MailSender; options?: EmailConfirmationOptions;
   authenticate: RequestHandler; clientLimit: ClientLimit;
+  activatePendingMembership?: (userId: string) => Promise<unknown>;
 }) {
   const { auth, tokens, sender, options = {} } = dependencies;
   const now = options.now ?? Date.now;
@@ -31,6 +32,8 @@ export function registerEmailConfirmationRoutes(app: Express, dependencies: {
     if (!userId) { response.status(410).json(invalid); return; }
     const confirmed = await auth.confirmEmail(userId);
     if (!confirmed) { response.status(410).json(invalid); return; }
+    try { await dependencies.activatePendingMembership?.(userId); }
+    catch { /* The confirmed account retries organization activation at sign-in and /auth/me. */ }
     response.status(204).end();
   }));
 

@@ -22,6 +22,7 @@ export function registerLearningProgressRoutes(app: Express, dependencies: {
   courses: CourseRepository;
   content: CourseContentRepository;
   progress: LearningProgressRepository;
+  orgCourseIds?: (userId: string) => Promise<string[]>;
 }): void {
   const { courses, content, progress } = dependencies;
   const root = '/users/me/learning-progress';
@@ -39,7 +40,7 @@ export function registerLearningProgressRoutes(app: Express, dependencies: {
     const courseId = String(request.params.courseId);
     const course = (await courses.listCourses()).find(item => item.id === courseId);
     if (!course) throw new ProgressError(404, 'Course not found');
-    if (!canLearnCourse(course, user(request))) throw new ProgressError(403, 'You do not have access to this course.');
+    if (!canLearnCourse(course, user(request)) && !canLearnCourse(course, user(request), await dependencies.orgCourseIds?.(user(request).id))) throw new ProgressError(403, 'You do not have access to this course.');
     const document = await content.getCourseContent(courseId);
     if (!document) throw new ProgressError(404, 'Course content not found');
     return document;
@@ -48,7 +49,8 @@ export function registerLearningProgressRoutes(app: Express, dependencies: {
 
   app.get(root, dependencies.authenticate, handle(async (request, response) => {
     const account = user(request);
-    const entitled = new Set((await courses.listCourses()).filter(course => canLearnCourse(course, account)).map(course => course.id));
+    const orgCourseIds = await dependencies.orgCourseIds?.(account.id) ?? [];
+    const entitled = new Set((await courses.listCourses()).filter(course => canLearnCourse(course, account, orgCourseIds)).map(course => course.id));
     const values = await Promise.all((await progress.list(account.id)).filter(item => entitled.has(item.courseId) && item.completedIds.length)
       .map(async item => {
         const document = await content.getCourseContent(item.courseId);

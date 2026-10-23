@@ -6,7 +6,6 @@ import type { MailSender } from './mailSender.js';
 import type { CareerPathRepository } from './careerPathRepository.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { OrganizationRepository } from './organizationRepository.js';
-import { KeyedSerialQueue } from './keyedSerialQueue.js';
 import { apiConfig } from './config.js';
 import { resetTokenHash } from './passwordResetDelivery.js';
 import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema, inviteSchema,
@@ -20,7 +19,6 @@ export class OrganizationService {
   private readonly auth: AuthRepository;
   private readonly sender: MailSender;
   private readonly now: () => number;
-  private readonly writes = new KeyedSerialQueue();
   constructor(private readonly dependencies: { repository: OrganizationRepository; auth: AuthRepository;
     sender: MailSender; options?: OrganizationOptions; careers?: CareerPathRepository; courses?: CourseRepository }) {
     this.repository = dependencies.repository; this.auth = dependencies.auth; this.sender = dependencies.sender;
@@ -88,20 +86,23 @@ export class OrganizationService {
     if ((await this.account(adminId)).role !== 'admin') throw new OrganizationError(403, 'Not allowed');
     if (!['approve', 'decline'].includes(decision.action)) throw new OrganizationError(400, 'Invalid decision');
     const reason = decision.action === 'decline' ? this.parse(declineSchema, decision).reason : null;
-    return this.writes.run(`request:${requestId}`, async () => {
+    return this.repository.withOrganizationLock(`request:${requestId}`, async () => {
       const request = (await this.repository.listRequests()).find(v => v.id === requestId);
       if (!request) throw new OrganizationError(404, 'Request not found');
       if (request.state !== 'pending') throw new OrganizationError(409, 'Request is no longer pending');
-      if (await this.repository.getMembership(request.userId)) throw new OrganizationError(409, 'Requester already joined an organization');
+      const membership = await this.repository.getMembership(request.userId);
+      if (membership && !(decision.action === 'approve' && membership.orgId === request.id && membership.role === 'owner')) throw new OrganizationError(409, 'Requester already joined an organization');
       const user = await this.account(request.userId), time = new Date(this.now()).toISOString();
       let organizationId: string | null = null;
       if (decision.action === 'approve') {
-        // Deterministic ID makes simultaneous approvals collide before either can create a second organization.
+        // Reconcile an interrupted approval using its stable organization identity.
         organizationId = request.id;
-        await this.repository.createOrganization({ id: organizationId, displayName: request.displayName,
+        const existing = await this.repository.getOrganization(organizationId);
+        if (existing && existing.originalOwnerId !== user.id) throw new OrganizationError(409, 'Organization already exists');
+        if (!existing) await this.repository.createOrganization({ id: organizationId, displayName: request.displayName,
           companyName: request.companyName, cvr: request.cvr, billingEmail: request.billingEmail,
           state: 'active', originalOwnerId: user.id, createdAt: time });
-        if (!await this.repository.insertMembership({ userId: user.id, orgId: organizationId, role: 'owner', state: 'active',
+        if (!membership && !await this.repository.insertMembership({ userId: user.id, orgId: organizationId, role: 'owner', state: 'active',
           careerId: null, startedCourseIds: [], joinedAt: time, consentAt: time })) {
           await this.repository.deleteOrganization(organizationId);
           throw new OrganizationError(409, 'Requester already joined an organization');
@@ -110,7 +111,6 @@ export class OrganizationService {
       const patch = { state: decision.action === 'approve' ? 'approved' as const : 'declined' as const,
         decidedAt: time, declineReason: reason, organizationId };
       if (!await this.repository.updateRequest(requestId, 'pending', patch)) {
-        if (organizationId) { await this.repository.deleteMembership(user.id, organizationId); await this.repository.deleteOrganization(organizationId); }
         throw new OrganizationError(409, 'Request is no longer pending');
       }
       await this.mail(user.email, `Organization request ${patch.state}`, reason ?? `Your organization ${request.displayName} is approved.`);
@@ -146,7 +146,7 @@ export class OrganizationService {
     if (active && organization.state !== 'active') throw new OrganizationError(409, 'Organization is suspended');
     return organization;
   }
-  private invitationView({ orgId: _orgId, tokenHash: _hash, ...invitation }: StoredInvitation): Invitation { return invitation; }
+  private invitationView({ orgId: _orgId, tokenHash: _hash, acceptedBy: _acceptedBy, joining: _joining, ...invitation }: StoredInvitation): Invitation { return invitation; }
   private async expireInvitations(orgId: string) {
     for (const v of await this.repository.listInvitations(orgId)) {
       if (['sent', 'not-sent'].includes(v.state) && Date.parse(v.expiresAt) <= this.now()) {
@@ -201,9 +201,10 @@ export class OrganizationService {
     if (!await this.repository.updateInvitation(inviteId, current.state, { state: 'cancelled' }, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
   }
   private invalidInvitation(): never { throw new OrganizationError(410, 'This invitation is no longer valid. Ask the owner for a new one.'); }
-  private async validInvitation(token: unknown) {
+  private async validInvitation(token: unknown, joiningUserId?: string) {
     const hash = resetTokenHash(token), invitation = hash ? await this.repository.findInvitationByTokenHash(hash) : null;
-    if (!invitation || !['sent', 'not-sent'].includes(invitation.state)) return this.invalidInvitation();
+    if (!invitation || !(['sent', 'not-sent'].includes(invitation.state) ||
+      invitation.state === 'accepted' && invitation.joining && invitation.acceptedBy === joiningUserId)) return this.invalidInvitation();
     if (Date.parse(invitation.expiresAt) <= this.now()) {
       await this.repository.updateInvitation(invitation.id, invitation.state, { state: 'expired' }, invitation.tokenHash);
       return this.invalidInvitation();
@@ -218,16 +219,27 @@ export class OrganizationService {
       consentText: `Joining shares your career and course progress with ${organization.displayName}` };
   }
   async acceptInvitation(user: User, token: unknown) {
-    const { invitation, organization } = await this.validInvitation(token), account = await this.account(user.id);
-    if (account.email !== invitation.email) throw new OrganizationError(403, `This invitation is for ${invitation.email}. Sign in with that address.`);
-    if (await this.repository.getMembership(user.id)) throw new OrganizationError(409, 'Already in an organization');
-    if (!await this.repository.updateInvitation(invitation.id, invitation.state, { state: 'accepted' }, invitation.tokenHash)) return this.invalidInvitation();
-    const time = new Date(this.now()).toISOString(), state = account.emailConfirmed === false ? 'pending-email' as const : 'active' as const;
-    if (!await this.repository.insertMembership({ userId: user.id, orgId: organization.id, role: 'member', state,
-      careerId: null, startedCourseIds: [], consentAt: time, joinedAt: time })) throw new OrganizationError(409, 'Already in an organization');
-    if (state === 'pending-email') return { state };
-    await this.memberJoined(organization, account);
-    return this.myOrganization(user.id);
+    return this.repository.withOrganizationLock(`join:${user.id}`, async () => {
+      const { invitation, organization } = await this.validInvitation(token, user.id), account = await this.account(user.id);
+      if (account.email !== invitation.email) throw new OrganizationError(403, `This invitation is for ${invitation.email}. Sign in with that address.`);
+      let membership = await this.repository.getMembership(user.id);
+      if (membership && !(invitation.joining && invitation.acceptedBy === user.id && membership.orgId === organization.id)) throw new OrganizationError(409, 'Already in an organization');
+      if (invitation.state !== 'accepted' && !await this.repository.updateInvitation(invitation.id, invitation.state,
+        { state: 'accepted', acceptedBy: user.id, joining: true }, invitation.tokenHash)) return this.invalidInvitation();
+      const time = new Date(this.now()).toISOString();
+      if (!membership) {
+        membership = { userId: user.id, orgId: organization.id, role: 'member', state: account.emailConfirmed === false ? 'pending-email' : 'active',
+          careerId: null, startedCourseIds: [], consentAt: time, joinedAt: time };
+        if (!await this.repository.insertMembership(membership)) throw new OrganizationError(409, 'Already in an organization');
+      }
+      if (!await this.repository.updateInvitation(invitation.id, 'accepted', { joining: false }, invitation.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
+      if (membership.state === 'pending-email') {
+        if (account.emailConfirmed !== false && await this.activatePendingMembership(user.id)) return this.myOrganization(user.id);
+        return { state: 'pending-email' as const };
+      }
+      await this.memberJoined(organization, account);
+      return this.myOrganization(user.id);
+    });
   }
   private async memberJoined(organization: Organization, user: User) {
     for (const member of (await this.repository.listMembers(organization.id)).filter(v => v.role === 'owner' && v.state === 'active')) {
@@ -236,8 +248,10 @@ export class OrganizationService {
     }
   }
   async activatePendingMembership(userId: string): Promise<boolean> {
-    const account = await this.account(userId), membership = await this.repository.getMembership(userId);
-    if (account.emailConfirmed === false || membership?.state !== 'pending-email') return false;
+    const membership = await this.repository.getMembership(userId);
+    if (membership?.state !== 'pending-email') return false;
+    const account = await this.account(userId);
+    if (account.emailConfirmed === false) return false;
     const organization = await this.organization(membership.orgId);
     if (organization.state !== 'active') return false;
     if (!await this.repository.updateMembership(userId, membership.orgId, { state: 'active' }, 'pending-email')) return false;
@@ -265,6 +279,9 @@ export class OrganizationService {
     if (!member || member.orgId !== orgId) throw new OrganizationError(404, 'Member not found');
     if (member.role === 'owner' && (await this.repository.listMembers(orgId)).filter(v => v.role === 'owner' && v.state === 'active').length <= 1) {
       throw new OrganizationError(409, 'Make another member an owner first');
+    }
+    for (const request of (await this.repository.listCourseRequests(orgId)).filter(v => v.userId === userId && v.state === 'pending')) {
+      await this.repository.decideCourseRequest(request.id, 'declined');
     }
     if (!await this.repository.deleteMembership(userId, orgId)) throw new OrganizationError(404, 'Member not found');
   }
@@ -325,6 +342,7 @@ export class OrganizationService {
     return { ...value, addOnPriceDkk: (await this.prices()).courses[value.courseId] ?? null };
   }
   async requestCourse(userId: string, orgId: string, courseId: string) {
+    return this.repository.withOrganizationLock(orgId, async () => {
     const member = await this.membership(userId, orgId);
     if ((await this.organization(orgId)).state !== 'active') throw new OrganizationError(409, 'Organization is suspended');
     if (!(await this.dependencies.courses?.listCourses())?.some(v => v.id === courseId && v.status === 'published')) throw new OrganizationError(400, 'Choose a published course');
@@ -334,6 +352,7 @@ export class OrganizationService {
       createdAt: new Date(this.now()).toISOString() };
     if (!await this.repository.createCourseRequest(value)) throw new OrganizationError(409, 'A course request is already pending');
     return this.courseRequestView(value);
+    });
   }
   async listCourseRequests(ownerId: string, orgId: string) {
     await this.owner(ownerId, orgId);

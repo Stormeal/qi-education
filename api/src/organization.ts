@@ -23,7 +23,7 @@ export type Prices = { careers: Record<string, number>; courses: Record<string, 
 export type MyOrganization = { organization: Organization; role: 'member' | 'owner'; isOriginalOwner: boolean;
   careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; courseRequests: CourseRequest[] };
 export type StoredOrgRequest = OrgRequest & { userId: string };
-export type StoredInvitation = Invitation & { orgId: string; tokenHash: string };
+export type StoredInvitation = Invitation & { orgId: string; tokenHash: string; acceptedBy?: string; joining?: boolean };
 export type StoredCourseRequest = CourseRequest & { orgId: string };
 export type OrganizationMembership = { userId: string; orgId: string; role: 'member' | 'owner';
   state: 'pending-email' | 'active'; careerId: string | null; startedCourseIds: string[]; consentAt: string; joinedAt: string };

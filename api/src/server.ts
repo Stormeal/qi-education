@@ -9,6 +9,9 @@ import { createClientLimitRepository, type ClientLimitRepository } from './clien
 import { createEmailConfirmationRepository, type EmailConfirmationRepository } from './emailConfirmationRepository.js';
 import { sendEmailConfirmationLink, type EmailConfirmationOptions } from './emailConfirmationDelivery.js';
 import { registerEmailConfirmationRoutes } from './emailConfirmationRoutes.js';
+import { createOrganizationRepository, type OrganizationRepository } from './organizationRepository.js';
+import { OrganizationService, type OrganizationOptions } from './organizationService.js';
+import { organizationRoots, registerOrganizationRoutes } from './organizationRoutes.js';
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
@@ -120,6 +123,8 @@ type ServerDependencies = {
   clientLimitOptions?: ClientLimitOptions;
   emailConfirmationRepository?: EmailConfirmationRepository;
   emailConfirmationOptions?: EmailConfirmationOptions;
+  organizationRepository?: OrganizationRepository;
+  organizationOptions?: OrganizationOptions;
   userChangeRepository?: UserChangeRepository;
   userChangeOptions?: UserChangeOptions;
   mailSender?: MailSender;
@@ -172,6 +177,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   // Author metadata/thumbnail methods write review snapshots instead of the base
   // repository. Apply the same freeze above that existing review projection.
   const courses = courseWriteFreeze(reviewedCourses, storedCourses.readOnly === true);
+  const organizationStore = dependencies.organizationRepository ?? createOrganizationRepository();
+  const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
+    careers: careerPaths, courses, options: dependencies.organizationOptions });
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const signupWrites = new KeyedSerialQueue();
   const enrollmentWrites = new KeyedSerialQueue();
@@ -478,6 +486,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
   const parseJson = withRequestBodyErrors(express.json());
+  app.use([...organizationRoots, ...organizationRoots.map(path => `/api${path}`), '/auth/me', '/api/auth/me', '/me', '/api/me'], (_request, response, next) => {
+    response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
+  });
   const parseContentJson = withRequestBodyErrors(express.json({ limit: '4mb' }), 'Course content exceeds the 4 MB size limit.');
   app.use((request, response, next) => {
     const parser = request.method === 'PATCH' && /^\/(?:api\/)?courses\/[^/]+\/content\/?$/i.test(request.path) ? parseContentJson : parseJson;
@@ -589,12 +600,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerPasswordResetRoutes(app, { auth, tokens: passwordResetTokens, sender: mailSender,
     options: dependencies.passwordResetOptions, signInLimit, clientLimit });
   registerEmailConfirmationRoutes(app, { auth, tokens: emailConfirmations, sender: mailSender,
-    options: dependencies.emailConfirmationOptions, clientLimit, authenticate: authenticateRequest(auth) });
+    options: dependencies.emailConfirmationOptions, clientLimit, authenticate: authenticateRequest(auth),
+    activatePendingMembership: id => organizations.activatePendingMembership(id) });
   registerChangePasswordRoute(app, { authenticate: authenticateRequest(auth), auth, tokens: passwordResetTokens, sender: mailSender });
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
   registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
   registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
+  registerOrganizationRoutes(app, authenticateRequest(auth), requireAdmin, organizations, clientLimit);
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {
@@ -627,6 +640,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
         await signInLimit.clear(input.email);
+        try { await organizations.activatePendingMembership(user.id); }
+        catch { /* Organization activation retries at the next sign-in or /auth/me. */ }
         response.json(createAuthResponse(user, authTokenSecret));
       } catch (error) {
         await signInLimit.complete(input.email, reservation.ticket, 'cancel');
@@ -683,12 +698,17 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   });
 
-  app.get(['/auth/me', '/me'], authenticateRequest(auth), (request, response) => {
+  app.get(['/auth/me', '/me'], authenticateRequest(auth), async (request, response) => {
     const authenticatedRequest = request as AuthenticatedRequest;
-
+    try { await organizations.activatePendingMembership(authenticatedRequest.user.id); }
+    catch { /* Read the current membership below; a later request retries activation. */ }
+    let membership;
+    try { membership = await organizationStore.getMembership(authenticatedRequest.user.id); }
+    catch { response.status(503).json({ message: 'Organizations are temporarily unavailable. Please try again.' }); return; }
     response.json({
       user: authenticatedRequest.user,
       permissions: getRolePermissions(authenticatedRequest.user.role),
+      organization: membership?.state === 'active' ? { id: membership.orgId, role: membership.role } : null,
     });
   });
 
@@ -713,7 +733,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
 
-      if ((matchingCourse.priceDkk ?? 0) > 0 && !canAuthorCourse(matchingCourse, authenticatedRequest.user)) {
+      if (!authenticatedRequest.user.enrolledCourseIds.includes(courseId) && await organizations.startCourse(authenticatedRequest.user.id, courseId)) {
+        response.json({ user: authenticatedRequest.user, permissions: getRolePermissions(authenticatedRequest.user.role) });
+        return;
+      }
+      if ((matchingCourse.priceDkk ?? 0) > 0 && !authenticatedRequest.user.enrolledCourseIds.includes(courseId) && !canAuthorCourse(matchingCourse, authenticatedRequest.user)) {
         response.status(402).json({ message: 'This course must be bought.' });
         return;
       }
@@ -862,7 +886,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
       const authorView = request.query.view === 'author';
-      if (!canLearnCourse(course, user) || (authorView && !canAuthorCourse(course, user))) {
+      if ((!canLearnCourse(course, user) && !canLearnCourse(course, user, await organizations.learnableOrgCourseIds(user.id))) || (authorView && !canAuthorCourse(course, user))) {
         response.status(403).json({ message: 'You do not have access to this course content.' });
         return;
       }
@@ -900,7 +924,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        if (!canLearnCourse(matchingCourse, user)) {
+        if (!canLearnCourse(matchingCourse, user) && !canLearnCourse(matchingCourse, user, await organizations.learnableOrgCourseIds(user.id))) {
           response.status(403).json({ message: 'Enroll in this course before opening resources.' });
           return;
         }
@@ -988,7 +1012,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
       const courseId = String(request.params.id);
       const course = (await courses.listCourses()).find((item) => item.id === courseId);
       if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
-      if (!canLearnCourse(course, (request as AuthenticatedRequest).user)) {
+      const account = (request as AuthenticatedRequest).user;
+      if (!canLearnCourse(course, account) && !canLearnCourse(course, account, await organizations.learnableOrgCourseIds(account.id))) {
         response.status(403).json({ message: 'You do not have access to this assessment.' }); return;
       }
       const input = quizAttemptSchema.parse(request.body);
@@ -1384,9 +1409,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerLessonExtrasRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
     authenticateWithUsers: authenticateRequest(auth),
     countLearners: courseId => auth.countEnrolledUsers(courseId),
-    courses, content: courseContent, notes: lessonNotes, feedback });
+    courses, content: courseContent, notes: lessonNotes, feedback, orgCourseIds: id => organizations.learnableOrgCourseIds(id) });
   registerLearningProgressRoutes(app, { authenticate: authenticateRequest(auth), read: withCourseRead,
-    courses, content: courseContent, progress: learningProgress });
+    courses, content: courseContent, progress: learningProgress, orgCourseIds: id => organizations.learnableOrgCourseIds(id) });
   registerAccountCareersRoutes(app, authenticateRequest(auth), accountCareers);
 
   app.get('/career-paths', async (_request, response, next) => {

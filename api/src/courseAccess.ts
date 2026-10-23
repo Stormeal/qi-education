@@ -7,9 +7,10 @@ export function canAuthorCourse(course: Course, user?: AuthenticatedUser): boole
     (user.role === 'teacher' && user.status === 'active' && courseTeacherIds(course).includes(user.id)));
 }
 
-export function canLearnCourse(course: Course, user?: AuthenticatedUser): boolean {
+export function canLearnCourse(course: Course, user?: AuthenticatedUser, orgCourseIds: readonly string[] = []): boolean {
   return canAuthorCourse(course, user) || (!!user &&
-    ['published', 'archived'].includes(course.status) && user.enrolledCourseIds.includes(course.id));
+    (['published', 'archived'].includes(course.status) && user.enrolledCourseIds.includes(course.id) ||
+      course.status === 'published' && orgCourseIds.includes(course.id)));
 }
 
 export function canSeeCourse(course: Course, user?: AuthenticatedUser): boolean {

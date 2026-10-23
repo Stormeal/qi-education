@@ -22,6 +22,7 @@ export function registerLessonExtrasRoutes(app: Express, dependencies: {
   content: CourseContentRepository;
   notes: LessonNotesRepository;
   feedback: FeedbackRepository;
+  orgCourseIds?: (userId: string) => Promise<string[]>;
 }): void {
   const { courses, content, notes } = dependencies;
   const root = '/courses/:courseId';
@@ -38,7 +39,7 @@ export function registerLessonExtrasRoutes(app: Express, dependencies: {
     const courseId = String(request.params.courseId);
     const course = (await courses.listCourses()).find(course => course.id === courseId);
     if (!course) throw new ExtrasError(404, 'Course not found');
-    if (!canLearnCourse(course, user(request))) throw new ExtrasError(403, 'You do not have access to this course content.');
+    if (!canLearnCourse(course, user(request)) && !canLearnCourse(course, user(request), await dependencies.orgCourseIds?.(user(request).id))) throw new ExtrasError(403, 'You do not have access to this course content.');
     return courseId;
   }
   async function requireLesson(courseId: string, componentId: string): Promise<void> {
