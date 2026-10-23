@@ -1,0 +1,67 @@
+@if (state() === 'loading') {
+  <p class="aorg-muted" role="status">Loading organizations…</p>
+} @else {
+  @if (error()) { <p class="aorg-error" role="alert">{{ error() }}</p> }
+
+  <section class="aorg-panel" aria-labelledby="aorg-requests">
+    <h2 id="aorg-requests">Requests waiting <span class="aorg-count">{{ requests().length }}</span></h2>
+    @if (requests().length === 0) {
+      <p class="aorg-muted">No organization requests are waiting.</p>
+    } @else {
+      <ul class="aorg-list">
+        @for (request of requests(); track request.id) {
+          <li class="aorg-request">
+            <div class="aorg-request-copy">
+              <strong>{{ request.displayName }}</strong>
+              <span>{{ request.companyName }} · CVR {{ request.cvr }} · billing {{ request.billingEmail }}</span>
+              <span>Requested by {{ request.requesterName }} ({{ request.requesterEmail }}), {{ request.submittedAt | date: 'd MMM y' }}</span>
+              @if (request.message) { <p class="aorg-message">{{ request.message }}</p> }
+            </div>
+            @if (decliningId() === request.id) {
+              <div class="aorg-decline">
+                <label [for]="'decline-reason-' + request.id">Reason for declining</label>
+                <textarea [id]="'decline-reason-' + request.id" rows="3" maxlength="1000" [value]="reason()"
+                  (input)="reason.set(inputValue($event))"></textarea>
+                <div class="aorg-actions">
+                  <button appButton="danger" size="sm" type="button" [disabled]="busy()" (click)="decline(request)">Send decline</button>
+                  <button appButton="ghost" size="sm" type="button" (click)="decliningId.set(null)">Cancel</button>
+                </div>
+              </div>
+            } @else {
+              <div class="aorg-actions">
+                <button appButton="primary" size="sm" type="button" [disabled]="busy()" (click)="approve(request)">Approve</button>
+                <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="startDecline(request)">Decline</button>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="aorg-panel" aria-labelledby="aorg-all">
+    <h2 id="aorg-all">Organizations <span class="aorg-count">{{ list().length }}</span></h2>
+    @if (list().length === 0) {
+      <p class="aorg-muted">No organizations yet.</p>
+    } @else {
+      <ul class="aorg-list">
+        @for (organization of list(); track organization.id) {
+          <li class="aorg-request">
+            <div class="aorg-request-copy">
+              <strong>{{ organization.displayName }}</strong>
+              <span>{{ organization.companyName }} · CVR {{ organization.cvr }} · {{ organization.memberCount }} {{ organization.memberCount === 1 ? 'member' : 'members' }}</span>
+              @if (organization.state === 'suspended') { <span class="aorg-suspended">Suspended</span> }
+            </div>
+            <div class="aorg-actions">
+              @if (organization.state === 'active') {
+                <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="setSuspended(organization, true)">Suspend</button>
+              } @else {
+                <button appButton="secondary" size="sm" type="button" [disabled]="busy()" (click)="setSuspended(organization, false)">Reactivate</button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

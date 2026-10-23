@@ -1,3 +1,4 @@
+import { OrganizationPriceField } from '../../ui/organization-price-field/organization-price-field';
 import { DatePipe, DOCUMENT } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { plural } from '../../utils/plural';
@@ -49,7 +50,7 @@ import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [OrganizationPriceField, Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

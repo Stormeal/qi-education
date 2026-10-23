@@ -19,7 +19,7 @@
   <header class="admin-hero">
     <div class="admin-hero-copy">
       <p class="eyebrow">Admin</p>
-      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : section() === 'users' ? 'User management' : section() === 'locks' ? 'Course locks' : 'Career paths' }}</h1>
+      <h1>{{ section() === 'feedback' ? 'Feedback inbox' : section() === 'instructors' ? 'Instructor descriptions' : section() === 'users' ? 'User management' : section() === 'locks' ? 'Course locks' : section() === 'organizations' ? 'Organizations' : 'Career paths' }}</h1>
       <p>
         {{ section() === 'feedback'
           ? 'Review user feedback, spot friction, and prioritize follow-up work.'
@@ -27,6 +27,8 @@
             ? 'Find a user, change their role, or send them a link for choosing a new password.'
           : section() === 'locks'
             ? 'A save holds its course until it finishes. A lock frees itself 31 minutes after it was taken; one that needs manual recovery never does.'
+          : section() === 'organizations'
+            ? 'Approve organization requests and suspend an organization when needed. Owners manage their own members.'
           : section() === 'instructors'
             ? 'Teachers write these in their profile. They are public as soon as they are saved; clear one that is unsuitable.'
             : 'Curate the paths learners can follow. Nothing reaches learners until you publish.' }}
@@ -67,6 +69,9 @@
     </button>
     <button type="button" [attr.aria-current]="section() === 'locks' ? 'page' : null" (click)="selectSection('locks')">
       Course locks
+    </button>
+    <button type="button" [attr.aria-current]="section() === 'organizations' ? 'page' : null" (click)="selectSection('organizations')">
+      Organizations
     </button>
   </nav>
 
@@ -315,6 +320,8 @@
         </ul>
       }
     </section>
+  } @else if (section() === 'organizations') {
+    <app-admin-organizations [authToken]="authToken()" />
   } @else if (section() === 'locks') {
     <section class="admin-panel" aria-label="Course locks">
       @if (locksState() === 'loading') {

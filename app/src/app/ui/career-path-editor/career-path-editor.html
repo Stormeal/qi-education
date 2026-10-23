@@ -37,6 +37,9 @@
           <textarea name="outcomes" rows="3" [ngModel]="outcomesText()" (ngModelChange)="outcomesText.set($event)"></textarea>
         </label>
       </div>
+      @if (editing(); as stored) {
+        <app-organization-price-field [authToken]="careerPath.token()" kind="career" [resourceId]="stored.id" />
+      }
 
       @if (path.schemaVersion !== 2) {
         <div class="cpe-convert">

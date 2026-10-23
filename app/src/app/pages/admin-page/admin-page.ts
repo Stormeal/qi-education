@@ -10,6 +10,7 @@ import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService, CourseLoc
 import { ConfirmService } from '../../services/confirm.service';
 import { AdminInstructorProfile, InstructorProfileService } from '../../services/instructor-profile.service';
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
+import { AdminOrganizations } from '../../ui/admin-organizations/admin-organizations';
 import { Button } from '../../ui/button/button';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
@@ -20,20 +21,20 @@ type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
 type FeedbackTab = 'current' | 'archived';
 const isFeedbackTab = (id: string): id is FeedbackTab => id === 'current' || id === 'archived';
-type AdminSection = 'feedback' | 'career-paths' | 'instructors' | 'users' | 'locks';
+type AdminSection = 'feedback' | 'career-paths' | 'instructors' | 'users' | 'locks' | 'organizations';
 const SECTION_KEY = 'qi-education:admin-section';
 
 function storedSection(): AdminSection {
   try {
     const stored = window.sessionStorage.getItem(SECTION_KEY);
-    return stored === 'career-paths' || stored === 'instructors' || stored === 'users' || stored === 'locks' ? stored : 'feedback';
+    return stored === 'career-paths' || stored === 'instructors' || stored === 'users' || stored === 'locks' || stored === 'organizations' ? stored : 'feedback';
   }
   catch { return 'feedback'; }
 }
 
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, Button, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader, Tabs],
+  imports: [AdminOrganizations, DatePipe, Button, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader, Tabs],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
