@@ -1,12 +1,14 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import type { AuthUser } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
 import type { MailSender } from './mailSender.js';
 import type { OrganizationRepository } from './organizationRepository.js';
 import { KeyedSerialQueue } from './keyedSerialQueue.js';
-import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema,
-  type OrgRequest, type MyOrganization, type StoredOrgRequest, type Organization } from './organization.js';
+import { apiConfig } from './config.js';
+import { resetTokenHash } from './passwordResetDelivery.js';
+import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema, inviteSchema,
+  type OrgRequest, type MyOrganization, type StoredOrgRequest, type Organization, type StoredInvitation, type Invitation } from './organization.js';
 
 type User = Pick<AuthUser, 'id' | 'email' | 'displayName'>;
 export type OrganizationOptions = { now?: () => number; newToken?: () => string; appPublicUrl?: string };
@@ -61,7 +63,11 @@ export class OrganizationService {
     const membership = await this.repository.getMembership(userId);
     if (!membership || membership.state !== 'active') {
       const request = await this.repository.findPendingOrLatestRequest(userId);
-      return { organization: null, request: request ? this.requestView(request) : null, pendingInvitation: membership?.state === 'pending-email' };
+      const user = await this.account(userId);
+      const invited = (await this.repository.listInvitations()).some(v => v.email === user.email &&
+        ['sent', 'not-sent'].includes(v.state) && Date.parse(v.expiresAt) > this.now());
+      return { organization: null, request: request ? this.requestView(request) : null,
+        pendingInvitation: membership?.state === 'pending-email' || invited };
     }
     const organization = await this.organization(membership.orgId), prices = await this.prices();
     return { organization, role: membership.role, isOriginalOwner: organization.originalOwnerId === userId,
@@ -126,4 +132,111 @@ export class OrganizationService {
   prices() { return this.repository.getPrices(); }
   async setCareerPrice(id: string, priceDkk: unknown) { const value = this.parse(priceSchema, { priceDkk }); await this.repository.setCareerPrice(id, value.priceDkk); return this.prices(); }
   async setCoursePrice(id: string, priceDkk: unknown) { const value = this.parse(priceSchema, { priceDkk }); await this.repository.setCoursePrice(id, value.priceDkk); return this.prices(); }
+
+  private async owner(userId: string, orgId: string, active = false) {
+    await this.account(userId);
+    const membership = await this.repository.getMembership(userId);
+    if (!membership || membership.orgId !== orgId) throw new OrganizationError(404, 'Organization not found');
+    if (membership.state !== 'active' || membership.role !== 'owner') throw new OrganizationError(403, 'Not allowed');
+    const organization = await this.organization(orgId);
+    if (active && organization.state !== 'active') throw new OrganizationError(409, 'Organization is suspended');
+    return organization;
+  }
+  private invitationView({ orgId: _orgId, tokenHash: _hash, ...invitation }: StoredInvitation): Invitation { return invitation; }
+  private async expireInvitations(orgId: string) {
+    for (const v of await this.repository.listInvitations(orgId)) {
+      if (['sent', 'not-sent'].includes(v.state) && Date.parse(v.expiresAt) <= this.now()) {
+        await this.repository.updateInvitation(v.id, v.state, { state: 'expired' }, v.tokenHash);
+      }
+    }
+  }
+  private newInvitationToken() {
+    const raw = (this.dependencies.options?.newToken ?? (() => randomBytes(32).toString('base64url')))();
+    const tokenHash = resetTokenHash(raw);
+    if (!tokenHash) throw new Error('Invalid generated invitation token');
+    return { raw, tokenHash, expiresAt: new Date(this.now() + 14 * 86400000).toISOString() };
+  }
+  private async sendInvitation(organization: Organization, invitation: StoredInvitation, raw: string) {
+    const url = (this.dependencies.options?.appPublicUrl ?? apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200').replace(/\/+$/, '');
+    const sent = await this.mail(invitation.email, `Join ${organization.displayName}`,
+      `Joining shares your career and course progress with ${organization.displayName}\n\n${url}/join-organization#token=${raw}`);
+    if (sent) await this.repository.updateInvitation(invitation.id, 'not-sent', { state: 'sent' }, invitation.tokenHash);
+    const saved = (await this.repository.listInvitations(organization.id)).find(v => v.id === invitation.id)!;
+    return this.invitationView(saved);
+  }
+  async invite(ownerId: string, orgId: string, email: unknown): Promise<Invitation> {
+    const organization = await this.owner(ownerId, orgId, true), input = this.parse(inviteSchema, { email });
+    const user = await this.auth.findByEmail(input.email, { fresh: true });
+    if (user && (await this.repository.getMembership(user.id))?.orgId === orgId) throw new OrganizationError(409, 'Already a member');
+    await this.expireInvitations(orgId);
+    const { raw, ...token } = this.newInvitationToken();
+    const invitation: StoredInvitation = { ...token, id: randomUUID(), orgId, email: input.email, state: 'not-sent', createdAt: new Date(this.now()).toISOString() };
+    await this.repository.createInvitation(invitation);
+    return this.sendInvitation(organization, invitation, raw);
+  }
+  async listInvitations(ownerId: string, orgId: string) {
+    await this.owner(ownerId, orgId); await this.expireInvitations(orgId);
+    return (await this.repository.listInvitations(orgId)).filter(v => ['sent', 'not-sent'].includes(v.state) ||
+      Date.parse(v.createdAt) >= this.now() - 30 * 86400000).sort((a,b) => b.createdAt.localeCompare(a.createdAt)).map(v => this.invitationView(v));
+  }
+  private async scopedInvitation(orgId: string, id: string) {
+    const value = (await this.repository.listInvitations(orgId)).find(v => v.id === id);
+    if (!value) throw new OrganizationError(404, 'Invitation not found');
+    return value;
+  }
+  async resend(ownerId: string, orgId: string, inviteId: string) {
+    const organization = await this.owner(ownerId, orgId, true), current = await this.scopedInvitation(orgId, inviteId);
+    if (['accepted', 'cancelled'].includes(current.state)) throw new OrganizationError(409, 'Invitation is no longer open');
+    const { raw, ...token } = this.newInvitationToken(), patch = { ...token, state: 'not-sent' as const };
+    if (!await this.repository.updateInvitation(inviteId, current.state, patch, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
+    return this.sendInvitation(organization, { ...current, ...patch }, raw);
+  }
+  async cancel(ownerId: string, orgId: string, inviteId: string) {
+    await this.owner(ownerId, orgId); const current = await this.scopedInvitation(orgId, inviteId);
+    if (['accepted', 'cancelled'].includes(current.state)) throw new OrganizationError(409, 'Invitation is no longer open');
+    if (!await this.repository.updateInvitation(inviteId, current.state, { state: 'cancelled' }, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
+  }
+  private invalidInvitation(): never { throw new OrganizationError(410, 'This invitation is no longer valid. Ask the owner for a new one.'); }
+  private async validInvitation(token: unknown) {
+    const hash = resetTokenHash(token), invitation = hash ? await this.repository.findInvitationByTokenHash(hash) : null;
+    if (!invitation || !['sent', 'not-sent'].includes(invitation.state)) return this.invalidInvitation();
+    if (Date.parse(invitation.expiresAt) <= this.now()) {
+      await this.repository.updateInvitation(invitation.id, invitation.state, { state: 'expired' }, invitation.tokenHash);
+      return this.invalidInvitation();
+    }
+    const organization = await this.repository.getOrganization(invitation.orgId);
+    if (!organization || organization.state !== 'active') return this.invalidInvitation();
+    return { invitation, organization };
+  }
+  async checkInvitation(token: unknown) {
+    const { invitation, organization } = await this.validInvitation(token);
+    return { organizationName: organization.displayName, email: invitation.email,
+      consentText: `Joining shares your career and course progress with ${organization.displayName}` };
+  }
+  async acceptInvitation(user: User, token: unknown) {
+    const { invitation, organization } = await this.validInvitation(token), account = await this.account(user.id);
+    if (account.email !== invitation.email) throw new OrganizationError(403, `This invitation is for ${invitation.email}. Sign in with that address.`);
+    if (await this.repository.getMembership(user.id)) throw new OrganizationError(409, 'Already in an organization');
+    if (!await this.repository.updateInvitation(invitation.id, invitation.state, { state: 'accepted' }, invitation.tokenHash)) return this.invalidInvitation();
+    const time = new Date(this.now()).toISOString(), state = account.emailConfirmed === false ? 'pending-email' as const : 'active' as const;
+    if (!await this.repository.insertMembership({ userId: user.id, orgId: organization.id, role: 'member', state,
+      careerId: null, startedCourseIds: [], consentAt: time, joinedAt: time })) throw new OrganizationError(409, 'Already in an organization');
+    if (state === 'pending-email') return { state };
+    await this.memberJoined(organization, account);
+    return this.myOrganization(user.id);
+  }
+  private async memberJoined(organization: Organization, user: User) {
+    for (const member of (await this.repository.listMembers(organization.id)).filter(v => v.role === 'owner' && v.state === 'active')) {
+      const owner = await this.auth.findById(member.userId, { fresh: true });
+      if (owner?.status === 'active') await this.mail(owner.email, `Member joined ${organization.displayName}`, `${user.displayName} joined ${organization.displayName}.`);
+    }
+  }
+  async activatePendingMembership(userId: string): Promise<boolean> {
+    const account = await this.account(userId), membership = await this.repository.getMembership(userId);
+    if (account.emailConfirmed === false || membership?.state !== 'pending-email') return false;
+    const organization = await this.organization(membership.orgId);
+    if (organization.state !== 'active') return false;
+    if (!await this.repository.updateMembership(userId, membership.orgId, { state: 'active' }, 'pending-email')) return false;
+    await this.memberJoined(organization, account); return true;
+  }
 }

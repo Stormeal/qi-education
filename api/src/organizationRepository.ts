@@ -17,12 +17,12 @@ export interface OrganizationRepository {
   insertMembership(value: OrganizationMembership): Promise<boolean>;
   getMembership(userId: string): Promise<OrganizationMembership | null>;
   listMembers(orgId: string): Promise<OrganizationMembership[]>;
-  updateMembership(userId: string, expectedOrgId: string, patch: Partial<OrganizationMembership>): Promise<boolean>;
+  updateMembership(userId: string, expectedOrgId: string, patch: Partial<OrganizationMembership>, expectedState?: OrganizationMembership['state']): Promise<boolean>;
   deleteMembership(userId: string, expectedOrgId: string): Promise<boolean>;
   createInvitation(value: StoredInvitation): Promise<void>;
   findInvitationByTokenHash(hash: string): Promise<StoredInvitation | null>;
   listInvitations(orgId?: string): Promise<StoredInvitation[]>;
-  updateInvitation(id: string, expectedState: StoredInvitation['state'], patch: Partial<StoredInvitation>): Promise<boolean>;
+  updateInvitation(id: string, expectedState: StoredInvitation['state'], patch: Partial<StoredInvitation>, expectedTokenHash?: string): Promise<boolean>;
   createCourseRequest(value: StoredCourseRequest): Promise<boolean>;
   listCourseRequests(orgId: string): Promise<StoredCourseRequest[]>;
   decideCourseRequest(id: string, decision: 'approved' | 'declined'): Promise<boolean>;
@@ -127,12 +127,12 @@ class Repository implements OrganizationRepository {
   insertMembership(v: OrganizationMembership) { return this.store.insert('memberships', v.userId, v); }
   async getMembership(userId: string) { return (await this.store.list('memberships')).find(v => v.userId === userId) ?? null; }
   async listMembers(orgId: string) { return (await this.store.list('memberships')).filter(v => v.orgId === orgId); }
-  updateMembership(userId: string, orgId: string, patch: Partial<OrganizationMembership>) { return this.store.update('memberships', userId, { orgId }, patch); }
+  updateMembership(userId: string, orgId: string, patch: Partial<OrganizationMembership>, state?: OrganizationMembership['state']) { return this.store.update('memberships', userId, { orgId, ...(state ? { state } : {}) }, patch); }
   deleteMembership(userId: string, orgId: string) { return this.store.delete('memberships', userId, { orgId }); }
   async createInvitation(v: StoredInvitation) { if (!await this.store.insert('invitations', v.id, v)) throw new OrganizationError(409, 'An open invitation already exists for this email'); }
   async findInvitationByTokenHash(hash: string) { return (await this.store.list('invitations')).find(v => v.tokenHash === hash) ?? null; }
   async listInvitations(orgId?: string) { return (await this.store.list('invitations')).filter(v => !orgId || v.orgId === orgId); }
-  updateInvitation(id: string, state: StoredInvitation['state'], patch: Partial<StoredInvitation>) { return this.store.update('invitations', id, { state }, patch); }
+  updateInvitation(id: string, state: StoredInvitation['state'], patch: Partial<StoredInvitation>, tokenHash?: string) { return this.store.update('invitations', id, { state, ...(tokenHash ? { tokenHash } : {}) }, patch); }
   createCourseRequest(v: StoredCourseRequest) { return this.store.insert('course_requests', v.id, v); }
   async listCourseRequests(orgId: string) { return (await this.store.list('course_requests')).filter(v => v.orgId === orgId); }
   decideCourseRequest(id: string, state: 'approved' | 'declined') { return this.store.update('course_requests', id, { state: 'pending' }, { state }); }
