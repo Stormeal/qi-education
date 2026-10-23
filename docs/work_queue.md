@@ -8,7 +8,7 @@ messages hold them.
 
 | Owner | Item | Scope and files | State |
 | --- | --- | --- | --- |
-| Codex | US-O001 release 1, Track A (API) | Tasks A1–A6 in [the plan](superpowers/plans/2026-10-23-organizations-release-1.md); files in [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md) | In progress 2026-10-23; main, base ecf1eb6; AC01–AC12; next A1 stores |
+| Codex | US-O001 release 1, Track A (API) | Tasks A1–A6 in [the plan](superpowers/plans/2026-10-23-organizations-release-1.md); files in [handoffs/US-O001-codex.md](handoffs/US-O001-codex.md) | In progress 2026-10-23; main, base ecf1eb6; AC01–AC12; A1 0d80dea delivered; next A3 invitations after A2 |
 | Claude Code | US-O001 release 1, Track B (app) | Tasks B1–B6; `app/**`, docs | Starting 2026-10-23 |
 
 Contract: [stories/US-O001-release-1.md](stories/US-O001-release-1.md), approved by Alex 2026-10-23.

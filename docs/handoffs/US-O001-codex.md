@@ -21,8 +21,8 @@ Started 2026-10-23. Owner: Codex. Claude Code builds Track B (`app/**`) at the s
 
 | Task | Commit | Checks | Notes |
 | --- | --- | --- | --- |
-| A1 | A1: organization schemas and stores (this commit) | Store/schema tests 11/11; API 2442 passed + 2 expected failures (95 files); build passed (2026-10-23) | Both stores; Mongo uses an isolated driver double, no real Mongo. Added deleteOrganization for A2 compensation. Uncapped run hit an existing sign-in timing failure; VITEST_MAX_WORKERS=4 passed. |
-| A2 | | | |
+| A1 | 0d80dea | Store/schema tests 11/11; API 2442 passed + 2 expected failures (95 files); build passed (2026-10-23) | Both stores; Mongo uses an isolated driver double, no real Mongo. Added deleteOrganization for A2 compensation. Uncapped run hit an existing sign-in timing failure; VITEST_MAX_WORKERS=4 passed. |
+| A2 | A2: organization requests, approval and prices (this commit) | Service 7/7; API 2449 passed + 2 expected failures (96 files); build passed | AC01–03, AC11–12; fake mail; approval compensation verified. |
 | A3 | | | |
 | A4 | | | |
 | A5 | | | |
