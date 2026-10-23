@@ -17,6 +17,9 @@ import { apiConfig } from './config.js';
 import { createServer } from './server.js';
 import { FakePaymentService } from './paymentService.js';
 import { InMemoryPaymentRepository } from './paymentRepository.js';
+import { InMemoryOrganizationRepository, MongoOrganizationRepository } from './organizationRepository.js';
+import { fakeOrganizationCollections } from './organizationTestSupport.js';
+import type { MailMessage } from './mailSender.js';
 
 const answers = ['a', 'b', 'c', 'd'].map((id) => ({ id, text: `Answer ${id}`, description: `Why ${id}`, isCorrect: id === 'b' }));
 const sections = [{ id: 'intro', title: 'Introduction', components: [
@@ -29,6 +32,7 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
   let server: Server, base: string, auth: InMemoryAuthRepository;
   let teacher: AuthUser, otherTeacher: AuthUser, admin: AuthUser, student: AuthUser, earlyLearner: AuthUser;
   let courseId = '';
+  const organizationMail: MailMessage[] = [];
 
   function request(path: string, user?: AuthUser, method = 'GET', body?: unknown, headers: Record<string, string> = {}) {
     return fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...headers, ...(user ? {
@@ -59,7 +63,12 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     const content = new InMemoryCourseContentRepository(), assets = new InMemoryCourseAssetRepository();
     if (store === 'mongodb') { Object.defineProperty(content, 'storageType', { value: 'mongodb' }); Object.defineProperty(assets, 'storageType', { value: 'mongodb' }); }
     const collection = fakeCourseCollection().collection;
-    server = createServer({ authRepository: auth, careerPathRepository: new InMemoryCareerPathRepository(),
+    server = createServer({ authRepository: auth,
+      organizationRepository: store === 'mongodb' ? new MongoOrganizationRepository(fakeOrganizationCollections()) : new InMemoryOrganizationRepository(),
+      mailSender: { provider: 'local', available: true, send: async message => { organizationMail.push(message); } },
+      organizationOptions: { appPublicUrl: 'http://localhost:4301' },
+      emailConfirmationOptions: { appPublicUrl: 'http://localhost:4301' },
+      careerPathRepository: new InMemoryCareerPathRepository(),
       courseRepository: store === 'mongodb' ? new MongoCourseRepository(async () => collection) : new InMemoryCourseRepository(), courseContentRepository: content,
       courseAssetRepository: assets, feedbackRepository: new InMemoryFeedbackRepository(),
       muxVideoService: null, muxWebhookService: null,
@@ -194,4 +203,43 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect(saved.milestoneStates['test-manager-role']).toBe(before.milestoneStates['test-manager-role']);
     expect(await (await request('/users/me/careers', student)).json()).toEqual(saved);
   });
+
+  it('US-O001-AC01 AC02 AC04 AC07 AC09 request, invite, confirm, learn a priced course and revoke', async () => {
+    const applied = await request('/users/me/organization-request', student, 'POST', {
+      displayName: 'Journey organization', companyName: 'Journey Company', cvr: '12345678',
+      billingEmail: 'billing@example.test', message: 'Train our team',
+    });
+    expect(applied.status).toBe(201); const application = await applied.json();
+    const approved = await request(`/admin/organization-requests/${application.id}/decision`, admin, 'POST', { action: 'approve' });
+    expect(approved.status).toBe(200); const orgId = (await approved.json()).organizationId;
+    const email = `organization-${store}@example.test`;
+    expect((await request(`/organizations/${orgId}/invitations`, student, 'POST', { email })).status).toBe(201);
+    const invitationMail = organizationMail.findLast(message => message.to === email && message.subject === 'Join Journey organization')!;
+    expect(invitationMail.text).toContain('Joining shares your career and course progress with Journey organization');
+    const token = invitationMail.text.match(/#token=([A-Za-z0-9_-]+)/)![1];
+    expect((await request('/organization-invitations/check', undefined, 'POST', { token })).status).toBe(200);
+    expect((await request('/auth/signup', undefined, 'POST', { displayName: 'Organization learner', email, password: 'Password123!' })).status).toBe(201);
+    const member = (await auth.findByEmail(email))!;
+    expect((await request('/organization-invitations/accept', member, 'POST', { token, consent: true })).status).toBe(202);
+    const confirmationMail = organizationMail.findLast(message => message.to === email && message.subject === 'Confirm your QI Academy email address')!;
+    const confirmation = confirmationMail.text.match(/#token=([A-Za-z0-9_-]+)/)![1];
+    expect((await request('/auth/email-confirmation/confirm', undefined, 'POST', { token: confirmation })).status).toBe(204);
+    expect(await (await request('/auth/me', member)).json()).toMatchObject({ organization: { id: orgId, role: 'member' } });
+    const career = { schemaVersion: 2, title: 'Organization journey career', steps: [{ id: 'organization-milestone', title: 'Learn together', required: true,
+      actions: [{ id: 'organization-course', kind: 'course', title: 'Journey course', courseId }],
+      requirementBundles: [['organization-course']], courses: [{ courseId }],
+    }] };
+    expect((await request('/admin/career-paths/organization-journey', admin, 'PUT', career)).status).toBe(200);
+    expect((await request('/admin/career-paths/organization-journey/publish', admin, 'POST')).status).toBe(200);
+    expect((await request(`/organizations/${orgId}/members/${member.id}/career`, student, 'PUT', { careerId: 'organization-journey' })).status).toBe(200);
+    expect(await (await request('/users/me/organization', member)).json()).toMatchObject({ openCourseIds: [courseId] });
+    expect((await request(`/courses/${courseId}/content`, member)).status).toBe(403);
+    expect((await request(`/users/me/courses/${courseId}`, member, 'POST')).status).toBe(200);
+    expect((await auth.findById(member.id))!.enrolledCourseIds).toEqual([]);
+    expect((await request(`/courses/${courseId}/content`, member)).status).toBe(200);
+    expect((await request(`/organizations/${orgId}/members/${member.id}`, student, 'DELETE')).status).toBe(204);
+    expect((await request(`/courses/${courseId}/content`, member)).status).toBe(403);
+    expect((await auth.findById(member.id))!.enrolledCourseIds).toEqual([]);
+  });
+
 });
