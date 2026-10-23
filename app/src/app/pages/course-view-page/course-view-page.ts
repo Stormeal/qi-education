@@ -100,6 +100,13 @@ export class CourseViewPage {
   readonly currentYear = input.required<number>();
   readonly student = input.required<StudentSummary>();
   readonly authToken = input.required<string>();
+  /** US-O001: courses the user's organization opens for free. */
+  readonly organizationAccess = input<{ name: string; openCourseIds: string[] } | null>(null);
+  protected readonly includedBy = computed(() => {
+    const access = this.organizationAccess();
+    const id = this.course()?.id;
+    return access && id && access.openCourseIds.includes(id) ? access.name : null;
+  });
   readonly userEmail = input.required<string>();
   readonly userRoleLabel = input.required<string>();
   readonly canAccessAdmin = input.required<boolean>();

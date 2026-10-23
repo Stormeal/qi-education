@@ -39,6 +39,7 @@
 } @else if (state.loginState()) {
   <app-course-view-page
     [appVersion]="state.appVersion"
+    [organizationAccess]="state.organizationAccess()"
     [currentYear]="state.currentYear"
     [student]="state.student()"
     [authToken]="state.loginState()?.token ?? ''"
@@ -82,7 +83,6 @@
     (coursePriceSaved)="state.saveCoursePrice($event.courseId, $event.priceDkk)"
     (courseCatalogSaved)="state.saveCourseCatalogMetadata($event.courseId, $event.metadata)"
     (courseEnrollmentConfirmed)="state.enrollInCourse($event)"
-    (coursePurchaseStarted)="state.startCoursePurchase($event)"
     (coursePurchaseStarted)="state.startCoursePurchase($event)"
     (feedbackClosed)="state.closeFeedback()"
     (feedbackRatingSelected)="state.selectFeedbackRating($event)"

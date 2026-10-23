@@ -260,6 +260,8 @@
               <button appButton="primary" (click)="openLearningWorkspace(currentCourse.id)" fullWidth>
                 {{ isEnrolled() ? 'Start learning' : 'Preview course' }}
               </button>
+            } @else if (currentCourse.status === 'published' && includedBy()) {
+              <button appButton="primary" (click)="openEnrollDialog()" fullWidth>Enroll (included by {{ includedBy() }})</button>
             } @else if (currentCourse.status === 'published' && isPriced(currentCourse.priceDkk)) {
               <button
                 appButton="primary"

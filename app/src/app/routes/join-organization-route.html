@@ -3,6 +3,7 @@
     [authToken]="state.loginState()?.token ?? ''"
     [signedInEmail]="state.loginState()?.user?.email ?? ''"
     (authRequested)="requestAuth($event)"
+    (joined)="state.organizationChanged()"
   />
 } @else {
   <app-login-page

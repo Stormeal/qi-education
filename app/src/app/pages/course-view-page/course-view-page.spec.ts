@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { CourseContentDocument } from '../../app.models';
 import { CourseService } from '../../services/course.service';
@@ -19,9 +19,10 @@ describe('course details page', () => {
   });
 
   let rendered: CourseViewPage;
+  let fixture: ComponentFixture<CourseViewPage>;
 
   function render(course: { priceDkk: number | null }, isEnrolled = true, purchaseStatus = 'idle', enrollmentError = '') {
-    const fixture = TestBed.createComponent(CourseViewPage);
+    fixture = TestBed.createComponent(CourseViewPage);
     const inputs = { appVersion: 'test', currentYear: 2026, student: { name: 'Learner', initials: 'L', role: 'Student' },
       authToken: 'session', userEmail: 'learner@example.test', userRoleLabel: 'Student', canAccessAdmin: false, canEditCourse: false,
       course: { id: 'course', title: 'Practice course', description: 'Practise.', teacher: 'Teacher', level: 'Beginner', status: 'published', priceDkk: course.priceDkk, requirements: [], whatYoullLearn: [], careerGoals: [],
@@ -74,6 +75,14 @@ describe('course details page', () => {
     TestBed.tick();
     await new Promise(resolve => setTimeout(resolve));
     expect(page.querySelector<HTMLSelectElement>('.price-field select')?.value).toBe('Uncategorized');
+  });
+
+  it('US-O001-AC09 shows Enroll (included by the organization) instead of Buy', () => {
+    const page = render({ priceDkk: 499 }, false);
+    fixture.componentRef.setInput('organizationAccess', { name: 'QA Team', openCourseIds: ['course'] });
+    fixture.detectChanges();
+    expect(page.querySelector('.course-enroll-body button')?.textContent?.trim()).toBe('Enroll (included by QA Team)');
+    expect(page.textContent).not.toContain('Buy for');
   });
 
   it('US-L024 keeps Enroll on a free course', () => {

@@ -1,6 +1,7 @@
 import { normalizeBulletList } from '../utils/bullet-list';
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { OrganizationService, type MyOrganization } from './organization.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import * as UpChunk from '@mux/upchunk';
@@ -71,7 +72,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.419';
+  readonly appVersion = '0.1.420';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -123,6 +124,10 @@ export class AppStateService {
   readonly coursesLoading = signal(false);
   readonly coursesError = signal('');
   readonly availableCourses = signal<CourseListItem[]>([]);
+  /** US-O001: the user's organization and the courses it opens for free; null without one. */
+  readonly organizationAccess = signal<{ name: string; openCourseIds: string[] } | null>(null);
+  private readonly organizations = inject(OrganizationService);
+  private readonly sessionToken = computed(() => this.loginState()?.token ?? '');
   readonly adminFeedbackLoading = signal(false);
   readonly adminFeedbackError = signal('');
   readonly adminFeedback = signal<FeedbackEntry[]>([]);
@@ -369,6 +374,7 @@ export class AppStateService {
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
   constructor() {
+    effect(() => { const token = this.sessionToken(); untracked(() => void this.refreshOrganizationAccess(token)); });
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
     effect(() => this.courseService.loadQuizImages(this.courseContent(), this.loginState()?.token ?? ''));
     this.sessionService.setSessionContextProvider(() => this.loginState());
@@ -2296,6 +2302,23 @@ export class AppStateService {
       if (!isCurrent()) return;
       this.courseEnrollmentSubmitting.set(false);
     }
+  }
+
+  private async refreshOrganizationAccess(token: string): Promise<void> {
+    if (!token) { this.organizationAccess.set(null); return; }
+    const result = await this.organizations.mine(token);
+    if (this.sessionToken() !== token) return;
+    const mine = result.ok && result.body.organization ? result.body as MyOrganization : null;
+    this.organizationAccess.set(mine ? { name: mine.organization.displayName, openCourseIds: mine.openCourseIds } : null);
+  }
+
+  /** After joining, leaving or a career change: reload course access and the account's course list. */
+  async organizationChanged(): Promise<void> {
+    const token = this.sessionToken();
+    if (!token) return;
+    await this.refreshOrganizationAccess(token);
+    const restored = await this.authService.restoreSession(token).catch(() => null);
+    if (restored && this.sessionToken() === token) this.applyEnrolledLogin(token, restored);
   }
 
   private applyEnrolledLogin(token: string, login: Omit<LoginResponse, 'token'>): void {
