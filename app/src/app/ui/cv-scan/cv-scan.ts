@@ -10,6 +10,7 @@ const READ_ERRORS: Record<Extract<CvReadResult, { ok: false }>['reason'], string
   size: WRONG_FILE,
   unreadable: "We couldn't open this file.",
   'no-text': "We couldn't read text from this file (it may be a scanned image).",
+  'too-long': 'This file is much longer than a CV. Choose your CV itself, up to 20 pages.',
 };
 
 /**

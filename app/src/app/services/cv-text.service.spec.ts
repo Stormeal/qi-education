@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { CvTextService } from './cv-text.service';
+import { CvTextService, CvTooLongError } from './cv-text.service';
 
 describe('CvTextService (US-L023-AC06)', () => {
   let service: CvTextService;
@@ -42,6 +42,18 @@ describe('CvTextService (US-L023-AC06)', () => {
   it('reports a file with almost no text, such as a scanned image', async () => {
     service.extractors.pdf = async () => ` ${'x'.repeat(49)} \n `;
     expect(await service.read(file('cv.pdf'))).toEqual({ ok: false, reason: 'no-text' });
+  });
+
+  it('X8 F8 refuses text far longer than a CV, from a small file that expands', async () => {
+    service.extractors.docx = async () => 'x'.repeat(200_001);
+    expect(await service.read(file('cv.docx', 5031))).toEqual({ ok: false, reason: 'too-long' });
+    service.extractors.docx = async () => 'x'.repeat(200_000);
+    expect((await service.read(file('cv.docx'))).ok).toBe(true);
+  });
+
+  it('X8 F8 refuses a PDF the reader stops for having too many pages', async () => {
+    service.extractors.pdf = async () => { throw new CvTooLongError(); };
+    expect(await service.read(file('cv.pdf'))).toEqual({ ok: false, reason: 'too-long' });
   });
 
   it('reads a Word .docx with the docx extractor', async () => {
