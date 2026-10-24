@@ -239,6 +239,16 @@ describe('unsaved course navigation (DEF-006)', () => {
     expect(state.courseDraft().title).toBe('Keep edits during thumbnail load');
   });
 
+  it('DEF-063 loads the edited course content while an unrelated thumbnail never finishes', async () => {
+    await harness.navigateByUrl('/courses');
+    await vi.waitFor(() => expect(state.coursesLoading()).toBe(false));
+    state.availableCourses.set([]);
+    vi.spyOn(TestBed.inject(CourseService), 'preloadCourseThumbnails').mockReturnValue(new Promise<void>(() => {}));
+    await harness.navigateByUrl('/courses/other/edit');
+    await vi.waitFor(() => expect(state.loadedCourseContentId()).toBe('other'));
+    expect(state.coursesLoading()).toBe(false);
+  });
+
   it('NW-03 does not warn when the only failed part of a partial save is reverted', async () => {
     state.updateCourseTitle('Saved metadata');
     state.updateCourseSectionTitle(0, 'Unsaved outline');

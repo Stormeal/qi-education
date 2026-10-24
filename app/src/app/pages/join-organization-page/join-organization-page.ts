@@ -64,7 +64,10 @@ export class JoinOrganizationPage {
   }
 
   private async check(): Promise<void> {
-    const result = await this.organizations.checkInvitation(this.token);
+    const token = this.token;
+    const result = await this.organizations.checkInvitation(token);
+    // DEF-061: a newer link replaced this one meanwhile; showing this answer would accept a different invitation.
+    if (token !== this.token) return;
     if (result.ok) { this.invitation.set(result.body); this.step.set('ready'); return; }
     if (result.status === 410 || result.status === 404) { this.forget(); this.step.set('invalid'); return; }
     this.error.set(result.message);

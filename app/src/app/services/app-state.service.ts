@@ -73,7 +73,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.449';
+  readonly appVersion = '0.1.450';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2469,8 +2469,8 @@ export class AppStateService {
       this.availableCourses.set(courses);
       void this.learningProgress.loadCourses(this.enrolledCourses(), token);
       this.syncCourseEditorDraftFromPath(true);
-      await this.courseService.preloadCourseThumbnails(courses, token);
-      if (!isCurrent()) return;
+      // DEF-063: thumbnails warm in the background; one slow image must not hold the selected course's content.
+      void this.courseService.preloadCourseThumbnails(courses, token);
       await this.loadCourseContentWhenNeeded();
     } catch (error) {
       if (!isCurrent()) return;

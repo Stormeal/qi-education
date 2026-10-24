@@ -68,6 +68,21 @@ describe('join organization page (US-O001 release 1)', () => {
     expect(accepted).toEqual(['secret-123', 'secret-456']);
   });
 
+  it('DEF-061 ignores a stale check, so the shown invitation is the one accepted', async () => {
+    const answers: ((value: unknown) => void)[] = [];
+    TestBed.inject(OrganizationService).checkInvitation = (() => new Promise((resolve) => answers.push(resolve))) as never;
+    const page = await render('mads@acme.test');
+    history.replaceState(null, '', '/join-organization#token=secret-456');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    answers[1]({ ok: true, body: { organizationName: 'Test Crew', email: 'mads@acme.test', consentText: consent } });
+    answers[0]({ ok: true, body: { organizationName: 'QA Team', email: 'mads@acme.test', consentText: consent } });
+    for (let i = 0; i < 3; i++) { await new Promise((r) => setTimeout(r)); fixture.detectChanges(); }
+    expect(page.querySelector('h1')?.textContent).toContain('Test Crew');
+    button(page, 'Accept and join')!.click();
+    for (let i = 0; i < 3; i++) { await new Promise((r) => setTimeout(r)); fixture.detectChanges(); }
+    expect(accepted).toEqual(['secret-456']);
+  });
+
   it('refuses another signed-in account without calling accept', async () => {
     const page = await render('someone@else.test');
     expect(page.textContent).toContain('This invitation is for mads@acme.test. Sign in with that address.');
