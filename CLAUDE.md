@@ -222,6 +222,13 @@ Bearer tokens are required on protected routes.
 
 `AppStateService` uses Angular signals throughout. Course draft changes are detected by comparing JSON snapshots (serialized on load, re-serialized on edit). Content normalization runs on load to handle legacy quiz format migration. Sheets repositories also maintain worksheet headers. The rendered app version lives in `AppStateService.appVersion`.
 
+`loginState` is restored synchronously from storage when `AppStateService` is created, so a role check
+in a `canActivate` guard (e.g. `roadmapGuard` in `app.routes.ts`) also holds on a page reload.
+
+`ui/page-header` must not inject `AppStateService`: page specs that fake `ApiClientService` (admin,
+course view, profile…) then fail with `setSessionContextProvider is not a function`. The header gets
+its role from the `roleLabel` input (`'Student'` hides the teacher/admin Roadmap link).
+
 The catalog carousel's skeleton gate is the `thumbnailsReady` signal in `courses-page.ts`; its `effect` reactively re-runs on `visibleFeaturedCourses()`, so it covers carousel paging too — but it must reset to `false` at the start of each run or the skeleton won't reappear on later pages.
 
 ### Frontend spec isolation
@@ -270,6 +277,9 @@ owner remain admin-editable only. Full rules: `docs/business_rules.md`.
 - Health endpoints: `/health`, `/health/config`, `/health/auth`, `/health/content`
 - The hosted API's log: `npx vercel logs` from the repo root, once `npx vercel login` has been run. The Hobby plan keeps only the last 30 minutes, so read it right after the failure; `--since 1h` is refused.
 - A route wrapped in `withCourseLock` holds its answer until the course lock is released (DEF-042): Vercel may pause a function once the answer is sent. Locked handlers must answer with `send`/`json`; `response.end` would bypass the hold.
+- Release notes shown in the app (Roadmap page, Release notes tab) live in
+  `app/src/app/pages/roadmap-page/release-notes.ts`. Before each push, add the note for that version
+  as the first entry and commit it: short and plain, one sentence per item, no technical terms.
 - A push to `main` deploys the API on Vercel immediately, but the frontend only if the Pages workflow's tests pass. A failing test therefore leaves a new API serving an old frontend, so keep API changes backward compatible and run both test suites and `npm run app:build:pages` before pushing.
 
 ## Capturing Learnings
