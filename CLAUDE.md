@@ -108,8 +108,12 @@ any code.
 - Stage your own files by path. Never `git add -A`, and never stash, reset, restore or check
   out the other agent's changes.
 - Read the version from `package.json` right before committing; the later committer bumps again.
+- While Codex has uncommitted changes in `package-lock.json` (dependency work), do not stage it:
+  bump the other version files only, and Codex sets the lock's three version lines when it commits.
 - A failure caused by the other agent's files is reported, not fixed.
 - Claude's browser checks use ports 3001 and 4200. Codex uses in-process tests or other ports.
+  When the Browser pane is hidden, screenshots come back black: check with `read_page`, `find` or
+  `javascript_tool` instead.
 - While Codex has uncommitted API changes, do not rebuild `api/dist` for a browser check.
 - Restarting the isolated API makes the session stored in the browser invalid: the first
   requests after a restart answer 401. Sign in again before reading anything into them.
@@ -206,6 +210,8 @@ Auth and JSON mutation bodies use Zod; raw uploads use MIME and size checks.
 Error middleware converts `ZodError` to 400 responses with a `{ message }` body.
 Invalid JSON, oversized bodies and bad encodings answer 400/413/415; other failures a generic 500.
 Bearer tokens are required on protected routes.
+Every new route needs an entry in the permission table in `api/src/routePermissions.test.ts`
+(both the route and its `/api` alias are checked), or `npm run api:test` fails.
 
 ### Frontend (`app/`)
 
@@ -218,6 +224,11 @@ Bearer tokens are required on protected routes.
   - `AuthService`, `CourseService`, `FeedbackService`, `SessionService`
 - `src/app/app.models.ts` — Shared TypeScript types for the whole frontend
 
+A new page component lists `'../../app.scss'` first in `styleUrls`, or `.page-shell` has no padding.
+`npm run app:test` also runs `scripts/check-ui-foundation.mjs`: it fails on any new hard-coded
+colour (use the `--color-*`, `--shadow-*` and `--radius-*` tokens in `tailwind.css`) and on a
+component drawing its own `:focus` outline.
+
 ### Angular State Management
 
 `AppStateService` uses Angular signals throughout. Course draft changes are detected by comparing JSON snapshots (serialized on load, re-serialized on edit). Content normalization runs on load to handle legacy quiz format migration. Sheets repositories also maintain worksheet headers. The rendered app version lives in `AppStateService.appVersion`.
@@ -227,7 +238,9 @@ in a `canActivate` guard (e.g. `roadmapGuard` in `app.routes.ts`) also holds on 
 
 `ui/page-header` must not inject `AppStateService`: page specs that fake `ApiClientService` (admin,
 course view, profile…) then fail with `setSessionContextProvider is not a function`. The header gets
-its role from the `roleLabel` input (`'Student'` hides the teacher/admin Roadmap link).
+its role from the `roleLabel` input (`'Student'` hides the teacher/admin Roadmap link). Other account
+details the header shows (saved avatar colour, organization name) go through the dependency-free
+`HeaderIdentityService`, which `AppStateService` writes and `ui/profile-menu` reads.
 
 The catalog carousel's skeleton gate is the `thumbnailsReady` signal in `courses-page.ts`; its `effect` reactively re-runs on `visibleFeaturedCourses()`, so it covers carousel paging too — but it must reset to `false` at the start of each run or the skeleton won't reappear on later pages.
 
