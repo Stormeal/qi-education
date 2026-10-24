@@ -216,3 +216,108 @@ The remaining API findings are body-parser 2.2.2 (low) and ip-address 10.2.0 (hi
 App updates (including Angular, CSS/build tooling, icons, Mux player and test tools) and all direct major upgrades are listed above for Claude/Alex. API major targets deferred: Mux 15/renamed SDK, Node types 26, dotenv 18, googleapis 187, TypeScript 7, Vitest 5. Zod 4.6.7, Express 5.3.0, and the SOCKS/address family were reverted for the documented test/scope/peer reasons.
 
 Real MongoDB, Stripe, Mux, Sheets, Brevo, GitHub and Linux deployment integrations were not exercised. No app build or app test suite was run; app dependency preservation is a graph comparison, not frontend execution evidence. No production source or tests were edited, and nothing was pushed or deployed.
+
+## US-P018-AC04
+
+2026-10-24, Codex. Started on `main` at required commit `3953dfb` (present in `git log`),
+with a clean working tree. `git fetch origin` confirmed the local branch was ahead; no pull,
+push or deployment. Claude concurrently delivered career changes in `5b040de`. This section
+supersedes X7's API production findings and decisions only; root, app and API dev findings
+are outside this task. Node 22.13.0 / npm 10.9.2, Windows; in-memory stores only.
+
+### Outcomes and reachability
+
+| Finding | Outcome | API reachability and reason |
+| --- | --- | --- |
+| Zod memory exhaustion, [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) | **Accepted known reachable risk:** retain 4.3.6; tested 4.6.7 update removed because it changes public error messages and response shapes. | HTTP bodies reach constrained collection schemas, including teacher/admin course sections, components and quiz answers, and learner quiz submissions. The JSON default of 100 KB and course-content limit of 4 MB bound input bytes but do not eliminate element-validation amplification. Authentication/ownership precedes course-content schema validation, so that 4 MB path needs an authorized teacher/admin; it is still reachable. The patched early size guard skips per-element errors which this API exposes and uses to select image-error responses. A 4,205-byte, 51-question quiz with an invalid image proves a contract break (details below). Accept the bounded but nonzero resource risk to honor the explicit unchanged-response contract; reconsider Zod with an agreed validation-error contract before release 1. |
+| body-parser invalid `limit`, [GHSA-v422-hmwv-36x6](https://github.com/advisories/GHSA-v422-hmwv-36x6) | **Accepted:** retain 2.2.2 under Express 5.2.1. | The invalid-configuration trigger is absent: `api/src/server.ts` uses the library's valid default 100 KB, literal `2mb` for thumbnails and literal `4mb` for attachments/course-content JSON. No request or environment value supplies `limit`. Existing malformed JSON, 413, encoding and upload regressions pass. Fixing this advisory requires body-parser ≥2.3.0, which requires content-type major 2; that exceeds the explicit no-major-upgrade constraint (including transitives, as in X7). |
+| body-parser compressed-body crash, [GHSA-27r3-jxmh-p828](https://github.com/expressjs/body-parser/security/advisories/GHSA-27r3-jxmh-p828) | **Accepted known reachable risk:** retain 2.2.2 for this constrained task. This newly included advisory is why body-parser is now a **high** entry. | Parsers retain default `inflate: true` and JSON parsing precedes authentication/routing. Valid limits do **not** mitigate trailing compressed bytes. Treat the upstream unauthenticated process-crash path as reachable; no gateway filtering or hosted mitigation has been verified. Small isolated deflate/trailing-byte probes returned 400/401 without a crash; these attempts do not disprove the timing-sensitive advisory. The fix is body-parser ≥2.4.0, requiring content-type `^2.1.0` (major 2); no supported patched 2.x dependency graph fits the no-major rule. Upstream's `inflate: false` workaround would change currently accepted compressed requests to 415, breaking the status/response contract, and requires editing protected `server.ts`. Acceptance records this remaining availability risk, not a claim of safety. Revisit before release 1 by approving the transitive parser major and its compatibility checks. |
+| ip-address leading-zero octets and the other advisories grouped under that audit entry, [GHSA-mwp4-54f8-5fhr](https://github.com/advisories/GHSA-mwp4-54f8-5fhr) | **Fixed:** MongoDB's private ip-address 10.2.0 → 10.7.4 (minor), retaining SOCKS 2.8.9 and MongoDB 7.7.0. | `mongo.ts` does not set a proxy option; the driver loads SOCKS only if `proxyHost` is configured. No route accepts a proxy address and source/config has no SOCKS setting, but an operator-supplied MongoDB URI can carry driver options, so absence of a deployed proxy is not asserted. The dependency is patched regardless. `Address4.isValid('012.0.0.1')` now returns false. |
+
+Zod compatibility investigation: with 4.6.7 and the original schema, two existing
+`courseContent.test.ts` US-T015-AC06 cases failed because absent quiz `points` became
+`expected nonoptional` (the X7 root cause). A temporary compatible default in
+`courseContent.ts` fixed that failure, preserved eight legacy `points` inputs, and the full
+suite passed. Independent review nevertheless found a public contract break that existing
+tests do not cover. For 51 otherwise valid quiz questions, with the first question's image
+`{ "assetId": "" }`, Zod 4.3.6 reports both image and size issues. The image-priority branch
+in `api/src/server.ts:975–979` returns HTTP 400:
+
+```json
+{ "message": "Question 1: Too small: expected string to have >=1 characters" }
+```
+
+Zod 4.6.7 skips the image entirely, and the same 4,205-byte request reaches the generic
+Zod handler in `server.ts:1631–1633`, returning HTTP 400:
+
+```json
+{ "message": "Invalid request body", "issues": [{ "origin": "array", "code": "too_big", "maximum": 50, "inclusive": true, "path": ["sections", 0, "components", 0, "quiz", "questions"], "message": "Too big: expected array to have <=50 items" }] }
+```
+
+Restoring every old per-element issue would undo the protective short-circuit. The update
+and temporary schema adjustment were removed, and all requested checks repeated. **No API
+source change is retained.** `api/package.json` retains its existing Zod declaration.
+
+The review reproduction used a PowerShell here-string piped to `node`: TypeScript
+`transpileModule` / `vm.runInNewContext` loaded the base and candidate schemas with old/new
+Zod, then the image-priority/generic handler branches above selected the response. This was
+a schema/handler comparison, not a deployed HTTP probe. Its exact body generator was:
+
+```js
+const question = { id: 'q', question: 'Q?', answers: [{ id: 'a', isCorrect: true }, { id: 'b' }] };
+const questions = Array.from({ length: 51 }, (_, i) => ({ ...question, id: 'q' + i }));
+questions[0].image = { assetId: '' };
+const body = { sections: [{ id: 's', title: 'S', components: [
+  { id: 'c', title: 'C', type: 'quiz', quiz: { questions } },
+] }] };
+// JSON.stringify(body).length === 4205
+```
+
+The lockfile keeps MongoDB in `node_modules/mongodb`, nests an unchanged SOCKS 2.8.9 copy
+beneath it, and nests patched ip-address beneath that copy. This avoids X7's driver relocation
+and incompatible optional GCP peer exposure. `npm ls` succeeds, and GCP metadata remains
+unresolvable from MongoDB. An independent clean production `npm ci` reproduced this layout.
+Zod remains 4.3.6 in its original location. A traversal of the app's entire
+dependency/dev/optional/peer graph matched the starting lock:
+602 nodes and 1,201 edges unchanged. No existing dependency moves to a new major.
+
+### Audit counts (affected package entries, not distinct advisories)
+
+| `npm audit --omit=dev --workspace api` | Low | Moderate | High | Critical | Total | Exit |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before | 0 | 0 | 3 | 0 | 3 | 1 |
+| After | 0 | 0 | 2 | 0 | 2 | 1 |
+
+The two remaining high package entries are the explicitly accepted Zod and body-parser risks
+above; the audit is **not clean**. body-parser's low invalid-limit advisory is grouped inside
+its high entry.
+The remaining root/app findings were neither fixed nor accepted by this task.
+
+### Commands and verification
+
+All API executions set `NODE_ENV=test`, `USE_SHARED_SERVICES=0`; app checks also set `CI=true`.
+Test servers bind ephemeral ports. Ports 3001 and 4200 were not used. No `.env` file, secret,
+real MongoDB, Stripe, Mux, Brevo, Sheets or GitHub service was used by the checks.
+
+| Command / check | Result |
+| --- | --- |
+| `git status --short`, `git branch --show-current`, `git log`, `git show -s 3953dfb`, `git ls-remote origin refs/heads/main`, `git fetch origin` | Required base verified; shared main preserved. |
+| `npm audit --omit=dev --workspace api --json` before/after; final plain audit | 3 high / 0 critical → 2 high / 0 critical, accepted above; both findings exits are 1. The temporary Zod experiment reached 1 high before compatibility review rejected it. |
+| `npm view zod@4 version --json`; exact `zod@4.6.7`, `body-parser@2.3.0`, `body-parser@2.4.0`, `ip-address@10.7.4` metadata/dependency/engine reads | Patch ranges and no-major limitation confirmed against registry metadata and upstream advisories. |
+| Temporary manifest: `npm install --prefix <temp> --ignore-scripts --no-audit --no-fund` | Retrieved exact registry metadata/tarball integrity for Zod 4.6.7 and ip-address 10.7.4. Only scoped lock entries transplanted. |
+| `npm install --ignore-scripts --no-audit --no-fund` in repository | Reconciled the scoped lock normally, including removal of only the temporary Zod update; no force, overrides or peer bypass. |
+| `npm ls zod mongodb socks ip-address gcp-metadata --workspace api` | Exit 0; patched API resolutions; Google auth graph unchanged. |
+| Separate manifest/lock copy: `npm ci --prefix <temp>/ci --omit=dev --ignore-scripts --no-audit --no-fund` and same `npm ls` | Exit 0; clean-install private ip-address 10.7.4 and leading-zero rejection verified. Repeated after removing Zod, retaining 4.3.6. Shared node_modules never removed. |
+| `npm --prefix api test -- src/courseContent.test.ts` before schema adjustment | 2 failed / 1 passed, both expected omitted-points compatibility failures. |
+| `npm --prefix api test -- src/courseContent.test.ts src/quizAssessment.test.ts src/requestErrors.test.ts` after adjustment | 26 passed in the two matching test files (`quizAssessment.test.ts` does not exist); parser/size/encoding regressions included. |
+| Temporary Node assertions using old/new Zod and MongoDB's resolved ip-address | Oversized constrained array visits 1,000 → 0; eight legacy `points` inputs normalize identically to 1 with the temporary schema default. Independent schema/handler comparison found the image-message/envelope regression above, rejecting that update. Ambiguous IPv4 rejected by retained update; canonical IPv4 retained. |
+| `npm run api:test` | Final serial run: 101 files, 2,568 passed plus 2 documented INV-004 expected failures. Initial concurrent run: 2,566 passed, 2 expected failures and two US-L019-AC01 `accountCareers.test.ts:161` assertions failed on Claude's added `earlierCriteriaMet: []`; Claude corrected the owned expectations in `5b040de`. A later run alongside app checks timed out at 5 s in `databaseBackup.test.ts:93` (large UTF-8 stream); no code change, full serial rerun passes. |
+| `npm run api:build` | Pass. |
+| `npm run app:test` | Pass: 23 UI-foundation tests, UI-foundation check and 504 Angular tests / 59 files. A repeat alongside API checks timed out at 5 s in `course-review.spec.ts:44` (AC07 published editor); no code change, full serial rerun passes. Warnings: test-setup not type-checked; jsdom scrollTo unimplemented. |
+| `npm run verify:journeys` | Pass: 18 cross-role HTTP journey tests. The `mongodb` cases use in-memory fake collections, not real MongoDB. |
+| `npm run app:build:pages` | Pass; SPA fallback created. Warnings: existing learning-page SCSS budget and Mammoth/CommonJS dependencies. |
+
+Not verified: hosted traffic/proxy configuration, live provider integrations, Linux execution,
+browser UI and gateway protections. No protected source-file change is needed by the retained
+updates. Story/spec edits remain with Claude under the explicit file-ownership boundary.
+Delivery commit is recorded in the handoff Progress table and Codex's queue row.

@@ -10,7 +10,7 @@ Started 2026-10-24, both on `main` in one working tree:
 
 | Owner | Item | Scope and files | State |
 | --- | --- | --- | --- |
-| Codex | US-P018-AC04 | API production dependency findings (`zod`, `body-parser`, `ip-address`): `api/package.json`, `package-lock.json`, `docs/audits/2026-10-dependencies.md`; record [handoffs/US-P018-AC04-codex.md](handoffs/US-P018-AC04-codex.md) | Handed over, not started |
+| Codex | US-P018-AC04 | API production dependency findings (`zod`, `body-parser`, `ip-address`): `api/package.json`, `package-lock.json`, `docs/audits/2026-10-dependencies.md`; record [handoffs/US-P018-AC04-codex.md](handoffs/US-P018-AC04-codex.md) | Final verification on `main`, base `3953dfb`: ip-address fixed privately; Zod accepted (response-contract regression), body-parser accepted (transitive major/response constraints); audit 3 high → 2 high, 0 critical. Next: serial test reruns, local delivery commit. Not verified: hosted/proxy/provider integrations, Linux/browser; no protected source change needed. |
 | Claude | US-A004-AC06 | Changed career criteria: requirement versions, "What changed" note, learner notice. `api/src/careerPath*.ts`, `accountCareers*.ts`, the career routes in `server.ts`, `app/**` career editor and career page; decisions in [stories/US-A004-curriculum-review.md](stories/US-A004-curriculum-review.md) | In progress |
 
 US-O001 release 1 (organizations) built and checked locally 2026-10-23, not pushed. Codex A1–A7
