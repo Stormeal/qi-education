@@ -11,7 +11,7 @@ lessons, keeps notes, gets the files and tells the teacher how a lesson went.
   the course; access needs ownership, admin role, or enrollment in a published or archived course.
 - **Sidebar**: overall progress ("7 of 24 lessons complete", percentage, time left), then each
   section with its completed count. It can be hidden for a wider player (not remembered). Above
-  960px it is as tall as the lesson, at least 480px and at most one screen, stays in view and scrolls
+  960px it is as tall as the lesson, at least 480px and at most one screen less the header and course title (144px), so it fits the window when the page opens, stays in view and scrolls
   on its own, so a long course never lengthens the page (GitHub #52) and a learner can browse long
   chapters while a video plays; narrower screens stack it under the lesson.
 - **Previous / Next** move through lessons in course order, disabled at the ends.

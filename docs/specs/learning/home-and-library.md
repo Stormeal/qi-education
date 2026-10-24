@@ -17,7 +17,8 @@ A signed-in learner sees where they are and what to do next, and finds every cou
   "Recommended" corner ribbon: the first course in progress with a lesson done, else the first at
   0%. A completed course or one whose progress is unavailable is never recommended; then there is
   no ribbon and the list keeps its order.
-- **My Learning** (`/library`): every enrolled course once, with its progress and a resume link,
+- **My Learning** (`/library`): every enrolled course once, organization courses included while
+  the membership is active ([organizations](../organizations/organizations.md)), with its progress and a resume link,
   and a **Refresh progress** action. Empty library: "No courses in your library yet" with a link
   to the catalog.
 - Loading, unavailable and empty are different states. A failed progress read says "Progress

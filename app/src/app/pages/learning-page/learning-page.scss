@@ -757,7 +757,8 @@
   align-self: stretch;
   contain: size;
   min-height: min(480px, 100dvh);
-  max-height: 100dvh;
+  /* Leaves room for the header and course title, so the whole sidebar fits the window when the page opens. */
+  max-height: calc(100dvh - 144px);
   overflow-y: auto;
   overscroll-behavior: contain;
   border-left: 1px solid var(--color-border);

@@ -131,6 +131,7 @@
   background: var(--color-surface-card);
   list-style: none;
   padding: 0;
+  overflow: hidden;
 }
 
 .roadmap-items li {
@@ -143,6 +144,28 @@
 
 .roadmap-items li + li {
   border-top: 1px solid var(--color-border);
+}
+
+/* A coloured edge lets the eye scan which items are finished without reading every chip. */
+.roadmap-items li[data-status='live'] {
+  box-shadow: inset 4px 0 0 var(--color-primary);
+}
+
+.roadmap-items li[data-status='built'],
+.roadmap-items li[data-status='in-progress'] {
+  box-shadow: inset 4px 0 0 var(--color-highlight);
+}
+
+.roadmap-item-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.roadmap-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .roadmap-items p {

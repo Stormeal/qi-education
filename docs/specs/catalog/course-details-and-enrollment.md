@@ -14,7 +14,8 @@ A learner reads what a course offers, then joins it so it appears in My Learning
   their unpublished courses. A learner already enrolled in an archived course keeps access.
 - **Enroll** (`POST /users/me/courses/:id`) requires a signed-in active account and a published
   course. Enrolling again is harmless: the course appears once. A priced course answers 402
-  unless the caller is its author or an admin.
+  unless the caller is its author or an admin, or an organization opens it to them (**Enroll
+  (included by {Organization})**, free; see [organizations](../organizations/organizations.md)).
 - After enrolling, the course opens from My Learning at `/library/:id` (see
   [learning page](../learning/learning-page.md)).
 - Owners and admins see management actions here: Edit, and for admins **Catalog settings** and

@@ -61,17 +61,25 @@
       <section class="roadmap-section" aria-labelledby="roadmap-release-1">
         <h2 id="roadmap-release-1">Release 1 in detail</h2>
         <p class="roadmap-sub">Items marked Must block the release.</p>
+        <p class="roadmap-summary">
+          @for (entry of statusSummary; track entry.status) {
+            <span [appChip]="statuses[entry.status].chip">{{ entry.count }} {{ statuses[entry.status].label }}</span>
+          }
+        </p>
         @for (group of groups; track group.title) {
           <div class="roadmap-group">
             <h3>{{ group.title }}</h3>
             <ul class="roadmap-items">
               @for (item of group.items; track item.name) {
-                <li>
+                <li [attr.data-status]="item.status">
                   <div>
                     <strong>{{ item.name }}</strong>
                     <p>{{ item.detail }}</p>
                   </div>
-                  <span class="roadmap-priority" [class.must]="item.must">{{ item.must ? 'Must' : 'Should' }}</span>
+                  <div class="roadmap-item-meta">
+                    <span [appChip]="statuses[item.status].chip">{{ statuses[item.status].label }}</span>
+                    <span class="roadmap-priority" [class.must]="item.must">{{ item.must ? 'Must' : 'Should' }}</span>
+                  </div>
                 </li>
               }
             </ul>

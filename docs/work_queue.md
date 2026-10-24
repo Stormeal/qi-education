@@ -15,18 +15,19 @@ the earlier requirements", and achieves it again after the new action. Productio
 2 high (Zod and body-parser accepted, see Waiting on Alex). Codex record
 [history/handoffs/US-P018-AC04-codex.md](history/handoffs/US-P018-AC04-codex.md).
 
-US-O001 release 1 (organizations) built and checked locally 2026-10-23, not pushed. Codex A1–A7
-(API) and Claude B1–B5 (app) committed; Claude checked Codex's diff (own files only, contract kept).
-Checks: API 2,554 passed + 2 expected failures (one load-sensitive timeout in
-`clientLimitRoutes.test.ts` AC05/AC06 passed on rerun, not touched by this work), app 490, journeys
-18, both builds. Browser on isolated servers: AC01–AC05, AC08, AC10, AC11 passed (request, approve,
-invite, wrong account, sign-up through an invitation with email confirmation, add-on request and
-approval with price, free enroll in a 499 DKK course, My Learning, leave). Not browser-checked:
-AC09 billed career (no published career locally; API tests cover it), AC12 suspend (API tests).
-Leaving removes organization courses from My Learning; progress is kept (Alex, 2026-10-24,
-recorded in the contract). Contract:
-[stories/US-O001-release-1.md](stories/US-O001-release-1.md); Codex record
-[handoffs/US-O001-codex.md](handoffs/US-O001-codex.md).
+Delivered 2026-10-24, not pushed: US-O001 release 1 (organizations; Codex A1–A7 API, Claude B1–B5
+app). Browser on isolated servers: all of AC01–AC12 passed; on 2026-10-24 AC06 (used link refused
+without member details), AC07 (promote shows Owner, remove closes the course), AC09 (Technical
+Tester career opens a 499 DKK course: "Enroll (included by Bugfinders)", learned free) and AC12
+(suspend refuses invites and closes the course, Reactivate restores both). Fixed while checking:
+the course request form is now disabled while suspended (the API already refused it). Behavior in
+[specs/organizations/organizations.md](specs/organizations/organizations.md); Codex record
+[history/handoffs/US-O001-codex.md](history/handoffs/US-O001-codex.md).
+
+Also 2026-10-24 (Alex's requests): the learning-page sidebar is at most one screen less 144px,
+so it fits the window when the page opens; Release 1 roadmap items show a status (Live, Built not
+live yet, In progress, Not started) with a count. Update those statuses in `roadmap-page.ts` as
+items ship.
 
 Delivered 2026-10-22: DEF-057 (dropdowns show their stored value; record in
 `defects_resolved.md`) and Codex X6 (INV-004 reproduced as an expected failure in
@@ -73,6 +74,7 @@ as they arrive.
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
+- Organizations (US-O001 release 1) on the hosted site: Alex runs AC01–AC12 from [the spec](specs/organizations/organizations.md) with a second real email address.
 - Career cards, carousel and Start over on the hosted site: compare careers on a wide screen and a phone; Start over with a learner who has achievements (they must stay).
 - Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner.
 - Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20; a full refund (US-L025) delivered `charge.refunded` with 200 and removed the course, checked by Alex on 2026-10-22. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal.

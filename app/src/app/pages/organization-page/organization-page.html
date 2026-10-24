@@ -50,13 +50,13 @@
       <div class="org-request-course">
         <label for="org-request-course">Request another course</label>
         <div class="org-inline">
-          <select id="org-request-course" [value]="requestCourseId()" (change)="requestCourseId.set(inputValue($event))">
+          <select id="org-request-course" [disabled]="mine.organization.state === 'suspended'" [value]="requestCourseId()" (change)="requestCourseId.set(inputValue($event))">
             <option value="">Choose a course</option>
             @for (course of requestableCourses(); track course.id) {
               <option [value]="course.id" [selected]="course.id === requestCourseId()">{{ course.title }}</option>
             }
           </select>
-          <button appButton="secondary" type="button" [disabled]="busy()" (click)="requestCourse()">Request course</button>
+          <button appButton="secondary" type="button" [disabled]="busy() || mine.organization.state === 'suspended'" (click)="requestCourse()">Request course</button>
         </div>
       </div>
 

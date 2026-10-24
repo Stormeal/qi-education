@@ -23,6 +23,7 @@ or names an old ID. Keep this table identical to the one in `AGENTS.md`.
 | catalog, `/courses`, carousel, search, filter, sort, category, course card | `specs/catalog/browse.md` |
 | course details, `/courses/:id`, enroll, enrollment, outline, price shown | `specs/catalog/course-details-and-enrollment.md` |
 | payment, buy, Stripe, checkout, receipts, billing portal, 402 | `specs/payments/payments.md` |
+| organization, invitation, join, member, owner, billed career, add-on, seat price, suspend | `specs/organizations/organizations.md` |
 | course editor, course form, steps, ownership, unsaved changes, draft recovery, save conflict, 409, 428 | `specs/authoring/course-editor.md` |
 | course builder, lesson, chapter, section, move lesson, exercise, attachment, file, thumbnail | `specs/authoring/lessons-and-builder.md` |
 | quiz, question, answer, pass mark, grading, quiz attempt, question image | `specs/authoring/quizzes.md` |

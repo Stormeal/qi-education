@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiClientService } from './api-client.service';
 
-// Shapes from docs/stories/US-O001-release-1.md (the contract shared with the API).
+// Shapes from docs/specs/organizations/organizations.md (git show 42ec9a2:docs/stories/US-O001-release-1.md has the full contract).
 export type OrgRequestInput = { displayName: string; companyName: string; cvr: string; billingEmail: string; message: string };
 export type OrgRequest = OrgRequestInput & { id: string; state: 'pending' | 'declined' | 'approved';
   declineReason: string | null; submittedAt: string; decidedAt: string | null; organizationId: string | null;

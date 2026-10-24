@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { AppStateService } from '../../services/app-state.service';
+import { Chip, ChipVariant } from '../../ui/chip/chip';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
@@ -29,32 +30,41 @@ const RELEASES = [
   ] },
 ];
 
-const RELEASE_1_GROUPS = [
+// Update an item's status when it changes; "built" means done locally but not yet on the live site.
+type ItemStatus = 'live' | 'built' | 'in-progress' | 'not-started';
+const STATUSES: Record<ItemStatus, { label: string; chip: ChipVariant }> = {
+  live: { label: 'Live', chip: 'primary' },
+  built: { label: 'Built, not live yet', chip: 'highlight' },
+  'in-progress': { label: 'In progress', chip: 'highlight' },
+  'not-started': { label: 'Not started', chip: 'neutral' },
+};
+
+const RELEASE_1_GROUPS: { title: string; items: { name: string; must: boolean; status: ItemStatus; detail: string }[] }[] = [
   { title: 'Ready for colleagues', items: [
-    { name: 'Colleagues get courses for free', must: true, detail: 'Courses stay free during the internal period; public prices are set at launch. Anyone enrolled before a price is set keeps free access.' },
-    { name: 'Live-site walkthrough for teachers', must: true, detail: 'The teacher rehearsal and the open release checks run on the live site: video, email confirmation, CV scan and phone layouts.' },
-    { name: 'Career routes mapped to our courses', must: true, detail: 'Every TestHuset course is mapped to a route or deferred with a reason.' },
-    { name: 'Route changes keep earned achievements', must: false, detail: 'Routes will change while courses are built; learners keep their recorded progress.' },
-    { name: 'Feedback reaches us once', must: false, detail: 'Feedback follow-ups no longer create duplicate GitHub issues after a restart.' },
+    { name: 'Colleagues get courses for free', must: true, status: 'live', detail: 'Courses stay free during the internal period; public prices are set at launch. Anyone enrolled before a price is set keeps free access.' },
+    { name: 'Live-site walkthrough for teachers', must: true, status: 'in-progress', detail: 'The teacher rehearsal and the open release checks run on the live site: video, email confirmation, CV scan and phone layouts.' },
+    { name: 'Career routes mapped to our courses', must: true, status: 'in-progress', detail: 'Every TestHuset course is mapped to a route or deferred with a reason.' },
+    { name: 'Route changes keep earned achievements', must: false, status: 'built', detail: 'Routes will change while courses are built; learners keep their recorded progress.' },
+    { name: 'Feedback reaches us once', must: false, status: 'not-started', detail: 'Feedback follow-ups no longer create duplicate GitHub issues after a restart.' },
   ] },
   { title: 'Organizations', items: [
-    { name: 'Request an organization', must: true, detail: 'Any user asks for an organization and a site admin approves or declines it with a reason. The requester becomes its owner.' },
-    { name: 'Invite people', must: true, detail: 'Owners invite by email. Invitations expire after 14 days and can be resent or cancelled.' },
-    { name: 'Members', must: true, detail: 'Member list, remove a member, leave an organization. Progress and own courses stay with the person.' },
-    { name: 'Careers, add-ons and prices', must: true, detail: 'Owners assign careers and approve extra courses; admins set prices. Prices are shown, nothing is charged until billing.' },
-    { name: 'Site admin overview', must: true, detail: 'All organizations and pending requests; suspend an organization.' },
+    { name: 'Request an organization', must: true, status: 'built', detail: 'Any user asks for an organization and a site admin approves or declines it with a reason. The requester becomes its owner.' },
+    { name: 'Invite people', must: true, status: 'built', detail: 'Owners invite by email. Invitations expire after 14 days and can be resent or cancelled.' },
+    { name: 'Members', must: true, status: 'built', detail: 'Member list, remove a member, leave an organization. Progress and own courses stay with the person.' },
+    { name: 'Careers, add-ons and prices', must: true, status: 'built', detail: 'Owners assign careers and approve extra courses; admins set prices. Prices are shown, nothing is charged until billing.' },
+    { name: 'Site admin overview', must: true, status: 'built', detail: 'All organizations and pending requests; suspend an organization.' },
   ] },
   { title: 'Safe to run', items: [
-    { name: 'Paid hosting', must: true, detail: 'Hosting and database plans that allow company use, with backups.' },
-    { name: 'Private code repository', must: true, detail: 'The code moves to a private repository; the site keeps publishing from it.' },
-    { name: 'Employee data handled correctly (GDPR)', must: true, detail: 'EU data region, data processing agreements and a reviewed privacy notice.' },
-    { name: 'Remaining server security findings', must: false, detail: 'Open findings from the October dependency report that affect the running server are fixed.' },
+    { name: 'Paid hosting', must: true, status: 'not-started', detail: 'Hosting and database plans that allow company use, with backups.' },
+    { name: 'Private code repository', must: true, status: 'not-started', detail: 'The code moves to a private repository; the site keeps publishing from it.' },
+    { name: 'Employee data handled correctly (GDPR)', must: true, status: 'not-started', detail: 'EU data region, data processing agreements and a reviewed privacy notice.' },
+    { name: 'Remaining server security findings', must: false, status: 'in-progress', detail: 'Open findings from the October dependency report that affect the running server are fixed.' },
   ] },
 ];
 
 @Component({
   selector: 'app-roadmap-page',
-  imports: [DatePipe, FeedbackDialog, PageHeader, Tabs],
+  imports: [Chip, DatePipe, FeedbackDialog, PageHeader, Tabs],
   templateUrl: './roadmap-page.html',
   styleUrls: ['../../app.scss', './roadmap-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,6 +73,10 @@ export class RoadmapPage {
   protected readonly state = inject(AppStateService);
   protected readonly releases = RELEASES;
   protected readonly groups = RELEASE_1_GROUPS;
+  protected readonly statuses = STATUSES;
+  protected readonly statusSummary = (Object.keys(STATUSES) as ItemStatus[])
+    .map((status) => ({ status, count: RELEASE_1_GROUPS.flatMap((group) => group.items).filter((item) => item.status === status).length }))
+    .filter((entry) => entry.count > 0);
   protected readonly releaseNotes = RELEASE_NOTES;
   protected readonly tabId = tabId;
   protected readonly tabPanelId = tabPanelId;
