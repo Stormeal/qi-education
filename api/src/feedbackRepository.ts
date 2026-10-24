@@ -29,7 +29,7 @@ export type UpdateFeedbackTriageRecord = UpdateFeedbackTriageInput & {
 export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
   async createFeedback(input: CreateFeedbackInput, user: AuthenticatedUser): Promise<FeedbackEntry> {
     const feedback = createFeedbackEntry(input, user);
-    const sheets = createSheetsClient();
+    const sheets = await createSheetsClient();
 
     await ensureFeedbackHeaders();
     await sheets.spreadsheets.values.append({
@@ -45,7 +45,7 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
   }
 
   async listFeedback(): Promise<FeedbackEntry[]> {
-    const sheets = createSheetsClient();
+    const sheets = await createSheetsClient();
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
       range: feedbackDataRange(),
@@ -69,7 +69,7 @@ export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
     id: string,
     input: UpdateFeedbackTriageRecord,
   ): Promise<FeedbackEntry | null> {
-    const sheets = createSheetsClient();
+    const sheets = await createSheetsClient();
 
     await ensureFeedbackHeaders();
     const result = await sheets.spreadsheets.values.get({
@@ -166,7 +166,7 @@ function createFeedbackEntry(input: CreateFeedbackInput, user: AuthenticatedUser
 }
 
 async function ensureFeedbackHeaders() {
-  const sheets = createSheetsClient();
+  const sheets = await createSheetsClient();
   await ensureWorksheetHeaders(feedbackDataRange(), [...feedbackSheetHeaders]);
   await sheets.spreadsheets.values.update({
     spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,

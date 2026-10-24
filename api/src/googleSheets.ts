@@ -1,19 +1,25 @@
 import { protectCourseWrite } from './courseMutationLock.js';
-import { google } from 'googleapis';
+import type { sheets_v4 } from 'googleapis';
 import { apiConfig } from './config.js';
 
 const sheetsScope = 'https://www.googleapis.com/auth/spreadsheets';
-let sharedClient: ReturnType<typeof google.sheets> | undefined;
+// X8 F9: googleapis adds about 90 MiB, so it loads on first Sheets use, not when the API starts.
+// The pending promise is shared, so callers that start together still get one client.
+let sharedClient: Promise<sheets_v4.Sheets> | undefined;
 
-export function createSheetsClient() {
-  if (sharedClient) return sharedClient;
+export function createSheetsClient(): Promise<sheets_v4.Sheets> {
+  return sharedClient ??= loadSheetsClient().catch((error: unknown) => { sharedClient = undefined; throw error; });
+}
+
+async function loadSheetsClient(): Promise<sheets_v4.Sheets> {
+  const { google } = await import('googleapis');
   const auth = new google.auth.JWT({
     email: apiConfig.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key: apiConfig.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     scopes: [sheetsScope]
   });
 
-  return sharedClient = google.sheets({ version: 'v4', auth });
+  return google.sheets({ version: 'v4', auth });
 }
 
 export async function ensureWorksheetHeaders(range: string, headers: string[]) {
@@ -23,7 +29,7 @@ export async function ensureWorksheetHeaders(range: string, headers: string[]) {
     return;
   }
 
-  const sheets = createSheetsClient();
+  const sheets = await createSheetsClient();
   const spreadsheetId = apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID;
   const metadata = await sheets.spreadsheets.get({
     spreadsheetId,
