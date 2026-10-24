@@ -127,6 +127,9 @@ export class CourseService {
   readonly quizImageUrls = signal<Record<string, string>>({});
   private readonly quizImageRequests = new Set<string>();
   private readonly thumbnailWarmRequests = new Map<string, Promise<void>>();
+  // X8 DEF-063: at most this many thumbnail downloads at once, so a large catalog does not fetch every image together.
+  private thumbnailSlots = 4;
+  private readonly thumbnailQueue: (() => void)[] = [];
   private thumbnailToken = '';
   private thumbnailGeneration = 0;
   private activeAttachmentUploadRequest: XMLHttpRequest | null = null;
@@ -165,9 +168,12 @@ export class CourseService {
       const pending = this.thumbnailWarmRequests.get(key);
       if (pending) return pending;
       const request = (async () => {
+        if (this.thumbnailSlots > 0) this.thumbnailSlots--;
+        else await new Promise<void>((resolve) => this.thumbnailQueue.push(resolve));
         try {
           const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(course.id)}/thumbnail?v=${encodeURIComponent(course.thumbnailAssetId)}`, {
-            method: 'GET', headers: token ? { authorization: `Bearer ${token}` } : {},
+            // A stuck download fails after 20 s, so it cannot hold a slot for ever.
+            method: 'GET', headers: token ? { authorization: `Bearer ${token}` } : {}, signal: AbortSignal.timeout(20_000),
           });
           if (!response.ok) return;
           const blob = await response.blob();
@@ -175,7 +181,8 @@ export class CourseService {
           const url = URL.createObjectURL(blob);
           this.thumbnailUrls.update((urls) => ({ ...urls, [key]: url }));
         } catch { /* A failed thumbnail must not prevent course access. */ }
-        finally { if (generation === this.thumbnailGeneration) this.thumbnailWarmRequests.delete(key); }
+        finally { const next = this.thumbnailQueue.shift(); if (next) next(); else this.thumbnailSlots++;
+          if (generation === this.thumbnailGeneration) this.thumbnailWarmRequests.delete(key); }
       })();
       this.thumbnailWarmRequests.set(key, request);
       return request;
