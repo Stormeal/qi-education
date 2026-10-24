@@ -37,6 +37,7 @@ budget, curriculum owner, backup developer.
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
+| US-L026 | All careers in one map | Ready for review | P3 | — | [stories/US-L026](stories/US-L026-career-map.md) |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
