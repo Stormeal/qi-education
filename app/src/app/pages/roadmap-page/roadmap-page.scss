@@ -16,6 +16,53 @@
   text-wrap: balance;
 }
 
+.roadmap-panel,
+.roadmap-intro {
+  display: grid;
+  gap: 32px;
+}
+
+.roadmap-intro {
+  gap: 8px;
+}
+
+.roadmap-notes {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+}
+
+.roadmap-note {
+  display: grid;
+  gap: 8px;
+  max-width: 76ch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  padding: 20px 24px;
+  background: var(--color-surface-card);
+}
+
+.roadmap-note h2 {
+  margin: 0;
+  font-size: var(--text-title-sm);
+  font-weight: 800;
+}
+
+.roadmap-note h3 {
+  margin-top: 8px;
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.roadmap-note ul {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+  list-style: disc;
+  color: var(--color-text-muted);
+}
+
 .roadmap-sub,
 .roadmap-muted {
   max-width: 68ch;

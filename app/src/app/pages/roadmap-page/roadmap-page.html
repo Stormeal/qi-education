@@ -13,62 +13,105 @@
 
   <header class="roadmap-heading">
     <h1>QI Academy roadmap</h1>
-    <p class="roadmap-sub">
-      Release 1 puts QI Academy to work inside TestHuset from mid-December. During the internal
-      period we build our courses on it, and we open it to the public around Q2 2027.
-    </p>
-    <p class="roadmap-muted">Product owner: Alex. Agreed 23 October 2026.</p>
+    <app-tabs
+      groupId="roadmap"
+      label="Roadmap views"
+      [tabs]="tabs"
+      [selected]="activeTab()"
+      (selectedChange)="activeTab.set($event)"
+    />
   </header>
 
-  <section class="roadmap-section" aria-labelledby="roadmap-releases">
-    <h2 id="roadmap-releases">Three releases</h2>
-    <div class="roadmap-timeline">
-      @for (release of releases; track release.name) {
-        <article class="roadmap-release" [class.current]="release.current">
-          <h3>{{ release.name }}</h3>
-          <p class="roadmap-when">{{ release.when }}@if (release.current) { (next)}</p>
-          <ul>
-            @for (point of release.points; track point) {
-              <li>{{ point }}</li>
-            }
-          </ul>
-        </article>
-      }
-    </div>
-    <p class="roadmap-muted">
-      Between release 1 and 2 (Q1 2027): internal use, course production and feedback.
-    </p>
-  </section>
-
-  <section class="roadmap-section" aria-labelledby="roadmap-release-1">
-    <h2 id="roadmap-release-1">Release 1 in detail</h2>
-    <p class="roadmap-sub">Items marked Must block the release.</p>
-    @for (group of groups; track group.title) {
-      <div class="roadmap-group">
-        <h3>{{ group.title }}</h3>
-        <ul class="roadmap-items">
-          @for (item of group.items; track item.name) {
-            <li>
-              <div>
-                <strong>{{ item.name }}</strong>
-                <p>{{ item.detail }}</p>
-              </div>
-              <span class="roadmap-priority" [class.must]="item.must">{{ item.must ? 'Must' : 'Should' }}</span>
-            </li>
-          }
-        </ul>
+  <div
+    class="roadmap-panel"
+    role="tabpanel"
+    [id]="tabPanelId('roadmap', activeTab())"
+    [attr.aria-labelledby]="tabId('roadmap', activeTab())"
+    tabindex="0"
+  >
+    @if (activeTab() === 'roadmap') {
+      <div class="roadmap-intro">
+        <p class="roadmap-sub">
+          Release 1 puts QI Academy to work inside TestHuset from mid-December. During the internal
+          period we build our courses on it, and we open it to the public around Q2 2027.
+        </p>
+        <p class="roadmap-muted">Product owner: Alex. Agreed 23 October 2026.</p>
       </div>
-    }
-    <p class="roadmap-muted">
-      Not in release 1: live payments, the owner progress overview, organization billing, external
-      security test, accessibility audit and the Angular 22 upgrade. These move to release 2.
-    </p>
-  </section>
 
-  <p class="roadmap-muted">
-    Release 2 and 3 dates are targets, not commitments. They depend on budget, developer time and
-    how much course content is ready.
-  </p>
+      <section class="roadmap-section" aria-labelledby="roadmap-releases">
+        <h2 id="roadmap-releases">Three releases</h2>
+        <div class="roadmap-timeline">
+          @for (release of releases; track release.name) {
+            <article class="roadmap-release" [class.current]="release.current">
+              <h3>{{ release.name }}</h3>
+              <p class="roadmap-when">{{ release.when }}@if (release.current) { (next)}</p>
+              <ul>
+                @for (point of release.points; track point) {
+                  <li>{{ point }}</li>
+                }
+              </ul>
+            </article>
+          }
+        </div>
+        <p class="roadmap-muted">
+          Between release 1 and 2 (Q1 2027): internal use, course production and feedback.
+        </p>
+      </section>
+
+      <section class="roadmap-section" aria-labelledby="roadmap-release-1">
+        <h2 id="roadmap-release-1">Release 1 in detail</h2>
+        <p class="roadmap-sub">Items marked Must block the release.</p>
+        @for (group of groups; track group.title) {
+          <div class="roadmap-group">
+            <h3>{{ group.title }}</h3>
+            <ul class="roadmap-items">
+              @for (item of group.items; track item.name) {
+                <li>
+                  <div>
+                    <strong>{{ item.name }}</strong>
+                    <p>{{ item.detail }}</p>
+                  </div>
+                  <span class="roadmap-priority" [class.must]="item.must">{{ item.must ? 'Must' : 'Should' }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+        <p class="roadmap-muted">
+          Not in release 1: live payments, the owner progress overview, organization billing, external
+          security test, accessibility audit and the Angular 22 upgrade. These move to release 2.
+        </p>
+      </section>
+
+      <p class="roadmap-muted">
+        Release 2 and 3 dates are targets, not commitments. They depend on budget, developer time and
+        how much course content is ready.
+      </p>
+    } @else {
+      <ol class="roadmap-notes">
+        @for (note of releaseNotes; track note.version) {
+          <li>
+            <article class="roadmap-note">
+              <h2>Version {{ note.version }}</h2>
+              <p class="roadmap-muted">
+                <time [attr.datetime]="note.date">{{ note.date | date: 'd MMMM y' }}</time>
+              </p>
+              @for (section of note.sections; track section.title) {
+                <h3>{{ section.title }}</h3>
+                <ul>
+                  @for (item of section.items; track item) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              }
+            </article>
+          </li>
+        } @empty {
+          <li class="roadmap-muted">No release notes yet.</li>
+        }
+      </ol>
+    }
+  </div>
 
   <footer class="site-footer">
     <span class="footer-credit">

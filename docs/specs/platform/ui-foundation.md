@@ -38,6 +38,9 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
 - Teachers and admins also get a Roadmap link after My Learning. It opens `/roadmap`, a fixed copy
   of the agreed roadmap in `pages/roadmap-page/roadmap-page.ts` (releases and release 1 items, no
   management decisions). Students do not see the link, and `/roadmap` sends them to Home.
+  The page has two tabs, Roadmap and Release notes. Release notes come from
+  `pages/roadmap-page/release-notes.ts`, newest first; Claude adds the note for each push there,
+  in the commit that is pushed. There is no in-app editor.
 - No dark theme.
 
 ## Code

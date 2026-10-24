@@ -1,7 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { AppStateService } from '../../services/app-state.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
+import { RELEASE_NOTES } from './release-notes';
 
 // Teacher/admin copy of the roadmap Alex agreed on 2026-10-23 (docs/user_stories.md, Releases).
 // Management decisions (budget, staffing) are left out on purpose.
@@ -51,7 +54,7 @@ const RELEASE_1_GROUPS = [
 
 @Component({
   selector: 'app-roadmap-page',
-  imports: [FeedbackDialog, PageHeader],
+  imports: [DatePipe, FeedbackDialog, PageHeader, Tabs],
   templateUrl: './roadmap-page.html',
   styleUrls: ['../../app.scss', './roadmap-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,4 +63,12 @@ export class RoadmapPage {
   protected readonly state = inject(AppStateService);
   protected readonly releases = RELEASES;
   protected readonly groups = RELEASE_1_GROUPS;
+  protected readonly releaseNotes = RELEASE_NOTES;
+  protected readonly tabId = tabId;
+  protected readonly tabPanelId = tabPanelId;
+  protected readonly tabs: TabItem[] = [
+    { id: 'roadmap', label: 'Roadmap' },
+    { id: 'release-notes', label: 'Release notes' },
+  ];
+  protected readonly activeTab = signal('roadmap');
 }
