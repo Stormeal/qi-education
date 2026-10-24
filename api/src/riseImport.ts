@@ -1,5 +1,5 @@
-import { readFile, stat } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { updateCourseContentSchema, type CourseContentComponent, type CourseContentSection } from './courseContent.js';
 import { assessmentIssues } from './quizAssessment.js';
 
@@ -71,8 +71,16 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
     sections: [], videos: [], attachments: [], thumbnail: null, skipped: [], problems: [],
   };
   const dropped = new Map<string, number>();
-  const fileSize = async (name: string) => {
-    try { return (await stat(join(assets, name))).size; } catch { plan.problems.push(`Missing file: ${name}`); return null; }
+  // DEF-059: a media key from runtime-data.js is untrusted; only files really inside the assets folder are read, links followed.
+  const root = await realpath(assets).catch(() => resolve(assets));
+  const inside = (path: string) => { const rel = relative(root, path); return !!rel && !rel.startsWith('..') && !isAbsolute(rel); };
+  const assetFile = async (name: string): Promise<{ path: string; size: number } | null> => {
+    const path = resolve(assets, name);
+    const real = await realpath(path).catch(() => null);
+    if (!inside(real ?? path)) { plan.problems.push(`File outside the export folder: ${name}`); return null; }
+    if (!real) { plan.problems.push(`Missing file: ${name}`); return null; }
+    // shortcut: checked here and read later by the import run, so a file swapped in between is not caught; fine for an operator CLI.
+    return { path, size: (await stat(real)).size };
   };
 
   for (const lesson of course.lessons ?? []) {
@@ -125,17 +133,17 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
         components.push({ ...base(block.id, label ?? (videosInTopic > 1 ? `${title} (del ${videosInTopic})` : title)),
           type: 'video', durationMinutes: Math.ceil((media.duration ?? 0) / 60) });
         const name = decodeURIComponent(media.key!);
-        const size = await fileSize(name);
-        if (size !== null) plan.videos.push({ sectionId: lesson.id, componentId: block.id, path: join(assets, name), fileName: name, contentType: 'video/mp4', sizeBytes: size });
+        const file = await assetFile(name);
+        if (file) plan.videos.push({ sectionId: lesson.id, componentId: block.id, path: file.path, fileName: name, contentType: 'video/mp4', sizeBytes: file.size });
       } else if (block.variant === 'attachment' && first?.media?.attachment?.key) {
         const media = first.media.attachment;
         const name = decodeURIComponent(media.key!);
         const fileName = media.originalUrl?.trim() || name;
         components.push({ ...base(block.id, fileName.replace(/\.pdf$/i, '')), type: 'resources' });
-        const size = await fileSize(name);
-        if (size !== null && size > ATTACHMENT_LIMIT) plan.skipped.push(`${fileName}: ${megabytes(size)} MB is over the 4 MB attachment limit`);
-        else if (size !== null) plan.attachments.push({ sectionId: lesson.id, componentId: block.id, path: join(assets, name), fileName,
-          contentType: media.mimeType || 'application/pdf', sizeBytes: size });
+        const file = await assetFile(name);
+        if (file && file.size > ATTACHMENT_LIMIT) plan.skipped.push(`${fileName}: ${megabytes(file.size)} MB is over the 4 MB attachment limit`);
+        else if (file) plan.attachments.push({ sectionId: lesson.id, componentId: block.id, path: file.path, fileName,
+          contentType: media.mimeType || 'application/pdf', sizeBytes: file.size });
       } else if (block.type === 'text' && first) {
         components.push({ ...base(block.id, label ?? title), type: 'text',
           content: (block.items ?? []).map((item) => riseHtml(`${item.heading ?? ''}${item.paragraph ?? ''}`)).join('') });
@@ -150,9 +158,9 @@ export async function planRiseImport(folder: string): Promise<ImportPlan> {
   const cover = course.coverImage?.media?.image?.crushedKey;
   const coverType = cover && IMAGE_TYPES[extname(cover).toLowerCase()];
   if (cover && coverType) {
-    const size = await fileSize(cover);
-    if (size !== null && size > THUMBNAIL_LIMIT) plan.skipped.push(`Cover image ${cover}: ${megabytes(size)} MB is over the 2 MB thumbnail limit`);
-    else if (size !== null) plan.thumbnail = { path: join(assets, cover), fileName: cover, contentType: coverType, sizeBytes: size };
+    const file = await assetFile(cover);
+    if (file && file.size > THUMBNAIL_LIMIT) plan.skipped.push(`Cover image ${cover}: ${megabytes(file.size)} MB is over the 2 MB thumbnail limit`);
+    else if (file) plan.thumbnail = { path: file.path, fileName: cover, contentType: coverType, sizeBytes: file.size };
   }
   if (dropped.size) plan.skipped.push(`Dropped Rise blocks: ${[...dropped].map(([kind, count]) => `${count} ${kind}`).join(', ')}`);
 

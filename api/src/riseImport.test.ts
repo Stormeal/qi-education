@@ -116,6 +116,25 @@ describe('US-T015 planRiseImport', () => {
     expect(plan.problems).toEqual([]);
   });
 
+  it('DEF-059 refuses media paths that leave the export folder', async () => {
+    const folder = await riseExport([{ id: 'L1', title: 'Lesson', items: [
+      attachment('p1', '../../private-marker.pdf'), video('v1', '../../private-marker.mp4'), attachment('p2', join(tmpdir(), 'absolute.pdf')),
+    ] }]);
+    await writeFile(join(folder, 'private-marker.pdf'), 'X8_OUTSIDE_EXPORT_CANARY');
+    await writeFile(join(folder, 'private-marker.mp4'), 'X8_OUTSIDE_EXPORT_CANARY');
+    await writeFile(join(tmpdir(), 'absolute.pdf'), 'X8_OUTSIDE_EXPORT_CANARY');
+
+    const plan = await planRiseImport(folder);
+
+    expect(plan.attachments).toEqual([]);
+    expect(plan.videos).toEqual([]);
+    expect(plan.problems).toEqual(expect.arrayContaining([
+      'File outside the export folder: ../../private-marker.pdf',
+      'File outside the export folder: ../../private-marker.mp4',
+      `File outside the export folder: ${join(tmpdir(), 'absolute.pdf')}`,
+    ]));
+  });
+
   it('reports a missing video file as a problem', async () => {
     const folder = await riseExport([{ id: 'L1', title: 'L', items: [video('v1', 'Gone.mp4')] }]);
 
