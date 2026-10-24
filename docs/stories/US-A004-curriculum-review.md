@@ -2,11 +2,11 @@
 
 ## Record
 
-- Story: US-A004 in the [backlog](../user_stories.md). Open scenarios: AC04 (map real offerings
-  honestly) and AC06 (revise criteria without losing achievements). AC01–AC03 and AC05 are delivered;
+- Story: US-A004 in the [backlog](../user_stories.md). Open scenario: AC04 (map real offerings
+  honestly). AC01–AC03, AC05 and AC06 are delivered;
   their behavior is in [career curation](../specs/career-paths/curation.md) and
   [milestones and achievements](../specs/career-paths/milestones-and-achievements.md).
-- Owner: Alex / curriculum owner for AC04; implementation owner unassigned for AC06.
+- Owner: Alex / curriculum owner for AC04.
 - Hosted step already possible: an admin opens each old-format career, clicks **Convert to milestone
   format**, checks actions and stages, and publishes. Two converted careers that both use a generic
   step ID such as `step-3` are refused at publish as conflicting.
@@ -38,7 +38,7 @@ deferred with a reason), equivalent formats vs different qualifications, externa
 courses, real prerequisite edges (the prototype's edges are illustrative), and how the hosted
 AI Testing Specialist career fits. A composite Test Architect route is future curriculum.
 
-## AC06: changed criteria (in progress, Claude, 2026-10-24)
+## AC06: changed criteria (delivered 2026-10-24)
 
 - Layout and title changes already keep achievement identities, and a changed exam or course must
   use a new action ID (the API refuses reuse).

@@ -203,6 +203,23 @@ describe('career milestone editing (US-A004)', () => {
     expect(saveDraft.mock.calls[0][1].steps[0].changeNote).toBe('You now also complete the practical lab.');
   });
 
+  it('US-A004-AC06 after publishing, the editor shows the version and cleared note the server stored', async () => {
+    const paths = TestBed.inject(CareerPathService).adminPaths as ReturnType<typeof signal<AdminCareerPath[]>>;
+    const stored: CareerPathDraft = { ...analyst, steps: [{ ...foundation, requirementVersion: 2, changeNote: '' }] };
+    saveDraft.mockImplementationOnce(async () => {
+      paths.set([{ id: 'test-analyst', revision: 2, learners: 0, published: stored, draft: stored, updatedAt: 'z' }]);
+      return { ok: true };
+    });
+    await click('Test Analyst');
+    await click('Save and publish');
+    root().querySelector<HTMLButtonElement>('.cpe-step-toggle')!.click();
+    fixture.detectChanges();
+    await click('Add action');
+    expect(root().querySelector<HTMLTextAreaElement>('.cpe-change textarea')!.value).toBe('');
+    expect(root().textContent).toContain('publishing makes it version 3');
+    expect(root().textContent).toContain('Published. Learners now see this revision.');
+  });
+
   it('US-A004 converting an old-format career reuses shared milestones and turns linked courses into course actions', async () => {
     const old: CareerPathDraft = { title: 'Old Tester', summary: '', outcomes: [], estimatedHours: 0, steps: [
       { id: 'foundation', title: 'Foundation', description: '', required: true, prerequisiteStepIds: [], courses: [{ courseId: '', title: 'Preview' }] },

@@ -33,7 +33,7 @@ budget, curriculum owner, backup developer.
 | --- | --- | --- | --- | --- | --- |
 | US-O001 | Organizations: request, approval, invites, owner overview | Decided, not designed; release 1 except owner overview | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
-| US-A004 | Curriculum review and changed milestone criteria | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
+| US-A004 | Curriculum review (changed criteria delivered) | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
@@ -49,8 +49,9 @@ release concern; P2 affects a core journey; P3 improves convenience.
 requirements, so learners see a credible route through our courses.**
 
 State: In progress. Milestone curation, requirement routes, graph validation and permissions are
-delivered (see [career curation](specs/career-paths/curation.md)). Open: the curriculum review
-(AC04, Alex / curriculum owner) and changed criteria (AC06). Details and the candidate course map:
+delivered (see [career curation](specs/career-paths/curation.md)). Changed criteria (AC06) delivered
+2026-10-24 (requirement versions and the learner notice, in the same specs). Open: the curriculum
+review (AC04, Alex / curriculum owner). Details and the candidate course map:
 [stories/US-A004-curriculum-review.md](stories/US-A004-curriculum-review.md).
 
 ```gherkin
@@ -125,8 +126,9 @@ Feature: Safe account and feedback writes
 **As TestHuset, I want QI Academy hosted, secured and handling employee data properly, so that
 colleagues can use it from mid-December without legal or operational risk.**
 
-State: Proposed (Alex, 2026-10-23). Mostly configuration and agreements; the code work is the
-remaining server findings in [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md).
+State: Proposed (Alex, 2026-10-23). Mostly configuration and agreements. AC04 delivered
+2026-10-24: ip-address fixed; Zod and body-parser accepted with reasons in
+[audits/2026-10-dependencies.md](audits/2026-10-dependencies.md#us-p018-ac04), to revisit before release 1.
 Dependency: management approves about 450–700 DKK a month for hosting.
 
 ```gherkin

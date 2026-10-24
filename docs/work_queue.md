@@ -1,17 +1,19 @@
 # Work queue
 
-Updated: 2026-10-22. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-24. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
 
-Started 2026-10-24, both on `main` in one working tree:
-
-| Owner | Item | Scope and files | State |
-| --- | --- | --- | --- |
-| Codex | US-P018-AC04 | API production dependency findings (`zod`, `body-parser`, `ip-address`): `api/package.json`, `package-lock.json`, `docs/audits/2026-10-dependencies.md`; record [handoffs/US-P018-AC04-codex.md](handoffs/US-P018-AC04-codex.md) | Done locally: delivery `0baf101` on `main`, base `3953dfb`; ip-address fixed privately; Zod accepted (response-contract regression), body-parser accepted (transitive major/response constraints). Audit 3 high → 2 high, 0 critical; API 2,568 + 2 expected failures, app 504 + UI 23, journeys 18, both builds pass (full serial reruns after load timeouts). Not verified: hosted/proxy/provider integrations, gateway protections, Linux/browser. No protected source change needed; no push/deploy. |
-| Claude | US-A004-AC06 | Changed career criteria: requirement versions, "What changed" note, learner notice. `api/src/careerPath*.ts`, `accountCareers*.ts`, the career routes in `server.ts`, `app/**` career editor and career page; decisions in [stories/US-A004-curriculum-review.md](stories/US-A004-curriculum-review.md) | In progress |
+Delivered 2026-10-24, not pushed: US-A004-AC06 (Claude, `5b040de` and the editor refresh after
+publish; defaults confirmed by Alex) and US-P018-AC04 (Codex, `0baf101`/`6f22350`, checked by Claude:
+own files only, contract kept). Checks: API 2,568 passed + 2 expected failures, app 505, journeys 18,
+Pages build. Browser on isolated servers: changing Foundation's requirement is refused without a
+note, publishes as version 2 with one, the learner keeps the recorded exam, sees the note and "met
+the earlier requirements", and achieves it again after the new action. Production audit 3 high →
+2 high (Zod and body-parser accepted, see Waiting on Alex). Codex record
+[history/handoffs/US-P018-AC04-codex.md](history/handoffs/US-P018-AC04-codex.md).
 
 US-O001 release 1 (organizations) built and checked locally 2026-10-23, not pushed. Codex A1–A7
 (API) and Claude B1–B5 (app) committed; Claude checked Codex's diff (own files only, contract kept).
@@ -56,15 +58,16 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | Go-live for payments (release 2) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
 | Dependency follow-ups (X7 report) | Decide what to schedule from [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md): app audit has 3 critical and 21 high entries, mostly build and dev tooling (Angular CLI/build, `tar`, `piscina`), the critical ones fixed by Angular 22 or patch releases; root `concurrently`/`shell-quote` (critical, dev only); API Zod 4.6 (reverted, 163 test failures), Express 5.3 and the SOCKS/`ip-address` family (reverted) | A story or defect per item you want done |
+| Two accepted server findings (US-P018-AC04, before release 1) | Choose for each: **body-parser** (an unauthenticated compressed request can crash the API): approve the parser major (content-type 2) or turn off compressed request bodies (they would get 415; browsers and our webhooks do not send them). **Zod** (oversized lists can use a lot of memory): approve Zod 4.6 with changed validation error messages, or keep the accepted risk. Details in [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md#us-p018-ac04) | Say so to Claude; the choice becomes a task |
 | Decisions | US-P003 (cross-instance writes; for feedback triage pick an INV-004 option in [handoffs/INV-004-options.md](handoffs/INV-004-options.md), Codex recommends C with B's marker), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
-[user_stories.md](user_stories.md). Ready to start without waiting on anyone: US-P018-AC04 (server
-dependency findings, a good Codex item) and the live-site checks below. US-P018-AC01–AC03 wait on
-the hosting budget and Alex. Requests from the department interviews are added as they arrive.
-US-O001 organizations is in release 1 (except the owner overview, see the release split in its story): it needs its design pass now (brainstorm, spec, plan), starting from the X5 API draft in [handoffs/US-O001-api-draft.md](handoffs/US-O001-api-draft.md). It is the largest release 1 item.
+[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below and US-P003's feedback part
+once Alex picks an INV-004 option. US-P018-AC01–AC03 wait on the hosting budget and Alex; the two
+accepted findings of AC04 wait on Alex's choice. Requests from the department interviews are added
+as they arrive.
 
 ## Open release checks
 

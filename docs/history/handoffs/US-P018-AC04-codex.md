@@ -3,9 +3,9 @@
 Started 2026-10-24. Owner: Codex. Claude Code builds US-A004-AC06 (changed career criteria) at the
 same time in the same working tree.
 
-- Story: US-P018-AC04 in [user_stories.md](../user_stories.md): every high or critical finding in
+- Story: US-P018-AC04 in [user_stories.md](../../user_stories.md): every high or critical finding in
   the API's production dependencies is fixed or accepted with a reason before release 1.
-- Starting point: [audits/2026-10-dependencies.md](../audits/2026-10-dependencies.md) (X7) and a fresh
+- Starting point: [audits/2026-10-dependencies.md](../../audits/2026-10-dependencies.md) (X7) and a fresh
   `npm audit --omit=dev --workspace api` on 2026-10-24, which reports 3 high, 0 critical:
   - `zod` (direct): memory exhaustion while validating oversized constrained collections. Zod 4.6
     was reverted in X7 after 163 test failures.

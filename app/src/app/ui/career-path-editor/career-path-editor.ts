@@ -262,7 +262,10 @@ export class CareerPathEditor {
     this.busy.set(false);
 
     if (result.ok) {
-      this.savedSnapshot = this.snapshot(draft);
+      // Publishing sets requirement versions and clears change notes on the server; keep editing what it stored.
+      const stored = this.editing();
+      if (publish && stored?.draft) this.open(stored.id, structuredClone(stored.draft));
+      else this.savedSnapshot = this.snapshot(draft);
       this.message.set(publish ? 'Published. Learners now see this revision.' : 'Draft saved. Learners still see the published revision.');
       return;
     }
