@@ -339,6 +339,11 @@ export type CareerPathStep = {
   roleMilestone?: boolean;
   actions?: CareerPathAction[];
   requirementBundles?: string[][];
+  // US-A004-AC06: set by the API at publish; admins write only changeNote.
+  requirementVersion?: number;
+  requirementChange?: { note: string; changedAt: string } | null;
+  requirementHistory?: { version: number; bundles: string[][] }[];
+  changeNote?: string;
 };
 export type CareerPathAction = {
   id: string;
@@ -357,6 +362,8 @@ export type AccountCareers = {
   achievements: { actionId: string; provenance: 'self-reported' | 'cv'; declaredAt: string }[];
   satisfiedActionIds: string[];
   milestoneStates: Record<string, MilestoneState>;
+  /** Milestones not achieved now whose evidence met an earlier requirement version. */
+  earlierCriteriaMet?: string[];
 };
 
 export type CareerPath = {

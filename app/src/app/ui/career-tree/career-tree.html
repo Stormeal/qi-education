@@ -74,6 +74,15 @@
         </div>
       }
 
+      @if (step.requirementChange; as change) {
+        <div class="ct-changed">
+          <p><strong>Requirements updated {{ change.changedAt | date: 'd MMMM y' }}.</strong> {{ change.note }}</p>
+          @if (detailState !== 'achieved' && earlierMet(step.id)) {
+            <p>What you recorded met the earlier requirements, not the current ones. Nothing you recorded has been removed.</p>
+          }
+        </div>
+      }
+
       @if (!milestoneFormat()) {
         <p class="ct-requirement">Finish any one of the courses under Ways to get there to complete this step.</p>
       } @else if (routes.length) {

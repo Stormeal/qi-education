@@ -130,6 +130,23 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(text()).toContain('1 milestone achieved');
   });
 
+  it('US-A004-AC06 a changed requirement shows its note, and whether the earlier version was met', async () => {
+    foundation.requirementChange = { note: 'The practical lab is now required too.', changedAt: '2026-10-24T10:00:00.000Z' };
+    try {
+      careers.set({ ...account(['test-analyst'], 'test-analyst', []), earlierCriteriaMet: ['foundation'] });
+      node('foundation').click();
+      await settle();
+      expect(text()).toContain('Requirements updated 24 October 2026. The practical lab is now required too.');
+      expect(text()).toContain('What you recorded met the earlier requirements, not the current ones.');
+
+      node('test-design').click();
+      await settle();
+      expect(text()).not.toContain('Requirements updated');
+    } finally {
+      delete foundation.requirementChange;
+    }
+  });
+
   it('US-L023-AC02 an achievement saved from a CV reads "From your CV"', async () => {
     const saved = account(['test-analyst', 'test-manager'], 'test-analyst', ['foundation-exam']);
     careers.set({ ...saved, achievements: [{ actionId: 'foundation-exam', provenance: 'cv', declaredAt: '' }] });

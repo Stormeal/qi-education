@@ -235,6 +235,13 @@ export class CareerPathEditor {
     if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) this.pickerOpen.set(false);
   }
 
+  /** US-A004-AC06: the routes differ from the published milestone (this career's, else a shared one), so publishing needs a note. */
+  protected requirementChanged(step: EditableStep): boolean {
+    const published = this.editing()?.published?.steps.find((item) => item.id === step.id) ?? this.sharedMilestones().get(step.id)?.step;
+    const key = (bundles: string[][] = []) => JSON.stringify(bundles.map((bundle) => [...bundle].sort()).map((bundle) => JSON.stringify(bundle)).sort());
+    return !!published && key(published.requirementBundles) !== key(step.requirementBundles);
+  }
+
   protected togglePrerequisite(step: EditableStep, id: string, checked: boolean): void {
     step.prerequisiteStepIds = checked ? [...step.prerequisiteStepIds, id] : step.prerequisiteStepIds.filter((item) => item !== id);
   }

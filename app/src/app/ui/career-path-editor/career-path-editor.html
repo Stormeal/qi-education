@@ -210,6 +210,15 @@
                     </div>
                   }
                   <button type="button" appButton size="sm" (click)="addRoute(step)">Add alternative route</button>
+                  @if (requirementChanged(step)) {
+                    <label class="cpe-change">What changed for learners (needed to publish)
+                      <textarea [name]="'changeNote' + i" rows="2" maxlength="280" [(ngModel)]="step.changeNote"></textarea>
+                    </label>
+                    <p class="cpe-hint">
+                      The requirement differs from the published one, so publishing makes it version {{ (step.requirementVersion ?? 1) + 1 }}.
+                      Learners see this note on the milestone. What they recorded is kept.
+                    </p>
+                  }
                 </fieldset>
               }
             </div>

@@ -8,6 +8,8 @@ export type MilestoneState = 'achieved' | 'ready' | 'locked';
 export type AccountCareers = StoredAccountCareers & {
   satisfiedActionIds: string[];
   milestoneStates: Record<string, MilestoneState>;
+  /** US-A004-AC06: milestones not achieved now whose evidence met an earlier requirement version. */
+  earlierCriteriaMet: string[];
 };
 export class AccountCareersError extends Error {
   constructor(readonly status: number, message: string, readonly code?: string) { super(message); }
@@ -83,9 +85,13 @@ export class AccountCareersService {
 
   private view(account: StoredAccountCareers, context: { steps: Milestone[]; completedActionIds: string[] }): AccountCareers {
     const satisfiedActionIds = [...new Set([...account.achievements.map(item => item.actionId), ...context.completedActionIds])];
+    const satisfied = new Set(satisfiedActionIds);
+    const states = milestoneStates(context.steps, satisfied);
+    const met = (bundles: string[][]) => bundles.some(bundle => bundle.length > 0 && bundle.every(action => satisfied.has(action)));
+    const earlierCriteriaMet = [...new Set(context.steps.filter(step => states[step.id] !== 'achieved'
+      && step.requirementHistory.some(version => met(version.bundles))).map(step => step.id))];
     return { followedPathIds: [...account.followedPathIds], focusPathId: account.focusPathId,
-      achievements: structuredClone(account.achievements), satisfiedActionIds,
-      milestoneStates: milestoneStates(context.steps, new Set(satisfiedActionIds)) };
+      achievements: structuredClone(account.achievements), satisfiedActionIds, milestoneStates: states, earlierCriteriaMet };
   }
 
   async get(userId: string): Promise<AccountCareers> {

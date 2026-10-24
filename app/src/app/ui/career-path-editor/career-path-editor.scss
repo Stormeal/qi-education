@@ -476,3 +476,8 @@ $line: rgba(108, 101, 88, 0.2);
     grid-column: 1 / -1;
   }
 }
+
+// The requirement fieldset lines its buttons up at the start; the note needs the full width.
+.cpe-change {
+  justify-self: stretch;
+}

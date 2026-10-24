@@ -183,6 +183,26 @@ describe('career milestone editing (US-A004)', () => {
     expect(root().querySelector('.cpe-picked')).toBeNull();
   });
 
+  it('US-A004-AC06 a changed requirement asks what changed for learners and sends the note', async () => {
+    await click('Test Analyst');
+    root().querySelector<HTMLButtonElement>('.cpe-step-toggle')!.click();
+    fixture.detectChanges();
+    expect(root().querySelector('.cpe-change')).toBeNull();
+
+    await click('Add action');
+    const boxes = [...root().querySelectorAll<HTMLInputElement>('.cpe-route input[type="checkbox"]')];
+    boxes.at(-1)!.checked = true;
+    boxes.at(-1)!.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(root().textContent).toContain('publishing makes it version 2');
+    const note = root().querySelector<HTMLTextAreaElement>('.cpe-change textarea')!;
+    note.value = 'You now also complete the practical lab.';
+    note.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    await click('Save draft');
+    expect(saveDraft.mock.calls[0][1].steps[0].changeNote).toBe('You now also complete the practical lab.');
+  });
+
   it('US-A004 converting an old-format career reuses shared milestones and turns linked courses into course actions', async () => {
     const old: CareerPathDraft = { title: 'Old Tester', summary: '', outcomes: [], estimatedHours: 0, steps: [
       { id: 'foundation', title: 'Foundation', description: '', required: true, prerequisiteStepIds: [], courses: [{ courseId: '', title: 'Preview' }] },

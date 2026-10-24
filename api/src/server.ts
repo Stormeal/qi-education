@@ -45,6 +45,7 @@ import {
   careerPathContentSchema,
   careerPathIdSchema,
   careerPathIssues,
+  versionRequirements,
   careerPathSeeds,
   learnerCareerPath,
   selectCareerPathSchema,
@@ -1490,13 +1491,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (!existing?.draft) { response.status(404).json({ message: 'Career path draft not found' }); return; }
         const published = (await careerPaths.listPaths()).filter(path => path._id !== existing._id && path.published)
           .map(path => careerPathContentSchema.parse(path.published));
-        const issues = careerPathIssues(existing.draft, await storedCourses.listCourses(), published, existing.published);
+        const versioned = versionRequirements(existing.draft, existing.published, published, new Date().toISOString());
+        const issues = [...careerPathIssues(existing.draft, await storedCourses.listCourses(), published, existing.published), ...versioned.issues];
         if (issues.length) {
           response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
           return;
         }
         // Learner completion lives in course records, so a new revision cannot erase or double-count it.
-        const path = { ...existing, revision: existing.revision + 1, published: existing.draft };
+        const path = { ...existing, revision: existing.revision + 1, published: versioned.content, draft: versioned.content };
         let saved: CareerPathDocument;
         try { saved = await careerPaths.savePath(path, expected ?? (existing.draft.schemaVersion === 2 ? existing.updatedAt || undefined : undefined)); }
         catch (error) {

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, afterRenderEffect, computed, effect, inject, input, output, signal, viewChild,
 } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CareerPath, CareerPathAction, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
@@ -19,7 +20,7 @@ const DECLARE_LABEL: Record<CareerPathAction['kind'], string> = {
 /** A career's milestones by stage, with the selected milestone's requirements, learning options and declarations. */
 @Component({
   selector: 'app-career-tree',
-  imports: [Button, RouterLink],
+  imports: [Button, DatePipe, RouterLink],
   templateUrl: './career-tree.html',
   styleUrl: './career-tree.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,6 +72,10 @@ export class CareerTree {
 
   protected state(stepId: string): MilestoneState {
     return this.oldFormatStates()?.[stepId] ?? this.careerPath.careers()?.milestoneStates[stepId] ?? 'locked';
+  }
+
+  protected earlierMet(stepId: string): boolean {
+    return this.careerPath.careers()?.earlierCriteriaMet?.includes(stepId) ?? false;
   }
 
   protected label(state: MilestoneState): string {

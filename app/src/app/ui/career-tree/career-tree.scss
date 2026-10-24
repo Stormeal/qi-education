@@ -269,7 +269,9 @@
   font-weight: 600;
 }
 
-.ct-prerequisite {
+// A changed requirement is flagged like a missing prerequisite: both explain why the routes look as they do.
+.ct-prerequisite,
+.ct-changed {
   max-width: 380px;
   margin-bottom: 12px;
   padding-left: 10px;
@@ -277,6 +279,11 @@
   color: var(--color-highlight-ink);
   font-size: 12px;
   line-height: 1.5;
+}
+
+.ct-changed {
+  display: grid;
+  gap: 4px;
 }
 
 .ct-routes,

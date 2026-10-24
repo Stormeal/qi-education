@@ -26,6 +26,11 @@ const careerPathStepSchema = z.object({
     title: z.string().trim().max(160).default(''),
   })).max(8).default([]),
   prerequisiteStepIds: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+  // US-A004-AC06: set by the server at publish; admins only write changeNote.
+  requirementVersion: z.number().int().min(1).max(9999).default(1),
+  requirementChange: z.object({ note: z.string().trim().min(1).max(280), changedAt: z.string() }).nullable().default(null),
+  requirementHistory: z.array(z.object({ version: z.number().int().min(1), bundles: z.array(z.array(careerPathIdSchema)) })).max(10).default([]),
+  changeNote: z.string().trim().max(280).default(''),
 });
 
 export const careerPathContentSchema = z.object({
@@ -108,10 +113,9 @@ export function careerPathIssues(content: CareerPathContent, courses: Course[], 
     : content.steps;
   const definitions = new Map<string, typeof content.steps[number]>();
   const actions = new Map<string, string>();
-  // Order in a set/bundle is presentation only; semantic identities must agree.
   const signature = (step: typeof content.steps[number]) => JSON.stringify({
     actions: step.actions.map(({ cvKeywords, ...identity }) => identity).sort((a, b) => a.id.localeCompare(b.id)),
-    bundles: step.requirementBundles.map(bundle => [...bundle].sort()).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))),
+    bundles: normalizedBundles(step.requirementBundles),
     prerequisites: [...step.prerequisiteStepIds].sort(),
   });
   if (content.schemaVersion === 2) for (const step of graph) {
@@ -144,6 +148,36 @@ export function careerPathIssues(content: CareerPathContent, courses: Course[], 
 
   return issues;
 }
+
+// Order in a set/bundle is presentation only; semantic identities must agree.
+function normalizedBundles(bundles: string[][]): string[][] {
+  return bundles.map(bundle => [...bundle].sort()).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+}
+
+/**
+ * US-A004-AC06: carries requirement versions into the revision being published. A milestone whose
+ * routes differ from its published routes (this career's, else another career's for a reused
+ * milestone) needs a change note and gets the next version; the old routes go into its history.
+ */
+export function versionRequirements(draft: CareerPathContent, previous: CareerPathContent | null, others: CareerPathContent[], changedAt: string):
+  { content: CareerPathContent; issues: CareerPathIssue[] } {
+  if (draft.schemaVersion !== 2) return { content: draft, issues: [] };
+  const known = new Map<string, Step>();
+  for (const path of [...others, ...(previous ? [previous] : [])]) if (path.schemaVersion === 2) for (const step of path.steps) known.set(step.id, step);
+  const issues: CareerPathIssue[] = [];
+  const steps = draft.steps.map((step): Step => {
+    const old = known.get(step.id);
+    const base = { ...step, changeNote: '' };
+    if (!old) return { ...base, requirementVersion: 1, requirementChange: null, requirementHistory: [] };
+    const carried = { requirementVersion: old.requirementVersion, requirementChange: old.requirementChange, requirementHistory: old.requirementHistory };
+    if (JSON.stringify(normalizedBundles(old.requirementBundles)) === JSON.stringify(normalizedBundles(step.requirementBundles))) return { ...base, ...carried };
+    if (!step.changeNote) issues.push({ stepId: step.id, message: `${step.title}: Explain what changed for learners.` });
+    return { ...base, requirementVersion: old.requirementVersion + 1, requirementChange: { note: step.changeNote || '-', changedAt },
+      requirementHistory: [...old.requirementHistory, { version: old.requirementVersion, bundles: old.requirementBundles }].slice(-10) };
+  });
+  return { content: { ...draft, steps }, issues };
+}
+type Step = CareerPathContent['steps'][number];
 
 /** Learner view of the published revision; course titles and availability come from the live catalog. */
 export function learnerCareerPath(document: CareerPathDocument, courses: Course[]) {

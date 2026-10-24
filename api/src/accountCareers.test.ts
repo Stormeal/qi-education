@@ -159,7 +159,7 @@ describe.each(['', '/api'])('US-L019/L020/L021 account careers API (%s)', prefix
 
   it('US-L019-AC01 starts empty and publishes ready/locked states without inventing qualifications', async () => {
     expect(await state()).toEqual({ followedPathIds: [], focusPathId: null, achievements: [], satisfiedActionIds: [],
-      milestoneStates: { foundation: 'ready', automation: 'locked', analysis: 'locked', further: 'locked', management: 'locked', analyst: 'locked' } });
+      milestoneStates: { foundation: 'ready', automation: 'locked', analysis: 'locked', further: 'locked', management: 'locked', analyst: 'locked' }, earlierCriteriaMet: [] });
   });
 
   it('US-L021-AC01 US-L021-AC04 preserves concurrent follows, follow order, idempotency and enrollments', async () => {

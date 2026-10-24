@@ -32,6 +32,11 @@ actually done, once, and count wherever they apply.
   can arrive out of order); otherwise **ready** when all its prerequisites are achieved, else
   **locked**. A missing or cyclic prerequisite graph stays locked. Actions of a locked milestone
   cannot be declared manually (the API refuses and names the missing prerequisites).
+- **Changed requirements** (US-A004-AC06): the current routes alone decide the state, so a
+  milestone can go from achieved back to ready. Declarations, CV findings, course progress,
+  followed careers and enrollments are never removed. The milestone detail shows "Requirements
+  updated <date>." with the curator's note; when the learner's evidence met an earlier version
+  but not the current one, it says so (`earlierCriteriaMet` in `GET /users/me/careers`).
 - Sibling branches stay open: achieving one never closes another. Routes can continue past a role
   milestone; achieving it is not "career finished" and awards no job title.
 
@@ -54,6 +59,9 @@ actually done, once, and count wherever they apply.
 ## Limits
 
 - No correction or removal of a declaration, and no admin verification of evidence.
-- Updating learners when a milestone's criteria change (requirement versions, notice) is open (US-A004-AC06).
+- A milestone achieved under earlier requirements is not kept achieved: course completion has no
+  stored time, so evidence cannot be dated against the change (decided as a default 2026-10-24,
+  Alex to confirm). Changing a shared milestone is still refused while another published career
+  holds the old definition.
 - CV recognition has no OCR (scanned PDFs), no pasted text, no years-of-experience estimate and no
   admin verification. A CV achievement saved by mistake cannot be removed yet.
