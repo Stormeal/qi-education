@@ -198,6 +198,47 @@ Files you own: api/package.json, package-lock.json, docs/audits/2026-10-dependen
 Commit messages start with "X7".
 ```
 
+## X8: Performance and security audit (read-only)
+
+Why: release 1 puts colleagues' personal data on the site in December. X3 (20 October) audited the
+API only; organizations, milestone careers, SCORM import, course teachers and the frontend have
+not been audited since. Requested by Alex, 2026-10-24.
+
+```text
+Assignment X8. Follow the Rules section of docs/handoffs/codex-extra-assignments.md.
+
+Audit performance and security of the whole repository (api/ and app/) without changing code.
+Start from docs/audits/2026-10-api-audit.md (X3, source 546a2d4): do not repeat its findings;
+say which of its open risks still hold. Give extra attention to code added since 546a2d4
+(git log 546a2d4..HEAD): organizations, milestone careers and requirement versions, SCORM import,
+course teachers, CV scan.
+
+Security: authorization on every route, including organization owner/member/original-owner rules
+and foreign IDs; invitation token handling (fragment, sessionStorage, hashing, rate limit);
+input validation at every trust boundary (JSON, params, query, uploads, SCORM/zip import, CV
+files, webhooks); HTML rendering in the app (innerHTML, inertHtml, renderLessonMarkdown, uploaded
+SVG or HTML attachments) and anything that could run script; where the app keeps tokens and what
+a script on the page could read; CORS, security headers and cache headers on the API; secrets or
+personal data in logs, URLs or error bodies.
+
+Performance: MongoDB queries without a supporting index (list each query and the index it needs,
+new organization collections included); unbounded reads and N+1 reads per request; work per
+request that grows with catalog or member size; cold-start cost on Vercel; frontend bundle
+(run npm run app:build:pages and report initial and largest lazy chunk sizes, and what makes them
+large); repeated or duplicate API calls on page load (read the services; no browser needed);
+large payloads sent to the browser (course content, careers).
+
+Write docs/audits/2026-10-performance-security.md: findings ranked most severe first, each with
+file:line, a plain-English explanation, a concrete failure scenario, evidence (reproduced with an
+in-process test or read from the code) and a suggested fix. Say clearly what you checked and found
+nothing in. Do not fix anything; each reproduced defect also gets a DEF row in docs/defects.md
+(next free number). Throwaway probe scripts are not committed.
+
+Files you own: docs/audits/2026-10-performance-security.md, docs/defects.md (new rows only),
+your row in docs/work_queue.md. Read anything; edit nothing else, app/** included.
+Commit message starts with "X8".
+```
+
 ---
 
 ## Ideas that need Alex's yes first (no prompt yet)

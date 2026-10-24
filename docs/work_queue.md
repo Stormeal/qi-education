@@ -6,6 +6,12 @@ messages hold them.
 
 ## Active work
 
+**Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
+app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
+[handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md#x8-performance-and-security-audit-read-only).
+State: handed to Alex. **Claude** (same day): design pass for a combined career map (all careers
+in one expandable view), Alex chose this over a single-career full-screen view.
+
 Delivered 2026-10-24, not pushed: US-A004-AC06 (Claude, `5b040de` and the editor refresh after
 publish; defaults confirmed by Alex) and US-P018-AC04 (Codex, `0baf101`/`6f22350`, checked by Claude:
 own files only, contract kept). Checks: API 2,568 passed + 2 expected failures, app 505, journeys 18,
