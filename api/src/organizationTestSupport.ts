@@ -1,6 +1,7 @@
 // Driver double for isolated organization repository and HTTP journey tests.
 import type { OrganizationCollection, OrganizationCollections } from './organizationRepository.js';
-export function fakeOrganizationCollections(): OrganizationCollections {
+// `log` records each find filter and index, so tests can check what reaches the database (X8 F6).
+export function fakeOrganizationCollections(log?: { finds: { table: string; filter: Record<string, unknown> }[]; indexes: { table: string; keys: Record<string, unknown> }[] }): OrganizationCollections {
   const tables = new Map<string, OrganizationCollection>();
   return async name => {
     let table = tables.get(name); if (table) return table;
@@ -14,8 +15,11 @@ export function fakeOrganizationCollections(): OrganizationCollections {
       }
     }
     table = {
-      find: () => ({ toArray: async () => structuredClone([...rows.values()]) }),
-      createIndex: async (keys: Record<string, unknown>, options: object = {}) => { indexes.push({ keys, ...options }); return 'index'; },
+      find: (filter: Record<string, unknown> = {}) => {
+        log?.finds.push({ table: name, filter });
+        return { toArray: async () => structuredClone([...rows.values()].filter(v => matches(v, filter))) };
+      },
+      createIndex: async (keys: Record<string, unknown>, options: object = {}) => { indexes.push({ keys, ...options }); log?.indexes.push({ table: name, keys }); return 'index'; },
       insertOne: async (v: Record<string, unknown>) => { unique(v); rows.set(String(v._id), structuredClone(v)); return {}; },
       updateOne: async (filter: Record<string, unknown>, update: { $set: Record<string, unknown> }) => {
         const row = [...rows.values()].find(v => matches(v, filter)); if (!row) return { matchedCount: 0 };

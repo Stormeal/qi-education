@@ -10,7 +10,7 @@ import { apiConfig } from './config.js';
 import { resetTokenHash } from './passwordResetDelivery.js';
 import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema, inviteSchema,
   type OrgRequest, type MyOrganization, type StoredOrgRequest, type Organization, type StoredInvitation, type Invitation,
-  type Member, type OrganizationMembership, type StoredCourseRequest, type CourseRequest } from './organization.js';
+  type Member, type OrganizationMembership, type StoredCourseRequest, type CourseRequest, type Prices } from './organization.js';
 
 type User = Pick<AuthUser, 'id' | 'email' | 'displayName'>;
 export type OrganizationOptions = { now?: () => number; newToken?: () => string; appPublicUrl?: string };
@@ -76,7 +76,7 @@ export class OrganizationService {
       careerId: membership.careerId, seatPriceDkk: membership.careerId ? prices.careers[membership.careerId] ?? null : null,
       openCourseIds, startedCourseIds: openCourseIds.filter(id => started.has(id)),
       courseRequests: await Promise.all((await this.repository.listCourseRequests(organization.id))
-        .filter(v => v.userId === userId).map(v => this.courseRequestView(v))) };
+        .filter(v => v.userId === userId).map(v => this.courseRequestView(v, prices))) };
   }
   async listRequests(state = 'pending') {
     return Promise.all((await this.repository.listRequests(state)).map(async value => {
@@ -344,8 +344,9 @@ export class OrganizationService {
     const started = new Set((await this.repository.getMembership(userId))?.startedCourseIds ?? []);
     return (await this.openCourseIds(userId)).filter(id => started.has(id));
   }
-  private async courseRequestView({ orgId: _orgId, ...value }: StoredCourseRequest): Promise<CourseRequest> {
-    return { ...value, addOnPriceDkk: (await this.prices()).courses[value.courseId] ?? null };
+  // X8 F6: prices are read once per answer, not once per request in a list.
+  private courseRequestView({ orgId: _orgId, ...value }: StoredCourseRequest, prices: Prices): CourseRequest {
+    return { ...value, addOnPriceDkk: prices.courses[value.courseId] ?? null };
   }
   async requestCourse(userId: string, orgId: string, courseId: string) {
     return this.repository.withOrganizationLock(orgId, async () => {
@@ -357,12 +358,13 @@ export class OrganizationService {
       userName: account.displayName, courseId, state: 'pending', addOnPriceDkk: (await this.prices()).courses[courseId] ?? null,
       createdAt: new Date(this.now()).toISOString() };
     if (!await this.repository.createCourseRequest(value)) throw new OrganizationError(409, 'A course request is already pending');
-    return this.courseRequestView(value);
+    return this.courseRequestView(value, await this.prices());
     });
   }
   async listCourseRequests(ownerId: string, orgId: string) {
     await this.owner(ownerId, orgId);
-    return Promise.all((await this.repository.listCourseRequests(orgId)).map(v => this.courseRequestView(v)));
+    const prices = await this.prices();
+    return (await this.repository.listCourseRequests(orgId)).map(v => this.courseRequestView(v, prices));
   }
   async decideCourseRequest(ownerId: string, orgId: string, id: string, action: string) {
     await this.owner(ownerId, orgId);
@@ -370,6 +372,6 @@ export class OrganizationService {
     const request = (await this.repository.listCourseRequests(orgId)).find(v => v.id === id);
     if (!request) throw new OrganizationError(404, 'Course request not found');
     if (!await this.repository.decideCourseRequest(id, action === 'approve' ? 'approved' : 'declined')) throw new OrganizationError(409, 'Course request is no longer pending');
-    return this.courseRequestView((await this.repository.listCourseRequests(orgId)).find(v => v.id === id)!);
+    return this.courseRequestView((await this.repository.listCourseRequests(orgId)).find(v => v.id === id)!, await this.prices());
   }
 }

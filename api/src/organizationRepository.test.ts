@@ -63,3 +63,34 @@ describe.each(['memory', 'mongodb'])('organization store (%s)', kind => {
     expect(await repo.getPrices()).toEqual({ careers: {}, courses: { course: 0 } });
   });
 });
+
+describe('X8 F6 organization lookups ask MongoDB for only what they need', () => {
+  it('reads by id, token hash or organization instead of whole collections, with indexes for each', async () => {
+    const finds: { table: string; filter: Record<string, unknown> }[] = [];
+    const indexes: { table: string; keys: Record<string, unknown> }[] = [];
+    const repo = new MongoOrganizationRepository(fakeOrganizationCollections({ finds, indexes }));
+    const member = (userId: string, orgId: string) => ({ userId, orgId, role: 'member' as const, state: 'active' as const,
+      careerId: null, startedCourseIds: [], consentAt: 'now', joinedAt: 'now' });
+    for (let i = 0; i < 5; i++) await repo.insertMembership(member(`u${i}`, i % 2 ? 'o1' : 'o2'));
+    await repo.createOrganization({ id: 'o1', displayName: 'One', companyName: 'One', cvr: '12345678', billingEmail: 'b@example.test',
+      state: 'active', originalOwnerId: 'u1', createdAt: 'now' });
+    finds.length = 0;
+
+    expect((await repo.getMembership('u3'))?.orgId).toBe('o1');
+    expect((await repo.listMembers('o1')).map(v => v.userId).sort()).toEqual(['u1', 'u3']);
+    expect((await repo.getOrganization('o1'))?.displayName).toBe('One');
+    expect(await repo.findInvitationByTokenHash('missing')).toBeNull();
+    expect(await repo.listCourseRequests('o1')).toEqual([]);
+
+    expect(finds).toEqual([
+      { table: 'memberships', filter: { _id: 'u3' } },
+      { table: 'memberships', filter: { orgId: 'o1' } },
+      { table: 'organizations', filter: { _id: 'o1' } },
+      { table: 'invitations', filter: { tokenHash: 'missing' } },
+      { table: 'course_requests', filter: { orgId: 'o1' } },
+    ]);
+    expect(indexes).toEqual(expect.arrayContaining([
+      { table: 'memberships', keys: { orgId: 1 } }, { table: 'course_requests', keys: { orgId: 1 } }, { table: 'invitations', keys: { tokenHash: 1 } },
+    ]));
+  });
+});

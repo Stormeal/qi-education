@@ -37,8 +37,11 @@ type Tables = { requests: StoredOrgRequest; organizations: Organization; members
   invitations: StoredInvitation; course_requests: StoredCourseRequest; prices: { id: string; kind: 'careers' | 'courses'; resourceId: string; dkk: number } };
 type Table = keyof Tables;
 type RecordValue = Tables[Table];
+// X8 F6: reads name what they need (an id, or equal fields), so MongoDB answers from an index instead of returning a whole collection.
+type Filter<K extends Table> = Partial<Tables[K]>;
 interface Store {
-  list<K extends Table>(table: K): Promise<Tables[K][]>;
+  list<K extends Table>(table: K, filter?: Filter<K>): Promise<Tables[K][]>;
+  get<K extends Table>(table: K, id: string): Promise<Tables[K] | null>;
   insert<K extends Table>(table: K, id: string, value: Tables[K]): Promise<boolean>;
   update<K extends Table>(table: K, id: string, expected: Partial<Tables[K]>, patch: Partial<Tables[K]>): Promise<boolean>;
   delete<K extends Table>(table: K, id: string, expected: Partial<Tables[K]>): Promise<boolean>;
@@ -49,7 +52,10 @@ const open = (value: RecordValue) => 'state' in value && ['pending', 'sent', 'no
 class MemoryStore implements Store {
   private tables = new Map<Table, Map<string, RecordValue>>();
   private table(name: Table) { let table = this.tables.get(name); if (!table) this.tables.set(name, table = new Map()); return table; }
-  async list<K extends Table>(name: K): Promise<Tables[K][]> { return structuredClone([...this.table(name).values()]) as Tables[K][]; }
+  async list<K extends Table>(name: K, filter: Filter<K> = {}): Promise<Tables[K][]> {
+    return structuredClone([...this.table(name).values()].filter(value => Object.entries(filter).every(([key, v]) => (value as unknown as Record<string, unknown>)[key] === v))) as Tables[K][];
+  }
+  async get<K extends Table>(name: K, id: string) { const value = this.table(name).get(id); return value ? structuredClone(value) as Tables[K] : null; }
   async insert<K extends Table>(name: K, id: string, value: Tables[K]) {
     const table = this.table(name);
     if (table.has(id) || this.conflicts(name, id, value)) return false;
@@ -95,7 +101,11 @@ class MongoStore implements Store {
           await c.createIndex({ orgId: 1, email: 1 }, { unique: true, partialFilterExpression: { open: true } });
           await c.createIndex({ tokenHash: 1 }, { unique: true });
         }
-        if (table === 'course_requests') await c.createIndex({ userId: 1, courseId: 1 }, { unique: true, partialFilterExpression: { state: 'pending' } });
+        if (table === 'course_requests') {
+          await c.createIndex({ userId: 1, courseId: 1 }, { unique: true, partialFilterExpression: { state: 'pending' } });
+          await c.createIndex({ orgId: 1 });
+        }
+        if (table === 'memberships') await c.createIndex({ orgId: 1 });
         return c;
       })();
       this.ready.set(table, promise);
@@ -103,8 +113,12 @@ class MongoStore implements Store {
     }
     return promise;
   }
-  async list<K extends Table>(table: K): Promise<Tables[K][]> {
-    return (await (await this.collection(table)).find({}).toArray()).map(({ _id, open: _open, ...value }) => value as Tables[K]);
+  async list<K extends Table>(table: K, filter: Filter<K> = {}): Promise<Tables[K][]> {
+    return (await (await this.collection(table)).find(filter as Document).toArray()).map(({ _id, open: _open, ...value }) => value as Tables[K]);
+  }
+  async get<K extends Table>(table: K, id: string) {
+    const [found] = (await (await this.collection(table)).find({ _id: id }).toArray()).map(({ _id, open: _open, ...value }) => value as Tables[K]);
+    return found ?? null;
   }
   async insert<K extends Table>(table: K, id: string, value: Tables[K]) {
     const collection = await this.collection(table);
@@ -135,25 +149,25 @@ class Repository implements OrganizationRepository {
     catch (error) { if (error instanceof CourseBusyError) throw new OrganizationError(409, 'Organization is being updated. Try again shortly.'); throw error; }
   }
   async createRequest(v: StoredOrgRequest) { if (!await this.store.insert('requests', v.id, v)) throw new OrganizationError(409, 'An organization request is already pending'); }
-  async findPendingOrLatestRequest(userId: string) { return (await this.store.list('requests')).filter(v => v.userId === userId).sort((a,b) => Number(b.state === 'pending') - Number(a.state === 'pending') || b.submittedAt.localeCompare(a.submittedAt))[0] ?? null; }
+  async findPendingOrLatestRequest(userId: string) { return (await this.store.list('requests', { userId })).sort((a,b) => Number(b.state === 'pending') - Number(a.state === 'pending') || b.submittedAt.localeCompare(a.submittedAt))[0] ?? null; }
   updateRequest(id: string, state: StoredOrgRequest['state'], patch: Partial<StoredOrgRequest>) { return this.store.update('requests', id, { state }, patch); }
-  async listRequests(state?: string) { return (await this.store.list('requests')).filter(v => !state || v.state === state); }
+  async listRequests(state?: string) { return this.store.list('requests', state ? { state: state as StoredOrgRequest['state'] } : {}); }
   async createOrganization(v: Organization) { if (!await this.store.insert('organizations', v.id, v)) throw new OrganizationError(409, 'Organization already exists'); }
   async deleteOrganization(id: string) { await this.store.delete('organizations', id, {}); }
-  async getOrganization(id: string) { return (await this.store.list('organizations')).find(v => v.id === id) ?? null; }
+  getOrganization(id: string) { return this.store.get('organizations', id); }
   listOrganizations() { return this.store.list('organizations'); }
   setOrganizationState(id: string, state: Organization['state']) { return this.store.update('organizations', id, {}, { state }); }
   insertMembership(v: OrganizationMembership) { return this.store.insert('memberships', v.userId, v); }
-  async getMembership(userId: string) { return (await this.store.list('memberships')).find(v => v.userId === userId) ?? null; }
-  async listMembers(orgId: string) { return (await this.store.list('memberships')).filter(v => v.orgId === orgId); }
+  getMembership(userId: string) { return this.store.get('memberships', userId); }
+  listMembers(orgId: string) { return this.store.list('memberships', { orgId }); }
   updateMembership(userId: string, orgId: string, patch: Partial<OrganizationMembership>, state?: OrganizationMembership['state']) { return this.store.update('memberships', userId, { orgId, ...(state ? { state } : {}) }, patch); }
   deleteMembership(userId: string, orgId: string) { return this.store.delete('memberships', userId, { orgId }); }
   async createInvitation(v: StoredInvitation) { if (!await this.store.insert('invitations', v.id, v)) throw new OrganizationError(409, 'An open invitation already exists for this email'); }
-  async findInvitationByTokenHash(hash: string) { return (await this.store.list('invitations')).find(v => v.tokenHash === hash) ?? null; }
-  async listInvitations(orgId?: string) { return (await this.store.list('invitations')).filter(v => !orgId || v.orgId === orgId); }
+  async findInvitationByTokenHash(hash: string) { return (await this.store.list('invitations', { tokenHash: hash }))[0] ?? null; }
+  listInvitations(orgId?: string) { return this.store.list('invitations', orgId ? { orgId } : {}); }
   updateInvitation(id: string, state: StoredInvitation['state'], patch: Partial<StoredInvitation>, tokenHash?: string) { return this.store.update('invitations', id, { state, ...(tokenHash ? { tokenHash } : {}) }, patch); }
   createCourseRequest(v: StoredCourseRequest) { return this.store.insert('course_requests', v.id, v); }
-  async listCourseRequests(orgId: string) { return (await this.store.list('course_requests')).filter(v => v.orgId === orgId); }
+  listCourseRequests(orgId: string) { return this.store.list('course_requests', { orgId }); }
   decideCourseRequest(id: string, state: 'approved' | 'declined') { return this.store.update('course_requests', id, { state: 'pending' }, { state }); }
   async getPrices(): Promise<Prices> { const result: Prices = { careers: {}, courses: {} }; for (const v of await this.store.list('prices')) result[v.kind][v.resourceId] = v.dkk; return result; }
   private async setPrice(kind: 'careers' | 'courses', resourceId: string, dkk: number | null) {
