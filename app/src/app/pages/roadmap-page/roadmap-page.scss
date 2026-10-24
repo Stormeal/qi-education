@@ -1,0 +1,122 @@
+.roadmap-shell {
+  display: grid;
+  gap: 32px;
+  padding-bottom: 32px;
+}
+
+.roadmap-heading {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.roadmap-heading h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-title-lg);
+  text-wrap: balance;
+}
+
+.roadmap-sub,
+.roadmap-muted {
+  max-width: 68ch;
+  color: var(--color-text-muted);
+}
+
+.roadmap-muted {
+  font-size: var(--text-meta);
+}
+
+.roadmap-section {
+  display: grid;
+  gap: 16px;
+}
+
+.roadmap-section h2 {
+  font-size: var(--text-title-sm);
+  font-weight: 800;
+}
+
+.roadmap-section h3 {
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.roadmap-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.roadmap-release {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  padding: 20px;
+  background: var(--color-surface-card);
+}
+
+.roadmap-release.current {
+  border: 2px solid var(--color-primary);
+}
+
+.roadmap-when {
+  font-size: var(--text-meta);
+  font-weight: 600;
+}
+
+.roadmap-release ul {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+  color: var(--color-text-muted);
+}
+
+.roadmap-group {
+  display: grid;
+  gap: 8px;
+}
+
+.roadmap-items {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+  list-style: none;
+  padding: 0;
+}
+
+.roadmap-items li {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  padding: 14px 20px;
+}
+
+.roadmap-items li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.roadmap-items p {
+  max-width: 68ch;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+}
+
+.roadmap-priority {
+  font-size: var(--text-meta);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.roadmap-priority.must {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .roadmap-timeline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

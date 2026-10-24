@@ -72,7 +72,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.430';
+  readonly appVersion = '0.1.431';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -103,6 +103,7 @@ export class AppStateService {
   readonly profileError = signal('');
   /** US-T007: a teacher's or admin's "About you" is saved to the account and shown on instructor cards. */
   readonly profileBioPublic = computed(() => ['teacher', 'admin'].includes(this.loginState()?.user.role ?? ''));
+  readonly canSeeRoadmap = this.profileBioPublic;
   private readonly profileSnapshot = signal('');
   private profileSavedTimeout: ReturnType<typeof setTimeout> | null = null;
   readonly avatarColorOptions: readonly string[] = [

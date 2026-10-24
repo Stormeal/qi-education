@@ -26,4 +26,20 @@ describe('PageHeader', () => {
     expect(hrefs).toContain('/qi-education/courses');
     expect(hrefs).toContain('/qi-education/library');
   });
+
+  it.each([['Teacher', true], ['Platform admin', true], ['Student', false]] as const)(
+    'shows the Roadmap tab to a %s: %s',
+    async (roleLabel, shown) => {
+      await TestBed.configureTestingModule({ imports: [PageHeader], providers: [provideRouter([])] }).compileComponents();
+
+      const fixture = TestBed.createComponent(PageHeader);
+      fixture.componentRef.setInput('displayName', 'U');
+      fixture.componentRef.setInput('email', 'u@example.test');
+      fixture.componentRef.setInput('roleLabel', roleLabel);
+      fixture.detectChanges();
+
+      const labels = Array.from(fixture.nativeElement.querySelectorAll('.tabs a') as NodeListOf<HTMLElement>).map((link) => link.textContent?.trim());
+      expect(labels.includes('Roadmap')).toBe(shown);
+    },
+  );
 });

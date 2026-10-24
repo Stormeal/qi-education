@@ -1,11 +1,11 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Button } from '../button/button';
 import { BrandLink } from '../brand-link/brand-link';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
-export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor' | 'profile' | 'career-path';
+export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor' | 'profile' | 'career-path' | 'roadmap';
 
 @Component({
   selector: 'app-page-header',
@@ -26,6 +26,8 @@ export class PageHeader {
   protected readonly homeHref = '/';
   protected readonly coursesHref = '/courses';
   protected readonly libraryHref = '/library';
+  // The role label is the header's only role input (AppStateService.currentRoleLabel); teachers and admins see the roadmap.
+  protected readonly canSeeRoadmap = computed(() => this.roleLabel() !== 'Student');
 
   readonly homeClicked = output<void>();
   readonly coursesClicked = output<void>();

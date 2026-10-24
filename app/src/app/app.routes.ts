@@ -1,9 +1,12 @@
 import { inject } from '@angular/core';
-import { CanDeactivateFn, Routes } from '@angular/router';
+import { CanActivateFn, CanDeactivateFn, Router, Routes } from '@angular/router';
 import { AppStateService } from './services/app-state.service';
 
 const unsavedCourseGuard: CanDeactivateFn<unknown> = () =>
   inject(AppStateService).confirmDiscardCourseChanges();
+
+const roadmapGuard: CanActivateFn = () =>
+  inject(AppStateService).canSeeRoadmap() || inject(Router).parseUrl('/');
 
 export const routes: Routes = [
   {
@@ -36,6 +39,12 @@ export const routes: Routes = [
   {
     path: 'terms',
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
+  },
+  {
+    path: 'roadmap',
+    canActivate: [roadmapGuard],
+    loadComponent: () =>
+      import('./pages/roadmap-page/roadmap-page').then((module) => module.RoadmapPage),
   },
   {
     path: 'reset-password',

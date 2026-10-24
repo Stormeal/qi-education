@@ -11,7 +11,8 @@ evidence stay in Git history. IDs are never reused, so gaps in the numbering are
 ## Releases
 
 Roadmap agreed by Alex (product owner) on 2026-10-23; the management version is the
-[QI Academy Roadmap](https://claude.ai/artifact/M5vCXNJZqTWmxhFcWQLVCJ) page. Release 1 scope may
+[QI Academy Roadmap](https://claude.ai/artifact/M5vCXNJZqTWmxhFcWQLVCJ) page; teachers and admins
+see a copy at `/roadmap` in the app (`roadmap-page.ts`), so change both together. Release 1 scope may
 grow after Alex's department interviews (week of 26 October: marketing, IT, sales, course
 department); new requests enter here as Proposed stories.
 

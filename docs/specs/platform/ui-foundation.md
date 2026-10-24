@@ -35,6 +35,9 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   `<button>`s, but use the design values and the global ring.
 - Primary navigation links (including Catalog and My Learning) have no dropdown chevrons.
   Use disclosure indicators only on controls that actually expand content or open a menu.
+- Teachers and admins also get a Roadmap link after My Learning. It opens `/roadmap`, a fixed copy
+  of the agreed roadmap in `pages/roadmap-page/roadmap-page.ts` (releases and release 1 items, no
+  management decisions). Students do not see the link, and `/roadmap` sends them to Home.
 - No dark theme.
 
 ## Code
