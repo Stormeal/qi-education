@@ -10,7 +10,7 @@ messages hold them.
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
 [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md#x8-performance-and-security-audit-read-only).
 State: done on `main` (base `6de6283`); report `docs/audits/2026-10-performance-security.md`: **2 P1, 5 P2, 2 P3** findings, including five reproduced defects DEF-059–DEF-063. API 2,568 passed + 2 expected failures / 101 files; API build and Pages build pass. Read-only audit; no push/deploy. Hosted/provider/index-plan/browser/Linux checks remain unverified.
-X8 committed by Claude on Alex's instruction (Codex did not run the commit step); DEF-061 and DEF-063 fixed in `a65bfa0`; DEF-059, DEF-060 and DEF-062: Claude fixing next.
+X8 committed by Claude on Alex's instruction (Codex did not run the commit step); DEF-061 and DEF-063 fixed in `a65bfa0`; DEF-059, DEF-060 and DEF-062 fixed by Claude (see their rows). During the full API run `signInLimit.test.ts` "DEF-034 / 11 bounds abandoned pending capacity" failed once under load and passed on its own twice and in a full rerun; not touched.
 
 Delivered 2026-10-24, not pushed: US-A004-AC06 (Claude, `5b040de` and the editor refresh after
 publish; defaults confirmed by Alex) and US-P018-AC04 (Codex, `0baf101`/`6f22350`, checked by Claude:

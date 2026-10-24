@@ -98,4 +98,18 @@ describe.each(['', '/api'])('US-A004-AC06 changed criteria over HTTP (%s)', pref
     expect((await request('/users/me/achievements', student, 'POST', { actionId: 'analysis-lab' })).status).toBe(200);
     expect(await (await request('/users/me/careers', student)).json()).toMatchObject({ milestoneStates: { analysis: 'achieved' }, earlierCriteriaMet: [] });
   });
+
+  it('DEF-062 an action ID left out for one publication cannot come back with a different meaning', async () => {
+    const withActions = (actions: { id: string; kind: string; title: string }[], extra = {}) =>
+      milestone('analysis', { actions, requirementBundles: [[actions[0].id]], ...extra });
+    expect((await publish([withActions([{ id: 'analysis-exam', kind: 'exam', title: 'Original Foundation Exam' }])])).status).toBe(200);
+    expect((await publish([withActions([{ id: 'analysis-gap', kind: 'exam', title: 'Gap exam' }], { changeNote: 'New exam.' })])).status).toBe(200);
+
+    const reused = await publish([withActions([{ id: 'analysis-exam', kind: 'exam', title: 'Entirely Different Advanced Exam' }], { changeNote: 'Back.' })]);
+    expect(reused.status).toBe(400);
+    expect((await reused.json()).message).toContain('Action identity "analysis-exam" already means a published qualification.');
+
+    // The same meaning may come back.
+    expect((await publish([withActions([{ id: 'analysis-exam', kind: 'exam', title: 'Original Foundation Exam' }], { changeNote: 'Back.' })])).status).toBe(200);
+  });
 });

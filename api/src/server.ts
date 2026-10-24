@@ -45,6 +45,8 @@ import {
   careerPathContentSchema,
   careerPathIdSchema,
   careerPathIssues,
+  knownActions,
+  publishedActionsAfter,
   versionRequirements,
   careerPathSeeds,
   learnerCareerPath,
@@ -1476,7 +1478,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       const expected = expectedPathVersion(request, existing);
       const draft = careerPathContentSchema.parse(request.body);
       const path = { _id: id, revision: existing?.revision ?? 0, published: existing?.published ?? null, draft,
-        updatedAt: existing?.updatedAt ?? '' };
+        updatedAt: existing?.updatedAt ?? '', ...(existing?.publishedActions ? { publishedActions: existing.publishedActions } : {}) };
       // A v2 draft write must not restore an older published graph snapshot.
       const saved = await careerPaths.savePath(path, expected ?? (draft.schemaVersion === 2 ? existing?.updatedAt || undefined : undefined));
       response.json(await adminCareerPath(saved));
@@ -1492,13 +1494,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const published = (await careerPaths.listPaths()).filter(path => path._id !== existing._id && path.published)
           .map(path => careerPathContentSchema.parse(path.published));
         const versioned = versionRequirements(existing.draft, existing.published, published, new Date().toISOString());
-        const issues = [...careerPathIssues(existing.draft, await storedCourses.listCourses(), published, existing.published), ...versioned.issues];
+        const issues = [...careerPathIssues(existing.draft, await storedCourses.listCourses(), published, existing.published, knownActions(existing)), ...versioned.issues];
         if (issues.length) {
           response.status(400).json({ message: issues.map((issue) => issue.message).join(' '), issues });
           return;
         }
         // Learner completion lives in course records, so a new revision cannot erase or double-count it.
-        const path = { ...existing, revision: existing.revision + 1, published: versioned.content, draft: versioned.content };
+        const path = { ...existing, revision: existing.revision + 1, published: versioned.content, draft: versioned.content,
+          publishedActions: publishedActionsAfter(existing, versioned.content) };
         let saved: CareerPathDocument;
         try { saved = await careerPaths.savePath(path, expected ?? (existing.draft.schemaVersion === 2 ? existing.updatedAt || undefined : undefined)); }
         catch (error) {

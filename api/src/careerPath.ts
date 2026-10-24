@@ -51,7 +51,26 @@ export type CareerPathDocument = {
   published: CareerPathContent | null;
   draft: CareerPathContent | null;
   updatedAt: string;
+  /** DEF-062: every action identity this career ever published, so a retired ID keeps its meaning. Absent on older documents. */
+  publishedActions?: PublishedAction[];
 };
+export type PublishedAction = { id: string; kind: string; title: string; courseId: string };
+
+/** The published action identities after publishing `content`: earlier ones are kept, new ones added. */
+export function publishedActionsAfter(document: Pick<CareerPathDocument, 'published' | 'publishedActions'>, content: CareerPathContent): PublishedAction[] {
+  const known = new Map(knownActions(document).map((action) => [action.id, action]));
+  if (content.schemaVersion === 2) for (const step of content.steps) for (const action of step.actions) {
+    if (!known.has(action.id)) known.set(action.id, { id: action.id, kind: action.kind, title: action.title, courseId: action.courseId ?? '' });
+  }
+  return [...known.values()];
+}
+
+export function knownActions(document: Pick<CareerPathDocument, 'published' | 'publishedActions'>): PublishedAction[] {
+  const fromPublished = document.published?.schemaVersion === 2
+    ? document.published.steps.flatMap((step) => step.actions).map((action) => ({ id: action.id, kind: action.kind, title: action.title, courseId: action.courseId ?? '' }))
+    : [];
+  return [...(document.publishedActions ?? []), ...fromPublished.filter((action) => !document.publishedActions?.some((item) => item.id === action.id))];
+}
 export type CareerPathSelection = { _id: string; pathId: string; revision: number; selectedAt: string };
 export type CareerPathIssue = { stepId: string; message: string };
 
@@ -62,16 +81,17 @@ export function nextCareerPathUpdatedAt(previous?: string, now = Date.now()): st
 }
 
 /** Structural checks a revision must pass before learners can see it. */
-export function careerPathIssues(content: CareerPathContent, courses: Course[], published: CareerPathContent[] = [], previous?: CareerPathContent | null): CareerPathIssue[] {
+export function careerPathIssues(content: CareerPathContent, courses: Course[], published: CareerPathContent[] = [], previous?: CareerPathContent | null, history: PublishedAction[] = []): CareerPathIssue[] {
   const issues: CareerPathIssue[] = [];
   const courseIds = new Set(courses.map((course) => course.id));
   const stepIds = new Set<string>();
   const requiredCourseStep = new Map<string, string>();
-  if (content.schemaVersion === 2 && previous?.schemaVersion === 2) {
-    const historical = new Map(previous.steps.flatMap(step => step.actions).map(action => [action.id, action]));
+  if (content.schemaVersion === 2) {
+    const historical = new Map<string, { kind: string; title: string; courseId?: string }>(history.map(action => [action.id, action]));
+    if (previous?.schemaVersion === 2) for (const action of previous.steps.flatMap(step => step.actions)) historical.set(action.id, action);
     for (const step of content.steps) for (const action of step.actions) {
       const old = historical.get(action.id);
-      if (old && (old.kind !== action.kind || old.courseId !== action.courseId || old.title !== action.title)) {
+      if (old && (old.kind !== action.kind || (old.courseId ?? '') !== (action.courseId ?? '') || old.title !== action.title)) {
         issues.push({ stepId: step.id, message: `${step.title}: Action identity "${action.id}" already means a published qualification. Use a new versioned action ID for changed evidence.` });
       }
     }

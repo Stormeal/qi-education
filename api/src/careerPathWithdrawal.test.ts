@@ -140,7 +140,9 @@ describe.each(['', '/api'])('US-A003 career path withdrawal and edit protection 
     expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
     expect(await responses.find((response) => response.status === 409)!.json()).toEqual({ message: expect.any(String), code: 'CAREER_PATH_CONFLICT' });
     const winner = await responses.find((response) => response.status === 200)!.json();
-    expect(await stored()).toEqual({ _id: winner.id, draft: winner.draft, published: winner.published, revision: winner.revision, updatedAt: winner.updatedAt });
+    // A winning publish also records its action identities (DEF-062); they are stored only, never in the admin response.
+    const { publishedActions: _known, ...document } = (await stored())!;
+    expect(document).toEqual({ _id: winner.id, draft: winner.draft, published: winner.published, revision: winner.revision, updatedAt: winner.updatedAt });
   });
 
   it('AC02 refuses a protected edit after a delayed legacy save, even when both legacy routes read the same version', async () => {
