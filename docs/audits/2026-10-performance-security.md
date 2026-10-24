@@ -63,6 +63,22 @@ them. Other dependency findings are not duplicated here.
 | F8 | P3 resource-budget risk | CV compressed byte limit does not bound parser expansion/work | Small controlled DOCX expansion; no freeze/OOM |
 | F9 | P3 startup/download cost | Broad API SDK imports and large lazy media/parser chunks | Fresh-process local timings, production build and source graph |
 
+### Follow-up, 24 October 2026 (Claude)
+
+Every ranked item has been acted on; each commit has a regression test.
+
+| Item | Result |
+| --- | --- |
+| DEF-059 | Fixed `07e8424`: media paths must resolve (links followed) inside the real assets folder. |
+| DEF-060 | Fixed `a1af77e`: removal or leaving closes a half-finished join first. |
+| DEF-061 | Fixed `a65bfa0`: a stale invitation check is ignored. |
+| DEF-062 | Fixed `2fc9580`: careers keep `publishedActions`, every action identity ever published. |
+| DEF-063 | Fixed `a65bfa0` (content no longer waits for thumbnails) and `3f2c608` (at most four thumbnail downloads at once, 20 s limit each). Visible-only loading not done. |
+| F6 | `e88d785`: organization reads query by `_id`, token hash or `orgId` (new `orgId` indexes on memberships and course requests); prices read once per answer. Not done: one account read per listed member; real Atlas query plans not checked. |
+| F7 | `e345cfd`: login, signup, password change and reset use async scrypt; other requests keep running. No admission queue beyond the thread pool (4 by default); no load test. |
+| F8 | `8548e70`: PDFs over 20 pages and text over 200,000 characters are refused with a message. A DOCX is bounded only after parsing. |
+| F9 | `672b3da`: `googleapis` loads on first Sheets use. Fresh-process import of the built server went from about 1.8 s / +121 MiB to about 0.55 s / +52 MiB (local Windows, 3 runs each); Vercel cold start not measured. Stripe and Mux stay eager (small in memory). Frontend chunks unchanged (already lazy). |
+
 ### F1 / DEF-059 — Import paths escape the supplied Rise folder
 
 Locations: `api/src/riseImport.ts:75`, `:127–137`, `:153–155`; actual reads/uploads
