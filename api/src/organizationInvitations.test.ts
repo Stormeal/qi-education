@@ -41,6 +41,37 @@ describe('US-O001 invitations and joining', () => {
     expect(f.mail.filter(m => m.subject === 'Member joined Team')).toHaveLength(1);
     expect(await f.service.myOrganization(user.id)).toMatchObject({ role: 'member', organization: { id: f.orgId } });
   });
+  it('DEF-060 a removed member cannot rejoin by replaying an interrupted invitation', async () => {
+    const f = await setup(), user = (await f.auth.findByEmail('teacher@qi-education.local'))!;
+    await f.service.invite(f.owner.id, f.orgId, user.email); const raw = f.token();
+    const update = f.repository.updateInvitation.bind(f.repository);
+    let interrupt = true;
+    f.repository.updateInvitation = async (id, state, patch, hash) => {
+      if (interrupt && patch.joining === false) { interrupt = false; throw new Error('store unavailable'); }
+      return update(id, state, patch, hash);
+    };
+    await expect(f.service.acceptInvitation(user, raw)).rejects.toThrow('store unavailable');
+    expect(await f.repository.getMembership(user.id)).toMatchObject({ orgId: f.orgId, state: 'active' });
+
+    await f.service.removeMember(f.owner.id, f.orgId, user.id);
+
+    await expect(f.service.acceptInvitation(user, raw)).rejects.toMatchObject({ status: 410 });
+    expect(await f.repository.getMembership(user.id)).toBeNull();
+  });
+
+  it('DEF-060 an interrupted join that nobody removed still recovers on retry', async () => {
+    const f = await setup(), user = (await f.auth.findByEmail('teacher@qi-education.local'))!;
+    await f.service.invite(f.owner.id, f.orgId, user.email); const raw = f.token();
+    const update = f.repository.updateInvitation.bind(f.repository);
+    let interrupt = true;
+    f.repository.updateInvitation = async (id, state, patch, hash) => {
+      if (interrupt && patch.joining === false) { interrupt = false; throw new Error('store unavailable'); }
+      return update(id, state, patch, hash);
+    };
+    await expect(f.service.acceptInvitation(user, raw)).rejects.toThrow('store unavailable');
+    expect(await f.service.acceptInvitation(user, raw)).toMatchObject({ role: 'member', organization: { id: f.orgId } });
+  });
+
   it('AC05 confirmed existing account joins immediately with owner mail and used token is invalid', async () => {
     const f = await setup(), user = (await f.auth.findByEmail('teacher@qi-education.local'))!;
     await f.service.invite(f.owner.id, f.orgId, user.email); const raw = f.token();

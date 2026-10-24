@@ -285,6 +285,10 @@ export class OrganizationService {
     for (const request of (await this.repository.listCourseRequests(orgId)).filter(v => v.userId === userId && v.state === 'pending')) {
       await this.repository.decideCourseRequest(request.id, 'declined');
     }
+    // DEF-060: close a half-finished join first, or replaying its invitation would recreate the removed membership.
+    for (const invitation of (await this.repository.listInvitations(orgId)).filter(v => v.joining && v.acceptedBy === userId)) {
+      await this.repository.updateInvitation(invitation.id, 'accepted', { joining: false }, invitation.tokenHash);
+    }
     if (!await this.repository.deleteMembership(userId, orgId)) throw new OrganizationError(404, 'Member not found');
   }
   async removeMember(ownerId: string, orgId: string, userId: string) {
