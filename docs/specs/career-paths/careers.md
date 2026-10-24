@@ -33,6 +33,17 @@ the whole catalog in the way.
   shows its requirements and "Ways to get there" without changing anything. Phones get an ordered
   list with the same dependency information. Prerequisites from another career are named, with an
   "Explore prerequisite" action.
+- **All careers map** (US-L026, 2026-10-24): **Expand** on any career's tree opens a full-screen "All careers"
+  window. Every published milestone-format career is drawn as one graph: each milestone once (shared
+  milestones show how many careers use them), in columns by prerequisite depth, with the learner's
+  states and the same line colours as the tree. Old-format careers are named under "Not on the map";
+  an unpublished prerequisite is a "Not published" card; loop members sit in the last column. Career
+  chips highlight one career (starting with the one opened from) and fade the rest. Selecting a
+  milestone shows its state, missing prerequisites, requirement routes and "Part of" with **Open
+  career**, which closes the map and shows that career as a preview: followed careers and focus never
+  change, and nothing is recorded in the map. Escape or **Close** returns focus to Expand. Phones get
+  a list grouped "Start here" / "Then", and the details scroll into view. Code: `utils/career-map.ts`,
+  `ui/career-map/`.
 - **Home guidance** uses the same rule as the tree: "N of M milestones achieved" and the first
   ready milestone in path order, linking to `/career-path?milestone=<id>`.
 - **Old-format careers** (published before milestones) are drawn in the same layout with stage

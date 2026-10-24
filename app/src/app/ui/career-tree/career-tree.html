@@ -1,3 +1,9 @@
+<div class="ct-toolbar">
+  <button type="button" appButton="secondary" size="sm" (click)="expand.emit()">
+    <span class="ct-toolbar-icon" aria-hidden="true" [innerHTML]="expandIcon"></span>Expand
+  </button>
+</div>
+
 <div class="ct-map-scroll">
   <ol class="ct-map" #map [style.--ct-stages]="stages().length" [attr.aria-label]="path().title + ' milestones by stage'">
     <svg class="ct-lines" #lines aria-hidden="true" focusable="false"></svg>

@@ -1,0 +1,105 @@
+<div class="cm-overlay" role="presentation">
+  <section class="cm-dialog" role="dialog" aria-modal="true" aria-labelledby="cm-title" (keydown)="keydown($event)">
+    <header class="cm-head">
+      <div class="cm-title-row">
+        <h2 id="cm-title">All careers</h2>
+        <button type="button" appButton="secondary" size="sm" class="cm-close" (click)="closed.emit()">Close</button>
+      </div>
+      @if (layout().careers.length) {
+        <div class="cm-chips" role="group" aria-label="Highlight a career">
+          @for (career of layout().careers; track career.id) {
+            <button type="button" class="cm-chip" [attr.aria-pressed]="highlight() === career.id" (click)="toggle(career.id)">
+              {{ career.title }}@if (followed(career.id)) { <span class="cm-following">Following</span> }
+            </button>
+          }
+        </div>
+      }
+      @if (layout().notOnMap.length) {
+        <p class="cm-note">Not on the map: {{ notOnMapTitles() }}</p>
+      }
+    </header>
+
+    @if (!layout().columns.length) {
+      <p class="cm-empty">No careers use milestones yet.</p>
+    } @else {
+      <div class="cm-body">
+        <div class="cm-scroll">
+          <ol class="cm-map" #map [style.--cm-columns]="layout().columns.length" aria-label="All career milestones, earliest first">
+            <svg class="cm-lines" #lines aria-hidden="true" focusable="false"></svg>
+            @for (column of layout().columns; track $index) {
+              <li class="cm-column">
+                <ul class="cm-nodes">
+                  @for (node of column; track node.id) {
+                    <li><ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: node }" /></li>
+                  }
+                </ul>
+              </li>
+            }
+          </ol>
+        </div>
+
+        <ol class="cm-list" aria-label="All career milestones, earliest first">
+          @for (column of layout().columns; track $index) {
+            <li>
+              <h3>{{ $index === 0 ? 'Start here' : 'Then' }}</h3>
+              <ul class="cm-nodes">
+                @for (node of column; track node.id) {
+                  <li><ng-container [ngTemplateOutlet]="nodeTemplate" [ngTemplateOutletContext]="{ $implicit: node }" /></li>
+                }
+              </ul>
+            </li>
+          }
+        </ol>
+
+        @if (selected(); as node) {
+          <aside class="cm-detail" aria-labelledby="cm-detail-title">
+            <p class="cm-detail-state">{{ stateLabel(node.id) }}</p>
+            <h3 id="cm-detail-title">{{ node.title }}</h3>
+            @if (state(node.id) === 'locked' && missingTitles(node)) {
+              <p>First achieve {{ missingTitles(node) }}.</p>
+            }
+            @if (routes(node).length) {
+              <p class="cm-label">{{ routes(node).length > 1 ? 'Complete any one of these routes:' : 'To achieve this milestone:' }}</p>
+              <ul class="cm-routes">
+                @for (route of routes(node); track $index) { <li>{{ route }}</li> }
+              </ul>
+            }
+            <p class="cm-label">Part of</p>
+            <ul class="cm-careers">
+              @for (id of node.careerIds; track id) {
+                <li>
+                  <span>{{ careerTitle(id) }}</span>
+                  <button type="button" appButton="secondary" size="sm" (click)="openCareer.emit(id)">Open career</button>
+                </li>
+              }
+            </ul>
+            <p class="cm-note">Record achievements on the career's tree.</p>
+          </aside>
+        }
+      </div>
+    }
+  </section>
+</div>
+
+<ng-template #nodeTemplate let-node>
+  @if (node.step) {
+    <button
+      type="button"
+      class="cm-node"
+      [attr.data-node]="node.id"
+      [attr.data-state]="state(node.id)"
+      [attr.data-faded]="faded(node) ? '' : null"
+      [attr.aria-current]="node.id === selectedId() ? 'true' : null"
+      [attr.aria-label]="nodeLabel(node)"
+      (click)="select(node.id)"
+    >
+      <span class="cm-node-title">{{ node.title }}</span>
+      <span class="cm-node-state">{{ stateLabel(node.id) }}@if (node.careerIds.length > 1) { &middot; {{ node.careerIds.length }} careers }</span>
+    </button>
+  } @else {
+    <div class="cm-node is-placeholder" [attr.data-node]="node.id" [attr.data-faded]="highlight() ? '' : null">
+      <span class="cm-node-title">Not published</span>
+      <span class="cm-node-state">Needed by a career, but not published</span>
+    </div>
+  }
+</ng-template>

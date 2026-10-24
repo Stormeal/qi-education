@@ -3,6 +3,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { lucideCheck, lucideChevronLeft, lucideChevronRight } from '@ng-icons/lucide';
 import { CareerPath, FeedbackOption, StudentSummary } from '../../app.models';
 import { CareerTree } from '../../ui/career-tree/career-tree';
+import { CareerMap } from '../../ui/career-map/career-map';
 import { CareerPathService } from '../../services/career-path.service';
 import { ConfirmService } from '../../services/confirm.service';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
@@ -34,7 +35,7 @@ const CAREER_WINDOW = 4;
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, CareerTree, CvScan, FeedbackDialog, IconButton, PageHeader],
+  imports: [Button, CareerMap, CareerTree, CvScan, FeedbackDialog, IconButton, PageHeader],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,6 +85,8 @@ export class CareerPathPage {
   protected readonly saveError = signal('');
   // A career being previewed without following it; empty means the saved focus is shown.
   protected readonly previewPathId = signal('');
+  // US-L026: the all-careers map, opened from the tree.
+  protected readonly mapOpen = signal(false);
 
   protected readonly followedPaths = computed(() => (this.careerPath.careers()?.followedPathIds ?? [])
     .flatMap((id) => this.careerPath.paths().find((path) => path.id === id) ?? []));
@@ -213,6 +216,14 @@ export class CareerPathPage {
       return;
     }
     await this.save(pathId, () => this.careerPath.focus(pathId));
+  }
+
+  /** US-L026: shows a career from the map as a preview, so followed careers and focus never change. */
+  protected openFromMap(pathId: string): void {
+    this.mapOpen.set(false);
+    this.previewPathId.set(pathId);
+    this.saveError.set('');
+    this.showStep('roadmap');
   }
 
   protected async unfollow(path: CareerPath): Promise<void> {

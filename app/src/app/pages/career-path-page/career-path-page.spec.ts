@@ -185,6 +185,20 @@ describe('career milestone trees (US-L017, US-L019, US-L020, US-L021)', () => {
     expect(careers()?.focusPathId).toBe('test-analyst');
   });
 
+  it('US-L026 Expand opens the map and Open career shows that career without saving anything', async () => {
+    await click('Expand');
+    const map = () => (fixture.nativeElement as HTMLElement).querySelector('app-career-map');
+    expect(map()).not.toBeNull();
+    expect(map()!.querySelector('.cm-chip[aria-pressed="true"]')?.textContent).toContain('Test Analyst');
+    map()!.querySelector<HTMLButtonElement>('.cm-map [data-node="architect"]')!.click();
+    await settle();
+    await click('Open career');
+    expect(map()).toBeNull();
+    expect(node('architect')).not.toBeNull();
+    expect(writes).toEqual([]);
+    expect(careers()?.focusPathId).toBe('test-analyst');
+  });
+
   it('US-L021 stopping following explains that achievements are kept and never picks another focus', async () => {
     careers.set(account(['test-analyst', 'test-manager'], 'test-analyst', ['foundation-exam']));
     await settle();

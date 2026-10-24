@@ -73,7 +73,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.448';
+  readonly appVersion = '0.1.449';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');

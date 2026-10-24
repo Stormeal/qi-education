@@ -2,6 +2,22 @@
   display: block;
 }
 
+.ct-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 24px 12px;
+}
+
+.ct-toolbar-icon {
+  display: inline-flex;
+  margin-right: 6px;
+
+  ::ng-deep svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 /* Map: stages read left to right with drawn connectors; on narrow screens they stack in order. */
 
 .ct-map-scroll {
@@ -343,6 +359,10 @@
 @media (max-width: 767px) {
   .ct-map-scroll {
     padding: 0 16px;
+  }
+
+  .ct-toolbar {
+    padding-inline: 16px;
   }
 
   .ct-map {

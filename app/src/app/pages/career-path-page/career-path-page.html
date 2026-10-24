@@ -270,7 +270,17 @@
                   <p class="cp-notice" role="status">{{ cvSaved() }}</p>
                 }
 
-                <app-career-tree [path]="path" [canDeclare]="followed" (explore)="view($event)" />
+                <app-career-tree [path]="path" [canDeclare]="followed" (explore)="view($event)" (expand)="mapOpen.set(true)" />
+                @if (mapOpen()) {
+                  <app-career-map
+                    [paths]="careerPath.paths()"
+                    [states]="careerPath.careers()?.milestoneStates ?? {}"
+                    [followedIds]="careerPath.careers()?.followedPathIds ?? []"
+                    [initialCareerId]="path.id"
+                    (openCareer)="openFromMap($event)"
+                    (closed)="mapOpen.set(false)"
+                  />
+                }
                 </section>
                 <p class="cp-below">
                   @if (path.schemaVersion === 2) {

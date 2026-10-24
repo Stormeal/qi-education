@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy, Component, DestroyRef, ElementRef, afterNextRender, afterRenderEffect, computed, effect, inject, input, output, signal, viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
+import { lucideMaximize2 } from '@ng-icons/lucide';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CareerPath, CareerPathAction, CareerPathStep, MilestoneState } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
@@ -30,6 +32,9 @@ export class CareerTree {
   /** False while previewing a career the account does not follow: inspecting is allowed, recording is not. */
   readonly canDeclare = input(false);
   readonly explore = output<string>();
+  /** US-L026: opens every career in one map. */
+  readonly expand = output<void>();
+  protected readonly expandIcon = inject(DomSanitizer).bypassSecurityTrustHtml(lucideMaximize2);
 
   protected readonly careerPath = inject(CareerPathService);
   private readonly confirm = inject(ConfirmService);
