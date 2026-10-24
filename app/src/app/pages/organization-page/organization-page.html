@@ -15,7 +15,10 @@
   />
 
   @if (state() === 'loading') {
-    <p class="org-status" role="status">Loading your organization…</p>
+    <div class="org-loading" role="status">
+      <span class="org-spinner" aria-hidden="true"></span>
+      <p>Loading your organization…</p>
+    </div>
   } @else if (state() === 'error') {
     <section class="org-panel">
       <p role="alert">{{ loadError() }}</p>
