@@ -38,9 +38,24 @@ deferred with a reason), equivalent formats vs different qualifications, externa
 courses, real prerequisite edges (the prototype's edges are illustrative), and how the hosted
 AI Testing Specialist career fits. A composite Test Architect route is future curriculum.
 
-## AC06: changed criteria (not built)
+## AC06: changed criteria (in progress, Claude, 2026-10-24)
 
 - Layout and title changes already keep achievement identities, and a changed exam or course must
   use a new action ID (the API refuses reuse).
-- Still to decide and build: requirement versions, the update notice learners see, and how
-  existing declarations map to new criteria.
+
+Decisions taken as defaults on 2026-10-24 (Alex: confirm or change):
+
+1. **Version per milestone, set by the server.** Every milestone has a requirement version,
+   starting at 1. Publishing a milestone whose requirement routes differ from its published
+   routes (order ignored) raises it by one. Admins never type a version. Text, stage, preparation
+   courses and CV keywords do not count as a change.
+2. **"What changed for learners" note.** Such a publish needs a note of 1–280 characters on that
+   milestone, or it is refused with the milestone named. The note and the date are published with
+   the career; the previous routes are kept (last 10 versions).
+3. **Current criteria decide the state.** A milestone is achieved only under its current routes.
+   Recorded evidence (declarations, CV findings, course completion), followed careers and
+   enrollments are never deleted. Learners whose evidence met an earlier version but not the
+   current one see that on the milestone. Alternative, not chosen because it needs completion times
+   that are not stored today: keep such milestones achieved under the earlier criteria.
+4. **Where learners see it.** The milestone detail on the career page shows "Requirements updated
+   on <date>" with the note. No email and no banner.

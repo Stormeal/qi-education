@@ -6,6 +6,13 @@ messages hold them.
 
 ## Active work
 
+Started 2026-10-24, both on `main` in one working tree:
+
+| Owner | Item | Scope and files | State |
+| --- | --- | --- | --- |
+| Codex | US-P018-AC04 | API production dependency findings (`zod`, `body-parser`, `ip-address`): `api/package.json`, `package-lock.json`, `docs/audits/2026-10-dependencies.md`; record [handoffs/US-P018-AC04-codex.md](handoffs/US-P018-AC04-codex.md) | Handed over, not started |
+| Claude | US-A004-AC06 | Changed career criteria: requirement versions, "What changed" note, learner notice. `api/src/careerPath*.ts`, `accountCareers*.ts`, the career routes in `server.ts`, `app/**` career editor and career page; decisions in [stories/US-A004-curriculum-review.md](stories/US-A004-curriculum-review.md) | In progress |
+
 US-O001 release 1 (organizations) built and checked locally 2026-10-23, not pushed. Codex A1–A7
 (API) and Claude B1–B5 (app) committed; Claude checked Codex's diff (own files only, contract kept).
 Checks: API 2,554 passed + 2 expected failures (one load-sensitive timeout in
