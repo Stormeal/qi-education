@@ -25,6 +25,7 @@ US-O001; the owner progress overview comes in release 2 ([decisions](../../stori
   - An existing account signed in with the invited email clicks **Accept and join** and is an
     active member at once; owners get a "member joined" email. Signed in with another email:
     "This invitation is for {email}. Sign in with that address."
+  - A second link opened in the same tab replaces the first one.
   - An expired, cancelled or used link, or a person already in another organization, is refused
     with a plain explanation and nothing about the members.
 - **Members** (owner view): name, email, role and a career picker showing the seat price. An owner
@@ -89,5 +90,3 @@ US-O001; the owner progress overview comes in release 2 ([decisions](../../stori
 - Not yet checked on the live site (AC01–AC12 with a second real email address).
 - No audit log, job queue or automatic email retries, paging, organization deletion or owner
   transfer.
-- Opening a second invitation link in the same tab without reloading keeps showing the first
-  result; a reload reads the new link.

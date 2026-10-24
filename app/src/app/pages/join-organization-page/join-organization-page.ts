@@ -15,6 +15,7 @@ export type AuthRequest = { mode: 'login' | 'signup'; email: string };
   imports: [BrandLink, Button, RouterLink],
   templateUrl: './join-organization-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(window:hashchange)': 'openNewLink()' },
 })
 export class JoinOrganizationPage {
   readonly authToken = input.required<string>();
@@ -25,7 +26,7 @@ export class JoinOrganizationPage {
 
   private readonly organizations = inject(OrganizationService);
   // The token travels in the fragment, so opening the page never sends it to a server.
-  private readonly token = this.readToken();
+  private token = this.readToken();
 
   protected readonly step = signal<Step>(this.token ? 'checking' : 'invalid');
   protected readonly invitation = signal<InvitationCheck | null>(null);
@@ -41,10 +42,21 @@ export class JoinOrganizationPage {
     if (this.token) void this.check();
   }
 
-  private readToken(): string {
+  // A second invitation link pasted into this tab only changes the fragment, so the page is not re-created.
+  // The router handles that change after us and puts the fragment back, so it is cleared once checked.
+  protected openNewLink(): void {
+    if (!new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token')) return;
+    this.token = this.readToken(false);
+    this.invitation.set(null);
+    this.error.set('');
+    this.step.set('checking');
+    void this.check().finally(() => window.history.replaceState(null, '', window.location.pathname));
+  }
+
+  private readToken(clearAddress = true): string {
     const fromHash = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token') ?? '';
     if (fromHash) {
-      window.history.replaceState(null, '', window.location.pathname);
+      if (clearAddress) window.history.replaceState(null, '', window.location.pathname);
       try { sessionStorage.setItem(PENDING_INVITATION_KEY, fromHash); } catch { /* storage blocked: the token still works for this visit */ }
       return fromHash;
     }

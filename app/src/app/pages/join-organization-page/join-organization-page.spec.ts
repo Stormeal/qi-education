@@ -53,6 +53,21 @@ describe('join organization page (US-O001 release 1)', () => {
     expect(sessionStorage.getItem(PENDING_INVITATION_KEY)).toBeNull();
   });
 
+  it('reads a second invitation link opened in the same tab', async () => {
+    const page = await render('mads@acme.test');
+    button(page, 'Accept and join')!.click();
+    for (let i = 0; i < 3; i++) { await new Promise((r) => setTimeout(r)); fixture.detectChanges(); }
+    check = { ok: true, body: { organizationName: 'Test Crew', email: 'mads@acme.test', consentText: consent } };
+    history.replaceState(null, '', '/join-organization#token=secret-456');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    for (let i = 0; i < 3; i++) { await new Promise((r) => setTimeout(r)); fixture.detectChanges(); }
+    expect(location.hash).toBe('');
+    expect(page.querySelector('h1')?.textContent).toContain('Test Crew');
+    button(page, 'Accept and join')!.click();
+    for (let i = 0; i < 3; i++) { await new Promise((r) => setTimeout(r)); fixture.detectChanges(); }
+    expect(accepted).toEqual(['secret-123', 'secret-456']);
+  });
+
   it('refuses another signed-in account without calling accept', async () => {
     const page = await render('someone@else.test');
     expect(page.textContent).toContain('This invitation is for mads@acme.test. Sign in with that address.');
