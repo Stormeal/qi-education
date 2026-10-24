@@ -1,4 +1,5 @@
-import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import { z } from 'zod';
 
 const passwordHashPrefix = 'scrypt';
@@ -67,6 +68,21 @@ export function hashPassword(password: string): string {
 // Bind recovery links to this salted credential without duplicating its hash.
 export function passwordCredentialVersion(passwordHash: string): string {
   return createHash('sha256').update(passwordHash).digest('hex');
+}
+
+// X8 F7: request paths use these; scrypt runs on the libuv thread pool, so other requests keep being served meanwhile.
+const scryptAsync = promisify(scrypt) as (password: string, salt: string, length: number) => Promise<Buffer>;
+
+export async function hashPasswordAsync(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('base64url');
+  return [passwordHashPrefix, salt, (await scryptAsync(password, salt, 64)).toString('base64url')].join('$');
+}
+
+export async function verifyPasswordAsync(password: string, passwordHash: string): Promise<boolean> {
+  const [algorithm, salt, hash] = passwordHash.split('$');
+  if (algorithm !== passwordHashPrefix || !salt || !hash) return false;
+  const expectedHash = Buffer.from(hash, 'base64url');
+  return timingSafeEqual(expectedHash, await scryptAsync(password, salt, expectedHash.length));
 }
 
 export function verifyPassword(password: string, passwordHash: string): boolean {

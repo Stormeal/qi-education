@@ -22,12 +22,12 @@ import { KeyedSerialQueue } from './keyedSerialQueue.js';
 import {
   createSessionToken,
   getRolePermissions,
-  hashPassword,
+  hashPasswordAsync,
   loginSchema,
   roleCanCreateCourses,
   signupSchema,
   toAuthenticatedUser,
-  verifyPassword,
+  verifyPasswordAsync,
   verifySessionToken,
   type AuthUser,
   type AuthenticatedUser,
@@ -641,7 +641,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       }
       try {
         const user = await auth.findByEmail(input.email, { fresh: true });
-        if (!user || !verifyPassword(input.password, user.passwordHash) || user.status !== 'active') {
+        if (!user || !(await verifyPasswordAsync(input.password, user.passwordHash)) || user.status !== 'active') {
           await signInLimit.complete(input.email, reservation.ticket, 'failure');
           response.status(401).json({ message: 'Invalid email or password' });
           return;
@@ -687,7 +687,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           id: randomUUID(),
           email: input.email,
           displayName: input.displayName,
-          passwordHash: hashPassword(input.password),
+          passwordHash: await hashPasswordAsync(input.password),
           role: 'student',
           status: 'active',
           createdAt: new Date().toISOString(),

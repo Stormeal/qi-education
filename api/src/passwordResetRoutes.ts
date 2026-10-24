@@ -2,7 +2,7 @@ import { isMongoConnectionError } from './storageErrors.js';
 import { AuthUnavailableError, AuthReadOnlyError } from './authRepository.js';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
-import { hashPassword, passwordCredentialVersion, signupSchema } from './auth.js';
+import { hashPasswordAsync, passwordCredentialVersion, signupSchema } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
 import { sendPasswordChangedNotice, type MailSender } from './mailSender.js';
 import type { PasswordResetRepository } from './passwordResetRepository.js';
@@ -74,7 +74,7 @@ export function registerPasswordResetRoutes(app: Express, dependencies: {
       response.status(410).json(invalid); return;
     }
     // Never reactivate a claim if the account write failed or its outcome is uncertain.
-    const updated = await auth.updatePasswordHash(claimedUserId, hashPassword(password.data), currentUser.passwordHash);
+    const updated = await auth.updatePasswordHash(claimedUserId, await hashPasswordAsync(password.data), currentUser.passwordHash);
     if (!updated) { response.status(410).json(invalid); return; }
     await dependencies.signInLimit?.clear(updated.email);
     await sendPasswordChangedNotice(sender, updated.email);
