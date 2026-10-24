@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { HeaderIdentityService } from '../../services/header-identity.service';
 
 @Component({
   selector: 'app-profile-menu',
@@ -12,6 +13,7 @@ import { Router } from '@angular/router';
 export class ProfileMenu {
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected readonly identity = inject(HeaderIdentityService);
 
   readonly displayName = input.required<string>();
   readonly email = input.required<string>();

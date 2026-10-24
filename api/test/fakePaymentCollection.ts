@@ -9,6 +9,20 @@ export function fakePaymentCollection() {
     if (value && typeof value === 'object' && '$exists' in value) return (actual !== undefined) === value.$exists;
     return actual === value;
   });
+  const sorted = (filter: Record<string, unknown>, options?: { sort?: Record<string, number> }) => {
+    const rows = [...documents.values()].filter(doc => matches(doc, filter));
+    if (options?.sort) {
+      const sort = options.sort;
+      rows.sort((a, b) => {
+        for (const [key, direction] of Object.entries(sort)) {
+          const result = String((a as unknown as Record<string, unknown>)[key]).localeCompare(String((b as unknown as Record<string, unknown>)[key]));
+          if (result) return direction * result;
+        }
+        return 0;
+      });
+    }
+    return structuredClone(rows);
+  };
   const operations = {
     async createIndex() { return 'index'; },
     async insertOne(doc: CoursePayment, options: unknown) {
@@ -16,20 +30,13 @@ export function fakePaymentCollection() {
       if (documents.has(doc._id)) throw Object.assign(new Error('Duplicate'), { code: 11000 });
       documents.set(doc._id, structuredClone(doc)); return { acknowledged: true };
     },
+    find(filter: Record<string, unknown>, options?: { sort?: Record<string, number> }) {
+      calls.finds.push({ filter, options });
+      return { toArray: async () => sorted(filter, options) };
+    },
     async findOne(filter: Record<string, unknown>, options?: { sort?: Record<string, number> }) {
       calls.finds.push({ filter, options });
-      let rows = [...documents.values()].filter(doc => matches(doc, filter));
-      if (options?.sort) {
-        const sort = options.sort;
-        rows.sort((a, b) => {
-          for (const [key, direction] of Object.entries(sort)) {
-            const result = String((a as unknown as Record<string, unknown>)[key]).localeCompare(String((b as unknown as Record<string, unknown>)[key]));
-            if (result) return direction * result;
-          }
-          return 0;
-        });
-      }
-      return structuredClone(rows[0] ?? null);
+      return sorted(filter, options)[0] ?? null;
     },
     async findOneAndUpdate(filter: Record<string, unknown>, update: { $set: Partial<CoursePayment> }, options: { returnDocument?: string }) {
       calls.writes.push({ filter, update, options });

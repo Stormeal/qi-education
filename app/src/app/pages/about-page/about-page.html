@@ -1,0 +1,93 @@
+<main class="page-shell about-shell">
+  @if (state.loginState(); as login) {
+    <app-page-header
+      activeSection="about"
+      [displayName]="state.student().name"
+      [email]="login.user.email"
+      [roleLabel]="state.student().currentRole"
+      [canAccessAdmin]="login.permissions.hasAdminAccess"
+      (feedbackOpened)="state.openFeedback()"
+      (loggedOut)="state.logout()"
+      (adminClicked)="state.navigateAdmin()"
+      (careerPathClicked)="state.navigateCareerPath()"
+    />
+  } @else {
+    <div class="about-brand"><app-brand-link /></div>
+  }
+
+  <header class="about-heading">
+    <h1>About QI Academy</h1>
+    <p class="about-lead">
+      QI Academy is TestHuset's learning platform for people who work with software testing and quality.
+      Take courses at your own pace, follow a career path and keep track of how far you have come.
+    </p>
+  </header>
+
+  <section class="about-section" aria-labelledby="about-what">
+    <h2 id="about-what">What you can do here</h2>
+    <ul class="about-features">
+      <li>
+        <h3>Learn</h3>
+        <p>Find courses in the <a routerLink="/courses">Catalog</a> and continue where you left off in <a routerLink="/library">My Learning</a>. Lessons, quizzes and notes are saved to your account on every device.</p>
+      </li>
+      <li>
+        <h3>Plan your career</h3>
+        <p>Follow a career path, such as Test Analyst or Test Manager. It shows which milestones you have reached and which courses and certifications lead to the next one.</p>
+      </li>
+      <li>
+        <h3>Teach</h3>
+        <p>Teachers build courses with video, quizzes and attachments. TestHuset reviews each course before it is published in the Catalog.</p>
+      </li>
+      <li>
+        <h3>Learn together</h3>
+        <p>Companies can join as an organization, so their people get the courses the organization has opened for them.</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="about-section about-company" aria-labelledby="about-testhuset">
+    <h2 id="about-testhuset">About TestHuset</h2>
+    <p>
+      TestHuset is a Danish company that secures and improves the quality of IT solutions. It helps public and
+      private organizations with testing, advice on quality assurance and experienced consultants.
+    </p>
+    <p>
+      TestHuset also teaches. Its courses cover software testing, test automation, Agile, Business Analysis and
+      quality assurance, from certified courses to programmes made for one team. QI Academy brings that teaching online.
+    </p>
+    <dl class="about-contact">
+      <div>
+        <dt>Website</dt>
+        <dd><a href="https://testhuset.dk" target="_blank" rel="noopener noreferrer">testhuset.dk</a></dd>
+      </div>
+      <div>
+        <dt>Email</dt>
+        <dd><a href="mailto:info@testhuset.dk">info&#64;testhuset.dk</a></dd>
+      </div>
+    </dl>
+  </section>
+
+  <footer class="site-footer">
+    <span class="footer-credit">
+      Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
+      <span>&copy; {{ state.currentYear }}</span>
+    </span>
+    <span class="footer-version">Version {{ state.appVersion }}</span>
+  </footer>
+</main>
+
+@if (state.isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="state.feedbackSubmitted()"
+    [page]="state.feedbackPage()"
+    [rating]="state.feedbackRating()"
+    [text]="state.feedbackText()"
+    [submitting]="state.feedbackSubmitting()"
+    [error]="state.feedbackError()"
+    [options]="state.feedbackOptions"
+    (closed)="state.closeFeedback()"
+    (ratingSelected)="state.selectFeedbackRating($event)"
+    (textChanged)="state.updateFeedbackText($event)"
+    (submittedClicked)="state.submitFeedback()"
+  />
+}

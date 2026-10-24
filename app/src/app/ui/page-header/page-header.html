@@ -9,7 +9,7 @@
     >
       Home
     </a>
-    <a [href]="aboutHref()" (click)="navigateToAnchor($event, aboutHref())">About</a>
+    <a class="tab-link" routerLink="/about" [class.active]="activeSection() === 'about'">About</a>
     <a
       class="tab-link"
       [routerLink]="coursesHref"

@@ -1,8 +1,13 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { ApiClientService } from '../../services/api-client.service';
 import { ProfilePage } from './profile-page';
+
+function openTab(fixture: ComponentFixture<ProfilePage>, label: string): void {
+  [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((tab) => tab.textContent?.trim() === label)!.click();
+  fixture.detectChanges();
+}
 
 describe('US-L013 change password on the profile page', () => {
   let calls: { url: string; authorization?: string; body: Record<string, string> }[];
@@ -30,6 +35,7 @@ describe('US-L013 change password on the profile page', () => {
       feedbackOptions: [], authToken: 'session-token' };
     Object.entries(inputs).forEach(([name, value]) => fixture.componentRef.setInput(name, value));
     fixture.detectChanges();
+    openTab(fixture, 'Password');
     const form = (fixture.nativeElement as HTMLElement).querySelector<HTMLFormElement>('form[aria-labelledby="profile-password-title"]')!;
     const type = (id: string, value: string) => {
       const input = form.querySelector<HTMLInputElement>(`#profile-password-${id}`)!;
@@ -79,22 +85,25 @@ describe('US-L013 change password on the profile page', () => {
   });
 });
 
-describe('US-L024 payment and receipts on the profile page', () => {
-  let reply: () => Response;
-  let requests: { url: string; body: Record<string, string> }[];
+describe('US-L024 purchases and receipts on the profile page', () => {
+  let replies: Record<string, () => Response>;
+  let requests: { url: string; body?: Record<string, string> }[];
+  const json = (body: unknown, status = 200) => () => new Response(JSON.stringify(body), { status });
+  const purchase = { id: 'cs_1', courseId: 'c1', courseTitle: 'Test Design', amountDkk: 499, paidAt: '2026-10-20T12:00:00.000Z', refunded: false };
 
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     requests = [];
+    replies = { '/users/me/payments': json({ payments: [] }) };
     const fetch = async (url: string, init: RequestInit) => {
-      requests.push({ url, body: JSON.parse(init.body as string) });
-      return reply();
+      requests.push({ url, ...(init.body ? { body: JSON.parse(init.body as string) } : {}) });
+      return replies[url]();
     };
     TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: ApiClientService, useValue: { fetch } }] });
   });
 
-  function setup() {
+  async function setup() {
     const fixture = TestBed.createComponent(ProfilePage);
     const inputs = { appVersion: 'test', currentYear: 2026, displayName: 'Learner', email: 'learner@example.test', roleLabel: 'Student',
       canAccessAdmin: false, memberSince: '', enrolledCount: 0, avatarColor: '#2f4f43', avatarColorOptions: ['#2f4f43'], bio: '', jobTitle: '',
@@ -105,29 +114,47 @@ describe('US-L024 payment and receipts on the profile page', () => {
     const assigned: string[] = [];
     (fixture.componentInstance as unknown as { assignLocation: (url: string) => void }).assignLocation = url => assigned.push(url);
     fixture.detectChanges();
+    openTab(fixture, 'Purchases');
     const section = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[aria-labelledby="profile-billing-title"]')!;
-    const open = async () => {
-      section.querySelector<HTMLButtonElement>('button')!.click();
-      await vi.waitFor(() => { fixture.detectChanges(); expect(section.querySelector('button')!.disabled).toBe(false); });
+    await vi.waitFor(() => { fixture.detectChanges(); expect(section.textContent).not.toContain('Loading your purchases'); });
+    const click = async (label: string) => {
+      const button = [...section.querySelectorAll<HTMLButtonElement>('button')].find((item) => item.textContent?.trim() === label)!;
+      button.click();
+      await vi.waitFor(() => { fixture.detectChanges(); expect(button.disabled).toBe(false); });
     };
-    return { section, open, assigned };
+    return { section, click, assigned, status: () => section.querySelector('.profile-billing-actions [role="status"]')?.textContent?.trim() };
   }
 
-  it('AC07 says there are no payments yet before the first purchase', async () => {
-    reply = () => new Response(JSON.stringify({ message: 'No payments yet.' }), { status: 404 });
-    const page = setup();
-    expect(page.section.querySelector('h2')?.textContent).toBe('Payment and receipts');
-    await page.open();
-    expect(page.section.querySelector('[role="status"]')?.textContent?.trim()).toBe('No payments yet.');
+  it('lists nothing before the first purchase and the portal says so', async () => {
+    replies['/users/me/billing-portal'] = json({ message: 'No payments yet.' }, 404);
+    const page = await setup();
+    expect(page.section.querySelector('h2')?.textContent).toBe('Purchases and receipts');
+    expect(page.section.textContent).toContain('No purchases yet.');
+    await page.click('Manage saved card');
+    expect(page.status()).toBe('No payments yet.');
     expect(page.assigned).toEqual([]);
   });
 
-  it('AC07 opens the Stripe customer portal after a purchase', async () => {
-    reply = () => new Response(JSON.stringify({ url: 'https://billing.stripe.test/session' }), { status: 200 });
-    const page = setup();
-    await page.open();
-    expect(requests[0].url).toBe('/users/me/billing-portal');
-    expect(requests[0].body['returnUrl']).toBe(`${window.location.origin}${window.location.pathname}`);
+  it('lists each purchase and opens its Stripe receipt', async () => {
+    replies['/users/me/payments'] = json({ payments: [purchase, { ...purchase, id: 'cs_0', courseTitle: 'Old course', refunded: true }] });
+    replies['/users/me/payments/cs_1/receipt'] = json({ url: 'https://pay.stripe.test/receipts/r_1' });
+    replies['/users/me/payments/cs_0/receipt'] = json({ message: 'This receipt is not available.' }, 404);
+    const page = await setup();
+    const cells = (row: Element) => [...row.querySelectorAll('strong, span')].map((cell) => cell.textContent!.trim()).filter(Boolean);
+    expect([...page.section.querySelectorAll('.profile-purchases li')].map(cells)).toEqual([
+      ['Test Design', '20 Oct 2026', '499 DKK'], ['Old course', '20 Oct 2026', '499 DKK', 'Refunded']]);
+    await page.click('Receipt');
+    expect(page.assigned).toEqual(['https://pay.stripe.test/receipts/r_1']);
+    (page.section.querySelectorAll<HTMLButtonElement>('.profile-purchases button')[1]).click();
+    await vi.waitFor(() => expect(page.status()).toBe('This receipt is not available.'));
+  });
+
+  it('AC07 opens the Stripe customer portal', async () => {
+    replies['/users/me/billing-portal'] = json({ url: 'https://billing.stripe.test/session' });
+    const page = await setup();
+    await page.click('Manage saved card');
+    const portal = requests.find((request) => request.url === '/users/me/billing-portal')!;
+    expect(portal.body?.['returnUrl']).toBe(`${window.location.origin}${window.location.pathname}`);
     expect(page.assigned).toEqual(['https://billing.stripe.test/session']);
   });
 });

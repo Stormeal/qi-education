@@ -196,6 +196,25 @@ describe('US-L024 course payments HTTP contract', () => {
     await request(coursePath + '/checkout/confirm', student, { sessionId: await start() });
     expect(await (await request('/users/me/billing-portal', student, { returnUrl })).json()).toEqual({ url: returnUrl });
   });
+  it('purchase list shows only the caller\'s payments, newest first, and receipts stay private', async () => {
+    const get = (path: string, user = student) => request(path, user, undefined, 'GET');
+    expect(await (await get('/users/me/payments')).json()).toEqual({ payments: [] });
+    const sessionId = await start();
+    await request(coursePath + '/checkout/confirm', student, { sessionId });
+    const response = await get('/users/me/payments');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(await response.json()).toEqual({ payments: [{ id: sessionId, courseId: id,
+      courseTitle: (await courses.listCourses())[0].title, amountDkk: 499, paidAt: expect.any(String), refunded: false }] });
+    expect(await (await get('/users/me/payments', teacher)).json()).toEqual({ payments: [] });
+
+    expect((await get(`/users/me/payments/${sessionId}/receipt`, teacher)).status).toBe(404);
+    expect(await (await get(`/users/me/payments/${sessionId}/receipt`)).json()).toEqual({ message: 'This receipt is not available.' });
+    vi.spyOn(service, 'receiptUrl').mockResolvedValue('https://pay.stripe.com/receipts/r_1');
+    expect(await (await get(`/users/me/payments/${sessionId}/receipt`)).json()).toEqual({ url: 'https://pay.stripe.com/receipts/r_1' });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(service, 'receiptUrl').mockRejectedValue(new Error('Offline'));
+    expect((await get(`/users/me/payments/${sessionId}/receipt`)).status).toBe(503);
+  });
   it('US-L024-AC05 provider failures answer 503 for checkout, confirm and portal', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const sessionId = await start();

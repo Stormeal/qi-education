@@ -153,6 +153,36 @@ describe('career milestone editing (US-A004)', () => {
     expect(actions[1].cvKeywords).toEqual([]);
   });
 
+  it('"Comes after" is a searchable list with the chosen milestones shown as removable chips', async () => {
+    root().querySelector<HTMLInputElement>('#cpe-new-title')!.value = 'Test Lead';
+    await click('Add path');
+    await click('Add step');
+    await click('Add step');
+    const search = root().querySelector<HTMLInputElement>('.cpe-search')!;
+    search.dispatchEvent(new Event('focus'));
+    fixture.detectChanges();
+    const options = () => [...root().querySelectorAll('.cpe-option')].map((option) => option.textContent!.trim());
+    expect(options()).toEqual(['test-lead-step-1This career', 'ISTQB FoundationFrom Test Analyst']);
+    search.value = 'istqb';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(options()).toEqual(['ISTQB FoundationFrom Test Analyst']);
+    const box = root().querySelector<HTMLInputElement>('.cpe-option input')!;
+    box.checked = true;
+    box.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(root().querySelector('.cpe-picked')!.textContent).toContain('ISTQB Foundation');
+    search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(root().querySelector('.cpe-options')).toBeNull();
+    await click('Save draft');
+    expect(saveDraft.mock.calls[0][1].steps[1].prerequisiteStepIds).toEqual(['foundation']);
+
+    root().querySelector<HTMLButtonElement>('[aria-label="Remove ISTQB Foundation"]')!.click();
+    fixture.detectChanges();
+    expect(root().querySelector('.cpe-picked')).toBeNull();
+  });
+
   it('US-A004 converting an old-format career reuses shared milestones and turns linked courses into course actions', async () => {
     const old: CareerPathDraft = { title: 'Old Tester', summary: '', outcomes: [], estimatedHours: 0, steps: [
       { id: 'foundation', title: 'Foundation', description: '', required: true, prerequisiteStepIds: [], courses: [{ courseId: '', title: 'Preview' }] },

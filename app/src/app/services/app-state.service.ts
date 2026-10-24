@@ -2,6 +2,7 @@ import { normalizeBulletList } from '../utils/bullet-list';
 import { DestroyRef, Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { OrganizationService, type MyOrganization } from './organization.service';
+import { HeaderIdentityService } from './header-identity.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import * as UpChunk from '@mux/upchunk';
@@ -72,7 +73,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.434';
+  readonly appVersion = '0.1.435';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -128,6 +129,7 @@ export class AppStateService {
   /** US-O001: the user's organization and the courses it opens for free; null without one. */
   readonly organizationAccess = signal<{ name: string; openCourseIds: string[] } | null>(null);
   private readonly organizations = inject(OrganizationService);
+  private readonly headerIdentity = inject(HeaderIdentityService);
   private readonly sessionToken = computed(() => this.loginState()?.token ?? '');
   readonly adminFeedbackLoading = signal(false);
   readonly adminFeedbackError = signal('');
@@ -377,6 +379,11 @@ export class AppStateService {
   constructor() {
     effect(() => { const token = this.sessionToken(); untracked(() => void this.refreshOrganizationAccess(token)); });
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
+    effect(() => {
+      const saved = this.profileSnapshot();
+      this.headerIdentity.avatarColor.set(saved ? (JSON.parse(saved) as UserProfileDetails).avatarColor : DEFAULT_AVATAR_COLOR);
+    });
+    effect(() => this.headerIdentity.organizationName.set(this.organizationAccess()?.name ?? ''));
     effect(() => this.courseService.loadQuizImages(this.courseContent(), this.loginState()?.token ?? ''));
     this.sessionService.setSessionContextProvider(() => this.loginState());
     this.sessionService.onUnauthorized(() => {

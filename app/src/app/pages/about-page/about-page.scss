@@ -1,0 +1,107 @@
+// Same tokens and rhythm as the Roadmap page.
+.about-shell {
+  display: grid;
+  gap: 40px;
+  padding-bottom: 32px;
+}
+
+.about-brand {
+  padding-top: 16px;
+}
+
+.about-heading {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: var(--text-title-lg);
+    text-wrap: balance;
+  }
+}
+
+.about-lead {
+  max-width: 62ch;
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.about-section {
+  display: grid;
+  gap: 16px;
+
+  h2 {
+    font-size: var(--text-title-sm);
+    font-weight: 800;
+  }
+
+  p {
+    max-width: 68ch;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  a {
+    color: var(--color-primary);
+    font-weight: 700;
+    text-underline-offset: 2px;
+  }
+}
+
+.about-features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 40px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    border-top: 2px solid var(--color-primary);
+    padding-top: 14px;
+  }
+
+  h3 {
+    font-size: var(--text-body);
+    font-weight: 800;
+  }
+}
+
+.about-company {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  padding: 28px;
+  background: var(--color-surface-card);
+}
+
+.about-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+  margin: 4px 0 0;
+
+  dt {
+    color: var(--color-text-muted);
+    font-size: var(--text-meta);
+    font-weight: 700;
+  }
+
+  dd {
+    margin: 2px 0 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .about-features {
+    grid-template-columns: 1fr;
+  }
+
+  .about-company {
+    padding: 20px;
+  }
+}

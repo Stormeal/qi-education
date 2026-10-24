@@ -1,17 +1,20 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
-import { ProfileService } from '../../services/profile.service';
+import { CoursePurchase, ProfileService } from '../../services/profile.service';
 import { FeedbackOption } from '../../app.models';
 import { Button } from '../../ui/button/button';
+import { Chip } from '../../ui/chip/chip';
 import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 
 const BIO_MAX_LENGTH = 280;
 const GOALS_MAX_LENGTH = 280;
 
 @Component({
   selector: 'app-profile-page',
-  imports: [Button, FeedbackDialog, PageHeader],
+  imports: [Button, Chip, DatePipe, FeedbackDialog, PageHeader, Tabs],
   templateUrl: './profile-page.html',
   styleUrls: ['../../app.scss', './profile-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,6 +69,20 @@ export class ProfilePage {
 
   protected readonly bioMaxLength = BIO_MAX_LENGTH;
 
+  protected readonly tabId = tabId;
+  protected readonly tabPanelId = tabPanelId;
+  protected readonly tabs: TabItem[] = [
+    { id: 'details', label: 'Profile' },
+    { id: 'password', label: 'Password' },
+    { id: 'purchases', label: 'Purchases' },
+  ];
+  protected readonly activeTab = signal('details');
+
+  protected selectTab(id: string): void {
+    this.activeTab.set(id);
+    if (id === 'purchases' && this.purchases() === null) void this.loadPurchases();
+  }
+
   // US-L013: the password form is separate from the profile form and keeps its own state.
   private readonly auth = inject(AuthService);
   protected readonly currentPassword = signal('');
@@ -89,11 +106,32 @@ export class ProfilePage {
     this.currentPassword.set(''); this.newPassword.set(''); this.newPasswordRepeat.set('');
     this.passwordChanged.set(true);
   }
-  // US-L024: receipts and the saved card live in Stripe's customer portal.
+  // US-L024: purchases are listed here; each receipt and the saved card open on a Stripe page.
   private readonly profiles = inject(ProfileService);
   private assignLocation = (url: string) => window.location.assign(url);
   protected readonly billingBusy = signal(false);
   protected readonly billingMessage = signal('');
+  /** Null until the Purchases tab has loaded them. */
+  protected readonly purchases = signal<CoursePurchase[] | null>(null);
+  protected readonly purchasesError = signal('');
+  protected readonly receiptBusy = signal('');
+
+  private async loadPurchases(): Promise<void> {
+    this.purchasesError.set('');
+    const result = await this.profiles.listPurchases(this.authToken());
+    if (result.ok) this.purchases.set(result.purchases);
+    else { this.purchases.set([]); this.purchasesError.set(result.message); }
+  }
+
+  protected async openReceipt(purchase: CoursePurchase): Promise<void> {
+    if (this.receiptBusy()) return;
+    this.receiptBusy.set(purchase.id);
+    this.billingMessage.set('');
+    const result = await this.profiles.receiptUrl(this.authToken(), purchase.id);
+    this.receiptBusy.set('');
+    if (result.ok) this.assignLocation(result.url);
+    else this.billingMessage.set(result.message);
+  }
 
   protected async openBillingPortal(): Promise<void> {
     if (this.billingBusy()) return;

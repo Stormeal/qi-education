@@ -25,13 +25,17 @@ payment pages; the API keeps the record of who paid for what.
   payment and enrolls; the other changes nothing. A storage failure answers 500 so Stripe retries.
 - `POST /users/me/courses/:id` (enroll) answers **402** "This course must be bought." for a priced
   course unless the caller is its author or an admin.
-- Profile → **Payment and receipts** → **Manage saved card** opens Stripe's customer portal
-  (`POST /users/me/billing-portal`); before any purchase it says "No payments yet." The receipt
-  is the email Stripe sends after each payment (decided by Alex, 2026-10-20); purchases create no
-  invoices, so the portal shows the saved card only.
+- Profile → **Purchases** lists the account's payments (`GET /users/me/payments`, newest first:
+  course title, amount, paid time, refunded flag; a deleted course reads "Removed course").
+  **Receipt** asks `GET /users/me/payments/:id/receipt` for Stripe's hosted receipt of that charge
+  (404 "This receipt is not available." when Stripe has none, and for another account's payment;
+  503 when Stripe cannot be reached). Stripe also emails the receipt in live mode.
+- **Manage saved card** opens Stripe's customer portal (`POST /users/me/billing-portal`); before any
+  purchase it says "No payments yet." Purchases create no invoices, so the portal shows the saved
+  card only.
 - No Stripe key: buying and the portal answer 503 "Purchases are temporarily unavailable."
 - Isolated runs and tests use a fake payment service: checkout returns straight to the success
-  address and the session reads as paid. Nothing calls Stripe.
+  address and the session reads as paid, and no receipt exists. Nothing calls Stripe.
 
 ## Rules
 

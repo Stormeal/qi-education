@@ -39,6 +39,7 @@ $line: rgba(108, 101, 88, 0.2);
   }
 
   input[type='text'],
+  input[type='search'],
   input[type='number'],
   textarea,
   select {
@@ -274,6 +275,112 @@ $line: rgba(108, 101, 88, 0.2);
   color: $ink;
   font-size: 13px;
   font-weight: 400;
+}
+
+.cpe-picker {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+
+.cpe-picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: 999px;
+    padding: 2px 4px 2px 10px;
+    color: $ink;
+    background: var(--color-primary-soft);
+    font-size: 13px;
+  }
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 999px;
+    color: $muted;
+    background: none;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      color: $ink;
+      background: var(--color-surface-sunken);
+    }
+  }
+}
+
+.cpe input.cpe-search[aria-expanded='true'] {
+  border-color: $green;
+}
+
+.cpe-options {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  max-height: 280px;
+  margin-top: 4px;
+  overflow-y: auto;
+  border: 1px solid $line;
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-raised);
+
+  > .cpe-hint {
+    padding: 10px;
+  }
+}
+
+.cpe label.cpe-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: $ink;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface-sunken);
+  }
+
+  input {
+    margin-top: 3px;
+    accent-color: $green;
+  }
+
+  span {
+    display: grid;
+    gap: 2px;
+  }
+
+  strong {
+    font-weight: 700;
+  }
+
+  small {
+    color: $muted;
+    font-size: 12px;
+  }
 }
 
 .cpe-course {

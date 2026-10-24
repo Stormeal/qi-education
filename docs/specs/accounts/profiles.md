@@ -19,8 +19,11 @@ public instructor description shown with their published courses.
 - **Moderation**: admins list every stored description and can clear one
   (`GET/DELETE /admin/instructor-profiles…`).
 - The private bio never flows into the public description.
-- **Payment and receipts** (every role): **Manage saved card** opens Stripe's customer portal, or
-  says "No payments yet."; receipts arrive by email from Stripe (see [payments](../payments/payments.md)).
+- The profile page has three tabs: **Profile** (avatar colour, about you, job, company, goals),
+  **Password** and **Purchases**. Unsaved edits survive switching tabs.
+- **Purchases** (every role): each bought course with date, amount and "Refunded" when refunded,
+  newest first, and a **Receipt** button that opens Stripe's receipt page; **Manage saved card**
+  opens Stripe's customer portal (see [payments](../payments/payments.md)).
 
 ## Code
 

@@ -11,8 +11,9 @@ export interface PaymentRepository {
   markRefunded(sessionId: string, refundedAt: string): Promise<CoursePayment | null>;
   findUnrefundedPurchase(userId: string, courseId: string, excludedSessionId?: string): Promise<CoursePayment | null>;
   latestCustomerId(userId: string): Promise<string | null>;
+  listByUser(userId: string): Promise<CoursePayment[]>;
 }
-export type PaymentCollection = Pick<Collection<CoursePayment>, 'insertOne' | 'findOne' | 'findOneAndUpdate' | 'createIndex'>;
+export type PaymentCollection = Pick<Collection<CoursePayment>, 'insertOne' | 'find' | 'findOne' | 'findOneAndUpdate' | 'createIndex'>;
 
 export class InMemoryPaymentRepository implements PaymentRepository {
   private readonly payments = new Map<string, CoursePayment>();
@@ -34,6 +35,9 @@ export class InMemoryPaymentRepository implements PaymentRepository {
   async latestCustomerId(userId: string): Promise<string | null> {
     return [...this.payments.values()].filter(p => p.userId === userId)
       .sort((a, b) => b.paidAt.localeCompare(a.paidAt))[0]?.stripeCustomerId ?? null;
+  }
+  async listByUser(userId: string): Promise<CoursePayment[]> {
+    return structuredClone([...this.payments.values()].filter(p => p.userId === userId).sort((a, b) => b.paidAt.localeCompare(a.paidAt)));
   }
 }
 
@@ -76,6 +80,9 @@ export class MongoPaymentRepository implements PaymentRepository {
   async latestCustomerId(userId: string): Promise<string | null> {
     const payment = await (await this.indexedCollection()).findOne({ userId }, { sort: { paidAt: -1 } });
     return payment?.stripeCustomerId ?? null;
+  }
+  async listByUser(userId: string): Promise<CoursePayment[]> {
+    return (await this.indexedCollection()).find({ userId }, { sort: { paidAt: -1 } }).toArray();
   }
 }
 export function createPaymentRepository(): PaymentRepository {

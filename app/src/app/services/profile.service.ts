@@ -4,6 +4,9 @@ import { ApiClientService } from './api-client.service';
 
 const PROFILE_STORAGE_PREFIX = 'qiEducationProfile:';
 
+/** A course bought by this account (`GET /users/me/payments`). */
+export type CoursePurchase = { id: string; courseId: string; courseTitle: string; amountDkk: number; paidAt: string; refunded: boolean };
+
 /** Default initials-avatar color, matching the forest green used in the header. */
 export const DEFAULT_AVATAR_COLOR = '#2f4f43';
 
@@ -51,6 +54,29 @@ export class ProfileService {
       const response = await this.apiClient.fetch('/users/me/billing-portal', {
         method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ returnUrl }),
       });
+      const body = await response.json().catch(() => ({})) as { url?: string; message?: string };
+      return response.ok && body.url ? { ok: true, url: body.url } : { ok: false, message: body.message ?? 'Please try again.' };
+    } catch {
+      return { ok: false, message: 'Unable to reach the API. Please try again.' };
+    }
+  }
+
+  /** The account's purchases, newest first. */
+  async listPurchases(token: string): Promise<{ ok: true; purchases: CoursePurchase[] } | { ok: false; message: string }> {
+    try {
+      const response = await this.apiClient.fetch('/users/me/payments', { headers: { authorization: `Bearer ${token}` } });
+      const body = await response.json().catch(() => ({})) as { payments?: CoursePurchase[]; message?: string };
+      return response.ok && Array.isArray(body.payments) ? { ok: true, purchases: body.payments }
+        : { ok: false, message: body.message ?? 'Your purchases could not be loaded. Please try again.' };
+    } catch {
+      return { ok: false, message: 'Unable to reach the API. Please try again.' };
+    }
+  }
+
+  /** Stripe's receipt page for one purchase. */
+  async receiptUrl(token: string, purchaseId: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+    try {
+      const response = await this.apiClient.fetch(`/users/me/payments/${encodeURIComponent(purchaseId)}/receipt`, { headers: { authorization: `Bearer ${token}` } });
       const body = await response.json().catch(() => ({})) as { url?: string; message?: string };
       return response.ok && body.url ? { ok: true, url: body.url } : { ok: false, message: body.message ?? 'Please try again.' };
     } catch {

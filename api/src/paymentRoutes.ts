@@ -99,7 +99,7 @@ export function createPaymentWebhookHandler(deps: PaymentDependencies): RequestH
 
 export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): void {
   const { authenticate, courses, payments, paymentService } = deps;
-  app.use(['/users/me/courses/:id/checkout', '/users/me/billing-portal'], (_request, response, next) => {
+  app.use(['/users/me/courses/:id/checkout', '/users/me/billing-portal', '/users/me/payments'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
   app.post('/users/me/courses/:id/checkout', authenticate, async (request, response) => {
@@ -144,5 +144,22 @@ export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): 
     if (!customerId) { response.status(404).json({ message: 'No payments yet.' }); return; }
     try { response.json(await paymentService.createPortal(customerId, returnUrl)); }
     catch { unavailable(response); }
+  });
+  app.get('/users/me/payments', authenticate, async (request, response) => {
+    const titles = new Map((await courses.listCourses()).map(course => [course.id, course.title]));
+    const list = await payments.listByUser(caller(request).id);
+    response.json({ payments: list.map(payment => ({ id: payment._id, courseId: payment.courseId,
+      courseTitle: titles.get(payment.courseId) ?? 'Removed course', amountDkk: payment.amountDkk, paidAt: payment.paidAt,
+      refunded: !!payment.refundedAt })) });
+  });
+  app.get('/users/me/payments/:id/receipt', authenticate, async (request, response) => {
+    const payment = await payments.findById(String(request.params.id));
+    if (!payment || payment.userId !== caller(request).id) { response.status(404).json({ message: 'Payment not found.' }); return; }
+    if (!paymentService) { unavailable(response); return; }
+    let url: string | null;
+    try { url = await paymentService.receiptUrl(payment._id); }
+    catch (error) { logError('Stripe receipt lookup failed', error); unavailable(response); return; }
+    if (!url) { response.status(404).json({ message: 'This receipt is not available.' }); return; }
+    response.json({ url });
   });
 }

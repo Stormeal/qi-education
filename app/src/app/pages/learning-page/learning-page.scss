@@ -753,7 +753,10 @@
   /* Stays in view and scrolls on its own, so learners can browse long chapters while a video plays. */
   position: sticky;
   top: 0;
-  align-self: start;
+  /* Sized by the lesson, never by its own list: a long course scrolls inside instead of lengthening the page (#52). */
+  align-self: stretch;
+  contain: size;
+  min-height: min(480px, 100dvh);
   max-height: 100dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -979,6 +982,8 @@
 
   .curriculum {
     position: static;
+    contain: none;
+    min-height: 0;
     max-height: none;
     overflow-y: visible;
     border-top: 1px solid var(--color-border);

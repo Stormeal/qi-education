@@ -98,6 +98,8 @@ const permissionTable: Record<string, Permission> = {
   'POST /users/me/courses/:id/checkout': 'signed-in',
   'POST /users/me/courses/:id/checkout/confirm': 'signed-in',
   'POST /users/me/billing-portal': 'signed-in',
+  'GET /users/me/payments': 'signed-in',
+  'GET /users/me/payments/:id/receipt': 'signed-in',
   'POST /users/me/courses/:id': 'signed-in',
   'GET /courses': 'public',
   'GET /courses/:id/thumbnail': 'public',

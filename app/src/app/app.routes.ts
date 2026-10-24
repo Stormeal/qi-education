@@ -41,6 +41,10 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
   },
   {
+    path: 'about',
+    loadComponent: () => import('./pages/about-page/about-page').then((module) => module.AboutPage),
+  },
+  {
     path: 'roadmap',
     canActivate: [roadmapGuard],
     loadComponent: () =>

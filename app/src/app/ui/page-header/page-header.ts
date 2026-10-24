@@ -1,11 +1,10 @@
-import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Button } from '../button/button';
 import { BrandLink } from '../brand-link/brand-link';
 import { ProfileMenu } from '../profile-menu/profile-menu';
 
-export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor' | 'profile' | 'career-path' | 'roadmap';
+export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'editor' | 'profile' | 'career-path' | 'roadmap' | 'about';
 
 @Component({
   selector: 'app-page-header',
@@ -15,13 +14,11 @@ export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'edit
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageHeader {
-  private readonly document = inject(DOCUMENT);
   readonly displayName = input.required<string>();
   readonly email = input.required<string>();
   readonly roleLabel = input.required<string>();
   readonly canAccessAdmin = input(false);
   readonly activeSection = input<PageHeaderSection>('home');
-  readonly aboutHref = input('#actions');
   readonly otherPagesHref = input('#actions');
   protected readonly homeHref = '/';
   protected readonly coursesHref = '/courses';
@@ -36,22 +33,4 @@ export class PageHeader {
   readonly loggedOut = output<void>();
   readonly adminClicked = output<void>();
   readonly careerPathClicked = output<void>();
-
-  protected navigateToAnchor(event: MouseEvent, href: string): void {
-    if (!href.startsWith('#')) {
-      return;
-    }
-
-    event.preventDefault();
-    const target = this.document.querySelector(href);
-
-    if (!(target instanceof HTMLElement)) {
-      return;
-    }
-
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    const location = this.document.defaultView?.location;
-    const nextUrl = location ? `${location.pathname}${location.search}${href}` : href;
-    this.document.defaultView?.history.replaceState(null, '', nextUrl);
-  }
 }

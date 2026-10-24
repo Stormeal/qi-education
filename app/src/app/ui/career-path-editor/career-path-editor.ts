@@ -32,6 +32,9 @@ export class CareerPathEditor {
   protected readonly draft = signal<CareerPathDraft | null>(null);
   protected readonly outcomesText = signal('');
   protected readonly openStep = signal<EditableStep | null>(null);
+  // The "Comes after" picker of the open step; only one step is open at a time.
+  protected readonly pickerQuery = signal('');
+  protected readonly pickerOpen = signal(false);
   protected readonly busy = signal(false);
   protected readonly message = signal('');
   protected readonly error = signal('');
@@ -88,6 +91,8 @@ export class CareerPathEditor {
 
   protected toggleStep(step: EditableStep): void {
     this.openStep.set(this.openStep() === step ? null : step);
+    this.pickerQuery.set('');
+    this.pickerOpen.set(false);
   }
 
   protected addStep(draft: CareerPathDraft): void {
@@ -204,6 +209,30 @@ export class CareerPathEditor {
 
   protected addRoute(step: EditableStep): void {
     (step.requirementBundles ??= []).push([]);
+  }
+
+  /** Milestones a step can come after: the other steps of this career, then shared ones from other careers. */
+  protected prerequisiteOptions(draft: CareerPathDraft, step: EditableStep) {
+    const own = draft.steps.filter((other) => other !== step)
+      .map((other) => ({ id: other.id, title: other.title || other.id, detail: 'This career' }));
+    const shared = draft.schemaVersion === 2
+      ? this.otherMilestones(draft).map((other) => ({ id: other.step.id, title: other.step.title, detail: `From ${other.career}` }))
+      : [];
+    return [...own, ...shared];
+  }
+
+  protected matchingPrerequisites(draft: CareerPathDraft, step: EditableStep) {
+    const query = this.pickerQuery().trim().toLowerCase();
+    return this.prerequisiteOptions(draft, step).filter((option) => `${option.title} ${option.detail}`.toLowerCase().includes(query));
+  }
+
+  protected selectedPrerequisites(draft: CareerPathDraft, step: EditableStep) {
+    const options = this.prerequisiteOptions(draft, step);
+    return step.prerequisiteStepIds.map((id) => options.find((option) => option.id === id) ?? { id, title: id, detail: '' });
+  }
+
+  protected closePicker(event: FocusEvent): void {
+    if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) this.pickerOpen.set(false);
   }
 
   protected togglePrerequisite(step: EditableStep, id: string, checked: boolean): void {

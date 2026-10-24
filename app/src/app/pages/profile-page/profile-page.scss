@@ -211,6 +211,58 @@ textarea.profile-input {
   margin-top: 18px;
 }
 
+app-tabs {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.profile-purchases {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+
+    & + li {
+      border-top: 1px solid var(--color-border);
+    }
+  }
+}
+
+.profile-purchase-course {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+
+  span {
+    color: var(--color-text-muted);
+    font-size: 13px;
+  }
+}
+
+.profile-purchase-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+// A refund chip is optional, so the receipt button keeps its own last column.
+.profile-purchases li > button {
+  grid-column: 4;
+}
+
+.profile-purchases-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
 h2.profile-label {
   margin: 0;
   font-size: 16px;
@@ -234,6 +286,14 @@ h2.profile-label {
 }
 
 @media (max-width: 760px) {
+  .profile-purchases li {
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    > button {
+      grid-column: auto;
+    }
+  }
+
   .profile-identity {
     grid-template-columns: 1fr;
     justify-items: start;

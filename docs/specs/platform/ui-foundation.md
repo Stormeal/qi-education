@@ -35,6 +35,13 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   `<button>`s, but use the design values and the global ring.
 - Primary navigation links (including Catalog and My Learning) have no dropdown chevrons.
   Use disclosure indicators only on controls that actually expand content or open a menu.
+- **About** opens `/about` (`pages/about-page/`): what QI Academy offers and a short description of
+  TestHuset taken from testhuset.dk (read 2026-10-24), with its website and info@testhuset.dk. Signed
+  out it shows the brand link instead of the header.
+- The profile button shows the account's **organization** name before the avatar (cut at 180px,
+  hidden below 640px; the menu summary always names it) and the avatar in the **saved** avatar
+  colour. `services/header-identity.service.ts` carries both from `AppStateService` to the header,
+  which must not inject `AppStateService`.
 - Teachers and admins also get a Roadmap link after My Learning. It opens `/roadmap`, a fixed copy
   of the agreed roadmap in `pages/roadmap-page/roadmap-page.ts` (releases and release 1 items, no
   management decisions). Students do not see the link, and `/roadmap` sends them to Home.

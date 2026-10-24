@@ -80,34 +80,50 @@
                 <label class="cpe-check"><input type="checkbox" [name]="'role' + i" [(ngModel)]="step.roleMilestone" /> Role milestone (the job-title step of this career)</label>
               }
 
-              @if (path.steps.length > 1) {
-                <fieldset class="cpe-group">
-                  <legend>Comes after</legend>
-                  @for (other of path.steps; track other) {
-                    @if (other !== step) {
-                      <label class="cpe-check">
-                        <input
-                          type="checkbox"
-                          [checked]="step.prerequisiteStepIds.includes(other.id)"
-                          (change)="togglePrerequisite(step, other.id, $any($event.target).checked)"
-                        />
-                        {{ other.title || other.id }}
-                      </label>
-                    }
+              @if (prerequisiteOptions(path, step).length > 0) {
+                <!-- tabindex on the panel keeps focus inside while a click lands on option text, so the list stays open. -->
+                <div class="cpe-picker" (focusout)="closePicker($event)" (keydown.escape)="pickerOpen.set(false)">
+                  <label [for]="'after' + i">Comes after</label>
+                  @if (step.prerequisiteStepIds.length > 0) {
+                    <ul class="cpe-picked" aria-label="Comes after">
+                      @for (item of selectedPrerequisites(path, step); track item.id) {
+                        <li>
+                          {{ item.title }}
+                          <button type="button" [attr.aria-label]="'Remove ' + item.title" (click)="togglePrerequisite(step, item.id, false)">&times;</button>
+                        </li>
+                      }
+                    </ul>
                   }
-                  @if (path.schemaVersion === 2) {
-                    @for (other of otherMilestones(path); track other.step.id) {
-                      <label class="cpe-check">
-                        <input
-                          type="checkbox"
-                          [checked]="step.prerequisiteStepIds.includes(other.step.id)"
-                          (change)="togglePrerequisite(step, other.step.id, $any($event.target).checked)"
-                        />
-                        {{ other.step.title }} (from {{ other.career }})
-                      </label>
-                    }
+                  <input
+                    type="search"
+                    class="cpe-search"
+                    autocomplete="off"
+                    placeholder="Search milestones"
+                    [id]="'after' + i"
+                    [value]="pickerQuery()"
+                    [attr.aria-expanded]="pickerOpen()"
+                    [attr.aria-controls]="'after-options' + i"
+                    (focus)="pickerOpen.set(true)"
+                    (click)="pickerOpen.set(true)"
+                    (input)="pickerQuery.set($any($event.target).value); pickerOpen.set(true)"
+                  />
+                  @if (pickerOpen()) {
+                    <div class="cpe-options" tabindex="-1" [id]="'after-options' + i">
+                      @for (option of matchingPrerequisites(path, step); track option.id) {
+                        <label class="cpe-option">
+                          <input
+                            type="checkbox"
+                            [checked]="step.prerequisiteStepIds.includes(option.id)"
+                            (change)="togglePrerequisite(step, option.id, $any($event.target).checked)"
+                          />
+                          <span><strong>{{ option.title }}</strong><small>{{ option.detail }}</small></span>
+                        </label>
+                      } @empty {
+                        <p class="cpe-hint">No milestone matches "{{ pickerQuery() }}".</p>
+                      }
+                    </div>
                   }
-                </fieldset>
+                </div>
               }
 
               <fieldset class="cpe-group is-stacked">

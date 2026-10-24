@@ -15,6 +15,9 @@ Admins write and publish the careers learners follow.
   activity), requirement routes ("every ticked action", or "any one route"), prerequisites from
   other careers and **Reuse a milestone from another career** (copies the shared milestone with
   its ID). Milestone IDs of a new career start with its career ID.
+- **Comes after** is a search field over the other steps of this career ("This career") and, for
+  milestone careers, the published milestones of other careers ("From <career>"). Ticking adds a
+  removable chip above the field; Escape or leaving the field closes the list.
 - Each action has optional **CV keywords**, one per line (up to 10, each 1 to 80 characters,
   duplicates removed): the exact phrases a CV scan matches. They are public with the career.
   Changing them keeps the action's identity, also on shared milestones. The built-in milestone

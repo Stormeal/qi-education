@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryPaymentRepository, MongoPaymentRepository, type CoursePayment, type PaymentCollection } from './paymentRepository.js';
+import { fakePaymentCollection } from '../test/fakePaymentCollection.js';
 
 function setup(kind: string) {
   const documents = new Map<string, CoursePayment>();
@@ -19,6 +20,18 @@ function setup(kind: string) {
   return { documents, repository: kind === 'memory' ? new InMemoryPaymentRepository() : new MongoPaymentRepository(async () => collection) };
 }
 const payment: CoursePayment = { _id: 'cs_1', userId: 'u1', courseId: 'c1', amountDkk: 499, stripeCustomerId: 'cus_1', paidAt: '2026-10-19T12:00:00.000Z' };
+describe.each(['memory', 'mongo'])('purchase list (%s)', kind => {
+  it('lists one account\'s payments newest first, refunded ones included', async () => {
+    const fake = fakePaymentCollection();
+    const repository = kind === 'memory' ? new InMemoryPaymentRepository() : new MongoPaymentRepository(async () => fake.collection);
+    await repository.add(payment);
+    await repository.add({ ...payment, _id: 'cs_new', paidAt: '2026-10-20T12:00:00.000Z' });
+    await repository.add({ ...payment, _id: 'cs_other', userId: 'u2' });
+    await repository.markRefunded('cs_1', '2026-10-21T12:00:00.000Z');
+    expect((await repository.listByUser('u1')).map(p => [p._id, p.refundedAt ?? null])).toEqual([['cs_new', null], ['cs_1', '2026-10-21T12:00:00.000Z']]);
+    expect(await repository.listByUser('missing')).toEqual([]);
+  });
+});
 describe.each(['memory', 'mongo'])('US-L024 payments (%s)', kind => {
   it('add returns true then false for the same session id', async () => {
     const { repository, documents } = setup(kind);

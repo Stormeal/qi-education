@@ -4,20 +4,23 @@
     class="profile-trigger"
     aria-haspopup="menu"
     [attr.aria-expanded]="isOpen()"
-    aria-label="Open profile menu"
+    [attr.aria-label]="identity.organizationName() ? 'Open profile menu, ' + identity.organizationName() : 'Open profile menu'"
     (click)="toggleMenu()"
   >
-    <span class="profile-avatar" aria-hidden="true">{{ initials() || 'U' }}</span>
+    @if (identity.organizationName()) {
+      <span class="profile-org" aria-hidden="true">{{ identity.organizationName() }}</span>
+    }
+    <span class="profile-avatar" aria-hidden="true" [style.background]="identity.avatarColor()">{{ initials() || 'U' }}</span>
   </button>
 
   @if (isOpen()) {
     <div class="profile-dropdown" role="menu" aria-label="Profile menu">
       <div class="profile-summary">
-        <span class="profile-summary-avatar" aria-hidden="true">{{ initials() || 'U' }}</span>
+        <span class="profile-summary-avatar" aria-hidden="true" [style.background]="identity.avatarColor()">{{ initials() || 'U' }}</span>
         <div>
           <strong>{{ displayName() }}</strong>
           <span>{{ email() }}</span>
-          <small>{{ roleLabel() }}</small>
+          <small>{{ roleLabel() }}@if (identity.organizationName()) {, {{ identity.organizationName() }}}</small>
         </div>
       </div>
 

@@ -16,6 +16,8 @@ export interface PaymentService {
   readCheckout(sessionId: string): Promise<CheckoutSession | null>;
   findCheckoutByPaymentIntent(paymentIntentId: string): Promise<CheckoutSession | null>;
   createPortal(customerId: string, returnUrl: string): Promise<{ url: string }>;
+  /** Stripe's hosted receipt for a paid Checkout session; null when Stripe has none. */
+  receiptUrl(sessionId: string): Promise<string | null>;
   readWebhookEvent(rawBody: string, signature: string | undefined): PaidCheckoutEvent;
 }
 export class PaymentSignatureError extends Error {}
@@ -56,6 +58,8 @@ export class FakePaymentService implements PaymentService {
     return this.readCheckout(paymentIntentId.slice('fake_pi_'.length));
   }
   async createPortal(_customerId: string, returnUrl: string): Promise<{ url: string }> { return { url: returnUrl }; }
+  // Offline runs have no Stripe receipt page to open.
+  async receiptUrl(): Promise<string | null> { return null; }
   readWebhookEvent(rawBody: string, signature: string | undefined): PaidCheckoutEvent {
     if (signature !== 'fake-signature') throw new PaymentSignatureError('Invalid Stripe webhook signature.');
     return paidEvent(JSON.parse(rawBody));
@@ -93,6 +97,12 @@ export class StripePaymentService implements PaymentService {
   async createPortal(customerId: string, returnUrl: string): Promise<{ url: string }> {
     const session = await this.client.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
     return { url: session.url };
+  }
+  async receiptUrl(sessionId: string): Promise<string | null> {
+    const session = await this.client.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent.latest_charge'] });
+    const intent = session.payment_intent;
+    const charge = intent && typeof intent !== 'string' ? intent.latest_charge : null;
+    return charge && typeof charge !== 'string' ? charge.receipt_url : null;
   }
   readWebhookEvent(rawBody: string, signature: string | undefined): PaidCheckoutEvent {
     if (!this.webhookSecret || !signature) throw new PaymentSignatureError('Invalid Stripe webhook signature.');
