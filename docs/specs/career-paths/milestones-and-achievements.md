@@ -60,8 +60,8 @@ actually done, once, and count wherever they apply.
 
 - No correction or removal of a declaration, and no admin verification of evidence.
 - A milestone achieved under earlier requirements is not kept achieved: course completion has no
-  stored time, so evidence cannot be dated against the change (decided as a default 2026-10-24,
-  Alex to confirm). Changing a shared milestone is still refused while another published career
+  stored time, so evidence cannot be dated against the change (confirmed by Alex,
+  2026-10-24). Changing a shared milestone is still refused while another published career
   holds the old definition.
 - CV recognition has no OCR (scanned PDFs), no pasted text, no years-of-experience estimate and no
   admin verification. A CV achievement saved by mistake cannot be removed yet.

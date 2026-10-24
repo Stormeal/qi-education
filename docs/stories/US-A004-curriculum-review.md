@@ -43,7 +43,7 @@ AI Testing Specialist career fits. A composite Test Architect route is future cu
 - Layout and title changes already keep achievement identities, and a changed exam or course must
   use a new action ID (the API refuses reuse).
 
-Decisions taken as defaults on 2026-10-24 (Alex: confirm or change):
+Decisions taken as defaults on 2026-10-24, confirmed by Alex the same day:
 
 1. **Version per milestone, set by the server.** Every milestone has a requirement version,
    starting at 1. Publishing a milestone whose requirement routes differ from its published
