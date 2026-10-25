@@ -38,6 +38,13 @@ false success.
 - **Caching**: course and feedback responses are `private, no-store` with `Vary: Authorization`. A thumbnail
   requested with `?v=<assetId>` that matches the served asset is cached privately for a year
   (`immutable`). Nothing is publicly cacheable.
+
+API responses set `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and
+`X-Frame-Options: DENY`, and omit `X-Powered-By`, including errors and asset downloads. The four
+health endpoints (`/health`, `/health/config`, `/health/auth`, `/health/content`) and their `/api`
+aliases are `Cache-Control: no-store`. Existing private/asset cache policies, CORS, `Vary`, storage,
+retry and download headers remain unchanged; no Content Security Policy middleware is added (X9).
+
 - **Local runs stay local**: on a localhost frontend, writes go only to the local API; if it is
   down, the client answers a local 503 ("Local API is unavailable…") and never sends the request to
   the hosted API.

@@ -6,10 +6,17 @@ messages hold them.
 
 ## Active work
 
-**X9 API security headers** (started 2026-10-25, owner Codex): nosniff, Referrer-Policy, frame
-policy, no `X-Powered-By`, `no-store` on health, from the X8 Headers row. Files: `api/src/server.ts`,
-new `api/src/securityHeaders.test.ts`, `docs/specs/platform/reliability.md`. Handoff
-[handoffs/X9-api-headers-codex.md](handoffs/X9-api-headers-codex.md). State: handed to Codex.
+**X9 API security headers** (2026-10-25, owner Codex): done locally on `main`, not pushed.
+Base `4bdeb3f`; required ancestor `d961dfb` verified. Contract:
+[handoffs/X9-api-headers-codex.md](handoffs/X9-api-headers-codex.md). Adds the three response
+headers and disables X-Powered-By before routes; all four health endpoints and /api aliases use
+no-store. Files: `api/src/server.ts`, `api/src/securityHeaders.test.ts`, reliability paragraph
+and aligned patch version lines only. Regression: 26 new HTTP cases failed before the change,
+then passed on isolated in-memory stores and ephemeral ports (neither 3001 nor 4200). Existing
+private/immutable cache, Vary/CORS, storage, Retry-After and download headers remain covered.
+Checks: `npm run api:test` 2,684 passed / 109 files; `npm run api:build` and diff check pass.
+Delivery: the local `fix(X9): harden API response headers` commit containing this record.
+No deployment/shared-service check; no other files needed or changed.
 
 **X10 screen-reader pass** (2026-10-25, owner Claude): done locally, not pushed. Accessibility-tree
 check on isolated servers (Chromium accessibility tree and scripted checks, not a real screen reader)

@@ -158,6 +158,18 @@ type AuthenticatedRequest = Request & {
 
 export function createServer(dependencies: ServerDependencies = {}) {
   const app = express();
+  app.disable('x-powered-by');
+  app.use((request, response, next) => {
+    response.set({
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
+      'X-Frame-Options': 'DENY',
+    });
+    if (/^\/(?:api\/)?health(?:\/(?:config|auth|content))?\/?$/i.test(request.path)) {
+      response.set('Cache-Control', 'no-store');
+    }
+    next();
+  });
   const auth = accountWriteFreeze(dependencies.authRepository ?? createAuthRepository(), apiConfig.USER_STORE_READ_ONLY === '1');
   const signInLimit = new SignInLimit(dependencies.signInAttemptRepository ?? createSignInAttemptRepository(), dependencies.signInLimitOptions);
   const clientLimit = new ClientLimit(dependencies.clientLimitRepository ?? createClientLimitRepository(), dependencies.clientLimitOptions);
