@@ -1476,3 +1476,55 @@ then verify that the Pages workflow accepts the hosted MongoDB account configura
 - Browser check: isolated stores, ports 3001/4200, local admin; a new uncategorized course's Catalog
   settings dialog shows Uncategorized. The language, sort and draft pickers were not browser-checked.
 - Release limits: not pushed; hosted check after deploy.
+
+
+### INV-004 - Duplicate feedback issues after a restart (fixed in code)
+
+Original investigation record (preserved):
+
+| ID | Concern | Next verification at investigation | Related |
+| --- | --- | --- | --- |
+| INV-004 | Reproduced 2026-10-22 (X6, base `f4c1d61`): issue #1 is created, saving its link fails (500), then a fresh server retries (200) and creates issue #2. `api/src/multiInstanceFeedback.test.ts` keeps the desired single-issue assertion as `it.fails` on both URL prefixes; setup guards are outside the expected failure. Isolated memory stores and a stub GitHub service only; same-instance retry protection (DEF-025) is unchanged. | [Options and recommendation](handoffs/INV-004-options.md): choose durable atomic operation tracking plus marker-based recovery, or explicitly accept a smaller partial mitigation. No production fix implemented; real provider/storage behavior unverified. | US-P003-AC04 |
+
+Resolution: fixed 2026-10-25 by Codex in `b274cce` (US-A006). A majority-acknowledged
+MongoDB operation journal atomically claims creation and records the issue result
+independently of feedback triage. Restart, failed final-link save and non-work
+retry reuse the recorded issue. Unknown external outcomes do not authorize another
+POST; trusted marker lookup or documented operator reconciliation is required.
+Both `multiInstanceFeedback.test.ts` URL-prefix reproductions are now ordinary
+passing tests. `feedbackTriage.test.ts`, `githubFeedback.test.ts`, `safeRetries.test.ts`
+cover independent claims, lost responses, failure windows and recovery. Full API
+suite: 2,658 passed. Real Atlas/GitHub permissions/recovery and hosted cutover
+remain release checks; no unconditional exactly-once external transaction claimed.
+
+### DEF-064 - Late feedback replies can overwrite another session's admin state
+
+- Severity/state: P2, Fixed in code, 2026-10-25. Owner Codex; fix `b274cce` (US-A006).
+- Reproduction at `5118eb5`: hold an admin inbox or triage promise, replace the
+  signed-in account and set the new account's safe inbox/busy state, then resolve
+  the old request. Old feedback or its error replaces the current state and clears
+  its busy flag. `feedback-session.spec.ts` reproduced both failures before the fix.
+- Expected: replies belong to the initiating account/token, with no stale state
+  writes or cleanup affecting a different session.
+- Resolution: use stable account/token and current-admin checks; same-account
+  object refreshes can complete pending work. A separate red/green regression
+  catches a loading flag stranded by object-identity guards after refreshed account
+  details. Logout resets inbox state; composer responses have their own generation.
+- Evidence: three session regressions pass; full app 551 passed. Synthetic TestBed
+  sessions only. Hosted account switching/role refresh remains a release check.
+
+### DEF-065 - Feedback responses omit explicit private cache protection
+
+- Severity/state: P2, Fixed in code, 2026-10-25. Owner Codex; fix `b274cce` (US-A006).
+- Reproduction: isolated HTTP GET /feedback and PATCH /feedback/:id/triage as an
+  admin, also under /api, returned 200 with `cache-control=null` and `vary=Origin`.
+  Personal submission bodies had no explicit private/no-store policy, contrary
+  to the app's private-data contract. This was confirmed by the independent reviewer
+  and failing `typedFeedbackRoutes.test.ts` assertions.
+- Expected: feedback responses (including errors) are `private, no-store` and
+  vary on Authorization.
+- Resolution: feedback middleware applies the private headers before parsing and
+  authentication for both aliases. HTTP regressions now pass; the admin browser
+  archive response also returned `private, no-store`.
+- Evidence: full API 2,658 passed. Local HTTP/browser only; verify hosted headers
+  after deployment. No production feedback records were accessed.

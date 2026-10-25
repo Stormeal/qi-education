@@ -18,7 +18,7 @@ department); new requests enter here as Proposed stories.
 
 | Release | Target | Goal | In scope |
 | --- | --- | --- | --- |
-| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-P003 feedback part / INV-004 (Should) |
+| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; built locally) |
 | 2, public launch | Around Q2 2027 | Sell to individuals and organizations | US-O001 owner overview, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
 | 3, organization billing | After launch, 2027 | Paid organization seats | US-O002 |
 
@@ -34,7 +34,6 @@ budget, curriculum owner, backup developer.
 | US-O001 | Organizations: request, approval, invites, owner overview | Release 1 delivered 2026-10-24 (not live); owner overview in release 2 | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review (changed criteria delivered) | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
-| US-A006 | Feedback, defect reports and change requests in MongoDB | In progress | P2 | INV-004 included | [stories/US-A006](stories/US-A006-feedback-mongodb.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
@@ -108,18 +107,17 @@ duplicate accounts, lost enrollment, or duplicate issues do not result.**
 State: In progress. Single-instance protection (keyed queues) is delivered; see
 [reliability](specs/platform/reliability.md). MongoDB accounts (cut over 2026-10-18) already give a
 unique email index and atomic enrollment across instances. Decision for Alex: confirm that this
-closes the account part, and choose durable issue lookup or idempotency for feedback triage after a
-restart or on another instance.
+closes the account part. The feedback part was delivered locally in US-A006 (`b274cce`,
+2026-10-25): durable issue operations and trusted recovery; hosted acceptance remains in the queue.
 
 ```gherkin
-Feature: Safe account and feedback writes
+Feature: Safe account writes
   Scenario: US-P003-AC04 Safe writes across API instances
     Given several API instances or an instance restart
     And a shared uniqueness, update and retry strategy has been agreed
-    When account operations overlap or a failed triage is retried on another instance
+    When account operations overlap
     Then at most one account exists for a normalized email
     And both requested enrollments persist without duplicates or lost updates
-    And triage links the already-created issue
 ```
 
 ### US-P018 — Ready for internal company use (release 1)

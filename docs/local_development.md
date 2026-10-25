@@ -52,7 +52,8 @@ Never commit `.env` or log credentials.
 | Auth | `AUTH_TOKEN_SECRET` (required in production) |
 | Accounts and courses | MongoDB (the Mongo content settings below) in shared and hosted mode; without them those routes answer "unavailable". Isolated runs use the demo users and demo course |
 | Maintenance freeze | `USER_STORE_READ_ONLY=1` / `COURSE_STORE_READ_ONLY=1` refuse account or course-detail writes (503 with a retry message). Any value other than `0` or `1` stops start-up |
-| Feedback (Sheets) | `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEETS_FEEDBACK_RANGE` |
+| Feedback | MongoDB content settings; `FEEDBACK_STORE_READ_ONLY=1` freezes submission/lesson feedback/triage |
+| One-time feedback migration only | `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEETS_FEEDBACK_RANGE`; see [cutover](release/feedback-mongodb.md) |
 | Mongo content | `MONGODB_URI`, `MONGODB_DB_NAME`, `MONGODB_COURSE_CONTENT_COLLECTION` |
 | Mongo assets | Same URI/database plus `MONGODB_COURSE_ASSET_COLLECTION` |
 | Mux uploads | `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET`; webhook secret for callback verification |
@@ -61,8 +62,10 @@ Never commit `.env` or log credentials.
 | Account mail | `BREVO_API_KEY`, `MAIL_FROM_ADDRESS`, `APP_PUBLIC_URL`; optional `MAIL_FROM_NAME` (default `QI-Education`) |
 | HTTP | `PORT`, comma-separated `CORS_ORIGIN` |
 
-Use the header order exported in `api/src/feedback.ts`; the Feedback tab is `A:Q`. Share a test
-sheet with the service account before running integration checks.
+Runtime feedback uses MongoDB, never Sheets. The separate migration command reads the legacy
+17-column `A:Q` tab without changing it; rehearse with isolated doubles and use the
+[cutover runbook](release/feedback-mongodb.md) for an authorized production copy. Health/doctor
+report `feedback.storage` and `feedback.readOnly`; no legacy Sheets range is returned by health.
 
 The old Users and Courses tabs stay in Google Drive as a read-only backup of the 2026-10-18
 cutover; nothing reads them. The commands that copied them (`users:migrate`, `courses:migrate`)

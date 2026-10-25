@@ -1,25 +1,10 @@
 # Work queue
 
-Updated: 2026-10-24. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-25. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
-
-**US-A006 design** (2026-10-25, owner Codex): Alex requested MongoDB feedback
-storage, feedback/defect/change-request types and a feedback-view redesign using
-design-taste-frontend while preserving the global theme. Branch `main`, base
-`5118eb5640df33a429c531641b99e6d2b19f6813`. Scope owned so far: this queue,
-the backlog row and [design/contract](stories/US-A006-feedback-mongodb.md).
-Current feedback code, lesson integration, admin triage and INV-004 options read;
-existing dialog inspected against an isolated local API (no submission or issue).
-AC01-AC12 implementation started after Alex confirmed the proposed submission
-outcome on 2026-10-25. Builder review completed; uncertain GitHub outcomes use an
-operator runbook, with no new in-app recovery tool. Codex owns domain/API wiring,
-frontend, integration and delivery; implementation agents own storage/migration
-and durable triage modules under the contract's execution plan. Next: focused
-contract tests, Mongo/triage implementation and the dialog/inbox changes. No push,
-deployment or shared-data writes authorized by this implementation run.
 
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
@@ -81,17 +66,24 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
 | Dependency follow-ups (X7 report) | Decide what to schedule from [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md): app audit has 3 critical and 21 high entries, mostly build and dev tooling (Angular CLI/build, `tar`, `piscina`), the critical ones fixed by Angular 22 or patch releases; root `concurrently`/`shell-quote` (critical, dev only); API Zod 4.6 (reverted, 163 test failures), Express 5.3 and the SOCKS/`ip-address` family (reverted) | A story or defect per item you want done |
 | Two accepted server findings (US-P018-AC04, before release 1) | Choose for each: **body-parser** (an unauthenticated compressed request can crash the API): approve the parser major (content-type 2) or turn off compressed request bodies (they would get 415; browsers and our webhooks do not send them). **Zod** (oversized lists can use a lot of memory): approve Zod 4.6 with changed validation error messages, or keep the accepted risk. Details in [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md#us-p018-ac04) | Say so to Claude; the choice becomes a task |
-| Decisions | US-P003 (cross-instance writes; for feedback triage pick an INV-004 option in [handoffs/INV-004-options.md](handoffs/INV-004-options.md), Codex recommends C with B's marker), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
+| Decisions | US-P003 (accept the account concurrency evidence; feedback durable triage delivered locally by US-A006 in `b274cce`), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
-[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below and US-P003's feedback part
-once Alex picks an INV-004 option. US-P018-AC01–AC03 wait on the hosting budget and Alex; the two
+[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-A006 feedback
+was delivered locally in `b274cce`; its production cutover is a separate release action. US-P018-AC01–AC03 wait on the hosting budget and Alex; the two
 accepted findings of AC04 wait on Alex's choice. Requests from the department interviews are added
 as they arrive.
 
 ## Open release checks
+
+- US-A006 (`b274cce`, 2026-10-25, local only): deploy with feedback writers frozen,
+  perform the authorized [Sheets-to-Mongo copy](release/feedback-mongodb.md), verify
+  IDs/digests/indexes and all writer freezes, then unfreeze. Check real GitHub
+  issue creation/marker recovery and Atlas durability/permissions; verify hosted
+  private headers and account/role refresh. [Local evidence](history/verification/2026-10-25/US-A006/verification.md):
+  API 2,658, app 551, foundation 23, journeys 18; API/Pages builds and browser flow pass.
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 

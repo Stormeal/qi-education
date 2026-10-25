@@ -26,14 +26,18 @@ Startup prints one `Stores:` line; `/health/config` reports `mode`.
 | Thumbnails and attachments | MongoDB asset repository |
 | Lesson notes, learning progress, career paths, account careers, profiles, instructor descriptions, reset tokens, email confirmation tokens, sign-in attempts, client limits, user change log | MongoDB, one collection each named `<collection>_<purpose>` |
 | Course payments | MongoDB `payments`, one document per paid Checkout session |
-| Feedback | Google Sheets (Feedback tab) |
+| Feedback and GitHub issue operations | MongoDB `<collection>_feedback` and `<collection>_feedback_issue_operations` |
 
 `<collection>` is `MONGODB_COURSE_CONTENT_COLLECTION`. Shared and hosted mode without the MongoDB
-settings answer "unavailable" (503) for accounts and courses, never demo data. Feedback is the only
-Google Sheets store (US-P016); the old Users and Courses tabs stay in Google Drive as a read-only
-backup that nothing reads.
+settings answer "unavailable" (503) for accounts and courses, never demo data. Feedback also fails closed without MongoDB (US-A006); runtime no longer reads or writes Sheets.
+Legacy Google adapters/credentials are retained only for one-time migration and compatibility
+tests. Existing Feedback data requires the explicit [cutover](../../release/feedback-mongodb.md);
+the old Users and Courses tabs remain a read-only backup that runtime never reads.
 
 ## Maintenance freeze
+
+- `FEEDBACK_STORE_READ_ONLY=1` freezes site/lesson submissions and triage, including GitHub side
+  effects, while reads continue. `/health/config.feedback` reports storage/configured/readOnly.
 
 - `USER_STORE_READ_ONLY=1` / `COURSE_STORE_READ_ONLY=1` refuse account or course-detail writes with a
   503 maintenance message; reads keep working.

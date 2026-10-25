@@ -18,7 +18,7 @@ API (Express, Vercel function)                                    ▼
   createServer() in server.ts: middleware, auth, route wiring   Mux ──signed webhook──► /webhooks/mux
   *Routes.ts modules for newer features
   domain files (Zod schemas, pure rules)
-  repository interfaces → MongoDB | Google Sheets (feedback) | in-memory
+  repository interfaces → MongoDB | in-memory
 ```
 
 `api/src/` is flat: there are no `routes/`, `repositories/` or `models/` folders. Find things by
@@ -73,6 +73,9 @@ purpose; never return a stored document as is.
   is still current before touching signals or storage. Keep this when adding requests.
 - **Browser storage** only through the owning service (`SessionService`, draft recovery, progress
   cache, profile cache). Never from components.
+- **Feedback**: one root modal host and `FeedbackComposerService` keep the session draft and send
+  guard across routes; the presentational dialog uses reactive forms. Legacy page bindings remain
+  compatible. Triage uses a Mongo operation journal; Google Sheets is migration-only.
 - **UI**: use the shared components and design values ([ui-foundation](specs/platform/ui-foundation.md));
   the colour and pattern guard runs with `npm run app:test`.
 

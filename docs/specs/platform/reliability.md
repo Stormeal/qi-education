@@ -7,6 +7,12 @@ false success.
 
 ## Behavior
 
+- **Feedback triage**: a MongoDB operation journal atomically claims issue creation and keeps its
+  result across API restarts. Known links/results are reused, including non-work retries.
+  Uncertain GitHub outcomes require exact trusted-marker recovery or operator reconciliation;
+  they never expire into a blind second POST. See [feedback](../admin/feedback.md) and the
+  [recovery runbook](../../release/feedback-mongodb.md) (US-A006 / INV-004).
+
 - **Course lock**: every course write runs under a per-course lock (MongoDB owner record; memory
   locally). Reads do not take it. A held lock answers 409 after a bounded wait. A lock left by an
   interrupted write expires after 31 minutes. Locked handlers answer with `send`/`json` and the
@@ -29,7 +35,7 @@ false success.
   accounts: a unique email index, `$addToSet` enrollment and single-field updates.
 - **Atomic per-account writes** for progress, careers, achievements, notes and profiles (compare
   and replace with retry, majority acknowledgement).
-- **Caching**: course responses are `private, no-store` with `Vary: Authorization`. A thumbnail
+- **Caching**: course and feedback responses are `private, no-store` with `Vary: Authorization`. A thumbnail
   requested with `?v=<assetId>` that matches the served asset is cached privately for a year
   (`immutable`). Nothing is publicly cacheable.
 - **Local runs stay local**: on a localhost frontend, writes go only to the local API; if it is

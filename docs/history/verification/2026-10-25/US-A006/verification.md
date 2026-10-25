@@ -1,7 +1,7 @@
 # US-A006 feedback delivery verification
 
 Date: 2026-10-25. Owner: Codex. Started on `main` at `5118eb5`; preserved
-Claude's concurrent `3558cc9` exercise-video fix. Implementation commit: pending.
+Claude's concurrent `3558cc9` exercise-video fix. Implementation commit: `b274cce` (v0.1.470); delivery records follow in the next local commit.
 Local implementation only: no push, deployment or production data migration.
 
 ## Behavior and evidence

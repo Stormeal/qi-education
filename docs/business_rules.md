@@ -83,10 +83,19 @@ The API enforces every rule here; the UI only mirrors them.
   its own authenticated account, and served `private, no-store`.
 - Local runs and tests never use or change live data; local writes are never sent to the hosted API.
 
+## Feedback
+
+- All active signed-in roles can give feedback, report defects and request changes. Identity comes
+  from the session. Only admins read or triage the inbox; they explicitly choose GitHub work.
+- Sending confirms receipt for team review; it does not promise a reply or implementation date.
+- Runtime feedback uses MongoDB in shared/hosted mode; a storage outage never reports success in
+  disposable memory. A maintenance freeze also prevents issue-creation side effects.
+
 ## Limits
 
 | Thing | Limit |
 | --- | --- |
+| Typed feedback | summary 1-120; description 1-2000; optional defect steps/expected behavior each <=2000 |
 | Attachment | 4 MB; quiz images JPEG/PNG/WebP |
 | Thumbnail | 2 MB; JPEG/PNG/WebP |
 | Quiz | 2–6 options per question; explanation ≤1000; image alt text ≤300 |

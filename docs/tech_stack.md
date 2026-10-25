@@ -31,7 +31,7 @@ Versions are the ones pinned in the `package.json` files; check there before rel
 | Server | Express 5, `cors` |
 | Validation | Zod 4 |
 | Auth | Node `crypto`: salted scrypt password hashes, HMAC-signed JWT-shaped tokens (12 h) |
-| Databases | MongoDB driver 7 (accounts, courses, content, assets, everything else); `googleapis` Google Sheets (feedback only) |
+| Databases | MongoDB driver 7 (all runtime stores, including feedback); `googleapis` retained for one-time Sheets migration/compatibility tests |
 | Video | `@mux/mux-node` (direct uploads, signed webhooks) |
 | Mail | Brevo HTTP API via `fetch` (production only) |
 | Issues | GitHub REST and GraphQL via `fetch` (feedback triage) |
