@@ -6,6 +6,12 @@ messages hold them.
 
 ## Active work
 
+**US-P018-AC04 follow-up** (started 2026-10-25). Alex decided: refuse compressed request bodies
+(415) and approve Zod 4.6 with its changed validation messages. Codex: both API parts, files in
+[handoffs/US-P018-AC04-followup-codex.md](handoffs/US-P018-AC04-followup-codex.md). State: handed to
+Codex. Claude: the course builder stops at 50 questions per quiz and 50 attachments per lesson
+(`app/src/app/ui/course-builder/**`, `app-state.service.ts`, `app.models.ts`). State: in progress.
+
 Delivered 2026-10-25, local only (not pushed): **X9** API security headers (Codex, `9448f97`,
 checked by Claude: own files only, contract kept, no frontend iframes affected; rule in
 [specs/platform/reliability.md](specs/platform/reliability.md); record
@@ -77,7 +83,6 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | Go-live for payments (release 2) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
 | Dependency follow-ups (X7 report) | Decide what to schedule from [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md): app audit has 3 critical and 21 high entries, mostly build and dev tooling (Angular CLI/build, `tar`, `piscina`), the critical ones fixed by Angular 22 or patch releases; root `concurrently`/`shell-quote` (critical, dev only); API Zod 4.6 (reverted, 163 test failures), Express 5.3 and the SOCKS/`ip-address` family (reverted) | A story or defect per item you want done |
-| Two accepted server findings (US-P018-AC04, before release 1) | Choose for each: **body-parser** (an unauthenticated compressed request can crash the API): approve the parser major (content-type 2) or turn off compressed request bodies (they would get 415; browsers and our webhooks do not send them). **Zod** (oversized lists can use a lot of memory): approve Zod 4.6 with changed validation error messages, or keep the accepted risk. Details in [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md#us-p018-ac04) | Say so to Claude; the choice becomes a task |
 | Decisions | US-P003 (accept the account concurrency evidence; feedback durable triage delivered locally by US-A006 in `b274cce`), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
