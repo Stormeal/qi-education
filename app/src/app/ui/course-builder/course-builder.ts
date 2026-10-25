@@ -39,7 +39,7 @@ import {
   lucideX,
 } from '@ng-icons/lucide';
 import '@mux/mux-player';
-import { canHoldVideo, CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
+import { canHoldVideo, CourseComponent, CourseComponentMoved, CourseComponentType, CourseContentDocument, QUIZ_MAX_ANSWERS, QUIZ_MAX_QUESTIONS, QUIZ_MIN_ANSWERS, QuizQuestion, QuizQuestionEdit } from '../../app.models';
 import { Button } from '../button/button';
 import { IconButton } from '../icon-button/icon-button';
 import { LoadingSkeleton } from '../loading-skeleton/loading-skeleton';
@@ -185,6 +185,7 @@ export class CourseBuilder {
   readonly courseComponentMoved = output<CourseComponentMoved>();
   protected readonly quizMinAnswers = QUIZ_MIN_ANSWERS;
   protected readonly quizMaxAnswers = QUIZ_MAX_ANSWERS;
+  protected readonly quizMaxQuestions = QUIZ_MAX_QUESTIONS;
   // Questions whose optional explanation field was opened in this session.
   private readonly openQuizExplanations = signal<string[]>([]);
 

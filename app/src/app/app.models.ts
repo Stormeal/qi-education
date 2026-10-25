@@ -176,6 +176,9 @@ export type QuizQuestion = {
 
 export const QUIZ_MIN_ANSWERS = 2;
 export const QUIZ_MAX_ANSWERS = 6;
+// Same limits as the API schema (api/src/courseContent.ts); past them a save answers "Invalid request body".
+export const QUIZ_MAX_QUESTIONS = 50;
+export const LESSON_MAX_ATTACHMENTS = 50;
 
 /** A change to one quiz question that is not a plain text edit of an existing field. */
 export type QuizQuestionImage = { assetId: string; alt: string };

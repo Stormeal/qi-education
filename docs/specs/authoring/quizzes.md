@@ -36,5 +36,6 @@ immediate feedback.
 
 ## Limits
 
+- A quiz holds at most 50 questions; at 50 the builder disables **New question** and says why.
 - Attempts are not stored; only passing proof and completion are.
 - Old stored point weights and answer descriptions are read without migration.

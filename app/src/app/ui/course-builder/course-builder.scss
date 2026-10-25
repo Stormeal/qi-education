@@ -588,6 +588,12 @@ button.quiz-add-question {
   justify-self: start;
 }
 
+.quiz-full-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 .quiz-question-body > [appButton],
 .quiz-question-image > [appButton],
 .quiz-answers > [appButton] {

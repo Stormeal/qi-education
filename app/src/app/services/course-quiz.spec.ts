@@ -64,4 +64,10 @@ describe('US-T013 quiz questions in the editor state', () => {
     edit({ kind: 'explanation', value: 'Changed.' });
     expect(question().explanation).toBe('Changed.');
   });
+
+  it('US-P018-AC04 adds questions up to 50 and no further', () => {
+    for (let count = 0; count < 55; count++) state.addCourseComponentQuizQuestion(0, 0);
+    const component = state.courseContent()!.sections[0].components[0];
+    expect(component.type === 'quiz' && component.quiz.questions).toHaveLength(50);
+  });
 });

@@ -478,14 +478,19 @@
                 }
               </div>
 
+              @let quizFull = component.quiz.questions.length >= quizMaxQuestions;
               <button
                 appButton="dashed"
                 class="quiz-add-question"
-                [disabled]="courseContentSaving() || courseSubmitting()"
+                [disabled]="courseContentSaving() || courseSubmitting() || quizFull"
+                [attr.aria-describedby]="quizFull ? 'quiz-full-note' : null"
                 (click)="addQuizQuestion(editor.sectionIndex, editor.componentIndex)"
               >
                 + New question
               </button>
+              @if (quizFull) {
+                <p id="quiz-full-note" class="quiz-full-note">A quiz holds at most {{ quizMaxQuestions }} questions.</p>
+              }
               <div class="quiz-scroll-space" aria-hidden="true"></div>
             </section>
           }

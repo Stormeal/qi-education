@@ -25,7 +25,9 @@ import {
   LoginResponse,
   LoginState,
   MuxVideoStatus,
+  LESSON_MAX_ATTACHMENTS,
   QUIZ_MAX_ANSWERS,
+  QUIZ_MAX_QUESTIONS,
   QUIZ_MIN_ANSWERS,
   QuizComponentContent,
   QuizQuestionEdit,
@@ -74,7 +76,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.478';
+  readonly appVersion = '0.1.479';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -1251,7 +1253,9 @@ export class AppStateService {
       return;
     }
 
-    const problem = attachmentProblem(component.type, file);
+    const problem = component.attachments.length >= LESSON_MAX_ATTACHMENTS
+      ? `A lesson holds at most ${LESSON_MAX_ATTACHMENTS} files. Remove one to add another.`
+      : attachmentProblem(component.type, file);
     if (problem) {
       dropPendingCard();
       this.attachmentUploadError.set(problem);
@@ -1693,7 +1697,7 @@ export class AppStateService {
 
   addCourseComponentQuizQuestion(sectionIndex: number, componentIndex: number): void {
     this.updateCourseComponent(sectionIndex, componentIndex, (component) => {
-      if (component.type !== 'quiz') {
+      if (component.type !== 'quiz' || component.quiz.questions.length >= QUIZ_MAX_QUESTIONS) {
         return component;
       }
 

@@ -72,6 +72,15 @@ describe('US-T014 question image in the editor state', () => {
     expect(attachmentProblem('quiz', png())).toBe('');
   });
 
+  it('US-P018-AC04 refuses a 51st file in one lesson before anything is sent', async () => {
+    const full = Array.from({ length: 50 }, (_, index) => ({ ...attachment, id: `att-${index}`, assetId: `asset-${index}` }));
+    await open(content(null, full));
+    const upload = vi.spyOn(service, 'uploadComponentAttachment');
+    await state.uploadCourseComponentAttachment(0, 0, png(), 'quiz-image', 'q');
+    expect(upload).not.toHaveBeenCalled();
+    expect(state.attachmentUploadError()).toBe('A lesson holds at most 50 files. Remove one to add another.');
+  });
+
   it('AC01 edits the description of the image', async () => {
     await open(content({ assetId: 'asset-1', alt: '' }, [attachment]));
     state.editCourseComponentQuizQuestion(0, 0, 0, { kind: 'image-alt', value: 'A test pyramid' });

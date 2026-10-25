@@ -23,7 +23,8 @@ exercises, quizzes or video.
   ends); a chapter keeps its lessons. Refused while a lesson in it is uploading (2026-10-24).
 - Moves and media actions are refused while the outline is busy (saving, uploading, recovering,
   submitted for review).
-- **Attachments**: at most 4 MB each. Text and resources lessons accept their listed document and
+- **Attachments**: at most 4 MB each, and at most 50 per lesson (question images included); a 51st
+  is refused in the builder before upload. Text and resources lessons accept their listed document and
   image types; exercises accept ZIP, PDF, Word, PowerPoint and images; quizzes accept JPEG, PNG and
   WebP only. Files are stored with the course and lesson they belong to.
 - **Thumbnail**: JPEG, PNG or WebP, at most 2 MB.

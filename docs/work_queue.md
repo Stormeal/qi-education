@@ -8,9 +8,11 @@ messages hold them.
 
 **US-P018-AC04 follow-up** (started 2026-10-25). Alex decided: refuse compressed request bodies
 (415) and approve Zod 4.6 with its changed validation messages. Codex: both API parts, files in
-[handoffs/US-P018-AC04-followup-codex.md](handoffs/US-P018-AC04-followup-codex.md). State: handed to
-Codex. Claude: the course builder stops at 50 questions per quiz and 50 attachments per lesson
-(`app/src/app/ui/course-builder/**`, `app-state.service.ts`, `app.models.ts`). State: in progress.
+[handoffs/US-P018-AC04-followup-codex.md](handoffs/US-P018-AC04-followup-codex.md). Codex state: in
+progress on `main`, base `418e676` (required ancestor verified); next: compression regressions,
+Zod 4.6.7 compatibility and the isolated API checks. Claude: the course builder stops at 50 questions per quiz and 50 attachments per lesson
+(`app/src/app/ui/course-builder/**`, `app-state.service.ts`, `app.models.ts`). State: done locally
+2026-10-25 (app 555 tests, Pages build, browser: New question disabled at 50 with its reason).
 
 Delivered 2026-10-25, local only (not pushed): **X9** API security headers (Codex, `9448f97`,
 checked by Claude: own files only, contract kept, no frontend iframes affected; rule in
