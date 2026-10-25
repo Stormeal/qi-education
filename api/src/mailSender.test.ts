@@ -22,8 +22,18 @@ describe('US-P009 mail sender', () => {
     expect(url).toBe('https://api.brevo.com/v3/smtp/email');
     expect(options).toMatchObject({ method: 'POST', headers: { 'api-key': 'stub-key', 'Content-Type': 'application/json', Accept: 'application/json' } });
     expect(JSON.parse(options!.body as string)).toEqual({ sender: { email: settings.MAIL_FROM_ADDRESS, name: 'QI Academy' },
-      to: [{ email: message.to }], subject: message.subject, textContent: message.text });
+      to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: '<p>Plain message</p>' });
     expect(options!.signal).toBeInstanceOf(AbortSignal);
+  });
+  it('sends a version with real links, so every mail program can open them', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('{"messageId":"stub"}', { status: 201 }));
+    const text = 'Confirm your address:\n\nhttps://example.test/confirm-email#token=a_b-1\n\nFrom <Team> & co.\nThanks';
+    await new BrevoMailSender(settings, fetcher).send({ ...message, text });
+    const body = JSON.parse(fetcher.mock.calls[0][1]!.body as string);
+    expect(body.textContent).toBe(text);
+    expect(body.htmlContent).toBe('<p>Confirm your address:</p>'
+      + '<p><a href="https://example.test/confirm-email#token=a_b-1">https://example.test/confirm-email#token=a_b-1</a></p>'
+      + '<p>From &lt;Team&gt; &amp; co.<br>Thanks</p>');
   });
   it.each([400, 401, 429, 500])('AC03 refuses provider %i without exposing response data', async status => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response('Sensitive provider data', { status }));

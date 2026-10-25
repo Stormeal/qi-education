@@ -23,6 +23,14 @@ export function hasMailConfig(settings: MailSettings = apiConfig): boolean {
 
 class MailRefused extends Error {}
 
+// Plain text alone leaves links to the mail program's guessing, which some get wrong (a long
+// #token link was not clickable). The HTML copy has real links; the text stays for text-only readers.
+export function mailHtml(text: string): string {
+  const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const linked = (value: string) => escape(value).replace(/https?:\/\/[^\s<]*[^\s<.,;:!?)]/g, (url) => `<a href="${url}">${url}</a>`);
+  return text.split(/\n{2,}/).map((paragraph) => `<p>${paragraph.split('\n').map(linked).join('<br>')}</p>`).join('');
+}
+
 export class BrevoMailSender implements MailSender {
   readonly provider = 'brevo';
   get available() { return hasMailConfig(this.settings); }
@@ -34,7 +42,7 @@ export class BrevoMailSender implements MailSender {
         method: 'POST', signal: AbortSignal.timeout(10_000),
         headers: { 'api-key': this.settings.BREVO_API_KEY!, 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ sender: { email: this.settings.MAIL_FROM_ADDRESS, name: this.settings.MAIL_FROM_NAME ?? 'QI Academy' },
-          to: [{ email: message.to }], subject: message.subject, textContent: message.text }),
+          to: [{ email: message.to }], subject: message.subject, textContent: message.text, htmlContent: mailHtml(message.text) }),
       });
       if (response.status !== 201) {
         // Operators need the reason; log only the status and Brevo's short error code,
