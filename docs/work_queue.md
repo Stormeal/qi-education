@@ -6,6 +6,15 @@ messages hold them.
 
 ## Active work
 
+**X9 API security headers** (started 2026-10-25, owner Codex): nosniff, Referrer-Policy, frame
+policy, no `X-Powered-By`, `no-store` on health, from the X8 Headers row. Files: `api/src/server.ts`,
+new `api/src/securityHeaders.test.ts`, `docs/specs/platform/reliability.md`. Handoff
+[handoffs/X9-api-headers-codex.md](handoffs/X9-api-headers-codex.md). State: handed to Codex.
+
+**X10 screen-reader pass** (started 2026-10-25, owner Claude): accessibility-tree check of the
+learning page, career tree, course editor and dialogs on isolated servers (open release check
+"Screen reader pass"); fixes in `app/src/app/**` only. State: in progress.
+
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
 [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md#x8-performance-and-security-audit-read-only).
