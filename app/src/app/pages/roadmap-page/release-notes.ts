@@ -9,6 +9,43 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.464',
+    date: '2026-10-25',
+    sections: [
+      {
+        title: 'New',
+        items: [
+          'An Expand button on a career tree shows all careers together on one map.',
+          'A video lesson gets its length in minutes from the video once the video is ready.',
+          'While a video is being processed, a moving bar shows that work is still going on.',
+          'The roadmap shows whether each item is live, built, in progress or not started.',
+        ],
+      },
+      {
+        title: 'Improved',
+        items: [
+          'The course list next to a lesson now fits the window when the page opens.',
+          'The organization page shows a spinner while it loads.',
+          'Signing in stays quick when many people sign in at the same time.',
+          'Organization pages stay quick as organizations grow.',
+          'The course editor opens a course without waiting for every course picture.',
+        ],
+      },
+      {
+        title: 'Fixed',
+        items: [
+          'Opening a second invitation link in the same tab now shows that invitation.',
+          'The organization shown on an invitation is always the one you join.',
+          'A member who was removed can no longer rejoin with their old invitation link.',
+          'While an organization is suspended, the course request form is turned off.',
+          'Scanning a CV refuses files that are far longer than a CV.',
+          'A career achievement keeps its meaning when it is taken out and later added back.',
+          'Importing a course only uses files from the course export itself.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.442',
     date: '2026-10-24',
     sections: [
