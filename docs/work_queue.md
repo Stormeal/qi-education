@@ -90,7 +90,7 @@ Delivered work whose real-environment check has not been done. Tick off here whe
 - Organizations (US-O001 release 1) on the hosted site: Alex runs AC01–AC12 from [the spec](specs/organizations/organizations.md) with a second real email address.
 - Pushed 2026-10-25 as 0.1.464: upload a real video and check the lesson minutes change to the video length and the moving bar shows while processing; open the all-careers map (Expand) on a wide screen and a phone; sign in and open an organization page against hosted MongoDB (new orgId indexes are created on first use).
 - Career cards, carousel and Start over on the hosted site: compare careers on a wide screen and a phone; Start over with a learner who has achievements (they must stay).
-- Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner.
+- Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner. Since `3558cc9` (local, not pushed) the exercise minutes must also change to the video length.
 - Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20; a full refund (US-L025) delivered `charge.refunded` with 200 and removed the course, checked by Alex on 2026-10-22. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal.
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
