@@ -69,4 +69,11 @@ describe('exercise intro video in the builder', () => {
     const host = openExercise({ uploadId: 'u', assetId: 'a', playbackId: 'p', status: 'processing', captions: [] });
     expect([...host.querySelectorAll('.mux-upload-panel button')].map(b => b.textContent?.trim())).toContain('Delete video');
   });
+
+  it('shows a moving progress bar while Mux processes the video', () => {
+    const host = openExercise({ uploadId: 'u', assetId: 'a', playbackId: 'p', status: 'processing', captions: [] });
+    const bar = host.querySelector('.mux-upload-panel app-progress-bar')!;
+    expect(bar.getAttribute('aria-label')).toBe('Video processing');
+    expect(bar.hasAttribute('data-indeterminate')).toBe(true);
+  });
 });

@@ -18,7 +18,7 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   - `button[appIconButton]`: required `label` (sets `aria-label` and `title`), optional `hint`.
   - `<app-tabs>`: `role="tablist"`, arrow keys, Home/End, roving tabindex, optional count chip;
     `tabId()` / `tabPanelId()` helpers for matching panels.
-  - `<app-progress-bar>`: required `label`, value clamped 0–100, announced as a percentage.
+  - `<app-progress-bar>`: required `label`, value clamped 0–100, announced as a percentage; `indeterminate` (unknown amount) shows a sliding segment, a still bar with reduced motion, and announces no number.
   - `span[appChip]`: `neutral`, `primary`, `highlight`, `danger`.
   - Also: `page-header`, `confirm-dialog` (with `services/confirm.service.ts`), `loading-skeleton`,
     `profile-menu`, `brand-link`.

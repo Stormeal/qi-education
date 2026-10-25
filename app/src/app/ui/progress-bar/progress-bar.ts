@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-/** Thin progress bar: `<app-progress-bar [value]="percent" label="Upload progress" />`. */
+/** Thin progress bar: `<app-progress-bar [value]="percent" label="Upload progress" />`; add `indeterminate` when the amount is unknown. */
 @Component({
   selector: 'app-progress-bar',
   templateUrl: './progress-bar.html',
@@ -10,8 +10,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
     role: 'progressbar',
     'aria-valuemin': '0',
     'aria-valuemax': '100',
-    '[attr.aria-valuenow]': 'percent()',
-    '[attr.aria-valuetext]': 'valueText() ?? percent() + "%"',
+    '[attr.aria-valuenow]': 'indeterminate() ? null : percent()',
+    '[attr.aria-valuetext]': 'valueText() ?? (indeterminate() ? null : percent() + "%")',
+    '[attr.data-indeterminate]': 'indeterminate() || null',
     '[attr.aria-label]': 'label()',
     '[attr.data-size]': 'size()',
   },
@@ -21,6 +22,7 @@ export class ProgressBar {
   readonly label = input.required<string>();
   readonly valueText = input<string>();
   readonly size = input<'sm' | 'md'>('md');
+  readonly indeterminate = input(false, { transform: booleanAttribute });
 
   /** Uploads can report NaN or more than 100, so clamp before rounding. */
   protected readonly percent = computed(() => {

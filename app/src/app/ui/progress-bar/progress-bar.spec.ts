@@ -65,3 +65,29 @@ describe('ProgressBar', () => {
     expect(bar.getAttribute('aria-valuenow')).toBe('40');
   });
 });
+
+@Component({
+  imports: [ProgressBar],
+  template: `<app-progress-bar [value]="0" label="Video processing" valueText="Processing" indeterminate />`,
+})
+class IndeterminateHost {}
+
+describe('ProgressBar without a known amount', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    TestBed.configureTestingModule({ imports: [IndeterminateHost] });
+  });
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('announces no number and moves without a width', () => {
+    const fixture = TestBed.createComponent(IndeterminateHost);
+    fixture.detectChanges();
+    const bar = fixture.nativeElement.querySelector('app-progress-bar') as HTMLElement;
+    expect(bar.getAttribute('role')).toBe('progressbar');
+    expect(bar.hasAttribute('aria-valuenow')).toBe(false);
+    expect(bar.getAttribute('aria-valuetext')).toBe('Processing');
+    expect(bar.hasAttribute('data-indeterminate')).toBe(true);
+    expect((bar.querySelector('.fill') as HTMLElement).style.width).toBe('');
+  });
+});

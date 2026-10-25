@@ -1309,6 +1309,8 @@ describe('QI Academy API', () => {
       const content = await contentResponse.json();
 
       expect(readyResponse.status).toBe(200);
+      // 123.45 seconds, rounded to the nearest whole minute.
+      expect(content.sections[0].components[0].durationMinutes).toBe(2);
       expect(content.sections[0].components[0].mux).toEqual({
         provider: 'mux',
         uploadId: 'upload-1',

@@ -15,8 +15,10 @@ webhook and removal; everything below applies to both.
 3. Mux calls `POST /webhooks/mux` (also `/api/webhooks/mux`), signed. The passthrough payload
    `{ c, s, m }` names the course, section and component; the handler finds the component by its
    stable ID in the live and working versions (even after a move) and stores the asset and
-   playback IDs.
-4. The panel shows waiting, uploading, processing, ready and error states with what to do next.
+   playback IDs. When the video is ready, a video lesson's minutes are set from its length, rounded to the
+   nearest whole minute (at least 1); an exercise's intro video does not change the exercise's time.
+4. The panel shows waiting, uploading, processing, ready and error states with what to do next. Uploading shows a
+   progress bar with the percentage; processing shows a moving bar, since Mux reports no percentage.
    Pending videos resume polling when the editor opens; after ten minutes it explains the delay
    and offers remove and re-upload.
 

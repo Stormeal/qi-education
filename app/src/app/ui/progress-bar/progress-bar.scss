@@ -22,3 +22,27 @@
     transition: none;
   }
 }
+
+/* Unknown amount (for example Mux processing): a segment slides across instead of growing. */
+:host([data-indeterminate]) .fill {
+  width: 40%;
+  animation: progress-slide 1.4s var(--ease-standard) infinite;
+}
+
+@keyframes progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host([data-indeterminate]) .fill {
+    width: 100%;
+    opacity: 0.5;
+    animation: none;
+  }
+}

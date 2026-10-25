@@ -43,12 +43,14 @@ describe('US-T006 pending video polling', () => {
     const ready = structuredClone(pending);
     const video = ready.sections[0].components[0];
     if (video.type !== 'video') throw new Error('Missing video fixture');
-    video.mux = { ...video.mux!, status: 'ready', playbackId: 'public-playback' };
+    video.mux = { ...video.mux!, status: 'ready', playbackId: 'public-playback', durationSeconds: 170 };
+    video.durationMinutes = 3;
     ready.review = { ...ready.review!, version: 4 };
     load.mockResolvedValue(ready);
     await vi.advanceTimersByTimeAsync(15_000);
     const shown = state.courseContent()?.sections[0].components[0];
     expect(shown?.type === 'video' && shown.mux?.status).toBe('ready');
+    expect(shown?.durationMinutes).toBe(3);
     expect(state.courseContent()?.sections[0].title).toBe('Unsaved lesson title');
     expect(state.courseReview()?.version).toBe(3);
     expect(state.courseSaveConflict()).toBe(true);

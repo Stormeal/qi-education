@@ -549,6 +549,9 @@
 
               @if (muxUploadComponentId() === component.id || (canHoldVideo(component) && component.mux?.status === 'uploading')) {
                 <app-progress-bar [value]="muxUploadProgressValue(component)" label="Video upload progress" size="sm" />
+              } @else if (canHoldVideo(component) && component.mux?.status === 'processing') {
+                <!-- Mux reports no percentage while processing, so the bar only shows that work is going on. -->
+                <app-progress-bar [value]="0" label="Video processing" valueText="Mux is processing the video" size="sm" indeterminate />
               }
             </section>
 

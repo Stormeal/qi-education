@@ -1833,6 +1833,9 @@ async function updateMuxVideoComponent(
       if (update.status === 'processing' && ['ready', 'errored'].includes(component.mux.status)) return component;
       const updated = {
         ...component,
+        // A video lesson's length follows its video, in whole minutes (a short clip still counts as 1).
+        ...(component.type === 'video' && update.durationSeconds != null
+          ? { durationMinutes: Math.max(1, Math.round(update.durationSeconds / 60)) } : {}),
         mux: {
           provider: 'mux' as const,
           uploadId: component.mux.uploadId,
