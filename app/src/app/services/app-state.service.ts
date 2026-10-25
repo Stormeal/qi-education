@@ -73,7 +73,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.468';
+  readonly appVersion = '0.1.469';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2980,8 +2980,8 @@ export class AppStateService {
             this.courseContent.update((current) => current ? { ...current, sections: current.sections.map((section) => ({
               ...section, components: section.components.map((local) =>
                 local.id === componentId && canHoldVideo(local) && local.mux?.uploadId === uploadId
-                  // The server sets a video lesson's minutes from the video length when Mux finishes.
-                  ? { ...local, mux: component.mux, ...(local.type === 'video' ? { durationMinutes: component.durationMinutes } : {}) } : local),
+                  // The server sets a lesson's minutes from the video length when Mux finishes.
+                  ? { ...local, mux: component.mux, durationMinutes: component.durationMinutes } : local),
             })) } : null);
           }
           if (!component || !canHoldVideo(component) || !component.mux || component.mux.uploadId !== uploadId ||
