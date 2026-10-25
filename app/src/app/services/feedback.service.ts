@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { FeedbackEntry, FeedbackTriageUpdate } from '../app.models';
+import { FeedbackEntry, FeedbackSubmission, FeedbackTriageUpdate } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
 export type FeedbackSubmitResult =
@@ -24,6 +24,20 @@ export type FeedbackTriageResult =
 @Injectable({ providedIn: 'root' })
 export class FeedbackService {
   private readonly apiClient = inject(ApiClientService);
+
+  async submitTypedFeedback(token: string, submission: Partial<FeedbackSubmission> & Pick<FeedbackSubmission, 'type' | 'page' | 'summary' | 'message'>): Promise<FeedbackSubmitResult> {
+    const response = await this.apiClient.fetch('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...submission, userAgent: window.navigator.userAgent.slice(0, 500) }),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({})) as { message?: string };
+      return { ok: false, message: body.message ?? 'Unable to send feedback right now.' };
+    }
+    this.apiClient.invalidateCache('/feedback');
+    return { ok: true };
+  }
 
   async submitFeedback(
     token: string,

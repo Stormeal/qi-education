@@ -4,6 +4,8 @@ import {
   FeedbackEntry,
   FeedbackOption,
   FeedbackTriageUpdate,
+  FeedbackType,
+  feedbackType,
   StudentSummary,
 } from '../../app.models';
 import { AdminUser, AdminUserChange, AdminUserRole, AdminUsersService, CourseLock } from '../../services/admin-users.service';
@@ -12,7 +14,6 @@ import { AdminInstructorProfile, InstructorProfileService } from '../../services
 import { CareerPathEditor } from '../../ui/career-path-editor/career-path-editor';
 import { AdminOrganizations } from '../../ui/admin-organizations/admin-organizations';
 import { Button } from '../../ui/button/button';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
@@ -34,7 +35,7 @@ function storedSection(): AdminSection {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [AdminOrganizations, DatePipe, Button, CareerPathEditor, FeedbackDialog, LoadingSkeleton, PageHeader, Tabs],
+  imports: [AdminOrganizations, DatePipe, Button, CareerPathEditor, LoadingSkeleton, PageHeader, Tabs],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -94,21 +95,26 @@ export class AdminPage {
   });
   protected readonly activeTab = signal<FeedbackTab>('current');
   protected readonly feedbackTotal = computed(() => this.feedback().length);
-  protected readonly needsWorkTotal = computed(
-    () => this.feedback().filter((item) => item.rating === 'needs-work').length,
-  );
-  protected readonly activePagesTotal = computed(
-    () => new Set(this.feedback().map((item) => item.page)).size,
-  );
+  protected readonly defectsTotal = computed(() => this.feedback().filter(item => feedbackType(item) === 'defect').length);
+  protected readonly changeRequestsTotal = computed(() => this.feedback().filter(item => feedbackType(item) === 'change-request').length);
+  protected readonly typeFilter = signal<FeedbackType | 'all'>('all');
   protected readonly currentFeedback = computed(() =>
     this.feedback().filter((item) => item.workStatus !== 'completed' && item.workStatus !== 'wont-do'),
   );
   protected readonly archivedFeedback = computed(() =>
     this.feedback().filter((item) => item.workStatus === 'completed' || item.workStatus === 'wont-do'),
   );
-  protected readonly visibleFeedback = computed(() =>
-    this.activeTab() === 'current' ? this.currentFeedback() : this.archivedFeedback(),
-  );
+  protected readonly visibleFeedback = computed(() => {
+    const items = this.activeTab() === 'current' ? this.currentFeedback() : this.archivedFeedback();
+    return this.typeFilter() === 'all' ? items : items.filter(item => feedbackType(item) === this.typeFilter());
+  });
+  protected changeTypeFilter(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value === 'all' || value === 'feedback' || value === 'defect' || value === 'change-request') this.typeFilter.set(value);
+  }
+  protected typeLabel(item: FeedbackEntry): string {
+    return { feedback: 'Feedback', defect: 'Defect report', 'change-request': 'Change request' }[feedbackType(item)];
+  }
 
   protected lessonFeedbackLabel(item: FeedbackEntry): string {
     const kinds = { helpful: 'Lesson was helpful', 'not-helpful': 'Lesson was not helpful', problem: 'Problem with a lesson' };
@@ -122,7 +128,7 @@ export class AdminPage {
       case 'great':
         return 'Great';
       case 'needs-work':
-        return 'Bad';
+        return 'Needs work';
       default:
         return 'Okay';
     }

@@ -16,7 +16,6 @@ import { CourseService } from '../../services/course.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
 import { Button } from '../../ui/button/button';
 import { IconButton } from '../../ui/icon-button/icon-button';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
@@ -48,7 +47,7 @@ type PopularInstructorCard = {
 
 @Component({
   selector: 'app-courses-page',
-  imports: [Button, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader, RouterLink, Tabs],
+  imports: [Button, IconButton, LoadingSkeleton, PageHeader, RouterLink, Tabs],
   templateUrl: './courses-page.html',
   styleUrls: ['../../app.scss', './courses-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

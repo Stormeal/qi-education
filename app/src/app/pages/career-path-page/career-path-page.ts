@@ -6,7 +6,6 @@ import { CareerTree } from '../../ui/career-tree/career-tree';
 import { CareerMap } from '../../ui/career-map/career-map';
 import { CareerPathService } from '../../services/career-path.service';
 import { ConfirmService } from '../../services/confirm.service';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { Button } from '../../ui/button/button';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { CvScan } from '../../ui/cv-scan/cv-scan';
@@ -35,7 +34,7 @@ const CAREER_WINDOW = 4;
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, CareerMap, CareerTree, CvScan, FeedbackDialog, IconButton, PageHeader],
+  imports: [Button, CareerMap, CareerTree, CvScan, IconButton, PageHeader],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

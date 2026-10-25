@@ -73,8 +73,8 @@
           <ul class="aa-list">
             @for (item of newFeedback().slice(0, shown); track item.id) {
               <li>
-                <span class="aa-item-title">{{ item.page }} &middot; {{ ratingLabel[item.rating] }}</span>
-                <span class="aa-item-meta aa-message">{{ item.message }}</span>
+                <span class="aa-item-title">{{ item.page }} &middot; {{ feedbackLabel(item) }}</span>
+                <span class="aa-item-meta aa-message">{{ item.summary || item.message }}</span>
               </li>
             }
           </ul>

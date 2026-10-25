@@ -1,68 +1,75 @@
 <div class="feedback-overlay" role="presentation" (click)="closed.emit()">
-  <section
-    #dialog
-    class="feedback-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="feedback-title"
-    tabindex="-1"
-    (click)="stopModalClick($event)"
-    (keydown)="handleDialogKeydown($event)"
-  >
-    <div class="feedback-modal-header">
-      <span>Share Feedback</span>
-      <button appIconButton="ghost" label="Close feedback" (click)="closed.emit()">
-        X
-      </button>
-    </div>
-
+  <section #dialog class="feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title" aria-describedby="feedback-description" tabindex="-1" (click)="$event.stopPropagation()" (keydown)="handleDialogKeydown($event)">
+    <header class="feedback-header">
+      <div>
+        <h2 id="feedback-title">{{ submitted() ? (draft().type === 'defect' ? 'Defect report sent' : draft().type === 'change-request' ? 'Change request sent' : 'Feedback sent') : 'Help improve QI Academy' }}</h2>
+        <p id="feedback-description">{{ submitted() ? 'Thank you for taking the time to help us improve.' : 'Share your experience, report a problem, or suggest a change.' }}</p>
+      </div>
+      <button appIconButton="ghost" label="Close feedback" (click)="closed.emit()"><span class="feedback-icon" [innerHTML]="closeIcon" aria-hidden="true"></span></button>
+    </header>
     @if (submitted()) {
-      <div class="feedback-thanks">
-        <h2 id="feedback-title">Thank you for the feedback</h2>
-        <p>We captured this feedback for {{ page() }}.</p>
-        <button appButton="primary" (click)="closed.emit()"> Done </button>
+      <div class="feedback-success" role="status">
+        <span class="feedback-icon success-icon" [innerHTML]="checkIcon" aria-hidden="true"></span>
+        <h3>We have your submission</h3>
+        <p>The QI Academy team will review it. You can continue where you left off.</p>
+        <button appButton="primary" (click)="closed.emit()">Done</button>
       </div>
     } @else {
-      <div class="feedback-body">
-        <h2 id="feedback-title">How was your experience?</h2>
-        <p>Your feedback helps us improve QI Academy before we invite more testers.</p>
-        <p class="feedback-page">Page: {{ page() }}</p>
-
-        <div class="rating-options" aria-label="Experience rating">
-          @for (option of options(); track option.value) {
-            <button
-              type="button"
-              class="rating-option"
-              [class.selected]="rating() === option.value"
-              (click)="ratingSelected.emit(option.value)"
-            >
-              <span>{{ option.icon }}</span>
-              <strong>{{ option.label }}</strong>
-            </button>
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="feedback-body">
+          <fieldset class="feedback-types">
+            <legend>What would you like to share?</legend>
+            @for (option of types; track option.value) {
+              <label class="feedback-type" [class.selected]="draft().type === option.value" [for]="'feedback-type-' + option.value">
+                <input [id]="'feedback-type-' + option.value" type="radio" name="type" formControlName="type" [value]="option.value" />
+                <span class="feedback-icon" [innerHTML]="option.icon" aria-hidden="true"></span>
+                <span><strong>{{ option.label }}</strong><span>{{ option.description }}</span></span>
+              </label>
+            }
+          </fieldset>
+          <p class="feedback-context">About <strong>{{ page() }}</strong></p>
+          <div class="feedback-field">
+            <label for="feedback-summary">Short summary</label>
+            <input id="feedback-summary" formControlName="summary" maxlength="120" placeholder="A few words to describe it" [attr.aria-invalid]="invalid('summary')" aria-describedby="feedback-summary-help" />
+            <span id="feedback-summary-help" [class.field-error]="invalid('summary')">{{ invalid('summary') ? 'Add a short summary.' : 'Up to 120 characters.' }}</span>
+          </div>
+          <div class="feedback-field">
+            <label for="feedback-message">{{ draft().type === 'defect' ? 'What went wrong?' : draft().type === 'change-request' ? 'What should change, and why?' : 'Tell us more' }}</label>
+            <textarea id="feedback-message" formControlName="message" rows="3" maxlength="2000" [placeholder]="draft().type === 'defect' ? 'Describe what happened.' : draft().type === 'change-request' ? 'Describe the improvement and how it would help.' : 'What worked well or could be better?'" [attr.aria-invalid]="invalid('message')" aria-describedby="feedback-message-help"></textarea>
+            <span id="feedback-message-help" [class.field-error]="invalid('message')">{{ invalid('message') ? 'Add a description.' : 'Up to 2,000 characters. Please leave out passwords and sensitive information.' }}</span>
+          </div>
+          @if (draft().type === 'defect') {
+            <div class="feedback-field">
+              <label for="feedback-steps">Reproduction steps <span class="optional">(optional)</span></label>
+              <textarea id="feedback-steps" formControlName="reproductionSteps" rows="2" maxlength="2000" placeholder="What did you do before the problem appeared?" aria-describedby="feedback-steps-help" [attr.aria-invalid]="invalid('reproductionSteps')"></textarea>
+              <span id="feedback-steps-help">Up to 2,000 characters. These steps help us investigate.</span>
+            </div>
+            <div class="feedback-field">
+              <label for="feedback-expected">Expected behavior <span class="optional">(optional)</span></label>
+              <textarea id="feedback-expected" formControlName="expectedBehavior" rows="2" maxlength="2000" placeholder="What did you expect to happen?" aria-describedby="feedback-expected-help" [attr.aria-invalid]="invalid('expectedBehavior')"></textarea>
+              <span id="feedback-expected-help">Up to 2,000 characters.</span>
+            </div>
           }
+          @if (draft().type === 'feedback') {
+            <fieldset class="feedback-rating">
+              <legend>How was your experience? <span class="optional">(optional)</span></legend>
+              <div class="rating-options">
+                @for (option of ratings; track option.value) {
+                  <label [for]="'feedback-rating-' + option.value" [class.selected]="draft().rating === option.value">
+                    <input [id]="'feedback-rating-' + option.value" type="radio" name="rating" formControlName="rating" [value]="option.value" />{{ option.label }}
+                  </label>
+                }
+              </div>
+              @if (draft().rating) { <button appButton="ghost" size="sm" type="button" [disabled]="submitting()" (click)="form.controls.rating.setValue('')">Clear rating</button> }
+            </fieldset>
+          }
+          @if (error()) { <p class="field-error" role="alert">{{ error() }}</p> }
         </div>
-
-        <textarea
-          class="feedback-text"
-          rows="4"
-          placeholder="Share feedback..."
-          [value]="text()"
-          [disabled]="submitting()"
-          (input)="updateText($event)"
-        ></textarea>
-
-        @if (error()) {
-          <p class="feedback-error" role="alert">{{ error() }}</p>
-        }
-
-        <button
-          appButton="primary"
-          [disabled]="submitting()"
-          (click)="submittedClicked.emit()"
-        >
-          {{ submitting() ? 'Submitting...' : 'Submit Feedback' }}
-        </button>
-      </div>
+        <footer class="feedback-footer">
+          <p>Your submission goes to the QI Academy team for review.</p>
+          <button appButton="primary" type="submit" [loading]="submitting()" [disabled]="submitting()">{{ submitting() ? 'Sending...' : draft().type === 'defect' ? 'Report defect' : draft().type === 'change-request' ? 'Request change' : 'Send feedback' }}</button>
+        </footer>
+      </form>
     }
   </section>
 </div>

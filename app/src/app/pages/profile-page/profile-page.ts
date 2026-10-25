@@ -5,7 +5,6 @@ import { CoursePurchase, ProfileService } from '../../services/profile.service';
 import { FeedbackOption } from '../../app.models';
 import { Button } from '../../ui/button/button';
 import { Chip } from '../../ui/chip/chip';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 
@@ -14,7 +13,7 @@ const GOALS_MAX_LENGTH = 280;
 
 @Component({
   selector: 'app-profile-page',
-  imports: [Button, Chip, DatePipe, FeedbackDialog, PageHeader, Tabs],
+  imports: [Button, Chip, DatePipe, PageHeader, Tabs],
   templateUrl: './profile-page.html',
   styleUrls: ['../../app.scss', './profile-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

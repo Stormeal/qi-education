@@ -7,8 +7,9 @@ afterEach(() => { process.argv = [...argv]; process.exitCode = exitCode; vi.unst
 const complete = `AUTH_TOKEN_SECRET=synthetic-session-secret\nGOOGLE_SHEETS_SPREADSHEET_ID=synthetic-sheet\nGOOGLE_SERVICE_ACCOUNT_EMAIL=service@example.invalid\nGOOGLE_PRIVATE_KEY=synthetic-key\nMONGODB_URI=mongodb://synthetic.invalid\nMONGODB_DB_NAME=synthetic-db\nMONGODB_COURSE_CONTENT_COLLECTION=synthetic-content\nMONGODB_COURSE_ASSET_COLLECTION=synthetic-assets\n`;
 async function doctor(input: Record<string, string | undefined>, file: string, exists = true, health?: unknown) {
   vi.resetModules(); fixtures.exists = exists; fixtures.dotenv = file; process.argv = ['node', 'doctor.mjs', ...(health ? [] : ['--skip-server'])]; process.exitCode = undefined;
-  for (const key of ['NODE_ENV', 'VERCEL', 'USE_SHARED_SERVICES', 'USER_STORE_READ_ONLY', 'COURSE_STORE_READ_ONLY', 'AUTH_TOKEN_SECRET', 'SESSION_SECRET', 'CORS_ORIGIN', 'GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_PRIVATE_KEY', 'MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION', 'MONGODB_COURSE_ASSET_COLLECTION']) vi.stubEnv(key, input[key]);
+  for (const key of ['NODE_ENV', 'VERCEL', 'USE_SHARED_SERVICES', 'USER_STORE_READ_ONLY', 'COURSE_STORE_READ_ONLY', 'FEEDBACK_STORE_READ_ONLY', 'AUTH_TOKEN_SECRET', 'SESSION_SECRET', 'CORS_ORIGIN', 'GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_PRIVATE_KEY', 'MONGODB_URI', 'MONGODB_DB_NAME', 'MONGODB_COURSE_CONTENT_COLLECTION', 'MONGODB_COURSE_ASSET_COLLECTION']) vi.stubEnv(key, input[key]);
   const configuredHealth = health && typeof health === 'object' ? {
+    feedback: { storage: (health as { mode?: string }).mode === 'isolated' ? 'memory' : 'mongodb', readOnly: input.FEEDBACK_STORE_READ_ONLY === '1' },
     courses: { storage: (health as { mode?: string }).mode === 'isolated' ? 'memory' : 'mongodb', readOnly: input.COURSE_STORE_READ_ONLY === '1' }, ...health,
   } : health;
   const logs = vi.spyOn(console, 'log').mockImplementation(() => {}); const fetcher = vi.fn(async (url: string) => ({ status: 200, json: async () => url.endsWith('/health/config') ? configuredHealth : { status: 'ok', store: (health as { auth?: { storage?: string } })?.auth?.storage, readOnly: input.USER_STORE_READ_ONLY === '1' } })); vi.stubGlobal('fetch', fetcher);
@@ -18,6 +19,15 @@ async function doctor(input: Record<string, string | undefined>, file: string, e
 describe('US-P011 local script behavior over FS/child/health doubles', () => {
   const withoutGoogle = complete.split('\n').filter(line => !line.startsWith('GOOGLE_') && !line.startsWith('MONGODB_COURSE_ASSET_COLLECTION=')).join('\n');
   const sharedHealth = { status: 'ok', mode: 'shared', auth: { storage: 'mongodb', configured: true }, content: { configured: true }, assets: { configured: true }, corsOrigins: ['http://localhost:4200'] };
+  it('US-A006 checks the feedback store and freeze instead of trusting unrelated store health', async () => {
+    const input = { NODE_ENV: 'development', USE_SHARED_SERVICES: '1', FEEDBACK_STORE_READ_ONLY: '1' };
+    const wrong = await doctor(input, complete, true, { ...sharedHealth, feedback: { storage: 'memory', readOnly: true } });
+    expect(wrong.code).toBe(1); expect(wrong.text).toContain('feedback store is memory, expected mongodb');
+    const unfrozen = await doctor(input, complete, true, { ...sharedHealth, feedback: { storage: 'mongodb', readOnly: false } });
+    expect(unfrozen.code).toBe(1); expect(unfrozen.text).toContain('FEEDBACK_STORE_READ_ONLY');
+    const invalid = await doctor({ NODE_ENV: 'development', FEEDBACK_STORE_READ_ONLY: 'true' }, complete);
+    expect(invalid.code).toBe(1); expect(invalid.text).toContain('FEEDBACK_STORE_READ_ONLY must be 0 or 1');
+  });
   it('US-P016 names MongoDB for accounts and courses with both freezes, without Sheets or asset settings', async () => {
     const result = await doctor({ NODE_ENV: 'development', USE_SHARED_SERVICES: '1', USER_STORE_READ_ONLY: '1', COURSE_STORE_READ_ONLY: '1' }, withoutGoogle);
     expect(result.code).toBeUndefined(); expect(result.text).toContain('User store: mongodb'); expect(result.text).toContain('Course store: mongodb');

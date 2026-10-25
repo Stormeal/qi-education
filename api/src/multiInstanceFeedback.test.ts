@@ -8,6 +8,7 @@ import { InMemoryCourseRepository } from './courseRepository.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository, type UpdateFeedbackTriageRecord } from './feedbackRepository.js';
+import { InMemoryFeedbackIssueOperationRepository } from './feedbackIssueOperationRepository.js';
 import type { GitHubFeedbackIssue, GitHubFeedbackService } from './githubFeedback.js';
 import { createServer } from './server.js';
 
@@ -32,6 +33,7 @@ describe.each(['', '/api'])('INV-004 feedback retry after server restart (%s)', 
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const auth = new InMemoryAuthRepository();
     const feedback = new FailFirstLinkSaveRepository();
+    const operations = new InMemoryFeedbackIssueOperationRepository();
     const admin = (await auth.findByEmail('admin@qi-education.local'))!;
     const student = (await auth.findByEmail('student@qi-education.local'))!;
     const entry = await feedback.createFeedback({ page: 'Courses', rating: 'needs-work',
@@ -41,7 +43,7 @@ describe.each(['', '/api'])('INV-004 feedback retry after server restart (%s)', 
 
     async function start() {
       // A fresh service and createServer closure model the restarted process. Only stored
-      // feedback/accounts and the simulated external issues survive; no pending map is shared.
+      // feedback/accounts, durable operation journal and external issues survive.
       const github: GitHubFeedbackService = {
         async createIssueFromFeedback(item) {
           const number = issues.length + 1;
@@ -51,6 +53,7 @@ describe.each(['', '/api'])('INV-004 feedback retry after server restart (%s)', 
         },
       };
       const server = createServer({ authRepository: auth, feedbackRepository: feedback,
+        feedbackIssueOperationRepository: operations,
         gitHubFeedbackService: github, courseRepository: new InMemoryCourseRepository(),
         courseContentRepository: new InMemoryCourseContentRepository(),
         courseAssetRepository: new InMemoryCourseAssetRepository(), muxVideoService: null, muxWebhookService: null,
@@ -66,8 +69,7 @@ describe.each(['', '/api'])('INV-004 feedback retry after server restart (%s)', 
       }, body: JSON.stringify({ workStatus: 'work', priority: 'high' }) });
     }
 
-    // Guards deliberately live outside it.fails: only the final no-duplicate assertion
-    // below is expected to fail, never authentication, fixture setup, or either request.
+    // Exercise the original failed-link-save/restart path through both HTTP prefixes.
     const first = await start();
     const failed = await triage(first.base);
     expect(failed.status).toBe(500);
@@ -95,7 +97,7 @@ describe.each(['', '/api'])('INV-004 feedback retry after server restart (%s)', 
     vi.restoreAllMocks();
   });
 
-  it.fails('INV-004 reuses one GitHub issue after a failed link save and a fresh-instance retry', () => {
+  it('INV-004 reuses one GitHub issue after a failed link save and a fresh-instance retry', () => {
     expect(issues, 'A restart must not create a second issue for the same feedback.').toHaveLength(1);
   });
 });

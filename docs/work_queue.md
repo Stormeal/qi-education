@@ -6,6 +6,21 @@ messages hold them.
 
 ## Active work
 
+**US-A006 design** (2026-10-25, owner Codex): Alex requested MongoDB feedback
+storage, feedback/defect/change-request types and a feedback-view redesign using
+design-taste-frontend while preserving the global theme. Branch `main`, base
+`5118eb5640df33a429c531641b99e6d2b19f6813`. Scope owned so far: this queue,
+the backlog row and [design/contract](stories/US-A006-feedback-mongodb.md).
+Current feedback code, lesson integration, admin triage and INV-004 options read;
+existing dialog inspected against an isolated local API (no submission or issue).
+AC01-AC12 implementation started after Alex confirmed the proposed submission
+outcome on 2026-10-25. Builder review completed; uncertain GitHub outcomes use an
+operator runbook, with no new in-app recovery tool. Codex owns domain/API wiring,
+frontend, integration and delivery; implementation agents own storage/migration
+and durable triage modules under the contract's execution plan. Next: focused
+contract tests, Mongo/triage implementation and the dialog/inbox changes. No push,
+deployment or shared-data writes authorized by this implementation run.
+
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
 [handoffs/codex-extra-assignments.md](handoffs/codex-extra-assignments.md#x8-performance-and-security-audit-read-only).

@@ -1,2 +1,17 @@
-<router-outlet />
+<div [attr.inert]="state.isFeedbackOpen() ? '' : null">
+  <router-outlet />
+</div>
 <app-confirm-dialog />
+@if (state.isFeedbackOpen()) {
+  <app-feedback-dialog
+    [submitted]="state.feedbackSubmitted()"
+    [page]="state.feedbackPage()"
+    [draft]="state.feedbackComposer.draft()"
+    [submitting]="state.feedbackSubmitting()"
+    [error]="state.feedbackError()"
+    [returnFocusTo]="state.feedbackComposer.focusTarget()"
+    (changed)="state.feedbackComposer.change($event)"
+    (closed)="state.closeFeedback()"
+    (submittedClicked)="state.submitFeedback()"
+  />
+}

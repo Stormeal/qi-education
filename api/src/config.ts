@@ -30,6 +30,7 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(16).optional(),
   USER_STORE_READ_ONLY: z.enum(['0', '1']).default('0'),
   COURSE_STORE_READ_ONLY: z.enum(['0', '1']).default('0'),
+  FEEDBACK_STORE_READ_ONLY: z.enum(['0', '1']).default('0'),
   MONGODB_URI: z.string().min(1).optional(),
   MONGODB_DB_NAME: z.string().min(1).optional(),
   MONGODB_COURSE_CONTENT_COLLECTION: z.string().min(1).optional(),

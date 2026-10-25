@@ -229,9 +229,7 @@ describe('QI Academy API', () => {
         'https://stormeal.github.io',
         'https://qi-education.vercel.app',
       ],
-      ranges: {
-        feedback: 'Feedback!A:M',
-      },
+      feedback: { storage: 'memory', configured: true, readOnly: false },
     });
   });
 

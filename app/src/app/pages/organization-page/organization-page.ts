@@ -7,7 +7,6 @@ import {
   type OrgRequestInput, type Prices,
 } from '../../services/organization.service';
 import { Button } from '../../ui/button/button';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 type CourseRef = { id: string; title: string };
@@ -16,7 +15,7 @@ const emptyForm = (): OrgRequestInput => ({ displayName: '', companyName: '', cv
 /** US-O001 release 1: request an organization, or work in one as a member or owner. */
 @Component({
   selector: 'app-organization-page',
-  imports: [Button, FeedbackDialog, PageHeader],
+  imports: [Button, PageHeader],
   templateUrl: './organization-page.html',
   styleUrls: ['../../app.scss', './organization-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

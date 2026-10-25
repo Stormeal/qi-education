@@ -53,6 +53,8 @@ function checkEnv(env) {
   if (!['0', '1'].includes(env.get('COURSE_STORE_READ_ONLY') ?? '0')) fail('COURSE_STORE_READ_ONLY must be 0 or 1.');
   pass(`Course store: ${store}`);
   pass(`Course details writes: ${courseReadOnly ? 'read-only' : 'enabled'}`);
+  if (!['0', '1'].includes(env.get('FEEDBACK_STORE_READ_ONLY') ?? '0')) fail('FEEDBACK_STORE_READ_ONLY must be 0 or 1.');
+  pass(`Feedback store: ${store}; writes ${feedbackReadOnly ? 'read-only' : 'enabled'}`);
   if (!existsSync(envPath)) {
     if (mode === 'isolated') warn('api/.env is missing; isolated local defaults will be used.');
     else { fail('api/.env is missing. Run npm run env:pull or create it from api/.env.example.'); return; }
@@ -132,6 +134,10 @@ async function checkServer(env) {
     fail('Running API mode differs from the selected mode; restart it with the intended settings.');
   } else pass(`Running API mode: ${mode}`);
 
+  const feedback = configResponse.body?.feedback;
+  if (feedback?.storage !== store) fail(`Running API feedback store is ${feedback?.storage}, expected ${store}; restart it with the intended settings.`);
+  else pass(`Running API feedback store: ${store}`);
+  if (feedback?.readOnly !== feedbackReadOnly) fail('Running API feedback readOnly differs from FEEDBACK_STORE_READ_ONLY; restart it with the intended settings.');
   const authStorage = configResponse.body?.auth?.storage;
 
   if (authStorage === 'mongodb') pass('Local API is using MongoDB users.');
@@ -238,6 +244,7 @@ const mode = servicesMode(env);
 const store = mode === 'isolated' ? 'memory' : 'mongodb';
 const readOnly = env.get('USER_STORE_READ_ONLY') === '1';
 const courseReadOnly = env.get('COURSE_STORE_READ_ONLY') === '1';
+const feedbackReadOnly = env.get('FEEDBACK_STORE_READ_ONLY') === '1';
 
 checkEnv(env);
 await checkServer(env);

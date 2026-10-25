@@ -85,14 +85,14 @@
         <small>Submissions</small>
       </article>
       <article>
-        <span>Bad</span>
-        <strong>{{ needsWorkTotal() }}</strong>
-        <small>Follow-up items</small>
+        <span>Defects</span>
+        <strong>{{ defectsTotal() }}</strong>
+        <small>Problem reports</small>
       </article>
       <article>
-        <span>Pages</span>
-        <strong>{{ activePagesTotal() }}</strong>
-        <small>With feedback</small>
+        <span>Change requests</span>
+        <strong>{{ changeRequestsTotal() }}</strong>
+        <small>Suggested improvements</small>
       </article>
     </section>
   }
@@ -107,6 +107,15 @@
           [selected]="activeTab()"
           (selectedChange)="onFeedbackTabChange($event)"
         />
+      </div>
+      <div class="feedback-filter">
+        <label for="feedback-type-filter">Submission type</label>
+        <select id="feedback-type-filter" [value]="typeFilter()" (change)="changeTypeFilter($event)">
+          <option value="all">All types</option>
+          <option value="feedback">Feedback</option>
+          <option value="defect">Defects</option>
+          <option value="change-request">Change requests</option>
+        </select>
       </div>
     </div>
 
@@ -123,7 +132,7 @@
         <p class="course-error" role="alert">{{ feedbackError() }}</p>
       } @else if (visibleFeedback().length === 0) {
         <div class="admin-empty">
-          <strong>{{ activeTab() === 'current' ? 'No current work items' : 'No archived items' }}</strong>
+          <strong>{{ typeFilter() !== 'all' ? 'No submissions match this filter' : activeTab() === 'current' ? 'No current work items' : 'No archived items' }}</strong>
           <span>
             {{
               activeTab() === 'current'
@@ -137,15 +146,14 @@
           @for (item of visibleFeedback(); track item.id) {
             <article
               class="admin-feedback-card"
-              [class.card-great]="item.rating === 'great'"
-              [class.card-okay]="item.rating === 'okay'"
-              [class.card-bad]="item.rating === 'needs-work'"
               [class.is-selected]="isSelected(item)"
               [class.is-completed]="isCompleted(item)"
               [class.is-wont-do]="isWontDo(item)"
             >
               <div class="admin-feedback-card-header">
                 <div class="admin-feedback-title">
+                  <span class="feedback-kind">{{ typeLabel(item) }}</span>
+                  @if (item.rating) {
                   <span
                     class="feedback-rating"
                     [class.rating-great]="item.rating === 'great'"
@@ -154,7 +162,8 @@
                   >
                     {{ ratingLabel(item.rating) }}
                   </span>
-                  <strong>{{ item.page }}</strong>
+                  }
+                  <strong>{{ item.summary || item.page }}</strong>
                 </div>
                 <div class="admin-feedback-actions">
                   <time [attr.datetime]="item.createdAt">{{ item.createdAt | date: 'medium' }}</time>
@@ -173,6 +182,7 @@
                   </div>
                 </div>
               </div>
+              <p class="feedback-item-context">{{ item.page }}@if (item.path) { <span>{{ item.path }}</span> }</p>
               @if (item.lessonFeedbackKind) {
                 <p class="admin-feedback-lesson">
                   {{ lessonFeedbackLabel(item) }}. Course {{ item.courseId }}, lesson {{ item.componentId }}
@@ -181,6 +191,12 @@
               <p class="admin-feedback-message">
                 {{ item.message || 'No written message.' }}
               </p>
+              @if (item.reproductionSteps || item.expectedBehavior) {
+                <dl class="feedback-details">
+                  @if (item.reproductionSteps) { <div><dt>Reproduction steps</dt><dd>{{ item.reproductionSteps }}</dd></div> }
+                  @if (item.expectedBehavior) { <div><dt>Expected behavior</dt><dd>{{ item.expectedBehavior }}</dd></div> }
+                </dl>
+              }
               <div class="admin-feedback-user">
                 <span class="admin-user-avatar" aria-hidden="true">
                   {{ item.userEmail.slice(0, 1).toUpperCase() }}
@@ -369,19 +385,3 @@
     <span class="footer-version">Version {{ appVersion() }}</span>
   </footer>
 </main>
-
-@if (isFeedbackOpen()) {
-  <app-feedback-dialog
-    [submitted]="feedbackSubmitted()"
-    [page]="feedbackPage()"
-    [rating]="feedbackRating()"
-    [text]="feedbackText()"
-    [submitting]="feedbackSubmitting()"
-    [error]="feedbackSubmitError()"
-    [options]="feedbackOptions()"
-    (closed)="feedbackClosed.emit()"
-    (ratingSelected)="feedbackRatingSelected.emit($event)"
-    (textChanged)="feedbackTextChanged.emit($event)"
-    (submittedClicked)="feedbackSubmittedClicked.emit()"
-  />
-}

@@ -78,19 +78,3 @@
     <span class="footer-version">Version {{ appVersion() }}</span>
   </footer>
 </main>
-
-@if (isFeedbackOpen()) {
-  <app-feedback-dialog
-    [submitted]="feedbackSubmitted()"
-    [page]="feedbackPage()"
-    [rating]="feedbackRating()"
-    [text]="feedbackText()"
-    [submitting]="feedbackSubmitting()"
-    [error]="feedbackError()"
-    [options]="feedbackOptions()"
-    (closed)="feedbackClosed.emit()"
-    (ratingSelected)="feedbackRatingSelected.emit($event)"
-    (textChanged)="feedbackTextChanged.emit($event)"
-    (submittedClicked)="feedbackSubmittedClicked.emit()"
-  />
-}

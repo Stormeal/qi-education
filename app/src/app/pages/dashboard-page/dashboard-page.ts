@@ -7,13 +7,12 @@ import { LearningProgressService } from '../../services/learning-progress.servic
 import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
 import { AdminAttention } from '../../ui/admin-attention/admin-attention';
 import { Button } from '../../ui/button/button';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [AdminAttention, Button, FeedbackDialog, PageHeader, RouterLink, ProgressBar],
+  imports: [AdminAttention, Button, PageHeader, RouterLink, ProgressBar],
   templateUrl: './dashboard-page.html',
   styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

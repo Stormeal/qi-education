@@ -1,4 +1,13 @@
 // The page scrolls as a whole. A fixed-height shell used to clip whatever came after the feedback panel.
+.feedback-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: var(--text-body); }
+.feedback-filter label { color: var(--color-text); font-weight: 600; }
+.feedback-filter select { padding: 8px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-control); font: inherit; color: var(--color-text); background: var(--color-surface-card); }
+.feedback-kind { color: var(--color-primary); font-size: var(--text-meta); font-weight: 600; }
+.feedback-item-context { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; color: var(--color-text-muted); font-size: var(--text-meta); overflow-wrap: anywhere; }
+.feedback-details { display: grid; gap: 12px; margin: 0 0 16px; padding: 16px; background: var(--color-surface-sunken); border-radius: var(--radius-control); }
+.feedback-details dt { font-size: var(--text-meta); color: var(--color-ink); font-weight: 600; }
+.feedback-details dd { margin: 4px 0 0; font-size: var(--text-body); color: var(--color-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+
 .admin-shell {
   display: flex;
   flex-direction: column;

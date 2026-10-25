@@ -129,19 +129,3 @@
     <span class="footer-version">Version {{ state.appVersion }}</span>
   </footer>
 </main>
-
-@if (state.isFeedbackOpen()) {
-  <app-feedback-dialog
-    [submitted]="state.feedbackSubmitted()"
-    [page]="state.feedbackPage()"
-    [rating]="state.feedbackRating()"
-    [text]="state.feedbackText()"
-    [submitting]="state.feedbackSubmitting()"
-    [error]="state.feedbackError()"
-    [options]="state.feedbackOptions"
-    (closed)="state.closeFeedback()"
-    (ratingSelected)="state.selectFeedbackRating($event)"
-    (textChanged)="state.updateFeedbackText($event)"
-    (submittedClicked)="state.submitFeedback()"
-  />
-}

@@ -44,13 +44,12 @@ import { CourseService } from '../../services/course.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
 import { Button } from '../../ui/button/button';
 import { IconButton } from '../../ui/icon-button/icon-button';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [OrganizationPriceField, Button, DatePipe, IconButton, FeedbackDialog, LoadingSkeleton, PageHeader],
+  imports: [OrganizationPriceField, Button, DatePipe, IconButton, LoadingSkeleton, PageHeader],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

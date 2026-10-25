@@ -11,6 +11,7 @@
     "auth:hash-password": "tsx src/hashPassword.ts",
     "db:backup": "tsx src/backupDatabaseCli.ts",
     "db:restore": "tsx src/restoreDatabaseCli.ts",
+    "feedback:migrate": "tsx src/feedbackMigrationCli.ts",
     "import:rise": "tsx src/riseImportCli.ts"
   },
   "keywords": [],

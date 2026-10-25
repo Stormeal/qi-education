@@ -72,7 +72,7 @@ describe('US-P011 centralized service selection', () => {
     expect(Object.fromEntries(['auth', 'courses', 'content', 'assets', 'feedback', 'paths', 'progress', 'profiles', 'resets'].map(key => [key, selected[key as 'auth'].constructor.name]))).toEqual(want === 'isolated' ? {
       auth: 'InMemoryAuthRepository', courses: 'InMemoryCourseRepository', content: 'InMemoryCourseContentRepository', assets: 'InMemoryCourseAssetRepository', feedback: 'InMemoryFeedbackRepository',
       paths: 'InMemoryCareerPathRepository', progress: 'InMemoryLearningProgressRepository', profiles: 'InMemoryInstructorProfileRepository', resets: 'InMemoryPasswordResetRepository',
-    } : { auth: 'MongoAuthRepository', courses: 'MongoCourseRepository', content: 'MongoCourseContentRepository', assets: 'MongoCourseAssetRepository', feedback: 'GoogleSheetsFeedbackRepository',
+    } : { auth: 'MongoAuthRepository', courses: 'MongoCourseRepository', content: 'MongoCourseContentRepository', assets: 'MongoCourseAssetRepository', feedback: 'MongoFeedbackRepository',
       paths: 'MongoCareerPathRepository', progress: 'MongoLearningProgressRepository', profiles: 'MongoInstructorProfileRepository', resets: 'MongoPasswordResetRepository' });
     expect(selected.video?.constructor.name ?? null).toBe(want === 'isolated' ? null : 'ConfiguredMuxVideoService');
     expect(selected.webhook?.constructor.name ?? null).toBe(want === 'isolated' ? null : 'ConfiguredMuxWebhookService'); expect(selected.github).toBe(want !== 'isolated');
@@ -111,7 +111,7 @@ describe('US-P011 centralized service selection', () => {
     await load({ NODE_ENV: 'development' }); const { createServer } = await import('./server.js'); const server = createServer().listen(0, '127.0.0.1'); servers.push(server);
     await new Promise<void>(resolve => server.once('listening', resolve)); const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const health = await (await fetch(base + prefix + '/health/config')).json(); expect(health).toEqual({ status: 'ok', mode: 'isolated', courses: { storage: 'memory', readOnly: false }, auth: { configured: true, storage: 'memory' }, mail: { configured: false, provider: 'local' },
-      payments: { configured: true, keyMode: null }, content: { storage: 'memory', configured: false }, assets: { storage: 'memory', configured: false }, mux: { configured: false, playbackPolicy: 'public' }, corsOrigins: ['http://example.test'], ranges: { feedback: 'Feedback!A:M' } });
+      payments: { configured: true, keyMode: null }, content: { storage: 'memory', configured: false }, assets: { storage: 'memory', configured: false }, mux: { configured: false, playbackPolicy: 'public' }, feedback: { storage: 'memory', configured: true, readOnly: false }, corsOrigins: ['http://example.test'] });
     const response = await fetch(base + prefix + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'student@qi-education.local', password: 'wrong' }) });
     expect(response.status).toBe(401); expect(response.headers.get('x-qi-education-auth-storage')).toBe('memory'); expect(await response.json()).toEqual({ message: 'Invalid email or password' });
     expect(providers.sheets).not.toHaveBeenCalled(); expect(providers.mongo).not.toHaveBeenCalled(); expect(providers.mux).not.toHaveBeenCalled();
@@ -129,7 +129,7 @@ describe('US-P011 centralized service selection', () => {
       const health = await (await fetch(base + prefix + '/health/config')).json();
       expect(health.auth).toEqual({ configured: false, storage: 'mongodb' });
       expect(health.courses).toEqual({ storage: 'mongodb', readOnly: false });
-      expect(health.ranges).toEqual({ feedback: 'Feedback!A:M' });
+      expect(health.feedback).toEqual({ storage: 'unavailable', configured: false, readOnly: false });
       for (const path of ['/courses', '/auth/me']) {
         const response = await fetch(base + prefix + path);
         expect(response.status, path).toBe(503);

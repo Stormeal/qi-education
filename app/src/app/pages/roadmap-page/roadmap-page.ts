@@ -2,7 +2,6 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { AppStateService } from '../../services/app-state.service';
 import { Chip, ChipVariant } from '../../ui/chip/chip';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 import { RELEASE_NOTES } from './release-notes';
@@ -64,7 +63,7 @@ const RELEASE_1_GROUPS: { title: string; items: { name: string; must: boolean; s
 
 @Component({
   selector: 'app-roadmap-page',
-  imports: [Chip, DatePipe, FeedbackDialog, PageHeader, Tabs],
+  imports: [Chip, DatePipe, PageHeader, Tabs],
   templateUrl: './roadmap-page.html',
   styleUrls: ['../../app.scss', './roadmap-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

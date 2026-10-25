@@ -99,12 +99,13 @@ import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment
 import { isQuestionImageContentType, questionImageIssue } from './questionImage.js';
 import { AmbiguousCourseWriteError, CourseBusyError } from './courseMutationLock.js';
 import { createFeedbackSchema, updateFeedbackTriageSchema } from './feedback.js';
-import { createFeedbackRepository, type FeedbackRepository } from './feedbackRepository.js';
+import { createFeedbackRepository, feedbackWriteFreeze, FeedbackReadOnlyError, FeedbackStoreUnavailableError, type FeedbackRepository } from './feedbackRepository.js';
+import { createFeedbackIssueOperationRepository, FeedbackIssueOperationUnavailableError, type FeedbackIssueOperationRepository } from './feedbackIssueOperationRepository.js';
+import { FeedbackTriageService, FeedbackTriagePendingError } from './feedbackTriage.js';
 import {
   ConfiguredGitHubFeedbackService,
   GitHubFeedbackError,
   type GitHubFeedbackService,
-  type GitHubFeedbackIssue,
 } from './githubFeedback.js';
 import {
   createCourseContentRepository,
@@ -144,6 +145,7 @@ type ServerDependencies = {
   courseRepository?: CourseRepository;
   courseAssetRepository?: CourseAssetRepository;
   feedbackRepository?: FeedbackRepository;
+  feedbackIssueOperationRepository?: FeedbackIssueOperationRepository;
   courseContentRepository?: CourseContentRepository;
   gitHubFeedbackService?: GitHubFeedbackService;
   muxVideoService?: MuxVideoService | null;
@@ -165,7 +167,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const emailConfirmations = dependencies.emailConfirmationRepository ?? createEmailConfirmationRepository();
   const storedCourses = requestCachedCourses(courseWriteFreeze(dependencies.courseRepository ?? createCourseRepository(), apiConfig.COURSE_STORE_READ_ONLY === '1'));
   const storedAssets = dependencies.courseAssetRepository ?? createCourseAssetRepository();
-  const feedback = dependencies.feedbackRepository ?? createFeedbackRepository();
+  const feedback = feedbackWriteFreeze(dependencies.feedbackRepository ?? createFeedbackRepository(), apiConfig.FEEDBACK_STORE_READ_ONLY === '1');
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
   const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
   const accountProfiles = dependencies.accountProfileRepository ?? createAccountProfileRepository();
@@ -191,10 +193,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const signupWrites = new KeyedSerialQueue();
   const enrollmentWrites = new KeyedSerialQueue();
   const paymentDependencies = { authenticate: authenticateRequest(auth), auth, courses, payments, paymentService, enrollmentWrites };
-  const triageWrites = new KeyedSerialQueue();
-  // Keep successfully created issues across failed saves in this API instance.
-  // Once persisted, the feedback row itself supplies the link on future retries.
-  const pendingFeedbackIssues = new Map<string, GitHubFeedbackIssue>();
+  const feedbackTriage = new FeedbackTriageService(feedback, gitHubFeedback,
+    dependencies.feedbackIssueOperationRepository ?? createFeedbackIssueOperationRepository());
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
@@ -489,7 +489,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use(['/auth/password-reset', '/api/auth/password-reset', '/auth/email-confirmation', '/api/auth/email-confirmation', '/users/me/password', '/api/users/me/password', '/admin/users', '/api/admin/users', '/admin/course-locks', '/api/admin/course-locks'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'no-store'); next();
   });
-  app.use(['/users/me/profile', '/api/users/me/profile'], (_request, response, next) => {
+  app.use(['/users/me/profile', '/api/users/me/profile', '/feedback', '/api/feedback'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
   const parseJson = withRequestBodyErrors(express.json());
@@ -560,10 +560,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
         configured: hasMuxConfig() || Boolean(muxVideo),
         playbackPolicy: apiConfig.MUX_DEFAULT_PLAYBACK_POLICY,
       },
+      feedback: { storage: feedback.storageType ?? 'memory', configured: apiConfig.mode === 'isolated' || hasMongoConfig(), readOnly: feedback.readOnly === true },
       corsOrigins: getCorsOrigins(),
-      ranges: {
-        feedback: apiConfig.GOOGLE_SHEETS_FEEDBACK_RANGE,
-      },
     });
   });
 
@@ -1579,37 +1577,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
       try {
         const input = updateFeedbackTriageSchema.parse(request.body);
         const feedbackId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
-        await triageWrites.run(feedbackId, async () => {
-          const existingFeedback = await feedback.findFeedbackById(feedbackId);
-
-          if (!existingFeedback) {
-            response.status(404).json({ message: 'Feedback not found' });
-            return;
-          }
-
-          let githubIssue = existingFeedback.githubIssueUrl ? undefined : pendingFeedbackIssues.get(feedbackId);
-          if (input.workStatus === 'work' && !existingFeedback.githubIssueUrl && !githubIssue) {
-            githubIssue = await gitHubFeedback.createIssueFromFeedback({
-              ...existingFeedback,
-              workStatus: input.workStatus,
-              priority: input.priority ?? undefined,
-            });
-            pendingFeedbackIssues.set(feedbackId, githubIssue);
-          }
-          const updatedFeedback = await feedback.updateFeedbackTriage(feedbackId, {
-            ...input,
-            githubIssueNumber: githubIssue?.number ?? existingFeedback.githubIssueNumber,
-            githubIssueUrl: githubIssue?.url ?? existingFeedback.githubIssueUrl,
-          });
-
-          if (!updatedFeedback) {
-            response.status(404).json({ message: 'Feedback not found' });
-            return;
-          }
-
-          pendingFeedbackIssues.delete(feedbackId);
-          response.json(updatedFeedback);
-        });
+        if (feedback.readOnly) throw new FeedbackReadOnlyError();
+        const updatedFeedback = await feedbackTriage.triage(feedbackId, input);
+        if (!updatedFeedback) { response.status(404).json({ message: 'Feedback not found' }); return; }
+        response.json(updatedFeedback);
       } catch (error) {
         if (error instanceof GitHubFeedbackError) {
           response.status(503).json({ message: 'GitHub feedback integration is unavailable.' });
@@ -1630,14 +1601,15 @@ export function createServer(dependencies: ServerDependencies = {}) {
       response.status(409).json({ message: error.message, code: 'CAREER_PATH_CONFLICT' });
       return;
     }
-    if (error instanceof AuthUnavailableError || error instanceof CourseStoreUnavailableError) {
+    if (error instanceof AuthUnavailableError || error instanceof CourseStoreUnavailableError || error instanceof FeedbackStoreUnavailableError || error instanceof FeedbackIssueOperationUnavailableError) {
       response.status(503).json({ message: error.message, code: 'STORE_UNAVAILABLE', retryable: true });
       return;
     }
-    if (error instanceof AuthReadOnlyError || error instanceof CourseReadOnlyError) {
+    if (error instanceof AuthReadOnlyError || error instanceof CourseReadOnlyError || error instanceof FeedbackReadOnlyError) {
       response.status(503).json({ message: error.message, code: 'READ_ONLY', retryable: false });
       return;
     }
+    if (error instanceof FeedbackTriagePendingError) { response.status(503).json({ message: error.message, code: 'FEEDBACK_ISSUE_UNRESOLVED', retryable: false }); return; }
     if (error instanceof DuplicateAccountError) { response.status(409).json({ message: error.message }); return; }
     if (error instanceof CourseReviewError) { response.status(error.status).json({ message: error.message, ...(error.code ? { code: error.code } : {}), ...(error.issues ? { issues: error.issues } : {}) }); return; }
     if (error instanceof CourseBusyError) {

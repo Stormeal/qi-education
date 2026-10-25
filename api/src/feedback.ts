@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const feedbackRatingSchema = z.enum(['great', 'okay', 'needs-work']);
+export const feedbackTypeSchema = z.enum(['feedback', 'defect', 'change-request']);
+export type FeedbackType = z.infer<typeof feedbackTypeSchema>;
 export const feedbackWorkStatusSchema = z.enum(['work', 'completed', 'wont-do']);
 export const feedbackPrioritySchema = z.enum(['low', 'medium', 'high']);
 export const lessonFeedbackKindSchema = z.enum(['helpful', 'not-helpful', 'problem']);
@@ -15,9 +17,24 @@ export const createLessonFeedbackSchema = z.object({
 
 export const createFeedbackSchema = z.object({
   page: z.string().trim().min(1).max(120),
-  rating: feedbackRatingSchema,
+  type: feedbackTypeSchema.optional(),
+  summary: z.string().trim().min(1).max(120).optional(),
+  rating: feedbackRatingSchema.optional(),
   message: z.string().trim().max(2000).default(''),
   userAgent: z.string().trim().max(500).optional(),
+  path: z.string().max(500).regex(/^\/(?!\/)[^?#\\\s]*$/, 'Use an internal path without query parameters or fragments.').optional(),
+  reproductionSteps: z.string().trim().max(2000).optional(),
+  expectedBehavior: z.string().trim().max(2000).optional(),
+}).superRefine((input, context) => {
+  const issue = (path: string, message: string) => context.addIssue({ code: 'custom', path: [path], message });
+  if (input.type) {
+    if (!input.summary) issue('summary', 'Add a short summary.');
+    if (!input.message) issue('message', 'Add a description.');
+    if (input.type !== 'feedback' && input.rating) issue('rating', 'Ratings apply only to general feedback.');
+  } else if (!input.rating) issue('rating', 'An experience rating is required for legacy feedback.');
+  if (input.type !== 'defect' && (input.reproductionSteps !== undefined || input.expectedBehavior !== undefined)) {
+    issue('reproductionSteps', 'These details apply only to defect reports.');
+  }
 });
 
 export const updateFeedbackTriageSchema = z.object({
@@ -48,6 +65,10 @@ export type FeedbackEntry = CreateFeedbackInput & {
   githubIssueUrl?: string;
 };
 
+export function feedbackType(entry: Pick<FeedbackEntry, 'type' | 'lessonFeedbackKind'>): FeedbackType {
+  return entry.type ?? (entry.lessonFeedbackKind === 'problem' ? 'defect' : 'feedback');
+}
+
 export const feedbackSheetHeaders = [
   'ID',
   'Created At',
@@ -76,7 +97,7 @@ export function feedbackToSheetRow(feedback: FeedbackEntry): string[] {
     feedback.userEmail,
     feedback.userRole,
     feedback.page,
-    feedback.rating,
+    feedback.rating ?? '',
     feedback.message,
     feedback.userAgent ?? '',
     feedback.workStatus ?? '',

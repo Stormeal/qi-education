@@ -37,6 +37,7 @@ import {
 import { AuthService } from './auth.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
+import { FeedbackComposerService } from './feedback-composer.service';
 import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
 import { InstructorProfileService } from './instructor-profile.service';
 import { SessionService } from './session.service';
@@ -73,7 +74,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.469';
+  readonly appVersion = '0.1.470';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -116,13 +117,14 @@ export class AppStateService {
     '#9f1239',
   ];
 
-  readonly isFeedbackOpen = signal(false);
-  readonly feedbackPage = signal('');
-  readonly feedbackRating = signal('great');
-  readonly feedbackText = signal('');
-  readonly feedbackSubmitted = signal(false);
-  readonly feedbackSubmitting = signal(false);
-  readonly feedbackError = signal('');
+  readonly feedbackComposer = inject(FeedbackComposerService);
+  readonly isFeedbackOpen = this.feedbackComposer.isOpen;
+  readonly feedbackPage = this.feedbackComposer.page;
+  readonly feedbackRating = this.feedbackComposer.rating;
+  readonly feedbackText = this.feedbackComposer.message;
+  readonly feedbackSubmitted = this.feedbackComposer.submitted;
+  readonly feedbackSubmitting = this.feedbackComposer.submitting;
+  readonly feedbackError = this.feedbackComposer.error;
   readonly coursesLoading = signal(false);
   readonly coursesError = signal('');
   readonly availableCourses = signal<CourseListItem[]>([]);
@@ -199,7 +201,7 @@ export class AppStateService {
   readonly feedbackOptions: FeedbackOption[] = [
     { value: 'great', icon: ':)', label: 'Great' },
     { value: 'okay', icon: ':|', label: 'Okay' },
-    { value: 'needs-work', icon: ':(', label: 'Bad' },
+    { value: 'needs-work', icon: ':(', label: 'Needs work' },
   ];
 
   readonly learningHighlights = [
@@ -377,6 +379,7 @@ export class AppStateService {
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
   constructor() {
+    effect(() => { const token = this.loginState()?.token ?? ''; untracked(() => this.feedbackComposer.setSession(token)); });
     effect(() => { const token = this.sessionToken(); untracked(() => void this.refreshOrganizationAccess(token)); });
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
     effect(() => {
@@ -639,6 +642,7 @@ export class AppStateService {
   }
 
   private endSession(): void {
+    this.feedbackComposer.setSession('');
     this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
     this.courseEditorBufferDirty.set(false);
@@ -671,6 +675,8 @@ export class AppStateService {
     this.initialCourseContentSnapshot.set('');
     this.courseDraft.set(this.createCourseDraft());
     this.adminFeedback.set([]);
+    this.adminFeedbackSaving.set(false);
+    this.adminFeedbackLoading.set(false);
     this.adminFeedbackError.set('');
     this.profileBio.set('');
     this.profileJobTitle.set('');
@@ -907,62 +913,19 @@ export class AppStateService {
   }
 
   openFeedback(): void {
-    this.feedbackPage.set(this.currentPageLabel());
-    this.feedbackSubmitted.set(false);
-    this.feedbackError.set('');
-    this.isFeedbackOpen.set(true);
+    this.feedbackComposer.setSession(this.loginState()?.token ?? '');
+    this.feedbackComposer.open(this.currentPageLabel(), this.router.url);
   }
 
-  closeFeedback(): void {
-    this.isFeedbackOpen.set(false);
-    this.feedbackSubmitting.set(false);
-  }
+  closeFeedback(): void { this.feedbackComposer.close(); }
 
   selectFeedbackRating(rating: string): void {
-    this.feedbackRating.set(rating);
+    if (rating === 'great' || rating === 'okay' || rating === 'needs-work' || rating === '') this.feedbackComposer.change({ rating });
   }
 
-  updateFeedbackText(text: string): void {
-    this.feedbackText.set(text);
-    this.feedbackError.set('');
-  }
+  updateFeedbackText(text: string): void { this.feedbackComposer.change({ message: text }); }
 
-  async submitFeedback(): Promise<void> {
-    if (this.feedbackSubmitting()) {
-      return;
-    }
-
-    const token = this.loginState()?.token;
-
-    if (!token) {
-      this.feedbackError.set('Please log in again before sending feedback.');
-      return;
-    }
-
-    this.feedbackSubmitting.set(true);
-    this.feedbackError.set('');
-
-    try {
-      const result = await this.feedbackService.submitFeedback(
-        token,
-        this.feedbackPage(),
-        this.feedbackRating(),
-        this.feedbackText(),
-      );
-
-      if (!result.ok) {
-        this.feedbackError.set(result.message);
-        return;
-      }
-
-      this.feedbackText.set('');
-      this.feedbackSubmitted.set(true);
-    } catch {
-      this.feedbackError.set('Unable to reach the API. Please try again.');
-    } finally {
-      this.feedbackSubmitting.set(false);
-    }
-  }
+  async submitFeedback(): Promise<void> { await this.feedbackComposer.submit(); }
 
   openCreateCourse(): void {
     void this.updatePath('/courses/new');
@@ -2415,7 +2378,10 @@ export class AppStateService {
   }
 
   async updateAdminFeedbackTriage(update: FeedbackTriageUpdate): Promise<void> {
-    const token = this.loginState()?.token;
+    const session = this.loginState();
+    const token = session?.token;
+    const sameSession = () => this.loginState()?.token === token && this.loginState()?.user.id === session?.user.id;
+    const current = () => sameSession() && this.loginState()?.permissions.hasAdminAccess === true;
 
     if (!token || !this.loginState()?.permissions.hasAdminAccess || this.adminFeedbackSaving()) {
       return;
@@ -2434,6 +2400,7 @@ export class AppStateService {
 
     try {
       const result = await this.feedbackService.updateTriage(token, update);
+      if (!current()) return;
 
       if (!result.ok) {
         this.adminFeedback.set(previousFeedback);
@@ -2445,10 +2412,11 @@ export class AppStateService {
         feedback.map((item) => (item.id === result.feedback.id ? result.feedback : item)),
       );
     } catch {
+      if (!current()) return;
       this.adminFeedback.set(previousFeedback);
       this.adminFeedbackError.set('Unable to reach the API. Please try again.');
     } finally {
-      this.adminFeedbackSaving.set(false);
+      if (sameSession()) this.adminFeedbackSaving.set(false);
     }
   }
 
@@ -2578,7 +2546,10 @@ export class AppStateService {
   }
 
   private async loadAdminFeedback(force: boolean): Promise<void> {
-    const token = this.loginState()?.token;
+    const session = this.loginState();
+    const token = session?.token;
+    const sameSession = () => this.loginState()?.token === token && this.loginState()?.user.id === session?.user.id;
+    const current = () => sameSession() && this.loginState()?.permissions.hasAdminAccess === true;
 
     if (!token || !this.loginState()?.permissions.hasAdminAccess) {
       this.adminFeedbackError.set('Admin access is required.');
@@ -2593,13 +2564,15 @@ export class AppStateService {
     this.adminFeedbackError.set('');
 
     try {
-      this.adminFeedback.set(await this.feedbackService.listFeedback(token, force));
+      const entries = await this.feedbackService.listFeedback(token, force);
+      if (current()) this.adminFeedback.set(entries);
     } catch (error) {
+      if (!current()) return;
       this.adminFeedbackError.set(
         error instanceof Error ? error.message : 'Unable to reach the API. Please try again.',
       );
     } finally {
-      this.adminFeedbackLoading.set(false);
+      if (sameSession()) this.adminFeedbackLoading.set(false);
     }
   }
 
@@ -3308,6 +3281,11 @@ export class AppStateService {
     if (this.isAdminPage()) {
       return 'Admin';
     }
+    const path = this.currentPath();
+    if (path === '/about') return 'About';
+    if (path === '/roadmap') return 'Roadmap';
+    if (path.startsWith('/career-path')) return 'Career paths';
+    if (path.startsWith('/organization')) return 'Organization';
 
     if (this.isProfilePage()) {
       return 'Profile';

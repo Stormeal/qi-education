@@ -299,6 +299,22 @@ export type FeedbackOption = {
   label: string;
 };
 
+export type FeedbackType = 'feedback' | 'defect' | 'change-request';
+export type FeedbackRating = 'great' | 'okay' | 'needs-work';
+export type FeedbackDraft = {
+  type: FeedbackType;
+  summary: string;
+  message: string;
+  rating: FeedbackRating | '';
+  reproductionSteps: string;
+  expectedBehavior: string;
+};
+export type FeedbackSubmission = Omit<FeedbackDraft, 'rating'> & {
+  page: string;
+  path?: string;
+  rating?: FeedbackRating;
+};
+
 export type FeedbackEntry = {
   id: string;
   createdAt: string;
@@ -306,7 +322,12 @@ export type FeedbackEntry = {
   userEmail: string;
   userRole: string;
   page: string;
-  rating: 'great' | 'okay' | 'needs-work';
+  type?: FeedbackType;
+  summary?: string;
+  path?: string;
+  reproductionSteps?: string;
+  expectedBehavior?: string;
+  rating?: FeedbackRating;
   message: string;
   userAgent?: string;
   workStatus?: 'work' | 'completed' | 'wont-do';
@@ -319,6 +340,10 @@ export type FeedbackEntry = {
   lessonFeedbackKind?: 'helpful' | 'not-helpful' | 'problem';
   problemCategory?: 'video' | 'content-error' | 'unclear' | 'files' | 'other';
 };
+
+export function feedbackType(entry: Pick<FeedbackEntry, 'type' | 'lessonFeedbackKind'>): FeedbackType {
+  return entry.type ?? (entry.lessonFeedbackKind === 'problem' ? 'defect' : 'feedback');
+}
 
 export type FeedbackTriageUpdate = {
   id: string;

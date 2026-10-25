@@ -54,7 +54,6 @@ import { LearningProgressService } from '../../services/learning-progress.servic
 import { LessonExtrasService, LessonNote } from '../../services/lesson-extras.service';
 import { Button } from '../../ui/button/button';
 import { Chip } from '../../ui/chip/chip';
-import { FeedbackDialog } from '../../ui/feedback-dialog/feedback-dialog';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -77,7 +76,7 @@ const VIDEO_COMPLETE_SHARE = 0.9;
 
 @Component({
   selector: 'app-learning-page',
-  imports: [Button, Chip, DatePipe, FeedbackDialog, IconButton, LoadingSkeleton, PageHeader, ProgressBar, Tabs],
+  imports: [Button, Chip, DatePipe, IconButton, LoadingSkeleton, PageHeader, ProgressBar, Tabs],
   templateUrl: './learning-page.html',
   styleUrl: './learning-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

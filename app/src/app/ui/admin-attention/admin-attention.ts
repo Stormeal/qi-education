@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { FeedbackEntry } from '../../app.models';
+import { FeedbackEntry, feedbackType } from '../../app.models';
 import { AppStateService } from '../../services/app-state.service';
 import { CourseService, ReviewQueueItem } from '../../services/course.service';
 import { OrgRequest, OrganizationService } from '../../services/organization.service';
@@ -11,7 +11,7 @@ import { Chip } from '../chip/chip';
 const SHOWN = 5;
 // The Admin page remembers its tab here (admin-page.ts); setting it first opens the right tab.
 const ADMIN_SECTION_KEY = 'qi-education:admin-section';
-const RATING_LABEL: Record<FeedbackEntry['rating'], string> = { great: 'Great', okay: 'Okay', 'needs-work': 'Needs work' };
+const TYPE_LABEL = { feedback: 'Feedback', defect: 'Defect', 'change-request': 'Change request' };
 
 /** Admin Home: what waits for an admin. Each source loads and fails on its own. */
 @Component({
@@ -27,7 +27,7 @@ export class AdminAttention {
   private readonly organizations = inject(OrganizationService);
   private readonly router = inject(Router);
   protected readonly shown = SHOWN;
-  protected readonly ratingLabel = RATING_LABEL;
+  protected feedbackLabel(item: FeedbackEntry): string { return TYPE_LABEL[feedbackType(item)]; }
 
   protected readonly queue = signal<ReviewQueueItem[] | null>(null);
   protected readonly queueError = signal('');
