@@ -34,6 +34,10 @@
     </section>
   }
 
+  @if (isAdmin()) {
+    <!-- Admins do not enroll in courses, so their Home shows what waits for them instead. -->
+    <app-admin-attention id="actions" />
+  } @else {
   <section class="db-stats" aria-label="Learning summary">
     <article class="db-stat db-stat-hero" data-surface="dark">
       <span class="db-stat-label">Career path</span>
@@ -145,6 +149,7 @@
       }
     </div>
   </section>
+  }
 
   <footer class="site-footer">
     <span class="footer-credit">

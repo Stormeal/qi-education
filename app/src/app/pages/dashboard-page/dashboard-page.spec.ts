@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { vi } from 'vitest';
 import { CourseSummary } from '../../app.models';
 import { CareerPathService } from '../../services/career-path.service';
 import { AppStateService } from '../../services/app-state.service';
@@ -72,5 +73,18 @@ describe('Home recommendation (US-L007)', () => {
       expect(notice.textContent).toContain('We sent a link to learner@example.test. It works for 24 hours.');
       expect(notice.querySelector('button')!.textContent!.trim()).toBe('Send a new link');
     }
+  });
+
+  it.each([['admin', true], ['teacher', false], ['student', false]] as const)('admin Home: a %s sees the attention cards instead of learning: %s', async (role, admin) => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })));
+    TestBed.inject(AppStateService).loginState.set({ token: 'session', permissions: { canCreateCourses: role !== 'student', hasAdminAccess: role === 'admin' },
+      user: { id: 'u', email: 'u@example.test', displayName: 'User', role, status: 'active', createdAt: '', enrolledCourseIds: [] } });
+    show([course('a', 'In progress', 1)]);
+    const page = fixture.nativeElement as HTMLElement;
+    expect(Boolean(page.querySelector('app-admin-attention'))).toBe(admin);
+    expect(Boolean(page.querySelector('.db-stats'))).toBe(!admin);
+    expect(Boolean(page.querySelector('.db-actions-section'))).toBe(!admin);
+    expect(page.querySelector('#actions')).not.toBeNull();
+    vi.unstubAllGlobals();
   });
 });

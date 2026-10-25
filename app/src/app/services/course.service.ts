@@ -21,6 +21,8 @@ export function courseRevisionHeaders(revision?: CourseRevision | null): Record<
 }
 
 export type CourseTeacher = { id: string; displayName: string; email: string; active: boolean };
+/** `live`: a new version of a published course, as opposed to a course never published. */
+export type ReviewQueueItem = { id: string; title: string; teacher: string; live: boolean; submittedAt: string };
 export type CourseTeachersResult = { ok: true; teachers: CourseTeacher[] } | { ok: false; message: string };
 
 export type CourseSaveResult =
@@ -140,6 +142,17 @@ export class CourseService {
     });
     if (!ok || !Array.isArray(body)) {
       throw new Error(!Array.isArray(body) && body.message ? body.message : 'Unable to load courses.');
+    }
+    return body;
+  }
+
+  /** Admin Home: courses waiting for review, newest first, including new versions of live courses. */
+  async adminReviewQueue(token: string): Promise<ReviewQueueItem[]> {
+    const { ok, body } = await this.apiClient.fetchJson<ReviewQueueItem[]>('/admin/review-queue', {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!ok || !Array.isArray(body)) {
+      throw new Error(!Array.isArray(body) && body.message ? body.message : 'Unable to load the review queue.');
     }
     return body;
   }

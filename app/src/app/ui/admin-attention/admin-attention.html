@@ -1,0 +1,88 @@
+<section class="aa" aria-labelledby="aa-title">
+  <h2 id="aa-title" class="aa-title">Needs your attention</h2>
+
+  <div class="aa-grid">
+    <article class="aa-card" aria-labelledby="aa-reviews">
+      <header class="aa-card-head">
+        <h2 id="aa-reviews">Courses waiting for review</h2>
+        @if (queue(); as items) { <span class="aa-count" appChip="primary">{{ items.length }}</span> }
+      </header>
+      @if (queueError()) {
+        <p class="aa-error" role="alert">{{ queueError() }}</p>
+        <button appButton size="sm" (click)="loadQueue()">Try again</button>
+      } @else if (queue(); as items) {
+        @if (items.length) {
+          <ul class="aa-list">
+            @for (item of allCourses() ? items : items.slice(0, shown); track item.id) {
+              <li>
+                <a class="aa-item-title" [routerLink]="['/courses', item.id, 'edit']">{{ item.title }}</a>
+                <span class="aa-item-meta">{{ item.teacher }} &middot; {{ item.live ? 'New version' : 'First review' }} &middot; {{ item.submittedAt | date: 'd MMM' }}</span>
+              </li>
+            }
+          </ul>
+          @if (items.length > shown && !allCourses()) {
+            <button appButton="ghost" size="sm" (click)="allCourses.set(true)">Show all ({{ items.length }})</button>
+          }
+        } @else {
+          <p class="aa-empty">Nothing waiting</p>
+        }
+      } @else {
+        <p class="aa-empty" role="status">Loading…</p>
+      }
+    </article>
+
+    <article class="aa-card" aria-labelledby="aa-organizations">
+      <header class="aa-card-head">
+        <h2 id="aa-organizations">Organization requests</h2>
+        @if (requests(); as items) { <span class="aa-count" appChip="primary">{{ items.length }}</span> }
+      </header>
+      @if (requestsError()) {
+        <p class="aa-error" role="alert">{{ requestsError() }}</p>
+        <button appButton size="sm" (click)="loadRequests()">Try again</button>
+      } @else if (requests(); as items) {
+        @if (items.length) {
+          <ul class="aa-list">
+            @for (item of items.slice(0, shown); track item.id) {
+              <li>
+                <span class="aa-item-title">{{ item.displayName }}</span>
+                <span class="aa-item-meta">{{ item.companyName }}@if (item.requesterName) { &middot; {{ item.requesterName }}} &middot; {{ item.submittedAt | date: 'd MMM' }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="aa-empty">Nothing waiting</p>
+        }
+        <button appButton="ghost" size="sm" (click)="openAdmin('organizations')">Open all</button>
+      } @else {
+        <p class="aa-empty" role="status">Loading…</p>
+      }
+    </article>
+
+    <article class="aa-card" aria-labelledby="aa-feedback">
+      <header class="aa-card-head">
+        <h2 id="aa-feedback">New feedback</h2>
+        @if (!state.adminFeedbackLoading() && !state.adminFeedbackError()) { <span class="aa-count" appChip="primary">{{ newFeedback().length }}</span> }
+      </header>
+      @if (state.adminFeedbackError()) {
+        <p class="aa-error" role="alert">{{ state.adminFeedbackError() }}</p>
+        <button appButton size="sm" (click)="state.reloadAdminFeedback()">Try again</button>
+      } @else if (state.adminFeedbackLoading()) {
+        <p class="aa-empty" role="status">Loading…</p>
+      } @else {
+        @if (newFeedback().length) {
+          <ul class="aa-list">
+            @for (item of newFeedback().slice(0, shown); track item.id) {
+              <li>
+                <span class="aa-item-title">{{ item.page }} &middot; {{ ratingLabel[item.rating] }}</span>
+                <span class="aa-item-meta aa-message">{{ item.message }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="aa-empty">Nothing waiting</p>
+        }
+        <button appButton="ghost" size="sm" (click)="openAdmin('feedback')">Open all</button>
+      }
+    </article>
+  </div>
+</section>

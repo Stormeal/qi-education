@@ -770,7 +770,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     }
   }));
 
-  app.use(['/courses', '/career-paths', '/admin/career-paths', '/users/me/career-path'], (_request, response, next) => {
+  app.use(['/courses', '/career-paths', '/admin/career-paths', '/admin/review-queue', '/users/me/career-path'], (_request, response, next) => {
     response.setHeader('Cache-Control', 'private, no-store');
     response.vary('Authorization');
     next();
@@ -1457,6 +1457,19 @@ export function createServer(dependencies: ServerDependencies = {}) {
         selectedAt: new Date().toISOString() };
       await accountCareers.selectLegacy(selection);
       response.json({ selection });
+    } catch (error) { next(error); }
+  });
+
+  // Admin Home: courses waiting for review, including new versions of live courses (their catalog status stays 'published').
+  app.get('/admin/review-queue', authenticateRequest(auth), requireAdmin, async (_request, response, next) => {
+    try {
+      const waiting = (await review.list(true)).filter((course) => course.status === 'ready-for-review');
+      const queue = await Promise.all(waiting.map(async (course) => {
+        const { workflow } = await review.load(course.id);
+        const submittedAt = [...workflow.history].reverse().find((event) => event.action === 'submit')?.createdAt ?? course.createdAt;
+        return { id: course.id, title: course.title, teacher: course.teacher, live: workflow.liveStatus !== null, submittedAt };
+      }));
+      response.json(queue.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)));
     } catch (error) { next(error); }
   });
 

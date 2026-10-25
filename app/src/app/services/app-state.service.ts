@@ -73,7 +73,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.465';
+  readonly appVersion = '0.1.467';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2153,6 +2153,11 @@ export class AppStateService {
       } catch { if (isCurrent()) this.coursesError.set('Review action saved. Reload the catalog to see its current state.'); }
     } catch (error) { if (isCurrent()) this.courseReviewError.set(error instanceof Error ? error.message : 'Unable to save the review action. Please retry.'); }
     finally { if (isCurrent()) this.courseReviewPending.set(false); }
+  }
+
+  /** Admin Home: the cached copy when there is one, so visiting Home does not spend Sheets quota. */
+  loadAdminFeedbackOnce(): void {
+    void this.loadAdminFeedback(false);
   }
 
   reloadAdminFeedback(): void {

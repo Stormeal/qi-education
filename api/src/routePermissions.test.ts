@@ -136,6 +136,7 @@ const permissionTable: Record<string, Permission> = {
   'GET /users/me/career-path': 'signed-in',
   'PUT /users/me/career-path': 'signed-in',
   'GET /admin/career-paths': 'admin',
+  'GET /admin/review-queue': 'admin',
   'PUT /admin/career-paths/:id': 'admin',
   'POST /admin/career-paths/:id/publish': 'admin',
   'POST /admin/career-paths/:id/unpublish': 'admin',

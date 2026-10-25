@@ -10,6 +10,15 @@ A signed-in learner sees where they are and what to do next, and finds every cou
   career path tile. The tile shows the focused career's next step (see
   [careers](../career-paths/careers.md)) or "Choose a career path" when none is followed.
   With no enrollments it shows an honest empty state ("No courses enrolled", "Find a course").
+- **Admin Home** (2026-10-25): admins do not enroll, so for the admin role Home shows "Needs your
+  attention" in place of the learning summary and course list (teachers and students keep the page
+  above; the email notice stays). Three cards, each with a count, the 5 newest items, "Nothing
+  waiting" when empty and its own error with **Try again**, so one failing source never hides the
+  others: **Courses waiting for review** (`GET /admin/review-queue`: first submissions and new
+  versions of live courses, whose catalog status stays published; a title opens the editor and its
+  review panel; **Show all** lists the rest), **Organization requests** (pending; **Open all** opens
+  Admin on Organizations) and **New feedback** (not yet triaged; **Open all** opens Admin on
+  Feedback; read from the cached copy so Home spends no extra Google Sheets reads).
 - **Confirm your email address**: while the account is unconfirmed, Home shows a notice naming
   the address, with **Send a new link** and the API's answer (US-L014). It disappears as soon as
   the link is opened in the same browser.
@@ -29,8 +38,9 @@ A signed-in learner sees where they are and what to do next, and finds every cou
 
 - App: `pages/dashboard-page/`, `pages/library-page/`, `routes/dashboard-route.ts`,
   `routes/library-route.ts`, `pages/progress-sync-notice.ts`, `services/learning-progress.service.ts`,
-  `services/career-path.service.ts`.
+  `services/career-path.service.ts`. Admin Home: `ui/admin-attention/`.
 - API: `GET /users/me/learning-progress`, enrolled courses through `GET /auth/me` and `GET /courses`.
+  Admin Home: `GET /admin/review-queue` (admin only), `GET /admin/organization-requests`, `GET /feedback`.
 
 ## Limits
 
