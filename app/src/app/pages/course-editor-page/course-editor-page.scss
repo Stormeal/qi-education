@@ -288,6 +288,19 @@
   .editor-next-label {
     display: none;
   }
+
+  // Even then Save does not fit beside Cancel, Back and Next: wrap rather than push it off-screen.
+  .editor-action-bar {
+    flex-wrap: wrap;
+  }
+
+  .editor-action-bar [appButton] {
+    flex: 1 1 auto;
+  }
+
+  .editor-action-spacer {
+    display: none;
+  }
 }
 
 .editor-section app-course-builder {

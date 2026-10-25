@@ -123,7 +123,7 @@
           <ul class="org-list">
             @for (invitation of invitations(); track invitation.id) {
               <li>
-                <span>{{ invitation.email }}</span>
+                <span [id]="'org-invite-' + invitation.id">{{ invitation.email }}</span>
                 @if (invitation.state === 'not-sent') {
                   <span class="org-chip" data-state="declined">Not sent. Try again.</span>
                 } @else {
@@ -131,9 +131,9 @@
                 }
                 @if (invitation.state === 'sent' || invitation.state === 'not-sent' || invitation.state === 'expired') {
                   <span class="org-actions">
-                    <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="resend(invitation)">Resend</button>
+                    <button appButton="ghost" size="sm" type="button" [attr.aria-describedby]="'org-invite-' + invitation.id" [disabled]="busy()" (click)="resend(invitation)">Resend</button>
                     @if (invitation.state !== 'expired') {
-                      <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="cancel(invitation)">Cancel</button>
+                      <button appButton="ghost" size="sm" type="button" [attr.aria-describedby]="'org-invite-' + invitation.id" [disabled]="busy()" (click)="cancel(invitation)">Cancel</button>
                     }
                   </span>
                 }

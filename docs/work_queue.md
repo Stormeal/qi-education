@@ -13,7 +13,10 @@ checked by Claude: own files only, contract kept, no frontend iframes affected; 
 accessibility-tree pass (Claude, `4bdeb3f`; rules in
 [specs/platform/ui-foundation.md](specs/platform/ui-foundation.md)). Checks on `9448f97`: API 2,684,
 app 553, journeys 18, Pages build; headers seen live on an isolated API. Not checked: hosted headers
-after push; X10 admin/organization pages, phone width and a real screen reader.
+after push; a real screen reader. X10 follow-up (Claude, same day): admin pages, organization
+pages (request form, owner page, invitations, join page) and phone width checked locally; fixed
+invitation Resend/Cancel names, the editor action bar cutting off Save on a phone and the career
+setup steps running off-screen.
 
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in

@@ -55,8 +55,11 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
 - A page has one `h1`. Lesson text is rendered one level down (`#` becomes `h2`), under the lesson
   title, in the learning page and in the course details curriculum preview.
 - Repeated buttons whose visible label does not name their item (Edit, Remove, Follow this career,
-  Preview) keep that label and point `aria-describedby` at the item's title, so a screen reader
-  says which lesson, chapter or career they act on.
+  Preview, invitation Resend and Cancel) keep that label and point `aria-describedby` at the item's title, so a screen reader
+  says which lesson, chapter, career or invitation they act on.
+- At phone width (375 px) no page scrolls sideways and no action is cut off: the course editor's
+  action bar wraps (Save gets its own row) and the career setup steps show only the current step's
+  name, the others visually hidden but still read out. Wide tables scroll inside their own wrapper.
 
 ## Code
 

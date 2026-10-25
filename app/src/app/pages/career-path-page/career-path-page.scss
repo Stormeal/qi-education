@@ -105,6 +105,23 @@
     color: var(--cp-success);
     font-weight: 700;
   }
+
+  // On a phone the four labels do not fit: only the current step keeps its visible name.
+  @media (max-width: 639px) {
+    li:not(.is-current) .cp-wizard-step-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    li + li::before {
+      width: 12px;
+      margin: 0 6px;
+    }
+  }
 }
 
 .cp-wizard-step-index {
