@@ -12,7 +12,7 @@ app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only
 State: done on `main` (base `6de6283`); report `docs/audits/2026-10-performance-security.md`: **2 P1, 5 P2, 2 P3** findings, including five reproduced defects DEF-059–DEF-063. API 2,568 passed + 2 expected failures / 101 files; API build and Pages build pass. Read-only audit; no push/deploy. Hosted/provider/index-plan/browser/Linux checks remain unverified.
 X8 committed by Claude on Alex's instruction (Codex did not run the commit step); DEF-061 and DEF-063 fixed in `a65bfa0`; DEF-059, DEF-060 and DEF-062 fixed by Claude (see their rows). The growth risks F6 to F9 and the rest of DEF-063 were acted on the same day; results in the report's Follow-up section. During the full API run `signInLimit.test.ts` "DEF-034 / 11 bounds abandoned pending capacity" failed once under load and passed on its own twice and in a full rerun; not touched.
 
-Delivered 2026-10-24, not pushed: US-A004-AC06 (Claude, `5b040de` and the editor refresh after
+Delivered 2026-10-24, pushed (live from 0.1.464 at the latest): US-A004-AC06 (Claude, `5b040de` and the editor refresh after
 publish; defaults confirmed by Alex) and US-P018-AC04 (Codex, `0baf101`/`6f22350`, checked by Claude:
 own files only, contract kept). Checks: API 2,568 passed + 2 expected failures, app 505, journeys 18,
 Pages build. Browser on isolated servers: changing Foundation's requirement is refused without a
@@ -21,7 +21,7 @@ the earlier requirements", and achieves it again after the new action. Productio
 2 high (Zod and body-parser accepted, see Waiting on Alex). Codex record
 [history/handoffs/US-P018-AC04-codex.md](history/handoffs/US-P018-AC04-codex.md).
 
-Delivered 2026-10-24, not pushed: US-O001 release 1 (organizations; Codex A1–A7 API, Claude B1–B5
+Delivered 2026-10-24, pushed (live from 0.1.464 at the latest): US-O001 release 1 (organizations; Codex A1–A7 API, Claude B1–B5
 app). Browser on isolated servers: all of AC01–AC12 passed; on 2026-10-24 AC06 (used link refused
 without member details), AC07 (promote shows Owner, remove closes the course), AC09 (Technical
 Tester career opens a 499 DKK course: "Enroll (included by Bugfinders)", learned free) and AC12
@@ -81,6 +81,7 @@ as they arrive.
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
 - Organizations (US-O001 release 1) on the hosted site: Alex runs AC01–AC12 from [the spec](specs/organizations/organizations.md) with a second real email address.
+- Pushed 2026-10-25 as 0.1.464: upload a real video and check the lesson minutes change to the video length and the moving bar shows while processing; open the all-careers map (Expand) on a wide screen and a phone; sign in and open an organization page against hosted MongoDB (new orgId indexes are created on first use).
 - Career cards, carousel and Start over on the hosted site: compare careers on a wide screen and a phone; Start over with a learner who has achievements (they must stay).
 - Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner.
 - Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20; a full refund (US-L025) delivered `charge.refunded` with 200 and removed the course, checked by Alex on 2026-10-22. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal.
