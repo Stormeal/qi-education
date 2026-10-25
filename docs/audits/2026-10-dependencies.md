@@ -321,3 +321,36 @@ Not verified: hosted traffic/proxy configuration, live provider integrations, Li
 browser UI and gateway protections. No protected source-file change is needed by the retained
 updates. Story/spec edits remain with Claude under the explicit file-ownership boundary.
 Delivery commit is recorded in the handoff Progress table and Codex's queue row.
+
+
+### Follow-up 2026-10-25
+
+Alex approved refusing compressed bodies and Zod 4.6 (US-P018-AC04). The API now
+resolves Zod **4.6.7**, the latest 4.6.x reported by the npm registry, with a
+`~4.6.7` range. Only Zod lock entries changed; the existing root 4.3.6 copy is now
+dev-only, leaving frontend dependencies unchanged. All six JSON/raw parsers set
+`inflate: false`; encoded bodies get 415 `{ message }` before decompression.
+Identity/unencoded JSON, course content, thumbnails, attachments and both webhook
+paths retain their behavior. Unsupported uncompressed charsets keep their message.
+
+An explicit default preserves omitted quiz `points` as 1 and all legacy weights
+still normalize to 1. Existing list limits are unchanged. Image-only errors retain
+the single `Question N: ...` message; 51 questions short-circuit to the approved
+generic 400 with a size issue, without restoring per-element image issues.
+
+Checks: API **2,761 passed / 110 files**, API build passed, journeys **18 passed**.
+Compression and omitted-points regressions failed before the fixes, then passed.
+Added limit/image-envelope regressions. Zod-wording-only expectation updates:
+**none**. `requestErrors.test.ts` RD-03 changes gzip 400 to 415 for the approved
+compression policy, not Zod wording.
+
+`npm audit --omit=dev --workspace api`: **2 high → 1 high**, exit 1. Zod is gone;
+**body-parser remains listed** (installed 2.2.2, including its separate invalid-limit
+advisory). No parser upgrade was made. Disabling inflation is the
+[upstream compressed-body workaround](https://github.com/advisories/GHSA-27r3-jxmh-p828);
+the audit does not inspect parser options and is not clean.
+
+All route checks used isolated memory/provider doubles and ephemeral ports;
+3001/4200 and live services were unused. That browsers, Stripe and Mux do not send
+compressed request bodies remains an **assumption, unverified against live
+providers**. Delivery: the local US-P018-AC04 follow-up commit containing this section.

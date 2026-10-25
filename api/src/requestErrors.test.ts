@@ -118,7 +118,7 @@ describe('request error contract (DEF-008)', () => {
 
   it.each([
     { type: 'application/json; charset=iso-8859-1', encoding: 'identity', body: '{}', status: 415 },
-    { type: 'application/json', encoding: 'gzip', body: 'invalid compressed body', status: 400 },
+    { type: 'application/json', encoding: 'gzip', body: 'invalid compressed body', status: 415 },
     { type: 'application/json', encoding: 'unknown', body: '{}', status: 415 },
   ])('RD-03 classifies invalid request encoding as $status ($encoding, $type)', async ({ type, encoding, body, status }) => {
     const response = await fetch(base + '/auth/login', { method: 'POST',

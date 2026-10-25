@@ -286,7 +286,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
   app.post(
     ['/webhooks/mux', '/api/webhooks/mux'],
-    withRequestBodyErrors(express.raw({ type: 'application/json' })),
+    withRequestBodyErrors(express.raw({ type: 'application/json', inflate: false })),
     async (request, response, next) => {
       try {
         if (!muxWebhook) {
@@ -314,12 +314,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
     },
   );
   app.post(['/webhooks/stripe', '/api/webhooks/stripe'],
-    withRequestBodyErrors(express.raw({ type: 'application/json' })), createPaymentWebhookHandler(paymentDependencies));
+    withRequestBodyErrors(express.raw({ type: 'application/json', inflate: false })), createPaymentWebhookHandler(paymentDependencies));
   app.put(
     ['/courses/:id/thumbnail', '/api/courses/:id/thumbnail'],
     authenticateRequest(auth),
     requireCourseAuthor(storedCourses),
-    withRequestBodyErrors(express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb' })),
+    withRequestBodyErrors(express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '2mb', inflate: false })),
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -386,7 +386,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     authenticateRequest(auth),
     requireCourseAuthor(storedCourses),
     // The host rejects request and response bodies above about 4.5 MB, so larger files could never arrive or be downloaded.
-    withRequestBodyErrors(express.raw({ type: () => true, limit: '4mb' }), 'Attachment is too large. Attachments must be 4 MB or smaller.'),
+    withRequestBodyErrors(express.raw({ type: () => true, limit: '4mb', inflate: false }), 'Attachment is too large. Attachments must be 4 MB or smaller.'),
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
@@ -504,11 +504,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
   app.use(['/users/me/profile', '/api/users/me/profile', '/feedback', '/api/feedback'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
-  const parseJson = withRequestBodyErrors(express.json());
+  const parseJson = withRequestBodyErrors(express.json({ inflate: false }));
   app.use([...organizationRoots, ...organizationRoots.map(path => `/api${path}`), '/auth/me', '/api/auth/me', '/me', '/api/me'], (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
-  const parseContentJson = withRequestBodyErrors(express.json({ limit: '4mb' }), 'Course content exceeds the 4 MB size limit.');
+  const parseContentJson = withRequestBodyErrors(express.json({ limit: '4mb', inflate: false }), 'Course content exceeds the 4 MB size limit.');
   app.use((request, response, next) => {
     const parser = request.method === 'PATCH' && /^\/(?:api\/)?courses\/[^/]+\/content\/?$/i.test(request.path) ? parseContentJson : parseJson;
     parser(request, response, next);
@@ -1665,7 +1665,8 @@ function withRequestBodyErrors(parser: RequestHandler, tooLargeMessage = 'Reques
           return;
         }
         if (error.status === 415) {
-          response.status(415).json({ message: 'Unsupported request body encoding.' });
+          response.status(415).json({ message: 'type' in error && error.type === 'encoding.unsupported'
+            ? 'Compressed request bodies are not accepted.' : 'Unsupported request body encoding.' });
           return;
         }
       }

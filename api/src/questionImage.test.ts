@@ -132,6 +132,28 @@ describe.each(['', '/api'])('US-T014 isolated HTTP (%s)', prefix => {
     return request(`/courses/course/content/components/quiz/attachments/${assetId}`, owner, 'DELETE', { sectionId: 'section' }, { 'X-Course-Revision': await revision() });
   }
 
+  it('US-P018-AC04 retains the single Question N envelope for an image-only schema error', async () => {
+    const raw = outline();
+    Object.assign(imageQuestion(raw), { image: { assetId: '', alt: '' } });
+    const response = await save(raw);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ message: 'Question 1: Too small: expected string to have >=1 characters' });
+  });
+
+  it.each([false, true])('US-P018-AC04 short-circuits 51 questions, including an invalid image=%s', async invalidImage => {
+    const before = structuredClone(await content.getCourseContent('course'));
+    const raw = outline();
+    raw[0].components[0].quiz!.questions = Array.from({ length: 51 }, (_, i) => ({ ...question(), id: `q${i}` }));
+    if (invalidImage) Object.assign(imageQuestion(raw), { image: { assetId: '', alt: '' } });
+    const response = await save(raw);
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toEqual({ message: 'Invalid request body', issues: [expect.objectContaining({ code: 'too_big', maximum: 50,
+      path: ['sections', 0, 'components', 0, 'quiz', 'questions'] })] });
+    expect(body.issues.some((issue: { path: unknown[] }) => issue.path.includes('image'))).toBe(false);
+    expect(await content.getCourseContent('course')).toEqual(before);
+  });
+
   it.each(['image/jpeg', 'image/png', 'image/webp'])('AC03 accepts quiz upload %s with the unchanged envelope', async type => {
     const response = await upload(type); expect(response.status).toBe(201);
     const result = await response.json();

@@ -11,7 +11,7 @@ const quizQuestionSchema = z.object({
   id: z.string().trim().min(1).max(120),
   question: z.string().trim().max(1000).default(''),
   // Retain the deployed client's field, but question weights are no longer configurable.
-  points: z.unknown().transform(() => 1),
+  points: z.unknown().transform(() => 1).default(1),
   explanation: z.string().max(1500).default(''),
   image: z.object({
     assetId: z.string().trim().min(1).max(200),

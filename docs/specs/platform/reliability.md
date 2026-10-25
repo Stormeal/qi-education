@@ -57,6 +57,7 @@ retry and download headers remain unchanged; no Content Security Policy middlewa
   'READ_ONLY', retryable: false }`. Other failures a generic 500. Request bodies and internal errors
   are never echoed. Driver outages are logged once ("Storage unavailable"). Error logs carry only the
   operation and the error class/code, never headers, bodies, causes or links (DEF-049).
+- Compressed request bodies are refused with 415 `{ message }`; every JSON/raw parser disables inflation.
 - **Outage guidance in the app**: `ApiClientService.fetch` gives every 503 `STORE_UNAVAILABLE` the
   message "The service is briefly unavailable, so nothing was changed. Your work on this page is
   kept. Try again in a minute." (`code` and `retryable` kept), so every page that shows API errors
