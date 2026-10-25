@@ -6,26 +6,14 @@ messages hold them.
 
 ## Active work
 
-**X9 API security headers** (2026-10-25, owner Codex): done locally on `main`, not pushed.
-Base `4bdeb3f`; required ancestor `d961dfb` verified. Contract:
-[handoffs/X9-api-headers-codex.md](handoffs/X9-api-headers-codex.md). Adds the three response
-headers and disables X-Powered-By before routes; all four health endpoints and /api aliases use
-no-store. Files: `api/src/server.ts`, `api/src/securityHeaders.test.ts`, reliability paragraph
-and aligned patch version lines only. Regression: 26 new HTTP cases failed before the change,
-then passed on isolated in-memory stores and ephemeral ports (neither 3001 nor 4200). Existing
-private/immutable cache, Vary/CORS, storage, Retry-After and download headers remain covered.
-Checks: `npm run api:test` 2,684 passed / 109 files; `npm run api:build` and diff check pass.
-Delivery: the local `fix(X9): harden API response headers` commit containing this record.
-No deployment/shared-service check; no other files needed or changed.
-
-**X10 screen-reader pass** (2026-10-25, owner Claude): done locally, not pushed. Accessibility-tree
-check on isolated servers (Chromium accessibility tree and scripted checks, not a real screen reader)
-of Home, course details, learning page (text, quiz, files, notes, feedback dialog), career path
-(CV step, questions, compare, tree, map) and the course editor and lesson editor. Fixed: the course
-details dialogs (price, enroll, catalog) now take focus, trap Tab, close on Escape and return focus;
-lesson headings start at h2; builder and career-card buttons name their lesson, chapter or career.
-Rules in [specs/platform/ui-foundation.md](specs/platform/ui-foundation.md). Not checked: admin
-pages, organization pages, phone width, a real screen reader (NVDA/VoiceOver).
+Delivered 2026-10-25, local only (not pushed): **X9** API security headers (Codex, `9448f97`,
+checked by Claude: own files only, contract kept, no frontend iframes affected; rule in
+[specs/platform/reliability.md](specs/platform/reliability.md); record
+[history/handoffs/X9-api-headers-codex.md](history/handoffs/X9-api-headers-codex.md)) and **X10**
+accessibility-tree pass (Claude, `4bdeb3f`; rules in
+[specs/platform/ui-foundation.md](specs/platform/ui-foundation.md)). Checks on `9448f97`: API 2,684,
+app 553, journeys 18, Pages build; headers seen live on an isolated API. Not checked: hosted headers
+after push; X10 admin/organization pages, phone width and a real screen reader.
 
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
