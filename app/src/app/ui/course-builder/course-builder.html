@@ -66,7 +66,7 @@
             <button
               appIconButton="ghost"
               class="section-toggle"
-              [label]="sectionToggleLabel(sectionIndex)"
+              [label]="sectionToggleLabel(sectionIndex)" [attr.aria-describedby]="'builder-section-' + section.id"
               [class.is-collapsed]="isSectionCollapsed(sectionIndex)"
               [attr.aria-expanded]="!isSectionCollapsed(sectionIndex)"
               (click)="toggleSection(sectionIndex)"
@@ -75,11 +75,11 @@
             </button>
             <span class="builder-section-index">{{ sectionIndex + 1 }}</span>
             <span
-              class="builder-section-title"
+              class="builder-section-title" [id]="'builder-section-' + section.id"
               [attr.contenteditable]="isSectionRenaming(sectionIndex) && !courseContentSaving() && !courseSubmitting()"
               [class.is-editing]="isSectionRenaming(sectionIndex)"
               [attr.role]="isSectionRenaming(sectionIndex) ? 'textbox' : null"
-              [attr.aria-label]="'Section title'"
+              [attr.aria-label]="isSectionRenaming(sectionIndex) ? 'Section title' : null"
               (input)="sectionTitleEdited(sectionIndex, $event)"
               (blur)="courseSectionTitleChanged.emit({ sectionIndex, value: editableText($event) }); courseEditorBufferChanged.emit(false); courseFocusedBufferChanged.emit(null); finishSectionRename()"
               (keydown)="renameKeydown($event)"
@@ -96,7 +96,7 @@
             </span>
             <button
               appIconButton="ghost"
-              label="Move chapter up"
+              label="Move chapter up" [attr.aria-describedby]="'builder-section-' + section.id"
               [disabled]="sectionIndex === 0 || courseContentSaving() || courseSubmitting()"
               (click)="courseSectionMoved.emit({ fromIndex: sectionIndex, toIndex: sectionIndex - 1 })"
             >
@@ -104,7 +104,7 @@
             </button>
             <button
               appIconButton="ghost"
-              label="Move chapter down"
+              label="Move chapter down" [attr.aria-describedby]="'builder-section-' + section.id"
               [disabled]="$last || courseContentSaving() || courseSubmitting()"
               (click)="courseSectionMoved.emit({ fromIndex: sectionIndex, toIndex: sectionIndex + 1 })"
             >
@@ -112,7 +112,7 @@
             </button>
             <button
               appIconButton="danger"
-              label="Remove section"
+              label="Remove section" [attr.aria-describedby]="'builder-section-' + section.id"
               [disabled]="courseContentSaving() || courseSubmitting()"
               (click)="courseSectionRemoved.emit(sectionIndex)"
             >
@@ -133,7 +133,7 @@
                 (drop)="dropComponent(sectionIndex, componentIndex, $event)"
                 (dragend)="dragComponentEnded()"
               >
-                <button type="button" class="drag-handle" aria-label="Drag component" [disabled]="!canMoveComponent(component)">
+                <button type="button" class="drag-handle" aria-label="Drag component" [attr.aria-describedby]="'builder-component-' + component.id" [disabled]="!canMoveComponent(component)">
                   <span class="inline-icon" aria-hidden="true" [innerHTML]="gripIcon"></span>
                 </button>
 
@@ -146,7 +146,7 @@
                 </span>
 
                 <div class="builder-component-copy">
-                  <strong>{{ component.title || 'Untitled component' }}</strong>
+                  <strong [id]="'builder-component-' + component.id">{{ component.title || 'Untitled component' }}</strong>
                   <span>{{ quizMetaSummary(component) || componentTypeLabel(component) }}</span>
                 </div>
 
@@ -170,7 +170,7 @@
 
                 <button
                   appButton
-                  size="sm"
+                  size="sm" [attr.aria-describedby]="'builder-component-' + component.id"
                   [disabled]="courseContentSaving() || courseSubmitting()"
                   (click)="openComponentEditor(sectionIndex, componentIndex)"
                 >
@@ -179,7 +179,7 @@
 
                 <button
                   appButton="danger"
-                  size="sm"
+                  size="sm" [attr.aria-describedby]="'builder-component-' + component.id"
                   [disabled]="courseContentSaving() || courseSubmitting()"
                   (click)="removeComponent(sectionIndex, componentIndex)"
                 >

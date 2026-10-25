@@ -361,7 +361,7 @@
 
 @if (isPriceModalOpen()) {
   <div class="price-modal-overlay">
-    <section class="price-modal" role="dialog" aria-modal="true" aria-labelledby="price-modal-title">
+    <section class="price-modal" role="dialog" aria-modal="true" aria-labelledby="price-modal-title" (keydown)="dialogKeydown($event)">
       <header class="price-modal-header">
         <div>
           <p class="course-enroll-kicker">Admin</p>
@@ -405,7 +405,7 @@
 @if (isEnrollDialogOpen() && course()) {
   @let enrollCourse = course()!;
   <div class="price-modal-overlay">
-    <section class="price-modal enroll-modal" role="dialog" aria-modal="true" aria-labelledby="enroll-modal-title">
+    <section class="price-modal enroll-modal" role="dialog" aria-modal="true" aria-labelledby="enroll-modal-title" (keydown)="dialogKeydown($event)">
       <header class="price-modal-header">
         <div>
           <p class="course-enroll-kicker">Enrollment</p>
@@ -453,7 +453,7 @@
 
 @if (isCatalogModalOpen() && course()) {
   <div class="price-modal-overlay">
-    <section class="price-modal catalog-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title">
+    <section class="price-modal catalog-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-modal-title" (keydown)="dialogKeydown($event)">
       <header class="price-modal-header">
         <div>
           <p class="course-enroll-kicker">Admin</p>

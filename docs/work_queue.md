@@ -11,9 +11,14 @@ policy, no `X-Powered-By`, `no-store` on health, from the X8 Headers row. Files:
 new `api/src/securityHeaders.test.ts`, `docs/specs/platform/reliability.md`. Handoff
 [handoffs/X9-api-headers-codex.md](handoffs/X9-api-headers-codex.md). State: handed to Codex.
 
-**X10 screen-reader pass** (started 2026-10-25, owner Claude): accessibility-tree check of the
-learning page, career tree, course editor and dialogs on isolated servers (open release check
-"Screen reader pass"); fixes in `app/src/app/**` only. State: in progress.
+**X10 screen-reader pass** (2026-10-25, owner Claude): done locally, not pushed. Accessibility-tree
+check on isolated servers (Chromium accessibility tree and scripted checks, not a real screen reader)
+of Home, course details, learning page (text, quiz, files, notes, feedback dialog), career path
+(CV step, questions, compare, tree, map) and the course editor and lesson editor. Fixed: the course
+details dialogs (price, enroll, catalog) now take focus, trap Tab, close on Escape and return focus;
+lesson headings start at h2; builder and career-card buttons name their lesson, chapter or career.
+Rules in [specs/platform/ui-foundation.md](specs/platform/ui-foundation.md). Not checked: admin
+pages, organization pages, phone width, a real screen reader (NVDA/VoiceOver).
 
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
@@ -108,7 +113,7 @@ Delivered work whose real-environment check has not been done. Tick off here whe
 - Career paths: hosted MongoDB data, admin editor at phone width, trees wider than five stages.
 - Browser thumbnail cache hit on the hosted site (DEF-021).
 - Profiles and instructor descriptions on two devices against hosted MongoDB.
-- Screen reader pass over the learning page, career tree, course editor and dialogs (none done yet).
+- Screen reader pass: accessibility-tree pass done locally 2026-10-25 (X10); still open: one real screen reader (NVDA or VoiceOver) over the learning page, career tree, course editor and dialogs.
 - The live [teacher rehearsal checklist](release/teacher-rehearsal-checklist.md).
 - CV recognition (US-L023) on the hosted site: careers already published there have no CV keywords until an admin adds them in the career editor (or converts/publishes from the starter drafts, which carry ISTQB keywords); then scan a real PDF and .docx CV. Scan panel at phone width not checked.
 

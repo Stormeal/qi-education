@@ -7,6 +7,13 @@ export function renderLessonMarkdown(document: Document, markdown: string): stri
     // Attachment cards carry editor-only download/remove controls; learners use the file list instead.
     const container = inertHtml(document, markdown);
     container.querySelectorAll('.rich-attachment-actions').forEach((actions) => actions.remove());
+    // The lesson title is the page's h1, so the lesson's own headings start at h2.
+    container.querySelectorAll('h1, h2, h3, h4, h5').forEach((heading) => {
+      const lower = document.createElement(`h${Number(heading.tagName[1]) + 1}`);
+      for (const attribute of Array.from(heading.attributes)) lower.setAttribute(attribute.name, attribute.value);
+      lower.append(...Array.from(heading.childNodes));
+      heading.replaceWith(lower);
+    });
     return container.innerHTML;
   }
 
@@ -29,7 +36,7 @@ export function renderLessonMarkdown(document: Document, markdown: string): stri
     const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
     if (heading) {
       flushList();
-      const level = heading[1].length;
+      const level = heading[1].length + 1;
       html.push(`<h${level}>${renderInline(heading[2])}</h${level}>`);
       continue;
     }

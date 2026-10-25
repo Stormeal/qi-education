@@ -49,6 +49,14 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   `pages/roadmap-page/release-notes.ts`, newest first; Claude adds the note for each push there,
   in the commit that is pushed. There is no in-app editor.
 - No dark theme.
+- Every modal dialog follows the confirm dialog's keyboard contract: focus moves into it when it
+  opens, Tab and Shift+Tab stay inside, Escape closes it, and focus returns to the control that
+  opened it. The course details page's price, enrollment and catalog dialogs follow it since X10.
+- A page has one `h1`. Lesson text is rendered one level down (`#` becomes `h2`), under the lesson
+  title, in the learning page and in the course details curriculum preview.
+- Repeated buttons whose visible label does not name their item (Edit, Remove, Follow this career,
+  Preview) keep that label and point `aria-describedby` at the item's title, so a screen reader
+  says which lesson, chapter or career they act on.
 
 ## Code
 

@@ -77,6 +77,24 @@ describe('course details page', () => {
     expect(page.querySelector<HTMLSelectElement>('.price-field select')?.value).toBe('Uncategorized');
   });
 
+  it('X10 the enroll dialog takes focus, closes on Escape and gives focus back', async () => {
+    const page = render({ priceDkk: null }, false);
+    document.body.appendChild(page);
+    const opener = page.querySelector<HTMLButtonElement>('.course-enroll-body button')!;
+    opener.focus();
+    opener.click();
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve));
+    const dialog = page.querySelector('[role=dialog]')!;
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    await new Promise(resolve => setTimeout(resolve));
+    expect(page.querySelector('[role=dialog]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    page.remove();
+  });
+
   it('US-O001-AC09 shows Enroll (included by the organization) instead of Buy', () => {
     const page = render({ priceDkk: 499 }, false);
     fixture.componentRef.setInput('organizationAccess', { name: 'QA Team', openCourseIds: ['course'] });

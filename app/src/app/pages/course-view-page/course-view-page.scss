@@ -463,7 +463,7 @@
   line-height: 1.68;
 }
 
-.curriculum-markdown-preview h1,
+.curriculum-markdown-preview h4,
 .curriculum-markdown-preview h2,
 .curriculum-markdown-preview h3,
 .curriculum-markdown-preview p,
@@ -471,7 +471,7 @@
   margin: 0 0 8px;
 }
 
-.curriculum-markdown-preview h1,
+.curriculum-markdown-preview h4,
 .curriculum-markdown-preview h2,
 .curriculum-markdown-preview h3 {
   color: var(--color-ink);
@@ -479,15 +479,15 @@
   line-height: 1.2;
 }
 
-.curriculum-markdown-preview h1 {
+.curriculum-markdown-preview h2 {
   font-size: 22px;
 }
 
-.curriculum-markdown-preview h2 {
+.curriculum-markdown-preview h3 {
   font-size: 18px;
 }
 
-.curriculum-markdown-preview h3 {
+.curriculum-markdown-preview h4 {
   font-size: 15px;
 }
 

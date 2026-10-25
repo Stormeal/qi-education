@@ -159,7 +159,7 @@
                     } @else if (path.id === suggestedPathId()) {
                       <span class="cp-card-tag">Suggested from your answers</span>
                     }
-                    <h3>{{ path.title }}</h3>
+                    <h3 [id]="'cp-card-' + path.id">{{ path.title }}</h3>
                     @if (path.summary) { <p class="cp-card-summary">{{ path.summary }}</p> }
                     @if (path.outcomes.length) {
                       <h4 class="cp-card-label">You'll be able to</h4>
@@ -183,14 +183,14 @@
                       </ul>
                       <div class="cp-card-actions">
                         @if (isFollowed(path.id)) {
-                          <button type="button" appButton="primary" fullWidth [disabled]="saving()" (click)="view(path.id)">
+                          <button type="button" appButton="primary" fullWidth [attr.aria-describedby]="'cp-card-' + path.id" [disabled]="saving()" (click)="view(path.id)">
                             {{ saving() && path.id === draftPathId() ? 'Opening…' : 'View path' }}
                           </button>
                         } @else {
-                          <button type="button" appButton="primary" fullWidth [disabled]="saving()" (click)="follow(path.id)">
+                          <button type="button" appButton="primary" fullWidth [attr.aria-describedby]="'cp-card-' + path.id" [disabled]="saving()" (click)="follow(path.id)">
                             {{ saving() && path.id === draftPathId() ? 'Saving…' : saveError() && path.id === draftPathId() ? 'Retry following' : 'Follow this career' }}
                           </button>
-                          <button type="button" appButton="ghost" fullWidth [disabled]="saving()" (click)="view(path.id)">Preview</button>
+                          <button type="button" appButton="ghost" fullWidth [attr.aria-describedby]="'cp-card-' + path.id" [disabled]="saving()" (click)="view(path.id)">Preview</button>
                         }
                       </div>
                     </footer>

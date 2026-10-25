@@ -156,6 +156,19 @@ export class CourseViewPage {
 
   constructor() {
     void this.instructorProfiles.loadPublic();
+    // Same keyboard contract as the confirm dialog: an open dialog takes focus and gives it back on close.
+    let returnFocusTo: HTMLElement | null = null;
+    effect(() => {
+      if (this.isPriceModalOpen() || this.isCatalogModalOpen() || this.isEnrollDialogOpen()) {
+        const active = this.document.activeElement;
+        returnFocusTo ??= active instanceof HTMLElement ? active : null;
+        setTimeout(() => this.dialogFocusable()[0]?.focus());
+      } else if (returnFocusTo) {
+        const target = returnFocusTo;
+        returnFocusTo = null;
+        setTimeout(() => { if (target.isConnected) target.focus(); });
+      }
+    });
     effect(() => {
       const content = this.courseContent();
 
@@ -333,6 +346,26 @@ export class CourseViewPage {
     }
 
     this.isEnrollDialogOpen.set(false);
+  }
+
+  protected dialogKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      if (this.isPriceModalOpen()) this.closePriceModal();
+      if (this.isCatalogModalOpen()) this.closeCatalogModal();
+      if (this.isEnrollDialogOpen()) this.closeEnrollDialog();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const items = this.dialogFocusable();
+    const first = items[0], last = items[items.length - 1];
+    if (event.shiftKey && this.document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && this.document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
+
+  private dialogFocusable(): HTMLElement[] {
+    return Array.from(this.document.querySelectorAll<HTMLElement>(
+      '.price-modal :is(button, input, select, textarea, a[href]):not([disabled])'));
   }
 
   protected confirmEnrollment(courseId: string): void {
