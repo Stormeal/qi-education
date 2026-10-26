@@ -44,6 +44,7 @@ export class CourseEditorPage {
   readonly courseDraft = input.required<CourseCreateDraft>();
   readonly courseReview = input<CourseReviewState | null>(null);
   readonly courseEditable = input(true);
+  readonly courseReviewerOnly = input(false);
   readonly recoveryAvailable = input(false);
   readonly recoveryDrafts = input<RecoverableCourseDraft[]>([]);
   readonly recoveryKey = input('');
@@ -172,7 +173,7 @@ export class CourseEditorPage {
 
   // Why the form is read-only, said where the teacher is looking, with the way out when there is one.
   protected readonly lockedReason = computed(() =>
-    this.courseFormMode() !== 'edit' || this.courseEditable() || this.courseContentLoading() ? null : courseFormLockedReason(this.courseReview()));
+    this.courseFormMode() !== 'edit' || this.courseEditable() || this.courseContentLoading() ? null : courseFormLockedReason(this.courseReview(), this.courseReviewerOnly()));
 
   constructor() {
     effect(() => {

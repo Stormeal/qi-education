@@ -18,7 +18,15 @@ export function courseFormSteps(
 }
 
 /** Why a saved course cannot be edited right now, and whether starting a revision is the way out. */
-export function courseFormLockedReason(review: CourseReviewState | null) {
+export function courseFormLockedReason(review: CourseReviewState | null, reviewerOnly = false) {
+  // US-A007: a reviewer only reads the course; it is never theirs to edit.
+  if (reviewerOnly) {
+    return review?.course.status === 'ready-for-review'
+      ? { title: 'You are reviewing this course', canStartRevision: false,
+        text: 'Read the lessons and quizzes, then send your verdict in the Publishing step.' }
+      : { title: 'Not waiting for your review', canStartRevision: false,
+        text: 'This course is back with its teachers for changes. You can review it again once it is submitted.' };
+  }
   if (review?.course.status === 'ready-for-review') {
     return { title: 'Waiting for admin review', canStartRevision: false,
       text: 'This version is with an admin. You can edit again once it is published or returned to you.' };

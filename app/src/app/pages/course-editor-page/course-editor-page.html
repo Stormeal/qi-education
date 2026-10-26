@@ -360,7 +360,7 @@
           </div>
 
           <div class="editor-grid">
-              <app-course-review-panel [review]="courseReview()" [canAdmin]="canAccessAdmin()"
+              <app-course-review-panel [review]="courseReview()" [canAdmin]="canAccessAdmin()" [reviewerOnly]="courseReviewerOnly()"
                 [blocked]="recoveryAvailable()" [pending]="reviewPending() || courseSubmitting() || thumbnailUploading() || !!attachmentUploadComponentId() || !!muxUploadComponentId()"
                 [loading]="courseContentLoading()" [error]="reviewError()" [reason]="reviewReason()"
                 (action)="reviewAction.emit($event)" (reasonChanged)="reviewReasonChanged.emit($event)" />

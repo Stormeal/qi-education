@@ -17,7 +17,7 @@
     [courseFormMode]="state.courseFormMode()"
     [editingCourse]="state.editingCourse()"
     [courseDraft]="state.courseDraft()"
-    [courseReview]="state.courseReview()" [courseEditable]="state.courseEditable()"
+    [courseReview]="state.courseReview()" [courseEditable]="state.courseEditable()" [courseReviewerOnly]="state.courseReviewerOnly()"
     [recoveryAvailable]="!!state.recoverableCourseDraft()" [recoveryError]="state.courseRecoveryError()"
     [recoveryDrafts]="state.recoverableCourseDrafts()" [recoveryKey]="state.recoverableCourseDraft()?.key ?? ''"
     (recoverySelected)="state.selectRecoverableCourseDraft($event)"

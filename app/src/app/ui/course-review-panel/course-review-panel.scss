@@ -7,3 +7,4 @@ textarea { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid
 .review-history p { margin: 6px 0; }
 .review-feedback { white-space: pre-wrap; }
 .review-error { color: #9b2626; }
+.review-gate, .review-verdict { width: 100%; margin: 0; font-weight: 600; }

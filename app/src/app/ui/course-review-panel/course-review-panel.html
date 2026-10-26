@@ -7,18 +7,32 @@
     <p>Existing learners retain access to the archived version.</p>
   }
   <div class="review-actions">
-    @if (state.editable) {
+    @if (reviewerOnly() && state.course.status !== 'ready-for-review') {
+      <p role="status">This course is back with its teachers for changes.</p>
+    } @else if (state.editable) {
       <button appButton="primary" [disabled]="pending() || blocked()" (click)="action.emit('submit')">Submit for review</button>
     } @else if (state.course.status === 'ready-for-review') {
       <p role="status">Awaiting admin review</p>
-      @if (canAdmin()) {
-        <button appButton="primary" [disabled]="pending() || blocked()" (click)="action.emit('publish')">Publish revision</button>
-        <label class="review-reason">Return reason
-          <textarea aria-label="Return reason" rows="3" maxlength="2000" [value]="reason()" [disabled]="pending() || blocked()" (input)="changeReason($event)"></textarea>
+      @if (reviewers(); as people) {
+        @if (people.total) {
+          <p class="review-gate" role="status">{{ waitingFor() ? 'Waiting for ' + waitingFor() + ' of ' + people.total + ' reviewers' : 'All ' + people.total + ' reviewers approved' }}</p>
+        }
+      }
+      @if (canAdmin() || reviewers()?.viewerVerdict) {
+        <label class="review-reason">{{ commentLabel() }}
+          <textarea [attr.aria-label]="commentLabel()" rows="3" maxlength="2000" [value]="reason()" [disabled]="pending() || blocked()" (input)="changeReason($event)"></textarea>
         </label>
+      }
+      @if (reviewers()?.viewerVerdict; as verdict) {
+        <p class="review-verdict">{{ verdictLabel(verdict) }}</p>
+        <button appButton="primary" [disabled]="pending() || blocked()" (click)="action.emit('approve')">Approve</button>
+        <button appButton [disabled]="pending() || blocked() || !reason().trim()" (click)="action.emit('request-changes')">Request changes</button>
+      }
+      @if (canAdmin()) {
+        <button appButton="primary" [disabled]="pending() || blocked() || waitingFor() > 0" (click)="action.emit('publish')">Publish revision</button>
         <button appButton [disabled]="pending() || blocked()" (click)="action.emit('return')">Return for changes</button>
       }
-    } @else if (state.liveStatus && !state.revisionId) {
+    } @else if (state.liveStatus && !state.revisionId && !reviewerOnly()) {
       <button appButton [disabled]="pending() || blocked()" (click)="action.emit('start-revision')">Start revision</button>
     }
     @if (canAdmin() && state.liveStatus === 'published') {
