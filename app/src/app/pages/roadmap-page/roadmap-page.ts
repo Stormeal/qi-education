@@ -44,7 +44,7 @@ const RELEASE_1_GROUPS: { title: string; items: { name: string; must: boolean; s
     { name: 'Colleagues get courses for free', must: true, status: 'live', detail: 'Courses stay free during the internal period; public prices are set at launch. Anyone enrolled before a price is set keeps free access.' },
     { name: 'Live-site walkthrough for teachers', must: true, status: 'in-progress', detail: 'The teacher rehearsal and the open release checks run on the live site: video, email confirmation, CV scan and phone layouts.' },
     { name: 'Career routes mapped to our courses', must: true, status: 'in-progress', detail: 'Every TestHuset course is mapped to a route or deferred with a reason.' },
-    { name: 'Course reviewers', must: true, status: 'not-started', detail: 'Admins ask colleagues to review a course. It can only be published once every reviewer has approved it.' },
+    { name: 'Course reviewers', must: true, status: 'built', detail: 'Admins ask colleagues to review a course. It can only be published once every reviewer has approved it.' },
     { name: 'Route changes keep earned achievements', must: false, status: 'built', detail: 'Routes will change while courses are built; learners keep their recorded progress.' },
     { name: 'Feedback reaches us once', must: false, status: 'live', detail: 'Feedback follow-ups no longer create duplicate GitHub issues after a restart.' },
   ] },

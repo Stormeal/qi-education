@@ -6,13 +6,17 @@ messages hold them.
 
 ## Active work
 
-**US-A007 course reviewers** (release 1 Must, started 2026-10-26, base `6f2e391`). Plan:
-[superpowers/plans/2026-10-26-course-reviewers.md](superpowers/plans/2026-10-26-course-reviewers.md).
-
-| Owner | Scope | Files | State |
-| --- | --- | --- | --- |
-| Codex | Plan Tasks 1–5: reviewer storage and route, verdicts and publish gate, reviewer read access, mails and `GET /reviews/mine`, journey step | `api/src/**` ([handoff](handoffs/US-A007-codex.md)) | Done locally on `main` (base `8de06fc`), Tasks 1–5: `67b563b`, `7d7666a`, `57d0f8c`, `cfacda8`, `6f9b374`; final review corrections in this delivery commit. TDD RED → GREEN per Tasks 1–4; focused totals 255 / 57 / 33 / 280; Task 5 journeys 20/20 (memory + fake Mongo). Final: API 2,836/2,836 in 111 files, journeys 20/20, API build pass; AC01–AC06 covered by `courseReviewers.test.ts`, `courseReview.test.ts`, `journey.test.ts`. Fresh independent review: fixed roster disclosure and live-catalog author-query regression; both regressions RED → GREEN (4 alias cases), focused 284/284, full suite 2,836/2,836. Deferred minor: after publication clears the working revision, `/reviews/mine` reports `waiting`; keep the agreed current-working-revision contract for now. Ruling: disabled sessions retain existing 401 rather than plan’s 403, preserving authentication behavior; cost if wrong: status-code expectation mismatch. Earlier full-run timing failures: client-limit injectable-policy timeout; sign-in DEF-034 abandoned-capacity AbortError, locked-login timeout, unknown/disabled-login timeout. Both files passed alone (20 + 24), four-worker rerun passed, subsequent default-worker suites passed. Isolated stores only; real Mongo/Brevo and browser acceptance remain Claude’s Task 10 release checks. Committed locally; no push. |
-| Claude | Plan Tasks 6–9: app models and calls, reviewer picker, verdicts and gate in the review panel, "To review" on Home | `app/src/app/**` | Tasks 6–9 committed (`1c74a15`, `da6be9b`, `9938cbc`, `b1d78ac`); app 567/567, UI foundation pass. Reviewer panel reuses `ui/course-teachers` (`kind="reviewers"`); a teacher-as-reviewer is refused by the API, not hidden in the picker. Not verified: browser check on isolated servers, waits for Codex Tasks 3–5 |
+Delivered 2026-10-26, not pushed: **US-A007 course reviewers** (release 1 Must). Codex Tasks 1–5
+(API, `67b563b`…`2286b01`, record [history/handoffs/US-A007-codex.md](history/handoffs/US-A007-codex.md)),
+Claude Tasks 6–9 (app, `1c74a15`…`9fa42e6`). Check routine by Claude: Codex kept to its files and the
+contract, except that it shows `reviewerIds` to admins only; the app now knows a reviewing teacher from
+`GET /reviews/mine` (`257a0cb`), and Home shows the course state instead of a stale "waiting" verdict once
+a course left review. Checks: API 2,836/2,836, app 568/568, journeys 20/20, Pages build. Browser on
+isolated servers: admin assigns a reviewer, publish refused with "Waiting for 1 of 1 reviewers"
+(API 409), reviewer sees "To review" on Home, opens the course read-only (no Save, Submit or Publish),
+approves with a comment, Home shows "Approved", admin's Publish is enabled and the history shows the
+verdict; no console errors. The browser check found the reviewer's form empty ("Untitled course"),
+fixed in `9fa42e6`. Not verified: a real Brevo email and MongoDB storage (see Open release checks).
 
 Pushed 2026-10-26 as 0.1.482 (live, Vercel and Pages green): X9 API security headers, X10
 accessibility pass and its follow-up, the US-P018-AC04 follow-up (compressed bodies refused, Zod
@@ -93,12 +97,14 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 ## Next candidate
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
-[user_stories.md](user_stories.md). Ready to start without waiting on anyone: US-A007 course reviewers
-(release 1 Must, [plan](superpowers/plans/2026-10-26-course-reviewers.md)) and the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
+[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
 as they arrive.
 
 ## Open release checks
 
+- US-A007 course reviewers, after the next push: as admin assign a second real account as reviewer
+  on a submitted course; it receives the email (link opens the course), Publish stays disabled until
+  it approves, then publishes.
 - US-A006 feedback, live since 0.1.482 (copy verified 2026-10-26): still open, as admin open the
   feedback inbox on the live site (24 old items, type filters), send one feedback of each type,
   and mark one for follow-up to check a real GitHub issue is created once.

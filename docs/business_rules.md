@@ -8,7 +8,7 @@ The API enforces every rule here; the UI only mirrors them.
 | Role | Can |
 | --- | --- |
 | `student` | Sign up (default role), browse, enroll in published courses, learn, keep notes, give feedback, follow careers, record achievements, edit own profile |
-| `teacher` | Everything a student can, plus create courses, author the courses they are assigned to, submit them for review, write a public instructor description |
+| `teacher` | Everything a student can, plus create courses, author the courses they are assigned to, submit them for review, review courses they are asked to review, write a public instructor description |
 | `admin` | Everything, plus author **any** course, review/return/publish/archive, set price and catalog metadata, manage users, triage feedback, curate careers, moderate instructor descriptions |
 
 - Every signed-in role may create a course draft. A teacher who creates one becomes its first
@@ -30,6 +30,9 @@ The API enforces every rule here; the UI only mirrors them.
 - Review or publication needs answerable quizzes: text on every question and option, at least one
   correct answer per question, pass mark 1…number of questions. Drafts may be incomplete.
 - Publishing an "Uncategorized" course asks for confirmation first.
+- Admins may assign reviewers (teachers or admins, never the course's own teachers, US-A007). Then
+  publishing waits until every reviewer has approved the submitted revision; a new Submit resets the
+  approvals. Reviewers read the course but never edit or publish it.
 
 ## Access and enrollment
 
@@ -38,6 +41,7 @@ The API enforces every rule here; the UI only mirrors them.
 | Anyone | Published course metadata, lesson-title outline, thumbnails, published careers, public instructor descriptions |
 | Enrolled learner | Full learner content and live files of a published or archived course; never correct answers before an attempt |
 | Owner / admin | Everything about the course, including the working revision, review history and author view |
+| Assigned reviewer | The author view (read-only) and review history of the course they review; not the reviewer list |
 
 - New enrollment only in a published course; enrolling twice keeps one enrollment.
 - Archiving stops new enrollment; existing learners keep access.
