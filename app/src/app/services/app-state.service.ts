@@ -11,6 +11,7 @@ import {
   CourseComponentType,
   CourseCatalogMetadataDraft,
   CourseReviewAction,
+  MyReview,
   CourseReviewState,
   CourseSection,
   CourseContentDocument,
@@ -76,7 +77,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.499';
+  readonly appVersion = '0.1.500';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -299,9 +300,12 @@ export class AppStateService {
     return editId ? this.availableCourses().find((course) => course.id === editId) ?? null : null;
   });
   readonly selectedCourseCanEdit = computed(() => this.canEditCourse(this.selectedCourse()));
+  /** US-A007: courses this account is asked to review. Only admins see a course's reviewer list, so this is how a teacher knows. */
+  readonly myReviews = signal<MyReview[]>([]);
+  private myReviewsRequest = 0;
   /** US-A007: an assigned reviewer who cannot author the course opens it read-only. */
   readonly courseReviewerOnly = computed(() => this.courseFormMode() === 'edit' && !this.canEditCourse(this.editingCourse()) &&
-    canReviewCourse(this.editingCourse(), this.loginState()?.user));
+    canReviewCourse(this.editingCourse(), this.loginState()?.user, this.myReviews().map((review) => review.courseId)));
   readonly canUseCourseEditor = computed(() =>
     this.courseFormMode() === 'edit'
       ? this.canEditCourse(this.editingCourse()) || this.courseReviewerOnly()
@@ -387,6 +391,7 @@ export class AppStateService {
     effect(() => { const token = this.loginState()?.token ?? ''; untracked(() => this.feedbackComposer.setSession(token)); });
     effect(() => { const token = this.sessionToken(); untracked(() => void this.refreshOrganizationAccess(token)); });
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
+    effect(() => { this.loginState(); untracked(() => void this.refreshMyReviews()); });
     effect(() => {
       const saved = this.profileSnapshot();
       this.headerIdentity.avatarColor.set(saved ? (JSON.parse(saved) as UserProfileDetails).avatarColor : DEFAULT_AVATAR_COLOR);
@@ -2079,6 +2084,12 @@ export class AppStateService {
     }
   }
 
+  async refreshMyReviews(): Promise<void> {
+    const login = this.loginState(), request = ++this.myReviewsRequest;
+    const reviews = login && login.user.role !== 'student' ? await this.courseService.loadMyReviews(login.token) : [];
+    if (request === this.myReviewsRequest) this.myReviews.set(reviews);
+  }
+
   async reviewCourse(action: CourseReviewAction): Promise<void> {
     if (this.recoverableCourseDraft()) { this.courseReviewError.set('Restore or discard the local draft before making a review decision.'); return; }
     if (this.courseReviewPending() || this.courseSubmitting() || this.courseContentLoading() || this.courseThumbnailUploading() || this.attachmentUploadComponentId() || this.muxUploadComponentId()) return;
@@ -2117,6 +2128,7 @@ export class AppStateService {
         this.initialCourseContentSnapshot.set(this.serializeCourseContent(loaded));
         this.courseReviewReason.set('');
       }
+      if (action === 'approve' || action === 'request-changes') void this.refreshMyReviews();
       this.showCourseSaveNotice(action === 'approve' ? 'Approval sent.' : action === 'request-changes' ? 'Change request sent.' : action === 'publish' ? 'Revision published.' : action === 'return' ? 'Revision returned for changes.' : action === 'submit' ? 'Submitted for admin review.' : action === 'archive' ? 'Course archived; existing learners retain access.' : 'Private revision started; learners keep the published version.');
       try {
         const courses = await this.courseService.listCourses(token);

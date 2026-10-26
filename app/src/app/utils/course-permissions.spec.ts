@@ -37,5 +37,8 @@ describe('US-A007 course reviewers in the app', () => {
     expect(canReviewCourse(reviewed, user('R', 'teacher', 'disabled'))).toBe(false);
     expect(canReviewCourse(reviewed, user('T'))).toBe(false);
     expect(canReviewCourse(course({ ownerUserId: 'T' }), user('R'))).toBe(false);
+    // Teachers never receive reviewerIds; their own review list says which courses they review.
+    expect(canReviewCourse(course({ id: 'c', ownerUserId: 'T' }), user('R'), ['c'])).toBe(true);
+    expect(canReviewCourse(course({ id: 'c', ownerUserId: 'T' }), user('R', 'student'), ['c'])).toBe(false);
   });
 });

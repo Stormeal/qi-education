@@ -7,7 +7,7 @@ import { CourseContentDocument, CourseListItem, CourseReviewState, LoginState } 
 import { AppStateService } from './app-state.service';
 import { CourseService } from './course.service';
 
-const course: CourseListItem = { id: 'course', ownerUserId: 'teacher', teacherIds: ['teacher'], reviewerIds: ['rikke'], title: 'Test design',
+const course: CourseListItem = { id: 'course', ownerUserId: 'teacher', teacherIds: ['teacher'], title: 'Test design',
   description: 'A course waiting for review.', level: 'Beginner', teacher: 'Owner', requirements: [], whatYoullLearn: [], audience: '',
   partOfCareer: '', careerGoals: [], status: 'ready-for-review', createdAt: '2026-10-09', priceDkk: null, thumbnailAssetId: '',
   isPremium: false, isBestseller: false, rating: 0, ratingCount: 0, category: 'Software Testing', languages: [] };
@@ -27,11 +27,15 @@ const button = (page: HTMLElement, label: string) =>
 
 describe('US-A007 reviewer in the course editor', () => {
   let state: AppStateService;
+  let reviewsFor = '';
   beforeEach(async () => {
     localStorage.clear(); sessionStorage.clear();
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const path = new URL(String(input)).pathname;
       if (path.endsWith('/courses')) return new Response(JSON.stringify([course]), { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
+      // Only admins receive reviewerIds; a reviewing teacher is known from its own review list.
+      if (path.endsWith('/reviews/mine')) return new Response(JSON.stringify({ reviews: reviewsFor === 'rikke'
+        ? [{ courseId: 'course', title: 'Test design', status: 'ready-for-review', verdict: 'waiting' }] : [] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       throw new Error('Unexpected isolated request: ' + path);
     }));
     await TestBed.configureTestingModule({ providers: appConfig.providers }).compileComponents();
@@ -40,7 +44,9 @@ describe('US-A007 reviewer in the course editor', () => {
   afterEach(async () => { await vi.waitFor(() => expect(TestBed.inject(Router).currentNavigation()).toBeNull()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
   async function render(user: LoginState, content: CourseContentDocument) {
     vi.spyOn(TestBed.inject(CourseService), 'loadCourseContent').mockResolvedValue(content);
+    reviewsFor = user.user.id;
     state.loginState.set(user);
+    if (user.user.id === 'rikke') await vi.waitFor(() => expect(state.myReviews()).toHaveLength(1));
     const harness = await RouterTestingHarness.create('/courses/course/edit');
     await vi.waitFor(() => expect(state.courseReview()).not.toBeNull()); harness.detectChanges();
     return { page: harness.routeNativeElement as HTMLElement, detectChanges: () => harness.detectChanges() };

@@ -1,34 +1,22 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { MyReview, ReviewerVerdict } from '../../app.models';
+import { MyReview } from '../../app.models';
 import { AppStateService } from '../../services/app-state.service';
-import { CourseService } from '../../services/course.service';
 import { Chip, type ChipVariant } from '../chip/chip';
-
-const VERDICTS: Record<ReviewerVerdict, { label: string; chip: ChipVariant }> = {
-  waiting: { label: 'Waiting for you', chip: 'highlight' },
-  approved: { label: 'Approved', chip: 'primary' },
-  'changes-requested': { label: 'Changes requested', chip: 'neutral' },
-};
 
 /** US-A007: Home lists the courses the signed-in teacher or admin is asked to review. Nothing shows when there are none. */
 @Component({ selector: 'app-my-reviews', imports: [RouterLink, Chip], changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './my-reviews.html', styleUrl: './my-reviews.scss' })
 export class MyReviews {
-  private readonly courses = inject(CourseService);
-  private readonly state = inject(AppStateService);
-  protected readonly reviews = signal<MyReview[]>([]);
-  protected readonly verdicts = VERDICTS;
+  protected readonly reviews = inject(AppStateService).myReviews;
 
-  constructor() {
-    effect(() => {
-      const login = this.state.loginState();
-      const token = login && login.user.role !== 'student' ? login.token : '';
-      untracked(() => void this.load(token));
-    });
-  }
-
-  private async load(token: string): Promise<void> {
-    this.reviews.set(token ? await this.courses.loadMyReviews(token) : []);
+  /** The viewer's verdict counts only while the revision waits for review; otherwise the course's state is what matters. */
+  protected badge(review: MyReview): { label: string; chip: ChipVariant } {
+    if (review.status === 'draft') return { label: 'Back with its teachers', chip: 'neutral' };
+    if (review.status === 'published') return { label: 'Published', chip: 'neutral' };
+    if (review.status === 'archived') return { label: 'Archived', chip: 'neutral' };
+    if (review.verdict === 'approved') return { label: 'Approved', chip: 'primary' };
+    if (review.verdict === 'changes-requested') return { label: 'Changes requested', chip: 'neutral' };
+    return { label: 'Waiting for you', chip: 'highlight' };
   }
 }
