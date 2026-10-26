@@ -294,6 +294,15 @@ owner remain admin-editable only. Full rules: `docs/business_rules.md`.
 - Release notes shown in the app (Roadmap page, Release notes tab) live in
   `app/src/app/pages/roadmap-page/release-notes.ts`. Before each push, add the note for that version
   as the first entry and commit it: short and plain, one sentence per item, no technical terms.
+- Before a push, check the unpushed commits for a release procedure (e.g. `docs/release/feedback-mongodb.md`
+  for a storage cutover). Vercel deploys the API the moment we push, so a freeze such as
+  `FEEDBACK_STORE_READ_ONLY=1` must be set in Vercel first.
+- A Vercel environment variable that is added is picked up by the next push; one that is removed
+  takes effect only after a redeploy (Deployments → ⋯ → Redeploy).
+- On Alex's network (VPN DNS 10.2.0.1) Node's SRV lookup for the Atlas cluster times out while
+  Windows' lookup works. A local script against shared services (e.g. `feedback:migrate`) then needs
+  a one-off `NODE_OPTIONS="--import <file>"` preload that replaces `dns.promises.resolve` for SRV/TXT
+  with `Resolve-DnsName` (the driver calls `dns.promises.resolve(name, 'SRV')`, not `resolveSrv`).
 - A push to `main` deploys the API on Vercel immediately, but the frontend only if the Pages workflow's tests pass. A failing test therefore leaves a new API serving an old frontend, so keep API changes backward compatible and run both test suites and `npm run app:build:pages` before pushing.
 
 ## Capturing Learnings
