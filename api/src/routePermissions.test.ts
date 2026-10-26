@@ -80,6 +80,8 @@ const permissionTable: Record<string, Permission> = {
   'GET /admin/users/changes': 'admin',
   'POST /admin/users/:userId/password-reset': 'admin',
   'GET /admin/course-locks': 'admin',
+  'GET /courses/:id/reviewers': 'admin',
+  'PUT /courses/:id/reviewers': 'admin',
   'GET /courses/:id/teachers': 'admin',
   'PUT /courses/:id/teachers': 'admin',
   'POST /auth/login': 'public',

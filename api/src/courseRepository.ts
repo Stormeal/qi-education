@@ -21,6 +21,7 @@ export interface CourseRepository {
   updateCourse(id: string, input: UpdateCourseInput): Promise<Course | null>;
   updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null>;
   updateCourseTeachers(id: string, teacherIds: string[]): Promise<Course | null>;
+  updateCourseReviewers(id: string, reviewerIds: string[]): Promise<Course | null>;
   updateCourseCatalogMetadata(id: string, input: UpdateCourseCatalogMetadataInput): Promise<Course | null>;
   updateCourseThumbnail(id: string, input: UpdateCourseThumbnailInput): Promise<Course | null>;
 }
@@ -109,6 +110,14 @@ export class InMemoryCourseRepository implements CourseRepository {
       priceDkk: input.priceDkk,
     };
 
+    this.courses[index] = updated;
+    return updated;
+  }
+
+  async updateCourseReviewers(id: string, reviewerIds: string[]): Promise<Course | null> {
+    const index = this.courses.findIndex(course => course.id === id);
+    if (index < 0) return null;
+    const updated = { ...this.courses[index], reviewerIds: [...reviewerIds] };
     this.courses[index] = updated;
     return updated;
   }

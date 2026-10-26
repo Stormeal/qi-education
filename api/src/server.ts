@@ -41,6 +41,7 @@ import { registerChangePasswordRoute } from './changePasswordRoutes.js';
 import { registerAdminUserRoutes } from './adminUsersRoutes.js';
 import { registerCourseLocksRoutes } from './courseLocksRoutes.js';
 import { registerCourseTeachersRoutes } from './courseTeachersRoutes.js';
+import { registerCourseReviewersRoutes } from './courseReviewersRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -220,8 +221,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const withCourseLock = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     async (request: Request, response: Response, next: NextFunction) => {
       const authorWrite = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && /^\/(?:api\/)?courses\//.test(request.path) &&
-        !/\/(price|catalog-metadata|quiz-attempts|teachers)\/?$/.test(request.path);
-      const author = !/\/teachers\/?$/.test(request.path) &&
+        !/\/(price|catalog-metadata|quiz-attempts|teachers|reviewers)\/?$/.test(request.path);
+      const author = !/\/(teachers|reviewers)\/?$/.test(request.path) &&
         (request.query.view === 'author' || request.path.endsWith('/review') || authorWrite);
       return reviewScope.run({ author, user: (request as Partial<AuthenticatedRequest>).user }, async () => {
       let sendResponse: (() => void) | undefined;
@@ -623,6 +624,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
   registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
+  registerCourseReviewersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
   registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
   registerOrganizationRoutes(app, authenticateRequest(auth), requireAdmin, organizations, clientLimit);
 

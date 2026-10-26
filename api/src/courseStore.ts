@@ -16,6 +16,7 @@ export class ReadOnlyCourseRepository implements CourseRepository {
   async updateCourse(_id: string, _input: UpdateCourseInput): Promise<never> { throw new CourseReadOnlyError(); }
   async updateCoursePrice(_id: string, _input: UpdateCoursePriceInput): Promise<never> { throw new CourseReadOnlyError(); }
   async updateCourseTeachers(_id: string, _teacherIds: string[]): Promise<never> { throw new CourseReadOnlyError(); }
+  async updateCourseReviewers(_id: string, _reviewerIds: string[]): Promise<never> { throw new CourseReadOnlyError(); }
   async updateCourseCatalogMetadata(_id: string, _input: UpdateCourseCatalogMetadataInput): Promise<never> { throw new CourseReadOnlyError(); }
   async updateCourseThumbnail(_id: string, _input: UpdateCourseThumbnailInput): Promise<never> { throw new CourseReadOnlyError(); }
 }
@@ -29,6 +30,7 @@ export class UnavailableCourseRepository implements CourseRepository {
   async updateCourse(_id: string, _input: UpdateCourseInput): Promise<never> { throw new CourseStoreUnavailableError(); }
   async updateCoursePrice(_id: string, _input: UpdateCoursePriceInput): Promise<never> { throw new CourseStoreUnavailableError(); }
   async updateCourseTeachers(_id: string, _teacherIds: string[]): Promise<never> { throw new CourseStoreUnavailableError(); }
+  async updateCourseReviewers(_id: string, _reviewerIds: string[]): Promise<never> { throw new CourseStoreUnavailableError(); }
   async updateCourseCatalogMetadata(_id: string, _input: UpdateCourseCatalogMetadataInput): Promise<never> { throw new CourseStoreUnavailableError(); }
   async updateCourseThumbnail(_id: string, _input: UpdateCourseThumbnailInput): Promise<never> { throw new CourseStoreUnavailableError(); }
 }

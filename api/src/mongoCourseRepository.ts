@@ -40,6 +40,9 @@ export class MongoCourseRepository implements CourseRepository {
     return this.update(id, fields(input, Object.keys(updateCourseSchema.shape)));
   }
   updateCoursePrice(id: string, input: UpdateCoursePriceInput): Promise<Course | null> { return this.update(id, { priceDkk: input.priceDkk }); }
+  updateCourseReviewers(id: string, reviewerIds: string[]): Promise<Course | null> {
+    return this.update(id, { reviewerIds: [...reviewerIds] });
+  }
   updateCourseTeachers(id: string, teacherIds: string[]): Promise<Course | null> {
     return this.update(id, { teacherIds: [...teacherIds], ownerUserId: teacherIds[0] ?? '' });
   }

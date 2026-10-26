@@ -1,7 +1,7 @@
 import type { Express, NextFunction, Request, RequestHandler, Response } from 'express';
 import { z } from 'zod';
 import type { AuthRepository } from './authRepository.js';
-import { courseTeacherIds } from './course.js';
+import { courseTeacherIds, courseReviewerIds } from './course.js';
 import type { CourseRepository } from './courseRepository.js';
 
 export type CourseTeacher = { id: string; displayName: string; email: string; active: boolean };
@@ -42,6 +42,9 @@ export function registerCourseTeachersRoutes(app: Express, dependencies: {
     if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
     const storedIds = new Set(courseTeacherIds(course));
     for (const id of teacherIds) {
+      if (courseReviewerIds(course).includes(id)) {
+        response.status(400).json({ message: `${id} reviews this course and cannot also teach it.` }); return;
+      }
       if (!storedIds.has(id) && (await auth.findById(id))?.role !== 'teacher') {
         response.status(400).json({ message: `${id} is not a teacher account.` }); return;
       }

@@ -38,6 +38,7 @@ export const courseFields = [
   'languages',
   'ownerUserId',
   'teacherIds',
+  'reviewerIds',
 ] as const;
 
 export const createCourseSchema = z.object({
@@ -99,8 +100,13 @@ export type Course = CreateCourseInput & {
   createdAt: string;
   ownerUserId: string;
   teacherIds?: string[];
+  reviewerIds?: string[];
 };
 
 export function courseTeacherIds(course: Pick<Course, 'ownerUserId' | 'teacherIds'>): string[] {
   return course.teacherIds ?? (course.ownerUserId ? [course.ownerUserId] : []);
+}
+
+export function courseReviewerIds(course: Pick<Course, 'reviewerIds'>): string[] {
+  return course.reviewerIds ?? [];
 }

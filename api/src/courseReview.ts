@@ -176,6 +176,7 @@ export function reviewedRepositories(metadata: CourseRepository, content: Course
     updateCourse: (id, input) => review.updateMetadata(id, input),
     updateCourseThumbnail: (id, input) => review.updateThumbnail(id, input.thumbnailAssetId),
     updateCoursePrice: async (id, input) => { const updated = await metadata.updateCoursePrice(id, input); return updated ? (await review.list()).find(course => course.id === id)! : null; },
+    updateCourseReviewers: async (id, reviewerIds) => { const updated = await metadata.updateCourseReviewers(id, reviewerIds); return updated ? (await review.list()).find(course => course.id === id)! : null; },
     updateCourseTeachers: async (id, teacherIds) => { const updated = await metadata.updateCourseTeachers(id, teacherIds); return updated ? (await review.list()).find(course => course.id === id)! : null; },
     updateCourseCatalogMetadata: async (id, input) => { const updated = await metadata.updateCourseCatalogMetadata(id, input); return updated ? (await review.list()).find(course => course.id === id)! : null; },
   } satisfies CourseRepository;
