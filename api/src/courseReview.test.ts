@@ -13,9 +13,118 @@ import { updateCourseContentSchema } from './courseContent.js';
 import { learnerCourseContent } from './courseAccess.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
+import { CourseReviewService, reviewActionSchema, reviewerVerdicts } from './courseReview.js';
 
 const metadata = createCourseSchema.parse({ title: 'Original reviewed course', description: 'Original published description.', teacher: 'Owner', level: 'Beginner' });
 const sections = updateCourseContentSchema.parse({ sections: [{ id: 's', title: 'Lessons', components: [{ id: 'lesson', title: 'Original lesson', type: 'text', content: 'Original private body' }] }] }).sections;
+
+describe('US-A007 reviewers', () => {
+  let courses: InMemoryCourseRepository, content: InMemoryCourseContentRepository, review: CourseReviewService;
+  let teacher: AuthUser, r1: AuthUser, r2: AuthUser, admin: AuthUser;
+  beforeEach(async () => {
+    const auth = new InMemoryAuthRepository();
+    teacher = (await auth.findByEmail('teacher@qi-education.local'))!;
+    admin = (await auth.findByEmail('admin@qi-education.local'))!;
+    r1 = { ...teacher, id: 'r1', displayName: 'Reviewer one' };
+    r2 = { ...teacher, id: 'r2', displayName: 'Reviewer two' };
+    courses = new InMemoryCourseRepository(); content = new InMemoryCourseContentRepository();
+    await courses.createCourse(metadata, { id: 'c', createdAt: 'x', teacherIds: [teacher.id] });
+    await courses.updateCourseReviewers('c', [r1.id, r2.id]);
+    await content.updateCourseContent('c', sections);
+    review = new CourseReviewService(courses, content);
+  });
+  async function act(action: string, user = teacher, reason = '') {
+    const state = await review.state('c');
+    await review.act('c', reviewActionSchema.parse({ action, reason,
+      revisionId: state.revisionId, expectedVersion: state.version }), toAuthenticatedUser(user));
+    return review.state('c', toAuthenticatedUser(user));
+  }
+  it('US-A007-AC02 approve while ready-for-review records an approve event', async () => {
+    await act('submit');
+    const state = await act('approve', r1, 'Looks good');
+    expect(state.course.status).toBe('ready-for-review');
+    expect(state.history.at(-1)).toMatchObject({ action: 'approve', actorId: 'r1', actorName: 'Reviewer one',
+      reason: 'Looks good', revisionId: state.revisionId, createdAt: expect.any(String) });
+  });
+  it('US-A007-AC02 request-changes needs a comment', async () => {
+    await act('submit'); const before = await review.state('c');
+    await expect(act('request-changes', r1, '  ')).rejects.toMatchObject({ status: 400,
+      message: 'Enter a comment before requesting changes.' });
+    expect(await review.state('c')).toEqual(before);
+  });
+  it.each(['approve', 'request-changes'])('verdict %s refused on a draft', async action => {
+    await expect(act(action, r1, 'Please clarify')).rejects.toMatchObject({ status: 409 });
+  });
+  it.each(['teacher', 'admin', 'disabled', 'demoted'])('non-reviewer verdict refused (%s)', async kind => {
+    await act('submit');
+    const user = kind === 'teacher' ? teacher : kind === 'admin' ? admin :
+      kind === 'disabled' ? { ...r1, status: 'disabled' as const } : { ...r1, role: 'student' as const };
+    await expect(act('approve', user)).rejects.toMatchObject({ status: 403,
+      message: 'Only assigned reviewers can send a verdict.' });
+  });
+  it('US-A007-AC03 publish blocked until all approve, with no state change', async () => {
+    await act('submit'); await act('approve', r1); const before = await review.state('c');
+    await expect(act('publish', admin)).rejects.toMatchObject({ status: 409,
+      message: 'Waiting for 1 of 2 reviewers to approve this revision.' });
+    expect(await review.state('c')).toEqual(before);
+    await act('approve', r2);
+    expect((await act('publish', admin)).course.status).toBe('published');
+  });
+  it('latest verdict wins and history keeps every verdict', async () => {
+    await act('submit'); await act('request-changes', r1, 'Clarify'); await act('approve', r1);
+    expect((await review.state('c', toAuthenticatedUser(r1))).reviewers).toEqual({ total: 2, approved: 1, viewerVerdict: 'approved' });
+    await act('approve', r2); await act('request-changes', r1, 'Another issue');
+    await expect(act('publish', admin)).rejects.toMatchObject({ status: 409 });
+    expect((await review.state('c')).history.map(event => event.action))
+      .toEqual(['submit', 'request-changes', 'approve', 'approve', 'request-changes']);
+  });
+  it('US-A007-AC04 resubmit resets verdicts', async () => {
+    await act('submit'); await act('approve', r1); await act('approve', r2);
+    await act('return', admin, 'More detail'); await act('submit');
+    expect((await review.state('c', toAuthenticatedUser(r1))).reviewers).toEqual({ total: 2, approved: 0, viewerVerdict: 'waiting' });
+    await expect(act('publish', admin)).rejects.toMatchObject({ status: 409,
+      message: 'Waiting for 2 of 2 reviewers to approve this revision.' });
+  });
+  it('removed reviewer leaves gate', async () => {
+    await act('submit'); await act('approve', r1); await act('request-changes', r2, 'Clarify');
+    await courses.updateCourseReviewers('c', [r1.id]);
+    expect((await act('publish', admin)).course.status).toBe('published');
+  });
+  it('admin reviewer must approve too', async () => {
+    await courses.updateCourseReviewers('c', [admin.id]); await act('submit');
+    await expect(act('publish', admin)).rejects.toMatchObject({ status: 409 });
+    await act('approve', admin);
+    expect((await act('publish', admin)).course.status).toBe('published');
+  });
+  it('return and archive not blocked, and live course stays published while next revision waits', async () => {
+    await act('submit'); expect((await act('return', admin, 'Clarify')).course.status).toBe('draft');
+    await act('submit'); await act('approve', r1); await act('approve', r2); await act('publish', admin);
+    await act('start-revision'); await act('submit');
+    await expect(act('publish', admin)).rejects.toMatchObject({ status: 409 });
+    expect((await review.list(false)).find(course => course.id === 'c')?.status).toBe('published');
+    expect((await act('archive', admin)).liveStatus).toBe('archived');
+  });
+  it('US-A007-AC06 no reviewers publishes as before', async () => {
+    await courses.updateCourseReviewers('c', []);
+    await act('submit'); await act('return', admin, 'Clarify'); await act('submit');
+    expect((await act('publish', admin)).course.status).toBe('published');
+  });
+  it('state reports reviewers.total, approved and viewerVerdict', async () => {
+    await act('submit'); await act('approve', r1);
+    expect((await review.state('c')).reviewers).toEqual({ total: 2, approved: 1, viewerVerdict: null });
+    expect((await review.state('c', toAuthenticatedUser(r2))).reviewers).toEqual({ total: 2, approved: 1, viewerVerdict: 'waiting' });
+    await act('request-changes', r2, 'Clarify');
+    expect((await review.state('c', toAuthenticatedUser(r2))).reviewers).toEqual({ total: 2, approved: 1, viewerVerdict: 'changes-requested' });
+  });
+  it('does not count verdicts for another revision or before any submit', async () => {
+    await act('submit'); await act('approve', r1);
+    const { workflow } = await review.load('c');
+    const approval = workflow.history[1];
+    expect(reviewerVerdicts({ ...workflow, history: [{ ...approval, revisionId: 'old-revision' }] }, ['r1']))
+      .toEqual({ r1: 'waiting' });
+    expect(reviewerVerdicts({ ...workflow, history: [approval] }, ['r1'])).toEqual({ r1: 'waiting' });
+  });
+});
 
 describe.each(['', '/api'])('US-T002 review and uninterrupted revisions (%s)', (prefix) => {
   let server: Server, base: string, auth: InMemoryAuthRepository, courses: InMemoryCourseRepository,

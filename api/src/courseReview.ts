@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { AuthenticatedUser } from './auth.js';
-import { updateCourseSchema, type Course, type UpdateCourseInput } from './course.js';
+import { courseReviewerIds, updateCourseSchema, type Course, type UpdateCourseInput } from './course.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { CourseContentDocument, CourseContentRepository } from './courseContentRepository.js';
 import type { CourseContentSection } from './courseContent.js';
@@ -26,13 +26,34 @@ export type CourseReviewSummary = Pick<CourseReviewWorkflow, 'liveStatus'> & {
   working: (Pick<Snapshot, 'metadata'> & { status: 'draft' | 'ready-for-review' }) | null;
 };
 export const reviewActionSchema = z.object({
-  action: z.enum(['start-revision', 'submit', 'return', 'publish', 'archive']),
+  action: z.enum(['start-revision', 'submit', 'return', 'publish', 'archive', 'approve', 'request-changes']),
   expectedVersion: z.number().int().nonnegative(), revisionId: z.string().max(160).nullable(),
   reason: z.string().trim().max(2000).default(''),
 });
 export type ReviewAction = z.infer<typeof reviewActionSchema>;
+export type ReviewerVerdict = 'waiting' | 'approved' | 'changes-requested';
 export type CourseReviewState = { course: Course; version: number; revisionId: string | null;
-  liveStatus: CourseReviewWorkflow['liveStatus']; editable: boolean; history: ReviewEvent[] };
+  liveStatus: CourseReviewWorkflow['liveStatus']; editable: boolean; history: ReviewEvent[];
+  reviewers: { total: number; approved: number; viewerVerdict: ReviewerVerdict | null } };
+
+export function reviewerVerdicts(workflow: CourseReviewWorkflow, reviewerIds: string[]): Record<string, ReviewerVerdict> {
+  const verdicts: Record<string, ReviewerVerdict> = Object.fromEntries(reviewerIds.map(id => [id, 'waiting']));
+  const revisionId = workflow.working?.id;
+  if (!revisionId) return verdicts;
+  let submit = -1;
+  for (let index = workflow.history.length - 1; index >= 0; index--) {
+    const event = workflow.history[index];
+    if (event.revisionId === revisionId && event.action === 'submit') { submit = index; break; }
+  }
+  if (submit < 0) return verdicts;
+  const assigned = new Set(reviewerIds);
+  for (const event of workflow.history.slice(submit + 1)) {
+    if (event.revisionId !== revisionId || !assigned.has(event.actorId)) continue;
+    if (event.action === 'approve') verdicts[event.actorId] = 'approved';
+    else if (event.action === 'request-changes') verdicts[event.actorId] = 'changes-requested';
+  }
+  return verdicts;
+}
 
 function snapshot(course: Course, sections: CourseContentSection[], id: string): Snapshot {
   const metadata = Object.fromEntries(authorFields.map(key => [key, course[key]])) as Metadata;
@@ -52,9 +73,12 @@ function effective(base: Course, workflow: CourseReviewSummary, author = false):
 function cleanContent(doc: CourseContentDocument, sections = doc.sections): CourseContentDocument {
   return { _id: doc._id, sections, createdAt: doc.createdAt, updatedAt: doc.updatedAt };
 }
-function reviewState(base: Course, workflow: CourseReviewWorkflow): CourseReviewState {
+function reviewState(base: Course, workflow: CourseReviewWorkflow, user?: AuthenticatedUser): CourseReviewState {
+  const ids = courseReviewerIds(base), verdicts = reviewerVerdicts(workflow, ids);
   return { course: effective(base, workflow, true), version: workflow.version, revisionId: workflow.working?.id ?? null,
-    liveStatus: workflow.liveStatus, editable: workflow.working?.status === 'draft', history: workflow.history };
+    liveStatus: workflow.liveStatus, editable: workflow.working?.status === 'draft', history: workflow.history,
+    reviewers: { total: ids.length, approved: ids.filter(id => verdicts[id] === 'approved').length,
+      viewerVerdict: user && ids.includes(user.id) ? verdicts[user.id] : null } };
 }
 
 /** Keeps publication and private authoring snapshots in one content-document write. */
@@ -66,18 +90,18 @@ export class CourseReviewService {
     const doc = await this.content.getCourseContent(id);
     return { base, doc, workflow: initial(base, doc) };
   }
-  async state(id: string): Promise<CourseReviewState> {
+  async state(id: string, user?: AuthenticatedUser): Promise<CourseReviewState> {
     const { base, workflow } = await this.load(id);
-    return reviewState(base, workflow);
+    return reviewState(base, workflow, user);
   }
-  async authorContent(id: string) {
+  async authorContent(id: string, user?: AuthenticatedUser) {
     const { base, doc, workflow } = await this.load(id);
     const selected = workflow.working?.sections ?? workflow.live?.sections ?? [];
     const document = doc ?? { _id: id, sections: [], createdAt: base.createdAt, updatedAt: base.createdAt };
     const authorSections = selected.map(section => ({ ...section, components: section.components.map(component =>
       component.type === 'quiz' ? { ...component, quiz: { ...component.quiz, questions: component.quiz.questions.map(question =>
         ({ ...question, points: 1, explanation: question.explanation ?? '', image: question.image ?? null })) } } : component) }));
-    return { ...cleanContent(document, authorSections), view: 'author', review: reviewState(base, workflow) };
+    return { ...cleanContent(document, authorSections), view: 'author', review: reviewState(base, workflow, user) };
   }
   async assertEditable(id: string) {
     const { workflow } = await this.load(id);
@@ -100,6 +124,13 @@ export class CourseReviewService {
   }
   async act(id: string, input: ReviewAction, user: AuthenticatedUser) {
     const { base, workflow } = await this.load(id);
+    const verdict = input.action === 'approve' || input.action === 'request-changes';
+    if (verdict && (!courseReviewerIds(base).includes(user.id) || user.status !== 'active' || !['teacher', 'admin'].includes(user.role))) {
+      throw new CourseReviewError(403, 'Only assigned reviewers can send a verdict.');
+    }
+    if (input.action === 'request-changes' && !input.reason.trim()) {
+      throw new CourseReviewError(400, 'Enter a comment before requesting changes.');
+    }
     if (['publish', 'return', 'archive'].includes(input.action) && user.role !== 'admin') {
       throw new CourseReviewError(403, 'Admin access is required for review decisions.');
     }
@@ -124,7 +155,13 @@ export class CourseReviewService {
         const issues = assessmentIssues(working.sections, true);
         if (issues.length) throw new CourseReviewError(400, issues.map(issue => issue.message).join(' '), issues);
       }
-      if (input.action === 'submit') working.status = 'ready-for-review';
+      if (input.action === 'publish') {
+        const ids = courseReviewerIds(base), verdicts = reviewerVerdicts(workflow, ids);
+        const waiting = ids.filter(id => verdicts[id] !== 'approved').length;
+        if (waiting) throw new CourseReviewError(409, `Waiting for ${waiting} of ${ids.length} reviewers to approve this revision.`);
+      }
+      if (verdict) { /* Verdicts leave the submitted revision frozen. */ }
+      else if (input.action === 'submit') working.status = 'ready-for-review';
       else if (input.action === 'return') working.status = 'draft';
       else { workflow.live = snapshot(effective(base, workflow, true), working.sections, working.id); workflow.liveStatus = 'published'; }
     }

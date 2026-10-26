@@ -11,7 +11,7 @@ messages hold them.
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Plan Tasks 1–5: reviewer storage and route, verdicts and publish gate, reviewer read access, mails and `GET /reviews/mine`, journey step | `api/src/**` ([handoff](handoffs/US-A007-codex.md)) | In progress on `main`, base `8de06fc`; Task 1 complete: assignment tests RED → GREEN (255 focused; API 2,788/2,788, build pass); next: Task 2 verdict tests. |
+| Codex | Plan Tasks 1–5: reviewer storage and route, verdicts and publish gate, reviewer read access, mails and `GET /reviews/mine`, journey step | `api/src/**` ([handoff](handoffs/US-A007-codex.md)) | In progress on `main`, base `8de06fc`; Task 1 `67b563b` (255 focused; API 2,788/2,788); Task 2 complete RED → GREEN (57 focused; API 2,805/2,805, build pass); next: Task 3 reviewer access. |
 | Claude | Plan Tasks 6–9: app models and calls, reviewer picker, verdicts and gate in the review panel, "To review" on Home | `app/src/app/**` | In progress |
 
 Pushed 2026-10-26 as 0.1.482 (live, Vercel and Pages green): X9 API security headers, X10
