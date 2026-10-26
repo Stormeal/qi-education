@@ -1,10 +1,18 @@
 # Work queue
 
-Updated: 2026-10-25. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-26. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
+
+**US-A007 course reviewers** (release 1 Must, started 2026-10-26, base `6f2e391`). Plan:
+[superpowers/plans/2026-10-26-course-reviewers.md](superpowers/plans/2026-10-26-course-reviewers.md).
+
+| Owner | Scope | Files | State |
+| --- | --- | --- | --- |
+| Codex | Plan Tasks 1–5: reviewer storage and route, verdicts and publish gate, reviewer read access, mails and `GET /reviews/mine`, journey step | `api/src/**` ([handoff](handoffs/US-A007-codex.md)) | Not started |
+| Claude | Plan Tasks 6–9: app models and calls, reviewer picker, verdicts and gate in the review panel, "To review" on Home | `app/src/app/**` | In progress |
 
 Pushed 2026-10-26 as 0.1.482 (live, Vercel and Pages green): X9 API security headers, X10
 accessibility pass and its follow-up, the US-P018-AC04 follow-up (compressed bodies refused, Zod
