@@ -9,6 +9,21 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.503',
+    date: '2026-10-26',
+    sections: [
+      {
+        title: 'New',
+        items: [
+          'Admins can ask one or more teachers or admins to review a course before it is published.',
+          'Reviewers get an email and see the course under "To review" on Home.',
+          'Reviewers read the course without changing it, then approve it or ask for changes with a comment.',
+          'A course with reviewers can only be published once every reviewer has approved it.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.483',
     date: '2026-10-26',
     sections: [
