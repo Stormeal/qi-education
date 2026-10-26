@@ -85,7 +85,8 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 ## Next candidate
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
-[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
+[user_stories.md](user_stories.md). Ready to start without waiting on anyone: US-A007 course reviewers
+(release 1 Must, [plan](superpowers/plans/2026-10-26-course-reviewers.md)) and the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
 as they arrive.
 
 ## Open release checks

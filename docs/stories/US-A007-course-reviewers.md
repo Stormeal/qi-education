@@ -1,6 +1,8 @@
 # US-A007: Course reviewers
 
-Design agreed with Alex on 2026-10-26 (brainstorming, design A). Not built yet.
+Design agreed with Alex on 2026-10-26 (brainstorming, design A) and approved from the deck the same day.
+**Release 1, Must** (Alex, 2026-10-26). Not built yet. Plan:
+[2026-10-26-course-reviewers.md](../superpowers/plans/2026-10-26-course-reviewers.md).
 
 **As an admin, I want to assign one or more colleagues to review a course before I publish it, so
 content is checked by someone other than its authors.**

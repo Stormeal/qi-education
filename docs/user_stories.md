@@ -18,7 +18,7 @@ department); new requests enter here as Proposed stories.
 
 | Release | Target | Goal | In scope |
 | --- | --- | --- | --- |
-| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26) |
+| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26), US-A007 course reviewers (Must, added by Alex 2026-10-26) |
 | 2, public launch | Around Q2 2027 | Sell to individuals and organizations | US-O001 owner overview, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
 | 3, organization billing | After launch, 2027 | Paid organization seats | US-O002 |
 
@@ -34,7 +34,7 @@ budget, curriculum owner, backup developer.
 | US-O001 | Organizations: request, approval, invites, owner overview | Release 1 delivered 2026-10-24 (not live); owner overview in release 2 | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review (changed criteria delivered) | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
-| US-A007 | Course reviewers: admin assigns reviewers, publish waits for all approvals | Designed 2026-10-26, not built | P2 | — | [stories/US-A007](stories/US-A007-course-reviewers.md) |
+| US-A007 | Course reviewers: admin assigns reviewers, publish waits for all approvals | Approved 2026-10-26, not built; release 1 Must | P1 | — | [stories/US-A007](stories/US-A007-course-reviewers.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
