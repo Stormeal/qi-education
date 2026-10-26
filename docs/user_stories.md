@@ -18,7 +18,7 @@ department); new requests enter here as Proposed stories.
 
 | Release | Target | Goal | In scope |
 | --- | --- | --- | --- |
-| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; built locally) |
+| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26) |
 | 2, public launch | Around Q2 2027 | Sell to individuals and organizations | US-O001 owner overview, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
 | 3, organization billing | After launch, 2027 | Paid organization seats | US-O002 |
 
@@ -107,8 +107,8 @@ duplicate accounts, lost enrollment, or duplicate issues do not result.**
 State: In progress. Single-instance protection (keyed queues) is delivered; see
 [reliability](specs/platform/reliability.md). MongoDB accounts (cut over 2026-10-18) already give a
 unique email index and atomic enrollment across instances. Decision for Alex: confirm that this
-closes the account part. The feedback part was delivered locally in US-A006 (`b274cce`,
-2026-10-25): durable issue operations and trusted recovery; hosted acceptance remains in the queue.
+closes the account part. The feedback part is live with US-A006 since 0.1.482 (2026-10-26, storage copied and verified):
+durable issue operations and trusted recovery; a real GitHub issue check remains in the queue.
 
 ```gherkin
 Feature: Safe account writes
@@ -130,7 +130,7 @@ State: Proposed (Alex, 2026-10-23). Mostly configuration and agreements. AC04 de
 [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md#us-p018-ac04), to revisit before release 1.
 Decided by Alex 2026-10-25: refuse compressed request bodies (415) instead of the parser major, and
 approve Zod 4.6 with its changed validation messages (a list over its limit answers the generic
-"Invalid request body"). Delivered locally 2026-10-26 (`b97c174`, `d73fbce`); the builder
+"Invalid request body"). Live since 0.1.482 (2026-10-26; `b97c174`, `d73fbce`); the builder
 stops at the list limits so teachers do not meet that message.
 Dependency: management approves about 450–700 DKK a month for hosting.
 

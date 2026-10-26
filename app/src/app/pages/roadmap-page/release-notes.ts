@@ -9,6 +9,18 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.483',
+    date: '2026-10-26',
+    sections: [
+      {
+        title: 'Fixed',
+        items: [
+          'All feedback sent before the move is back in the admin feedback inbox, and new feedback can be sent again.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.482',
     date: '2026-10-26',
     sections: [

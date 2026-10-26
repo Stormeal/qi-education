@@ -44,7 +44,7 @@ const RELEASE_1_GROUPS: { title: string; items: { name: string; must: boolean; s
     { name: 'Live-site walkthrough for teachers', must: true, status: 'in-progress', detail: 'The teacher rehearsal and the open release checks run on the live site: video, email confirmation, CV scan and phone layouts.' },
     { name: 'Career routes mapped to our courses', must: true, status: 'in-progress', detail: 'Every TestHuset course is mapped to a route or deferred with a reason.' },
     { name: 'Route changes keep earned achievements', must: false, status: 'built', detail: 'Routes will change while courses are built; learners keep their recorded progress.' },
-    { name: 'Feedback reaches us once', must: false, status: 'not-started', detail: 'Feedback follow-ups no longer create duplicate GitHub issues after a restart.' },
+    { name: 'Feedback reaches us once', must: false, status: 'live', detail: 'Feedback follow-ups no longer create duplicate GitHub issues after a restart.' },
   ] },
   { title: 'Organizations', items: [
     { name: 'Request an organization', must: true, status: 'built', detail: 'Any user asks for an organization and a site admin approves or declines it with a reason. The requester becomes its owner.' },
@@ -57,7 +57,7 @@ const RELEASE_1_GROUPS: { title: string; items: { name: string; must: boolean; s
     { name: 'Paid hosting', must: true, status: 'not-started', detail: 'Hosting and database plans that allow company use, with backups.' },
     { name: 'Private code repository', must: true, status: 'not-started', detail: 'The code moves to a private repository; the site keeps publishing from it.' },
     { name: 'Employee data handled correctly (GDPR)', must: true, status: 'not-started', detail: 'EU data region, data processing agreements and a reviewed privacy notice.' },
-    { name: 'Remaining server security findings', must: false, status: 'in-progress', detail: 'Open findings from the October dependency report that affect the running server are fixed.' },
+    { name: 'Remaining server security findings', must: false, status: 'live', detail: 'Open findings from the October dependency report that affect the running server are fixed.' },
   ] },
 ];
 

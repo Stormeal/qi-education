@@ -6,28 +6,20 @@ messages hold them.
 
 ## Active work
 
-Delivered 2026-10-26, local only (not pushed): **US-P018-AC04 follow-up** (Alex's decisions of
-2026-10-25). Codex `b97c174`, checked by Claude: own files only, contract kept. Every body parser
-refuses compressed bodies with 415 "Compressed request bodies are not accepted." (checked live on an
-isolated API: gzip login 415, plain login 200); Zod 4.6.7, a question without points still counts
-as 1. Claude `d73fbce`: the builder stops at 50 questions and 50 files per lesson. Checks: API 2,761,
-app 555, journeys 18, Pages build. Production audit 2 high to 1 high: body-parser 2.2.2 stays listed,
-but the crash path is closed by turning off decompression. Not verified: Stripe and Mux never send
-compressed webhooks (assumed). In the first full API run `clientLimitRoutes.test.ts` "AC06 ... after
-twenty requests" failed once; it passed alone three times and in a full rerun (load timing, like
-the earlier sign-in limit flake). Record [history/handoffs/US-P018-AC04-followup-codex.md](history/handoffs/US-P018-AC04-followup-codex.md).
-
-Delivered 2026-10-25, local only (not pushed): **X9** API security headers (Codex, `9448f97`,
-checked by Claude: own files only, contract kept, no frontend iframes affected; rule in
-[specs/platform/reliability.md](specs/platform/reliability.md); record
-[history/handoffs/X9-api-headers-codex.md](history/handoffs/X9-api-headers-codex.md)) and **X10**
-accessibility-tree pass (Claude, `4bdeb3f`; rules in
-[specs/platform/ui-foundation.md](specs/platform/ui-foundation.md)). Checks on `9448f97`: API 2,684,
-app 553, journeys 18, Pages build; headers seen live on an isolated API. Not checked: hosted headers
-after push; a real screen reader. X10 follow-up (Claude, same day): admin pages, organization
-pages (request form, owner page, invitations, join page) and phone width checked locally; fixed
-invitation Resend/Cancel names, the editor action bar cutting off Save on a phone and the career
-setup steps running off-screen.
+Pushed 2026-10-26 as 0.1.482 (live, Vercel and Pages green): X9 API security headers, X10
+accessibility pass and its follow-up, the US-P018-AC04 follow-up (compressed bodies refused, Zod
+4.6.7, builder list limits) and US-A006 feedback with its storage cutover. Records:
+[history/handoffs](history/handoffs/) (X9, US-P018-AC04 follow-up); rules in the area specs. Checked
+live: security headers and no-store on `/api/health`, a gzip request answers 415, feedback storage
+`mongodb`. Feedback cutover done by Claude with Alex on 2026-10-26: Alex froze writers in Vercel
+(`FEEDBACK_STORE_READ_ONLY=1`), push, hosted config showed `readOnly: true`; dry run source=24,
+pending=24 with no malformed or duplicate rows; apply imported=24, pending=0, verified=true; a
+second dry run identical=24, pending=0; Alex removed the freeze and redeployed, hosted config
+`readOnly: false`; MongoDB holds 24 feedback documents and 2 indexes. Operator note: on Alex's
+network (VPN DNS 10.2.0.1) Node's SRV lookup for Atlas times out; the run used a one-off preload
+that asks Windows (`Resolve-DnsName`) for the SRV/TXT records. In the first full API run before the
+push, `clientLimitRoutes.test.ts` "AC06 ... after twenty requests" failed once and passed alone
+three times and in a full rerun (load timing).
 
 **Codex X8** (started 2026-10-24, owner Codex): read-only performance and security audit of api/ and
 app/; writes `docs/audits/2026-10-performance-security.md` and new DEF rows only. Prompt in
@@ -88,31 +80,28 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | Go-live for payments (release 2) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
 | Dependency follow-ups (X7 report) | Decide what to schedule from [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md): app audit has 3 critical and 21 high entries, mostly build and dev tooling (Angular CLI/build, `tar`, `piscina`), the critical ones fixed by Angular 22 or patch releases; root `concurrently`/`shell-quote` (critical, dev only); API Zod 4.6 (reverted, 163 test failures), Express 5.3 and the SOCKS/`ip-address` family (reverted) | A story or defect per item you want done |
-| Decisions | US-P003 (accept the account concurrency evidence; feedback durable triage delivered locally by US-A006 in `b274cce`), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
+| Decisions | US-P003 (accept the account concurrency evidence; feedback durable triage live with US-A006 since 0.1.482), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
 
 ## Next candidate
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
-[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-A006 feedback
-was delivered locally in `b274cce`; its production cutover is a separate release action. US-P018-AC01–AC03 wait on the hosting budget and Alex; the two
-accepted findings of AC04 wait on Alex's choice. Requests from the department interviews are added
+[user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
 as they arrive.
 
 ## Open release checks
 
-- US-A006 (`b274cce`, 2026-10-25, local only): deploy with feedback writers frozen,
-  perform the authorized [Sheets-to-Mongo copy](release/feedback-mongodb.md), verify
-  IDs/digests/indexes and all writer freezes, then unfreeze. Check real GitHub
-  issue creation/marker recovery and Atlas durability/permissions; verify hosted
-  private headers and account/role refresh. [Local evidence](history/verification/2026-10-25/US-A006/verification.md):
-  API 2,658, app 551, foundation 23, journeys 18; API/Pages builds and browser flow pass.
+- US-A006 feedback, live since 0.1.482 (copy verified 2026-10-26): still open, as admin open the
+  feedback inbox on the live site (24 old items, type filters), send one feedback of each type,
+  and mark one for follow-up to check a real GitHub issue is created once.
+- Since 0.1.482: the next real Stripe test payment and Mux video upload still reach their webhooks
+  (we assume neither sends compressed bodies; a 415 in `npx vercel logs` would mean otherwise).
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
 - Organizations (US-O001 release 1) on the hosted site: Alex runs AC01–AC12 from [the spec](specs/organizations/organizations.md) with a second real email address.
 - Pushed 2026-10-25 as 0.1.464: upload a real video and check the lesson minutes change to the video length and the moving bar shows while processing; open the all-careers map (Expand) on a wide screen and a phone; sign in and open an organization page against hosted MongoDB (new orgId indexes are created on first use).
 - Career cards, carousel and Start over on the hosted site: compare careers on a wide screen and a phone; Start over with a learner who has achievements (they must stay).
-- Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner. Since `3558cc9` (local, not pushed) the exercise minutes must also change to the video length.
+- Exercise intro video on the hosted site: upload a real video to an exercise, watch it to the end as a learner. Since 0.1.482 the exercise minutes must also change to the video length.
 - Paid courses (US-L024) on the hosted site: test-card purchase and enrollment checked by Alex on 2026-10-20; a full refund (US-L025) delivered `charge.refunded` with 200 and removed the course, checked by Alex on 2026-10-22. Still open: **Payment and receipts** → **Manage saved card** opens the Stripe portal.
 - Course locks (US-P005) on the hosted site: Admin → **Course locks** reads the MongoDB `_locks` collection (empty list expected); a listed lock row against real data not seen yet.
 - Price note (US-L001) on the hosted site: a priced published course shows "Price for information only. Enrolling is free."
