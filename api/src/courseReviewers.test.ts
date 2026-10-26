@@ -287,4 +287,43 @@ describe.each(['', '/api'])('US-A007 course reviewer API (%s)', prefix => {
       expect(await response.json()).toEqual({ reviews: [] });
     }
   });
+
+  it('keeps reviewer ids private in catalog, review states and author write responses', async () => {
+    await submitted();
+    const authorState = await state();
+    expect(authorState.course).not.toHaveProperty('reviewerIds');
+    const approved = await act('approve', reviewer);
+    expect(approved.status).toBe(200);
+    expect((await approved.json()).review.course).not.toHaveProperty('reviewerIds');
+    expect((await act('publish', admin)).status).toBe(200);
+    for (const user of [undefined, student, teacher, reviewer]) {
+      const catalog = await (await request('/courses', user)).json();
+      const course = catalog.find((item: { id: string }) => item.id === 'c');
+      expect(course).toMatchObject({ id: 'c', status: 'published' });
+      expect(course).not.toHaveProperty('reviewerIds');
+    }
+    const adminCatalog = await (await request('/courses', admin)).json();
+    expect(adminCatalog.find((item: { id: string }) => item.id === 'c').reviewerIds).toEqual([reviewer.id]);
+    expect((await act('start-revision')).status).toBe(200);
+    const saved = await request('/courses/c', teacher, 'PATCH', { ...metadata, title: 'Private revision' });
+    expect(saved.status).toBe(200);
+    const savedBody = await saved.json();
+    expect(savedBody).not.toHaveProperty('reviewerIds');
+    expect(savedBody.review.course).not.toHaveProperty('reviewerIds');
+    const thumbnail = await fetch(base + '/courses/c/thumbnail', { method: 'PUT',
+      headers: { ...headers(teacher), 'Content-Type': 'image/png' }, body: Buffer.from('private image') });
+    expect(thumbnail.status).toBe(200);
+    expect(await thumbnail.json()).not.toHaveProperty('reviewerIds');
+  });
+  it('US-A007-AC06 author query preserves the live catalog while a course without reviewers has a draft revision', async () => {
+    await courses.updateCourse('c', { ...metadata, status: 'published' });
+    expect((await act('start-revision')).status).toBe(200);
+    expect((await request('/courses/c', teacher, 'PATCH', { ...metadata, title: 'Pending title' })).status).toBe(200);
+    for (const user of [undefined, student, teacher]) {
+      const ordinary = await (await request('/courses', user)).json();
+      const authorQuery = await (await request('/courses?view=author', user)).json();
+      expect(authorQuery).toEqual(ordinary);
+      expect(authorQuery).toContainEqual(expect.objectContaining({ id: 'c', title: 'Course reviewers', status: 'published' }));
+    }
+  });
 });

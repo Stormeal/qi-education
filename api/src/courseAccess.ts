@@ -15,6 +15,15 @@ export function canReadAuthorView(course: Course, user?: AuthenticatedUser): boo
   return canAuthorCourse(course, user) || canReviewCourse(course, user);
 }
 
+/** Reviewer assignment is admin-only; counts and the viewer's verdict have their own DTO. */
+export function courseForViewer(course: Course, user?: AuthenticatedUser): Course;
+export function courseForViewer(course: Course | null, user?: AuthenticatedUser): Course | null;
+export function courseForViewer(course: Course | null, user?: AuthenticatedUser): Course | null {
+  if (!course || user?.role === 'admin') return course;
+  const { reviewerIds: _reviewerIds, ...visible } = course;
+  return visible;
+}
+
 export function canLearnCourse(course: Course, user?: AuthenticatedUser, orgCourseIds: readonly string[] = []): boolean {
   return canAuthorCourse(course, user) || (!!user &&
     (['published', 'archived'].includes(course.status) && user.enrolledCourseIds.includes(course.id) ||

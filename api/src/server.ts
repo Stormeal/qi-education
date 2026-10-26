@@ -96,7 +96,7 @@ import {
 } from './courseAssetRepository.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { courseWriteFreeze, CourseReadOnlyError, CourseStoreUnavailableError } from './courseStore.js';
-import { canAuthorCourse, canReadAuthorView, canReviewCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
+import { canAuthorCourse, canReadAuthorView, canReviewCourse, canLearnCourse, canSeeCourse, courseForViewer, courseOutline, learnerCourseContent } from './courseAccess.js';
 import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment.js';
 import { isQuestionImageContentType, questionImageIssue } from './questionImage.js';
 import { AmbiguousCourseWriteError, CourseBusyError } from './courseMutationLock.js';
@@ -213,6 +213,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
   app.use((request, _response, next) => courseRequestReads.run({ reads: new Map(), reuseRecent: request.method === 'GET' }, next));
+
+  const reviewStateForViewer = async (id: string, user?: AuthenticatedUser) => {
+    const state = await review.state(id, user);
+    return { ...state, course: courseForViewer(state.course, user) };
+  };
 
   const withCourseRead = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     (request: Request, response: Response, next: NextFunction) => reviewScope.run({
@@ -376,7 +381,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (matchingCourse.thumbnailAssetId && matchingCourse.thumbnailAssetId !== uploadedAsset._id) {
           await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId, courseId);
         }
-        response.json({ ...updatedCourse, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
+        response.json({ ...courseForViewer(updatedCourse, (request as AuthenticatedRequest).user), review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) {
         next(error);
       }
@@ -491,7 +496,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           );
           const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
-          response.status(201).json({ attachment, content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
+          response.status(201).json({ attachment, content: { ...updatedContent, review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) } });
         } catch (error) {
           if (error instanceof AmbiguousCourseWriteError) throw error;
           await courseAssets.deleteAsset(uploadedAsset._id, courseId);
@@ -806,13 +811,15 @@ export function createServer(dependencies: ServerDependencies = {}) {
     } catch (error) { next(error); }
   });
 
-  app.get('/courses', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
+  app.get('/courses', optionalAuthentication(auth), async (request, response, next) => {
     try {
-      response.json((await courses.listCourses()).filter((course) => canSeeCourse(course, (request as Partial<AuthenticatedRequest>).user)));
+      const user = (request as Partial<AuthenticatedRequest>).user;
+      response.json((await courses.listCourses()).filter(course => canSeeCourse(course, user))
+        .map(course => courseForViewer(course, user)));
     } catch (error) {
       next(error);
     }
-  }));
+  });
 
   app.get('/courses/:id/thumbnail', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
     try {
@@ -892,7 +899,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         try {
           const created = await courses.createCourse(input, seed);
-          response.status(201).json({ ...created, review: await review.state(seed.id, (request as AuthenticatedRequest).user) });
+          response.status(201).json({ ...created, review: await reviewStateForViewer(seed.id, (request as AuthenticatedRequest).user) });
         } catch (error) {
           await courseContent.deleteCourseContent(seed.id);
           throw error;
@@ -933,7 +940,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
       if (authorView) {
-        response.json(await review.authorContent(courseId, user));
+        const content = await review.authorContent(courseId, user);
+        response.json({ ...content, review: { ...content.review, course: courseForViewer(content.review.course, user) } });
         return;
       }
       const content = await courseContent.getCourseContent(courseId);
@@ -1042,7 +1050,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         await review.assertRevision(courseId, request.header('X-Course-Revision'));
         const saved = await courseContent.updateCourseContent(courseId, input.sections);
-        response.json({ ...saved, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
+        response.json({ ...saved, review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) {
         next(error);
       }
@@ -1163,7 +1171,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           uploadId: upload.uploadId,
           uploadUrl: upload.uploadUrl,
           playbackPolicy: upload.playbackPolicy,
-          content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) },
+          content: { ...updatedContent, review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) },
         });
       } catch (error) {
         next(error);
@@ -1204,7 +1212,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         }
 
         if (!videoComponent.mux) {
-          response.json({ content: { ...content, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
+          response.json({ content: { ...content, review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) } });
           return;
         }
 
@@ -1246,7 +1254,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           }
         }
 
-        response.json({ content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
+        response.json({ content: { ...updatedContent, review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) } });
       } catch (error) {
         next(error);
       }
@@ -1271,7 +1279,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           } catch (error) { logError('Unable to notify course reviewers.', error, { courseId }, 'warn'); }
         }
         const content = await courseContent.getCourseContent(courseId);
-        response.json({ ...content, view: 'author', review: state });
+        response.json({ ...content, view: 'author', review: { ...state, course: courseForViewer(state.course, user) } });
       } catch (error) { next(error); }
     }),
   );
@@ -1315,7 +1323,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         await review.assertRevision(courseId, request.header('X-Course-Revision'));
         const updatedCourse = await courses.updateCourse(courseId, input);
 
-        response.json({ ...updatedCourse, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
+        response.json({ ...courseForViewer(updatedCourse, (request as AuthenticatedRequest).user), review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) {
         next(error);
       }
@@ -1414,7 +1422,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
         await courseAssets.deleteAsset(assetId, courseId);
-        response.json({ content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
+        response.json({ content: { ...updatedContent, review: await reviewStateForViewer(courseId, (request as Partial<AuthenticatedRequest>).user) } });
       } catch (error) {
         next(error);
       }
