@@ -6,7 +6,7 @@ messages hold them.
 
 ## Active work
 
-Delivered 2026-10-26, not pushed: **US-A007 course reviewers** (release 1 Must). Codex Tasks 1–5
+Pushed 2026-10-26 as 0.1.503 (Vercel ready, Pages and CI green; hosted `/api/reviews/mine` and `/api/courses/:id/reviewers` answer 401 without sign-in): **US-A007 course reviewers** (release 1 Must). Codex Tasks 1–5
 (API, `67b563b`…`2286b01`, record [history/handoffs/US-A007-codex.md](history/handoffs/US-A007-codex.md)),
 Claude Tasks 6–9 (app, `1c74a15`…`9fa42e6`). Check routine by Claude: Codex kept to its files and the
 contract, except that it shows `reviewerIds` to admins only; the app now knows a reviewing teacher from
