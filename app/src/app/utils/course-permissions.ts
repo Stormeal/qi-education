@@ -13,3 +13,12 @@ export function canEditCourse(
   return user.role === 'admin' ||
     (user.role === 'teacher' && courseTeacherIds(course).includes(user.id));
 }
+
+/** US-A007: an assigned reviewer reads the course read-only and sends a verdict. Same rule as the API. */
+export function canReviewCourse(
+  course: CourseListItem | null | undefined,
+  user: LoginState['user'] | null | undefined,
+): boolean {
+  return !!course && !!user && user.status === 'active' && (user.role === 'teacher' || user.role === 'admin') &&
+    (course.reviewerIds ?? []).includes(user.id);
+}

@@ -45,7 +45,7 @@ import { InstructorProfileService } from './instructor-profile.service';
 import { SessionService } from './session.service';
 import { CareerPathService } from './career-path.service';
 import { LearningProgressService } from './learning-progress.service';
-import { canEditCourse } from '../utils/course-permissions';
+import { canEditCourse, canReviewCourse } from '../utils/course-permissions';
 import { CourseDraftRecoveryService, CourseEditorBuffer, RecoverableCourseDraft } from './course-draft-recovery.service';
 import { attachmentProblem } from '../utils/attachment-rules';
 import { ConfirmService } from './confirm.service';
@@ -76,7 +76,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.488';
+  readonly appVersion = '0.1.489';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -149,7 +149,7 @@ export class AppStateService {
   readonly courseReviewError = signal('');
   readonly courseReviewReason = signal('');
   readonly courseEditable = computed(() => this.courseFormMode() === 'create' ||
-    (!this.courseContentLoading() && (this.courseReview()?.editable ?? (this.editingCourse()?.status ?? this.courseDraft().status) === 'draft')));
+    (!this.courseContentLoading() && !this.courseReviewerOnly() && (this.courseReview()?.editable ?? (this.editingCourse()?.status ?? this.courseDraft().status) === 'draft')));
   readonly courseContentError = signal('');
   readonly muxUploadComponentId = signal('');
   readonly muxUploadError = signal('');
@@ -299,9 +299,12 @@ export class AppStateService {
     return editId ? this.availableCourses().find((course) => course.id === editId) ?? null : null;
   });
   readonly selectedCourseCanEdit = computed(() => this.canEditCourse(this.selectedCourse()));
+  /** US-A007: an assigned reviewer who cannot author the course opens it read-only. */
+  readonly courseReviewerOnly = computed(() => this.courseFormMode() === 'edit' && !this.canEditCourse(this.editingCourse()) &&
+    canReviewCourse(this.editingCourse(), this.loginState()?.user));
   readonly canUseCourseEditor = computed(() =>
     this.courseFormMode() === 'edit'
-      ? this.canEditCourse(this.editingCourse())
+      ? this.canEditCourse(this.editingCourse()) || this.courseReviewerOnly()
       : this.loginState()?.user.status === 'active' && !!this.loginState()?.permissions.canCreateCourses,
   );
   readonly hasUnsavedCourseChanges = computed(() => {
@@ -2087,6 +2090,7 @@ export class AppStateService {
     if (!courseId || !token || !this.canUseCourseEditor()) return;
     if (this.courseEditorBufferDirty()) { this.courseReviewError.set('Finish the open lesson editor before submitting for review.'); return; }
     if (action === 'return' && !this.courseReviewReason().trim()) { this.courseReviewError.set('Enter a reason before returning this revision.'); return; }
+    if (action === 'request-changes' && !this.courseReviewReason().trim()) { this.courseReviewError.set('Enter a comment before requesting changes.'); return; }
     const isCurrent = this.courseResponseIsCurrent();
     this.courseReviewPending.set(true); this.courseReviewError.set('');
     try {
@@ -2113,7 +2117,7 @@ export class AppStateService {
         this.initialCourseContentSnapshot.set(this.serializeCourseContent(loaded));
         this.courseReviewReason.set('');
       }
-      this.showCourseSaveNotice(action === 'publish' ? 'Revision published.' : action === 'return' ? 'Revision returned for changes.' : action === 'submit' ? 'Submitted for admin review.' : action === 'archive' ? 'Course archived; existing learners retain access.' : 'Private revision started; learners keep the published version.');
+      this.showCourseSaveNotice(action === 'approve' ? 'Approval sent.' : action === 'request-changes' ? 'Change request sent.' : action === 'publish' ? 'Revision published.' : action === 'return' ? 'Revision returned for changes.' : action === 'submit' ? 'Submitted for admin review.' : action === 'archive' ? 'Course archived; existing learners retain access.' : 'Private revision started; learners keep the published version.');
       try {
         const courses = await this.courseService.listCourses(token);
         if (isCurrent()) this.availableCourses.set(courses);

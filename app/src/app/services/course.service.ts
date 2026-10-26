@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import {
   CourseCatalogMetadataDraft,
   CourseReviewAction,
+  MyReview,
   CourseReviewState,
   CourseComponentAttachment,
   CourseComponentType,
@@ -24,6 +25,7 @@ export type CourseTeacher = { id: string; displayName: string; email: string; ac
 /** `live`: a new version of a published course, as opposed to a course never published. */
 export type ReviewQueueItem = { id: string; title: string; teacher: string; live: boolean; submittedAt: string };
 export type CourseTeachersResult = { ok: true; teachers: CourseTeacher[] } | { ok: false; message: string };
+export type CourseReviewersResult = { ok: true; reviewers: CourseTeacher[]; mailWarning?: string } | { ok: false; message: string };
 
 export type CourseSaveResult =
   | {
@@ -498,19 +500,48 @@ export class CourseService {
     return this.courseTeachersRequest(courseId, token, 'PUT', { teacherIds }, 'Unable to save course teachers.');
   }
 
+  /** US-A007: admins read and replace the reviewers of a course. */
+  async loadCourseReviewers(courseId: string, token: string): Promise<CourseReviewersResult> {
+    const result = await this.coursePeopleRequest('reviewers', courseId, token, 'GET', undefined, 'Unable to load course reviewers.');
+    return result.ok ? { ok: true, reviewers: result.people } : result;
+  }
+
+  async saveCourseReviewers(courseId: string, reviewerIds: string[], token: string): Promise<CourseReviewersResult> {
+    const result = await this.coursePeopleRequest('reviewers', courseId, token, 'PUT', { reviewerIds }, 'Unable to save course reviewers.');
+    return result.ok ? { ok: true, reviewers: result.people, ...(result.mailWarning ? { mailWarning: result.mailWarning } : {}) } : result;
+  }
+
+  /** US-A007: courses the signed-in account is asked to review. A failure reads as none. */
+  async loadMyReviews(token: string): Promise<MyReview[]> {
+    try {
+      const response = await this.apiClient.fetch('/reviews/mine', { headers: { authorization: `Bearer ${token}` } });
+      const answer = (await response.json().catch(() => ({}))) as { reviews?: MyReview[] };
+      return response.ok && Array.isArray(answer.reviews) ? answer.reviews : [];
+    } catch {
+      return [];
+    }
+  }
+
   private async courseTeachersRequest(courseId: string, token: string, method: 'GET' | 'PUT', body: unknown,
     fallback: string): Promise<CourseTeachersResult> {
+    const result = await this.coursePeopleRequest('teachers', courseId, token, method, body, fallback);
+    return result.ok ? { ok: true, teachers: result.people } : result;
+  }
+
+  private async coursePeopleRequest(kind: 'teachers' | 'reviewers', courseId: string, token: string, method: 'GET' | 'PUT',
+    body: unknown, fallback: string): Promise<{ ok: true; people: CourseTeacher[]; mailWarning?: string } | { ok: false; message: string }> {
     try {
-      const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/teachers`, {
+      const response = await this.apiClient.fetch(`/courses/${encodeURIComponent(courseId)}/${kind}`, {
         method,
         headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), authorization: `Bearer ${token}` },
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
-      const answer = (await response.json().catch(() => ({}))) as { teachers?: CourseTeacher[]; message?: string };
-      if (!response.ok || !Array.isArray(answer.teachers)) return { ok: false, message: answer.message || fallback };
-      // Edit rights in course lists follow the teacher list.
+      const answer = (await response.json().catch(() => ({}))) as Record<string, unknown> & { message?: string; mailWarning?: string };
+      const people = answer[kind];
+      if (!response.ok || !Array.isArray(people)) return { ok: false, message: answer.message || fallback };
+      // Edit and review rights in course lists follow these lists.
       if (method === 'PUT') this.apiClient.invalidateCache('/courses');
-      return { ok: true, teachers: answer.teachers };
+      return { ok: true, people: people as CourseTeacher[], ...(answer.mailWarning ? { mailWarning: answer.mailWarning } : {}) };
     } catch {
       return { ok: false, message: fallback };
     }

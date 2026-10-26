@@ -86,6 +86,8 @@ export type CourseListItem = {
   ownerUserId: string;
   /** US-A005: absent on courses stored before teacher lists; read through courseTeacherIds. */
   teacherIds?: string[];
+  /** US-A007: accounts asked to review this course. */
+  reviewerIds?: string[];
   title: string;
   description: string;
   requirements: string[];
@@ -264,10 +266,15 @@ export type CourseComponentMoved = {
   toSectionIndex?: number;
 };
 
-export type CourseReviewAction = 'start-revision' | 'submit' | 'return' | 'publish' | 'archive';
+export type CourseReviewAction = 'start-revision' | 'submit' | 'return' | 'publish' | 'archive' | 'approve' | 'request-changes';
+export type ReviewerVerdict = 'waiting' | 'approved' | 'changes-requested';
+/** US-A007: a course the signed-in account is asked to review. */
+export type MyReview = { courseId: string; title: string; status: CourseStatus; verdict: ReviewerVerdict };
 export type CourseReviewState = {
   course: CourseListItem; version: number; revisionId: string | null;
   liveStatus: 'published' | 'archived' | null; editable: boolean;
+  /** US-A007: publish waits until approved === total; viewerVerdict is null unless the viewer reviews this course. */
+  reviewers?: { total: number; approved: number; viewerVerdict: ReviewerVerdict | null };
   history: { id: string; revisionId: string | null; action: string; actorId: string; actorName: string; createdAt: string; reason: string }[];
 };
 
