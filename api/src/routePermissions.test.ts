@@ -35,6 +35,7 @@ type RouterLayer = {
 // "signed-in" includes additional author/course-entitlement rules. Review actions
 // are signed-in because teachers can submit; publish itself also requires admin.
 const permissionTable: Record<string, Permission> = {
+  'GET /reviews/mine': 'signed-in',
   'GET /users/me/organization': 'signed-in',
   'POST /users/me/organization-request': 'signed-in',
   'PUT /users/me/organization-request': 'signed-in',

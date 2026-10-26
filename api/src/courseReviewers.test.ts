@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
 import { InMemoryAuthRepository } from './authRepository.js';
 import { apiConfig } from './config.js';
@@ -14,6 +14,8 @@ import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { fakeCourseCollection } from '../test/fakeCourseCollection.js';
 import { updateCourseContentSchema } from './courseContent.js';
 import { canReviewCourse } from './courseAccess.js';
+import { LocalMailSender } from './mailSender.js';
+import { sendReviewRequest } from './courseReviewerMail.js';
 
 const metadata = createCourseSchema.parse({ title: 'Course reviewers',
   description: 'An isolated course for peer review.', teacher: 'Author', level: 'Beginner' });
@@ -36,14 +38,25 @@ describe('US-A007 reviewer storage', () => {
   });
 });
 
+describe('US-A007 reviewer mail', () => {
+  it('uses the course title and a frontend edit link with trailing slashes removed', async () => {
+    const mail = new LocalMailSender(() => {});
+    expect(await sendReviewRequest(mail, 'reviewer@example.test', { id: 'c', title: 'Peer review' }, 'https://academy.example.test///')).toBe(true);
+    expect(mail.messages).toEqual([{ to: 'reviewer@example.test', subject: 'Course to review: Peer review',
+      text: 'You have been asked to review "Peer review" on QI Academy.\n\nhttps://academy.example.test/courses/c/edit' }]);
+  });
+});
+
 describe.each(['', '/api'])('US-A007 course reviewer API (%s)', prefix => {
   let server: Server, base: string, auth: InMemoryAuthRepository, courses: InMemoryCourseRepository;
   let content: InMemoryCourseContentRepository, assets: InMemoryCourseAssetRepository;
+  let mail: LocalMailSender;
   let teacher: AuthUser, reviewer: AuthUser, admin: AuthUser, student: AuthUser;
 
   beforeEach(async () => {
     auth = new InMemoryAuthRepository(); courses = new InMemoryCourseRepository();
     content = new InMemoryCourseContentRepository(); assets = new InMemoryCourseAssetRepository();
+    mail = new LocalMailSender(() => {});
     teacher = (await auth.findByEmail('teacher@qi-education.local'))!;
     reviewer = await auth.createUser({ ...teacher, id: 'reviewer', email: 'reviewer@example.test', displayName: 'Reviewer' });
     admin = (await auth.findByEmail('admin@qi-education.local'))!;
@@ -51,12 +64,13 @@ describe.each(['', '/api'])('US-A007 course reviewer API (%s)', prefix => {
     await courses.createCourse(metadata, { id: 'c', createdAt: '2026-10-26T00:00:00Z', teacherIds: [teacher.id] });
     server = createServer({ authRepository: auth, courseRepository: courses,
       courseContentRepository: content, courseAssetRepository: assets,
+      mailSender: mail,
       muxVideoService: null, muxWebhookService: null,
     }).listen(0, '127.0.0.1');
     await new Promise<void>(resolve => server.once('listening', resolve));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}`;
   });
-  afterEach(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
+  afterEach(async () => { vi.restoreAllMocks(); await new Promise<void>(resolve => server.close(() => resolve())); });
   function headers(user?: AuthUser) {
     return { 'Content-Type': 'application/json', ...(user ? {
       authorization: `Bearer ${createSessionToken(toAuthenticatedUser(user), apiConfig.AUTH_TOKEN_SECRET!)}`,
@@ -201,5 +215,76 @@ describe.each(['', '/api'])('US-A007 course reviewer API (%s)', prefix => {
     const blocked = await act('publish', admin);
     expect(blocked.status).toBe(409);
     expect(await blocked.json()).toEqual({ message: 'Waiting for 1 of 1 reviewers to approve this revision.' });
+  });
+
+  it('US-A007-AC01 assignment emails only new reviewers', async () => {
+    expect((await assign([reviewer.id])).status).toBe(200);
+    expect(mail.messages.map(message => message.to)).toEqual([reviewer.email]);
+    expect((await assign([reviewer.id, admin.id])).status).toBe(200);
+    expect((await assign([admin.id, reviewer.id])).status).toBe(200);
+    expect(mail.messages.map(message => message.to)).toEqual([reviewer.email, admin.email]);
+    expect(mail.messages[0].subject).toBe('Course to review: Course reviewers');
+    expect(mail.messages[0].text).toContain('/courses/c/edit');
+    expect((await assign([])).status).toBe(200);
+    expect((await assign([reviewer.id])).status).toBe(200);
+    expect(mail.messages.map(message => message.to)).toEqual([reviewer.email, admin.email, reviewer.email]);
+  });
+  it('mail failure still saves and warns', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(mail, 'send').mockRejectedValueOnce(new Error('Mail refused'));
+    const response = await assign([reviewer.id, admin.id]);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ reviewers: [view(reviewer), view(admin)],
+      mailWarning: 'Reviewers were saved, but some emails could not be sent.' });
+    expect((await courses.listCourses()).find(course => course.id === 'c')?.reviewerIds).toEqual([reviewer.id, admin.id]);
+    expect(mail.messages.map(message => message.to)).toEqual([admin.email]);
+  });
+  it('US-A007-AC04 submit emails every active reviewer, including on resubmit', async () => {
+    await submitted();
+    const inactive = await auth.createUser({ ...reviewer, id: 'inactive', email: 'inactive@example.test' });
+    expect((await assign([reviewer.id, admin.id, inactive.id])).status).toBe(200);
+    await auth.updateStatus(inactive.id, 'disabled');
+    mail.messages.length = 0;
+    expect((await act('return', admin, 'Clarify')).status).toBe(200);
+    expect((await request('/courses/c', teacher, 'PATCH', { ...metadata, title: 'Revised course title' })).status).toBe(200);
+    expect((await act('submit')).status).toBe(200);
+    expect(mail.messages.map(message => message.to).sort()).toEqual([admin.email, reviewer.email].sort());
+    expect(mail.messages.every(message => message.subject === 'Course to review: Revised course title')).toBe(true);
+    expect((await act('return', admin, 'Clarify again')).status).toBe(200);
+    expect((await act('submit')).status).toBe(200);
+    expect(mail.messages).toHaveLength(4);
+  });
+  it('submit mail failure still submits the revision', async () => {
+    await submitted();
+    expect((await act('return', admin, 'Clarify')).status).toBe(200);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(mail, 'send').mockRejectedValueOnce(new Error('Mail refused'));
+    expect((await act('submit')).status).toBe(200);
+    expect((await state()).course.status).toBe('ready-for-review');
+  });
+  it('US-A007-AC05 reviews/mine lists assigned courses with own verdict and working title', async () => {
+    await submitted(); expect((await act('approve', reviewer)).status).toBe(200);
+    await courses.createCourse({ ...metadata, title: 'Second review' }, { id: 'c2', createdAt: 'x', teacherIds: [teacher.id] });
+    await courses.updateCourseReviewers('c2', [reviewer.id]);
+    expect((await act('return', admin, 'Clarify')).status).toBe(200);
+    expect((await request('/courses/c', teacher, 'PATCH', { ...metadata, title: 'Working title' })).status).toBe(200);
+    const response = await request('/reviews/mine', reviewer);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(await response.json()).toEqual({ reviews: [
+      { courseId: 'c', title: 'Working title', status: 'draft', verdict: 'approved' },
+      { courseId: 'c2', title: 'Second review', status: 'draft', verdict: 'waiting' },
+    ] });
+    expect((await request('/reviews/mine')).status).toBe(401);
+    await auth.updateRole(reviewer.id, 'student');
+    expect(await (await request('/reviews/mine', reviewer)).json()).toEqual({ reviews: [] });
+  });
+  it('reviews/mine is empty for a non-reviewer', async () => {
+    await submitted();
+    for (const user of [teacher, admin, student]) {
+      const response = await request(`/reviews/mine?userId=${reviewer.id}`, user);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ reviews: [] });
+    }
   });
 });

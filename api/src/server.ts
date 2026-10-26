@@ -1,4 +1,5 @@
-import { coursePriceMessage } from './course.js';
+import { coursePriceMessage, courseReviewerIds } from './course.js';
+import { sendReviewRequest } from './courseReviewerMail.js';
 import { logError } from './errorLogger.js';
 import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
@@ -626,7 +627,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerAdminUserRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, auth, tokens: passwordResetTokens,
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
   registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
-  registerCourseReviewersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
+  registerCourseReviewersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth,
+    sender: mailSender, appUrl: apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200' });
   registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
   registerOrganizationRoutes(app, authenticateRequest(auth), requireAdmin, organizations, clientLimit);
 
@@ -788,6 +790,20 @@ export function createServer(dependencies: ServerDependencies = {}) {
     response.setHeader('Cache-Control', 'private, no-store');
     response.vary('Authorization');
     next();
+  });
+
+  app.get('/reviews/mine', authenticateRequest(auth), async (request, response, next) => {
+    response.set('Cache-Control', 'private, no-store'); response.vary('Authorization');
+    try {
+      const user = (request as AuthenticatedRequest).user;
+      const assigned = (await storedCourses.listCourses()).filter(course => canReviewCourse(course, user));
+      const reviews = await Promise.all(assigned.map(async course => {
+        const state = await review.state(course.id, user);
+        return { courseId: course.id, title: state.course.title, status: state.course.status,
+          verdict: state.reviewers.viewerVerdict! };
+      }));
+      response.json({ reviews });
+    } catch (error) { next(error); }
   });
 
   app.get('/courses', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
@@ -1241,9 +1257,21 @@ export function createServer(dependencies: ServerDependencies = {}) {
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = String(request.params.id);
-        await review.act(courseId, reviewActionSchema.parse(request.body), (request as AuthenticatedRequest).user);
+        const input = reviewActionSchema.parse(request.body), user = (request as AuthenticatedRequest).user;
+        await review.act(courseId, input, user);
+        const state = await review.state(courseId, user);
+        if (input.action === 'submit') {
+          try {
+            await Promise.all(courseReviewerIds(state.course).map(async id => {
+              const reviewer = await auth.findById(id);
+              if (reviewer && canReviewCourse(state.course, toAuthenticatedUser(reviewer))) {
+                await sendReviewRequest(mailSender, reviewer.email, state.course, apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200');
+              }
+            }));
+          } catch (error) { logError('Unable to notify course reviewers.', error, { courseId }, 'warn'); }
+        }
         const content = await courseContent.getCourseContent(courseId);
-        response.json({ ...content, view: 'author', review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
+        response.json({ ...content, view: 'author', review: state });
       } catch (error) { next(error); }
     }),
   );
