@@ -15,7 +15,7 @@
       <p role="status">Awaiting admin review</p>
       @if (reviewers(); as people) {
         @if (people.total) {
-          <p class="review-gate" role="status">{{ waitingFor() ? 'Waiting for ' + waitingFor() + ' of ' + people.total + ' reviewers' : 'All ' + people.total + ' reviewers approved' }}</p>
+          <p class="review-gate" role="status">{{ gateText() }}</p>
         }
       }
       @if (canAdmin() || reviewers()?.viewerVerdict) {

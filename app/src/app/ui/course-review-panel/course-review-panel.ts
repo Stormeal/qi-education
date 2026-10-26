@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { CourseReviewAction, CourseReviewState } from '../../app.models';
+import { plural } from '../../utils/plural';
 import { Button } from '../button/button';
 
 @Component({ selector: 'app-course-review-panel', imports: [DatePipe, Button], changeDetection: ChangeDetectionStrategy.OnPush,
@@ -13,6 +14,11 @@ export class CourseReviewPanel {
   readonly reviewerOnly = input(false);
   readonly reviewers = computed(() => this.review()?.reviewers ?? null);
   /** US-A007: how many assigned reviewers have not approved yet; publish waits for 0. */
+  readonly gateText = computed(() => {
+    const total = this.reviewers()?.total ?? 0, waiting = this.waitingFor();
+    if (waiting) return `Waiting for ${waiting} of ${plural(total, 'reviewer')}`;
+    return total === 1 ? 'The reviewer approved' : `All ${total} reviewers approved`;
+  });
   readonly commentLabel = computed(() => this.canAdmin() && this.reviewers()?.viewerVerdict ? 'Comment or return reason'
     : this.canAdmin() ? 'Return reason' : 'Review comment');
   readonly waitingFor = computed(() => { const r = this.reviewers(); return r ? r.total - r.approved : 0; });

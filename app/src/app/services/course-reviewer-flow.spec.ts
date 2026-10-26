@@ -59,6 +59,8 @@ describe('US-A007 reviewer in the course editor', () => {
 
     expect(page.textContent).toContain('You are reviewing this course');
     expect(page.textContent).toContain('Waiting for your verdict');
+    // The read-only form shows the submitted course, not an empty draft.
+    expect((page.querySelector('input[placeholder="ISTQB Foundation 4.0"]') as HTMLInputElement).value).toBe('Test design');
     expect((page.querySelector('input[placeholder="ISTQB Foundation 4.0"]') as HTMLInputElement).disabled).toBe(true);
     expect(button(page, 'Submit for review')).toBeUndefined();
     expect(button(page, 'Publish revision')).toBeUndefined();

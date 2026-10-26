@@ -77,7 +77,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.500';
+  readonly appVersion = '0.1.501';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -2087,7 +2087,10 @@ export class AppStateService {
   async refreshMyReviews(): Promise<void> {
     const login = this.loginState(), request = ++this.myReviewsRequest;
     const reviews = login && login.user.role !== 'student' ? await this.courseService.loadMyReviews(login.token) : [];
-    if (request === this.myReviewsRequest) this.myReviews.set(reviews);
+    if (request !== this.myReviewsRequest) return;
+    this.myReviews.set(reviews);
+    // A reviewer who opened the editor link directly is only recognised now.
+    this.syncCourseEditorDraftFromPath();
   }
 
   async reviewCourse(action: CourseReviewAction): Promise<void> {
@@ -2681,7 +2684,7 @@ export class AppStateService {
       return;
     }
 
-    if (!this.canEditCourse(course)) return;
+    if (!this.canEditCourse(course) && !this.courseReviewerOnly()) return;
     this.initializedCourseEditorPath = path;
     this.clearCourseSaveNotice();
 
