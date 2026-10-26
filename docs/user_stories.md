@@ -130,7 +130,8 @@ State: Proposed (Alex, 2026-10-23). Mostly configuration and agreements. AC04 de
 [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md#us-p018-ac04), to revisit before release 1.
 Decided by Alex 2026-10-25: refuse compressed request bodies (415) instead of the parser major, and
 approve Zod 4.6 with its changed validation messages (a list over its limit answers the generic
-"Invalid request body"). Follow-up in progress.
+"Invalid request body"). Delivered locally 2026-10-26 (`b97c174`, `d73fbce`); the builder
+stops at the list limits so teachers do not meet that message.
 Dependency: management approves about 450–700 DKK a month for hosting.
 
 ```gherkin

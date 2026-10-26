@@ -6,22 +6,16 @@ messages hold them.
 
 ## Active work
 
-**US-P018-AC04 follow-up** (started 2026-10-25). Alex decided: refuse compressed request bodies
-(415) and approve Zod 4.6 with its changed validation messages. Codex: both API parts, files in
-[handoffs/US-P018-AC04-followup-codex.md](handoffs/US-P018-AC04-followup-codex.md). Codex state: done locally on `main`, base
-`418e676` (required ancestor verified), preserving Claude's `d73fbce`. All six parsers
-refuse encoded bodies before decompression; API Zod is 4.6.7 with compatible points defaults,
-unchanged list limits and image-only messages. Tests: `npm run api:test` 2,761 passed / 110 files;
-`npm run api:build` and `npm run verify:journeys` (18) pass; 50 new compression cases and
-points/limit/image regressions pass. Zod-wording-only test expectation updates: none;
-`requestErrors.test.ts` RD-03 gzip now expects the approved 415. Audit: 2 high to 1 high,
-exit 1; Zod entry gone, body-parser 2.2.2 still listed with inflation disabled (no parser
-upgrade). Browsers/Stripe/Mux sending only uncompressed bodies is assumed, not verified live.
-No shared services or ports 3001/4200 used; no push/deploy. Delivery: the local
-`fix(US-P018-AC04): reject compressed bodies and update Zod` commit containing this record.
-Claude: the course builder stops at 50 questions per quiz and 50 attachments per lesson
-(`app/src/app/ui/course-builder/**`, `app-state.service.ts`, `app.models.ts`). State: done locally
-2026-10-25 (app 555 tests, Pages build, browser: New question disabled at 50 with its reason).
+Delivered 2026-10-26, local only (not pushed): **US-P018-AC04 follow-up** (Alex's decisions of
+2026-10-25). Codex `b97c174`, checked by Claude: own files only, contract kept. Every body parser
+refuses compressed bodies with 415 "Compressed request bodies are not accepted." (checked live on an
+isolated API: gzip login 415, plain login 200); Zod 4.6.7, a question without points still counts
+as 1. Claude `d73fbce`: the builder stops at 50 questions and 50 files per lesson. Checks: API 2,761,
+app 555, journeys 18, Pages build. Production audit 2 high to 1 high: body-parser 2.2.2 stays listed,
+but the crash path is closed by turning off decompression. Not verified: Stripe and Mux never send
+compressed webhooks (assumed). In the first full API run `clientLimitRoutes.test.ts` "AC06 ... after
+twenty requests" failed once; it passed alone three times and in a full rerun (load timing, like
+the earlier sign-in limit flake). Record [history/handoffs/US-P018-AC04-followup-codex.md](history/handoffs/US-P018-AC04-followup-codex.md).
 
 Delivered 2026-10-25, local only (not pushed): **X9** API security headers (Codex, `9448f97`,
 checked by Claude: own files only, contract kept, no frontend iframes affected; rule in
