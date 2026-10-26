@@ -1,0 +1,13 @@
+@if (reviews().length) {
+  <section class="mr" aria-labelledby="mr-title">
+    <h2 id="mr-title" class="mr-title">To review</h2>
+    <ul class="mr-list">
+      @for (review of reviews(); track review.courseId) {
+        <li>
+          <a class="mr-course" [routerLink]="['/courses', review.courseId, 'edit']">{{ review.title }}</a>
+          <span [appChip]="verdicts[review.verdict].chip">{{ verdicts[review.verdict].label }}</span>
+        </li>
+      }
+    </ul>
+  </section>
+}

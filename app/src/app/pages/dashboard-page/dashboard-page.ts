@@ -6,13 +6,14 @@ import { AppStateService } from '../../services/app-state.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
 import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
 import { AdminAttention } from '../../ui/admin-attention/admin-attention';
+import { MyReviews } from '../../ui/my-reviews/my-reviews';
 import { Button } from '../../ui/button/button';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [AdminAttention, Button, PageHeader, RouterLink, ProgressBar],
+  imports: [AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar],
   templateUrl: './dashboard-page.html',
   styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

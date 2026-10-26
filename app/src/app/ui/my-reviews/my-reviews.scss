@@ -1,0 +1,42 @@
+:host { display: block; }
+
+.mr {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+}
+
+.mr-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.mr-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 10px 0;
+  }
+
+  li + li { border-top: 1px solid var(--color-border); }
+}
+
+.mr-course {
+  min-width: 0;
+  color: var(--color-link);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
