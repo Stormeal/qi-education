@@ -11,7 +11,7 @@ messages hold them.
 
 | Owner | Scope | Files | State |
 | --- | --- | --- | --- |
-| Codex | Plan Tasks 1–5: reviewer storage and route, verdicts and publish gate, reviewer read access, mails and `GET /reviews/mine`, journey step | `api/src/**` ([handoff](handoffs/US-A007-codex.md)) | In progress on `main`, base `8de06fc`; Task 1 `67b563b` (255 focused; API 2,788/2,788); Task 2 complete RED → GREEN (57 focused; API 2,805/2,805, build pass); next: Task 3 reviewer access. |
+| Codex | Plan Tasks 1–5: reviewer storage and route, verdicts and publish gate, reviewer read access, mails and `GET /reviews/mine`, journey step | `api/src/**` ([handoff](handoffs/US-A007-codex.md)) | In progress on `main`, base `8de06fc`; Task 1 `67b563b` (255 focused; API 2,788/2,788); Task 2 `7d7666a` (57 focused; API 2,805/2,805); Task 3 complete RED → GREEN (33 focused; API 2,815/2,815 with `--maxWorkers=4`, build pass); next: Task 4 mails/list. Initial default-worker run: client-limit injectable-policy timeout; sign-in DEF-034 abandoned-capacity AbortError and two login timeouts; both files passed alone (20 + 24). Ruling: disabled sessions keep existing 401 (not plan’s 403); access helper denies them. |
 | Claude | Plan Tasks 6–9: app models and calls, reviewer picker, verdicts and gate in the review panel, "To review" on Home | `app/src/app/**` | Tasks 6–9 committed (`1c74a15`, `da6be9b`, `9938cbc`, `b1d78ac`); app 567/567, UI foundation pass. Reviewer panel reuses `ui/course-teachers` (`kind="reviewers"`); a teacher-as-reviewer is refused by the API, not hidden in the picker. Not verified: browser check on isolated servers, waits for Codex Tasks 3–5 |
 
 Pushed 2026-10-26 as 0.1.482 (live, Vercel and Pages green): X9 API security headers, X10

@@ -95,7 +95,7 @@ import {
 } from './courseAssetRepository.js';
 import { createCourseRepository, type CourseRepository } from './courseRepository.js';
 import { courseWriteFreeze, CourseReadOnlyError, CourseStoreUnavailableError } from './courseStore.js';
-import { canAuthorCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
+import { canAuthorCourse, canReadAuthorView, canReviewCourse, canLearnCourse, canSeeCourse, courseOutline, learnerCourseContent } from './courseAccess.js';
 import { assessmentIssues, quizAttemptSchema, scoreQuiz } from './quizAssessment.js';
 import { isQuestionImageContentType, questionImageIssue } from './questionImage.js';
 import { AmbiguousCourseWriteError, CourseBusyError } from './courseMutationLock.js';
@@ -220,6 +220,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   const withCourseLock = (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) =>
     async (request: Request, response: Response, next: NextFunction) => {
+      const reviewerVerdict = request.path.endsWith('/review') && ['approve', 'request-changes'].includes(request.body?.action);
       const authorWrite = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) && /^\/(?:api\/)?courses\//.test(request.path) &&
         !/\/(price|catalog-metadata|quiz-attempts|teachers|reviewers)\/?$/.test(request.path);
       const author = !/\/(teachers|reviewers)\/?$/.test(request.path) &&
@@ -252,7 +253,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
             if (authorWrite) {
               const course = (await storedCourses.listCourses()).find(item => item.id === courseId);
               if (!course) { response.status(404).json({ message: 'Course not found' }); return; }
-              if (!canAuthorCourse(course, (request as Partial<AuthenticatedRequest>).user)) {
+              if (!canAuthorCourse(course, (request as Partial<AuthenticatedRequest>).user) &&
+                !(reviewerVerdict && canReviewCourse(course, (request as Partial<AuthenticatedRequest>).user))) {
                 response.status(403).json({ message: 'You do not have permission to edit this course.' }); return;
               }
             }
@@ -373,7 +375,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (matchingCourse.thumbnailAssetId && matchingCourse.thumbnailAssetId !== uploadedAsset._id) {
           await courseAssets.deleteAsset(matchingCourse.thumbnailAssetId, courseId);
         }
-        response.json({ ...updatedCourse, review: await review.state(courseId) });
+        response.json({ ...updatedCourse, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) {
         next(error);
       }
@@ -488,7 +490,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           );
           const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
-          response.status(201).json({ attachment, content: { ...updatedContent, review: await review.state(courseId) } });
+          response.status(201).json({ attachment, content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
         } catch (error) {
           if (error instanceof AmbiguousCourseWriteError) throw error;
           await courseAssets.deleteAsset(uploadedAsset._id, courseId);
@@ -788,13 +790,13 @@ export function createServer(dependencies: ServerDependencies = {}) {
     next();
   });
 
-  app.get('/courses', optionalAuthentication(auth), async (request, response, next) => {
+  app.get('/courses', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
     try {
       response.json((await courses.listCourses()).filter((course) => canSeeCourse(course, (request as Partial<AuthenticatedRequest>).user)));
     } catch (error) {
       next(error);
     }
-  });
+  }));
 
   app.get('/courses/:id/thumbnail', optionalAuthentication(auth), withCourseRead(async (request, response, next) => {
     try {
@@ -803,8 +805,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       const selectedId = typeof request.query.v === 'string' ? request.query.v : '';
       if (matchingCourse && selectedId && selectedId !== matchingCourse.thumbnailAssetId) {
-        if (canAuthorCourse(matchingCourse, (request as Partial<AuthenticatedRequest>).user)) {
-          const state = await review.state(courseId);
+        if (canReadAuthorView(matchingCourse, (request as Partial<AuthenticatedRequest>).user)) {
+          const state = await review.state(courseId, (request as Partial<AuthenticatedRequest>).user);
           if (state.course.thumbnailAssetId === selectedId) matchingCourse = state.course;
           else matchingCourse = undefined;
         } else matchingCourse = undefined;
@@ -874,7 +876,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         try {
           const created = await courses.createCourse(input, seed);
-          response.status(201).json({ ...created, review: await review.state(seed.id) });
+          response.status(201).json({ ...created, review: await review.state(seed.id, (request as AuthenticatedRequest).user) });
         } catch (error) {
           await courseContent.deleteCourseContent(seed.id);
           throw error;
@@ -909,12 +911,13 @@ export function createServer(dependencies: ServerDependencies = {}) {
         return;
       }
       const authorView = request.query.view === 'author';
-      if ((!canLearnCourse(course, user) && !canLearnCourse(course, user, await organizations.learnableOrgCourseIds(user.id))) || (authorView && !canAuthorCourse(course, user))) {
+      if (authorView ? !canReadAuthorView(course, user) :
+        (!canLearnCourse(course, user) && !canLearnCourse(course, user, await organizations.learnableOrgCourseIds(user.id)))) {
         response.status(403).json({ message: 'You do not have access to this course content.' });
         return;
       }
       if (authorView) {
-        response.json(await review.authorContent(courseId));
+        response.json(await review.authorContent(courseId, user));
         return;
       }
       const content = await courseContent.getCourseContent(courseId);
@@ -947,14 +950,14 @@ export function createServer(dependencies: ServerDependencies = {}) {
           return;
         }
 
-        if (!canLearnCourse(matchingCourse, user) && !canLearnCourse(matchingCourse, user, await organizations.learnableOrgCourseIds(user.id))) {
+        if (!canReadAuthorView(matchingCourse, user) && !canLearnCourse(matchingCourse, user) && !canLearnCourse(matchingCourse, user, await organizations.learnableOrgCourseIds(user.id))) {
           response.status(403).json({ message: 'Enroll in this course before opening resources.' });
           return;
         }
 
-        const content = await reviewScope.run({ author: canAuthorCourse(matchingCourse, user), user }, () => courseContent.getCourseContent(courseId));
+        const content = await reviewScope.run({ author: canReadAuthorView(matchingCourse, user), user }, () => courseContent.getCourseContent(courseId));
 
-        const liveContent = canAuthorCourse(matchingCourse, user) && (!content || !courseContentHasAttachment(content.sections, assetId))
+        const liveContent = canReadAuthorView(matchingCourse, user) && (!content || !courseContentHasAttachment(content.sections, assetId))
           ? await reviewScope.run({ author: false }, () => courseContent.getCourseContent(courseId)) : null;
         if ((!content || !courseContentHasAttachment(content.sections, assetId)) && (!liveContent || !courseContentHasAttachment(liveContent.sections, assetId))) {
           response.status(404).json({ message: 'Attachment not found' });
@@ -1023,7 +1026,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
         await review.assertRevision(courseId, request.header('X-Course-Revision'));
         const saved = await courseContent.updateCourseContent(courseId, input.sections);
-        response.json({ ...saved, review: await review.state(courseId) });
+        response.json({ ...saved, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) {
         next(error);
       }
@@ -1144,7 +1147,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
           uploadId: upload.uploadId,
           uploadUrl: upload.uploadUrl,
           playbackPolicy: upload.playbackPolicy,
-          content: { ...updatedContent, review: await review.state(courseId) },
+          content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) },
         });
       } catch (error) {
         next(error);
@@ -1185,7 +1188,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         }
 
         if (!videoComponent.mux) {
-          response.json({ content: { ...content, review: await review.state(courseId) } });
+          response.json({ content: { ...content, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
           return;
         }
 
@@ -1227,20 +1230,20 @@ export function createServer(dependencies: ServerDependencies = {}) {
           }
         }
 
-        response.json({ content: { ...updatedContent, review: await review.state(courseId) } });
+        response.json({ content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
       } catch (error) {
         next(error);
       }
     }),
   );
 
-  app.post('/courses/:id/review', authenticateRequest(auth), requireCourseAuthor(storedCourses),
+  app.post('/courses/:id/review', authenticateRequest(auth), requireCourseAuthor(storedCourses, true),
     withCourseLock(async (request, response, next) => {
       try {
         const courseId = String(request.params.id);
         await review.act(courseId, reviewActionSchema.parse(request.body), (request as AuthenticatedRequest).user);
         const content = await courseContent.getCourseContent(courseId);
-        response.json({ ...content, view: 'author', review: await review.state(courseId) });
+        response.json({ ...content, view: 'author', review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) { next(error); }
     }),
   );
@@ -1284,7 +1287,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         await review.assertRevision(courseId, request.header('X-Course-Revision'));
         const updatedCourse = await courses.updateCourse(courseId, input);
 
-        response.json({ ...updatedCourse, review: await review.state(courseId) });
+        response.json({ ...updatedCourse, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) });
       } catch (error) {
         next(error);
       }
@@ -1383,7 +1386,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const updatedContent = await courseContent.updateCourseContent(courseId, updatedSections);
 
         await courseAssets.deleteAsset(assetId, courseId);
-        response.json({ content: { ...updatedContent, review: await review.state(courseId) } });
+        response.json({ content: { ...updatedContent, review: await review.state(courseId, (request as Partial<AuthenticatedRequest>).user) } });
       } catch (error) {
         next(error);
       }
@@ -2142,7 +2145,7 @@ function optionalAuthentication(authRepository: AuthRepository) {
   };
 }
 
-function requireCourseAuthor(courses: CourseRepository) {
+function requireCourseAuthor(courses: CourseRepository, allowReviewerVerdicts = false) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
       const { user } = request as AuthenticatedRequest;
@@ -2157,7 +2160,8 @@ function requireCourseAuthor(courses: CourseRepository) {
         response.status(404).json({ message: 'Course not found' });
         return;
       }
-      if (!canAuthorCourse(course, user)) {
+      const reviewerVerdict = allowReviewerVerdicts && ['approve', 'request-changes'].includes(request.body?.action);
+      if (!canAuthorCourse(course, user) && !(reviewerVerdict && canReviewCourse(course, user))) {
         response.status(403).json({ message: 'You do not have permission to edit this course.' });
         return;
       }

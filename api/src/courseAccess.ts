@@ -1,10 +1,18 @@
 import type { AuthenticatedUser } from './auth.js';
-import { courseTeacherIds, type Course } from './course.js';
+import { courseReviewerIds, courseTeacherIds, type Course } from './course.js';
 import type { CourseContentDocument } from './courseContentRepository.js';
 
 export function canAuthorCourse(course: Course, user?: AuthenticatedUser): boolean {
   return !!user && (user.role === 'admin' ||
     (user.role === 'teacher' && user.status === 'active' && courseTeacherIds(course).includes(user.id)));
+}
+
+export function canReviewCourse(course: Course, user?: AuthenticatedUser): boolean {
+  return !!user && user.status === 'active' && ['teacher', 'admin'].includes(user.role) && courseReviewerIds(course).includes(user.id);
+}
+
+export function canReadAuthorView(course: Course, user?: AuthenticatedUser): boolean {
+  return canAuthorCourse(course, user) || canReviewCourse(course, user);
 }
 
 export function canLearnCourse(course: Course, user?: AuthenticatedUser, orgCourseIds: readonly string[] = []): boolean {
@@ -14,7 +22,7 @@ export function canLearnCourse(course: Course, user?: AuthenticatedUser, orgCour
 }
 
 export function canSeeCourse(course: Course, user?: AuthenticatedUser): boolean {
-  return course.status === 'published' || canAuthorCourse(course, user) ||
+  return course.status === 'published' || canReadAuthorView(course, user) ||
     (course.status === 'archived' && canLearnCourse(course, user));
 }
 

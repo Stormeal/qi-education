@@ -12,6 +12,8 @@ import { ReadOnlyCourseRepository, UnavailableCourseRepository } from './courseS
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
 import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { fakeCourseCollection } from '../test/fakeCourseCollection.js';
+import { updateCourseContentSchema } from './courseContent.js';
+import { canReviewCourse } from './courseAccess.js';
 
 const metadata = createCourseSchema.parse({ title: 'Course reviewers',
   description: 'An isolated course for peer review.', teacher: 'Author', level: 'Beginner' });
@@ -68,6 +70,19 @@ describe.each(['', '/api'])('US-A007 course reviewer API (%s)', prefix => {
     return { id: user.id, displayName: user.displayName, email: user.email, active };
   }
   function assign(reviewerIds: string[]) { return request('/courses/c/reviewers', admin, 'PUT', { reviewerIds }); }
+  async function state() { return (await (await request('/courses/c/content?view=author', teacher)).json()).review; }
+  async function act(action: string, user = teacher, reason = '') {
+    const current = await state();
+    return request('/courses/c/review', user, 'POST', { action, reason,
+      expectedVersion: current.version, revisionId: current.revisionId });
+  }
+  async function submitted() {
+    await content.updateCourseContent('c', updateCourseContentSchema.parse({ sections: [{ id: 's', title: 'Assessment',
+      components: [{ id: 'quiz', title: 'Check understanding', type: 'quiz', quiz: { passPoints: 1, questions: [{ id: 'q',
+        question: 'Which answer?', answers: [{ id: 'a', text: 'Correct', isCorrect: true }, { id: 'b', text: 'Incorrect', isCorrect: false }] }] } }] }] }).sections);
+    expect((await assign([reviewer.id])).status).toBe(200);
+    expect((await act('submit')).status).toBe(200);
+  }
 
   it('US-A007-AC01 admin assigns teacher and admin reviewers', async () => {
     const saved = await assign([reviewer.id, admin.id]);
@@ -113,5 +128,78 @@ describe.each(['', '/api'])('US-A007 course reviewer API (%s)', prefix => {
   it('returns 404 for an unknown course', async () => {
     expect((await request('/courses/missing/reviewers', admin)).status).toBe(404);
     expect((await request('/courses/missing/reviewers', admin, 'PUT', { reviewerIds: [] })).status).toBe(404);
+  });
+
+  it('US-A007-AC02 reviewer reads author content of a submitted course and sends verdicts', async () => {
+    await submitted();
+    const loaded = await request('/courses/c/content?view=author', reviewer);
+    expect(loaded.status).toBe(200);
+    const body = await loaded.json();
+    expect(body.view).toBe('author');
+    expect(body.sections[0].components[0].quiz.questions[0].answers[0].isCorrect).toBe(true);
+    expect(body.review.reviewers).toEqual({ total: 1, approved: 0, viewerVerdict: 'waiting' });
+    expect(body.review.history[0].action).toBe('submit');
+    const catalog = await (await request('/courses?view=author', reviewer)).json();
+    expect(catalog).toContainEqual(expect.objectContaining({ id: 'c', status: 'ready-for-review' }));
+    const blank = await act('request-changes', reviewer, '  ');
+    expect(blank.status).toBe(400);
+    expect(await blank.json()).toEqual({ message: 'Enter a comment before requesting changes.' });
+    const changes = await act('request-changes', reviewer, 'Explain the answer');
+    expect(changes.status).toBe(200);
+    expect((await changes.json()).review.reviewers.viewerVerdict).toBe('changes-requested');
+    expect((await state()).history.at(-1)).toMatchObject({ action: 'request-changes', actorId: reviewer.id, reason: 'Explain the answer' });
+    const approved = await act('approve', reviewer);
+    expect(approved.status).toBe(200);
+    expect((await approved.json()).review.reviewers).toEqual({ total: 1, approved: 1, viewerVerdict: 'approved' });
+    expect((await act('publish', admin)).status).toBe(200);
+  });
+  it('reviewer reads thumbnail and attachments', async () => {
+    const thumbnail = await assets.saveThumbnail({ courseId: 'c', contentType: 'image/png', fileName: 'thumbnail.png', binary: Buffer.from('image') });
+    await courses.updateCourseThumbnail('c', { thumbnailAssetId: thumbnail._id });
+    const attachment = await assets.saveComponentAttachment({ courseId: 'c', componentId: 'text', contentType: 'text/plain', fileName: 'notes.txt', binary: Buffer.from('review notes') });
+    await content.updateCourseContent('c', updateCourseContentSchema.parse({ sections: [{ id: 's', title: 'Resources', components: [
+      { id: 'text', title: 'Read me', type: 'text', content: 'Lesson', attachments: [{ id: 'att', assetId: attachment._id,
+        fileName: 'notes.txt', contentType: 'text/plain', sizeBytes: attachment.sizeBytes, createdAt: attachment.createdAt }] },
+      { id: 'video', title: 'Watch me', type: 'video', mux: { status: 'ready', playbackId: 'review-playback' } },
+    ] }] }).sections);
+    expect((await assign([reviewer.id])).status).toBe(200);
+    expect((await act('submit')).status).toBe(200);
+    const image = await request(`/courses/c/thumbnail?v=${thumbnail._id}`, reviewer);
+    expect(image.status).toBe(200); expect(await image.text()).toBe('image');
+    const file = await request(`/courses/c/content/attachments/${attachment._id}`, reviewer);
+    expect(file.status).toBe(200); expect(await file.text()).toBe('review notes');
+    const loaded = await (await request('/courses/c/content?view=author', reviewer)).json();
+    expect(loaded.sections[0].components[1].mux.playbackId).toBe('review-playback');
+  });
+  it('reviewer cannot author', async () => {
+    await submitted(); const before = await state();
+    expect((await request('/courses/c', reviewer, 'PATCH', metadata)).status).toBe(403);
+    expect((await request('/courses/c/content', reviewer, 'PATCH', { sections: [] })).status).toBe(403);
+    for (const action of ['submit', 'publish', 'return', 'archive', 'start-revision']) {
+      expect((await act(action, reviewer, 'Please clarify')).status).toBe(403);
+    }
+    expect((await request('/courses/c/price', reviewer, 'PATCH', { priceDkk: 100 })).status).toBe(403);
+    expect((await request('/courses/c/catalog-metadata', reviewer, 'PATCH', {})).status).toBe(403);
+    expect(await state()).toEqual(before);
+  });
+  it('unassigned teacher cannot read author view or give a verdict', async () => {
+    await submitted();
+    const other = await auth.createUser({ ...reviewer, id: 'unassigned', email: 'unassigned@example.test' });
+    expect((await request('/courses/c/content?view=author', other)).status).toBe(403);
+    expect((await act('approve', other)).status).toBe(403);
+    expect((await act('approve', admin)).status).toBe(403);
+  });
+  it('disabled reviewer cannot read; demoted reviewer loses access and still blocks publishing', async () => {
+    await submitted();
+    const course = (await courses.listCourses()).find(item => item.id === 'c')!;
+    expect(canReviewCourse(course, toAuthenticatedUser({ ...reviewer, status: 'disabled' }))).toBe(false);
+    await auth.updateStatus(reviewer.id, 'disabled');
+    expect((await request('/courses/c/content?view=author', reviewer)).status).toBe(401);
+    await auth.updateStatus(reviewer.id, 'active'); await auth.updateRole(reviewer.id, 'student');
+    expect((await request('/courses/c/content?view=author', reviewer)).status).toBe(403);
+    expect((await act('approve', reviewer)).status).toBe(403);
+    const blocked = await act('publish', admin);
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toEqual({ message: 'Waiting for 1 of 1 reviewers to approve this revision.' });
   });
 });
