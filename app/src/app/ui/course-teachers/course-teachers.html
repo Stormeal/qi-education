@@ -1,9 +1,9 @@
-<section class="course-teachers" aria-labelledby="course-teachers-title">
-  <h4 id="course-teachers-title">Teachers</h4>
-  <p class="course-teachers-hint">Assigned teachers can edit this course and submit it for review.</p>
+<section class="course-teachers" [attr.aria-labelledby]="'course-' + kind() + '-title'">
+  <h4 [id]="'course-' + kind() + '-title'">{{ copy().title }}</h4>
+  <p class="course-teachers-hint">{{ copy().hint }}</p>
 
   @if (loading()) {
-    <p role="status">Loading teachers...</p>
+    <p role="status">Loading {{ kind() }}...</p>
   } @else {
     @if (teachers().length) {
       <ul class="course-teachers-list">
@@ -20,13 +20,13 @@
         }
       </ul>
     } @else {
-      <p>No teachers yet. Only admins can edit this course.</p>
+      <p>{{ copy().none }}</p>
     }
 
     <form class="course-teachers-search" (submit)="search($event)">
-      <label for="course-teachers-query">Find a teacher by name or email</label>
+      <label [for]="'course-' + kind() + '-query'">{{ copy().find }}</label>
       <div class="course-teachers-search-row">
-        <input id="course-teachers-query" type="search" maxlength="100" [value]="query()"
+        <input [id]="'course-' + kind() + '-query'" type="search" maxlength="100" [value]="query()"
           (input)="query.set($any($event.target).value)" />
         <button appButton type="submit" [loading]="searching()" [disabled]="searching()">Search</button>
       </div>
@@ -46,10 +46,10 @@
         }
       </ul>
     } @else if (noMatch() && !searching()) {
-      <p>No active teachers match that search.</p>
+      <p>{{ copy().noMatch }}</p>
     }
   }
 
   @if (error()) { <p class="course-teachers-error" role="alert">{{ error() }}</p> }
-  <p class="course-teachers-status" role="status">{{ saving() ? 'Saving teachers...' : status() }}</p>
+  <p class="course-teachers-status" role="status">{{ saving() ? copy().saving : status() }}</p>
 </section>

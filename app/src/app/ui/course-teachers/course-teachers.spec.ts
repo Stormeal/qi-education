@@ -115,4 +115,57 @@ describe('US-A005 Teachers panel', () => {
 
     await vi.waitFor(() => expect(document.activeElement).toBe(button('Remove Cy Berg')));
   });
+
+  describe('US-A007 as the reviewers panel', () => {
+    beforeEach(() => {
+      Object.assign(courses, { loadCourseReviewers: vi.fn(), saveCourseReviewers: vi.fn() });
+    });
+
+    async function renderReviewers(reviewers: CourseTeacher[]) {
+      (courses as unknown as { loadCourseReviewers: ReturnType<typeof vi.fn> }).loadCourseReviewers.mockResolvedValue({ ok: true, reviewers });
+      const fixture = TestBed.createComponent(CourseTeachers);
+      fixture.componentRef.setInput('courseId', 'course-1');
+      fixture.componentRef.setInput('kind', 'reviewers');
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const host = fixture.nativeElement as HTMLElement;
+      const settle = async () => { fixture.detectChanges(); await fixture.whenStable(); fixture.detectChanges(); };
+      return { host, settle };
+    }
+
+    it('US-A007-AC01 offers active teachers and admins, not students, and shows a mail warning', async () => {
+      const save = (courses as unknown as { saveCourseReviewers: ReturnType<typeof vi.fn> }).saveCourseReviewers;
+      users.search.mockResolvedValue({ ok: true, body: { users: [account('R', 'Rikke Dam'), account('X', 'Xenia Bach', 'admin'),
+        account('S', 'Sune Krog', 'student'), account('D', 'Dorte Nis', 'teacher', 'disabled')], total: 4 } });
+      const rikke: CourseTeacher = { id: 'R', displayName: 'Rikke Dam', email: 'r@example.test', active: true };
+      save.mockResolvedValue({ ok: true, reviewers: [rikke], mailWarning: 'Reviewers were saved, but some emails could not be sent.' });
+      const { host, settle } = await renderReviewers([]);
+
+      expect(host.querySelector('h4')?.textContent).toBe('Reviewers');
+      expect(host.querySelector('input[type="search"]')?.id).toBe('course-reviewers-query');
+      expect(host.textContent).toContain('No reviewers.');
+      const field = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+      field.value = 'a';
+      field.dispatchEvent(new Event('input'));
+      host.querySelector('form')!.dispatchEvent(new Event('submit'));
+      await settle();
+      const results = host.querySelector('.course-teachers-results')!.textContent!;
+      expect(results).toContain('Rikke Dam');
+      expect(results).toContain('Xenia Bach');
+      expect(results).not.toContain('Sune Krog');
+      expect(results).not.toContain('Dorte Nis');
+
+      host.querySelector<HTMLButtonElement>('button[aria-label="Add Rikke Dam"]')!.click();
+      await settle();
+      expect(save).toHaveBeenCalledWith('course-1', ['R'], 'admin-token');
+      expect(host.querySelector('.course-teachers-status')?.textContent).toContain('some emails could not be sent');
+    });
+
+    it('US-A007 shows an inactive reviewer that still counts', async () => {
+      const { host } = await renderReviewers([{ id: 'D', displayName: 'Dorte Nis', email: 'd@example.test', active: false }]);
+      expect(host.textContent).toContain('Dorte Nis');
+      expect(host.textContent).toContain('Inactive');
+    });
+  });
 });

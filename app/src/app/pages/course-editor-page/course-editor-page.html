@@ -366,6 +366,7 @@
                 (action)="reviewAction.emit($event)" (reasonChanged)="reviewReasonChanged.emit($event)" />
               @if (canAccessAdmin() && courseFormMode() === 'edit' && editingCourse(); as course) {
                 <app-course-teachers [courseId]="course.id" />
+                <app-course-teachers [courseId]="course.id" kind="reviewers" />
               }
 
           </div>

@@ -5,7 +5,16 @@ import { CourseService, type CourseTeacher } from '../../services/course.service
 import { Button } from '../button/button';
 import { Chip } from '../chip/chip';
 
-/** US-A005: admins assign the teachers who may author a course. Each change saves at once. */
+const COPY = {
+  teachers: { title: 'Teachers', hint: 'Assigned teachers can edit this course and submit it for review.',
+    none: 'No teachers yet. Only admins can edit this course.', find: 'Find a teacher by name or email',
+    noMatch: 'No active teachers match that search.', saving: 'Saving teachers...', saved: 'Teachers saved' },
+  reviewers: { title: 'Reviewers', hint: 'Reviewers read the submitted course. It can be published once every reviewer has approved it.',
+    none: 'No reviewers. The course publishes without a review by colleagues.', find: 'Find a teacher or admin by name or email',
+    noMatch: 'No active teachers or admins match that search.', saving: 'Saving reviewers...', saved: 'Reviewers saved' },
+} as const;
+
+/** US-A005: admins assign the teachers who may author a course. US-A007: the same panel assigns its reviewers. Each change saves at once. */
 @Component({ selector: 'app-course-teachers', imports: [Button, Chip], changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './course-teachers.html', styleUrl: './course-teachers.scss' })
 export class CourseTeachers {
@@ -16,6 +25,8 @@ export class CourseTeachers {
   private readonly injector = inject(Injector);
 
   readonly courseId = input.required<string>();
+  readonly kind = input<'teachers' | 'reviewers'>('teachers');
+  protected readonly copy = computed(() => COPY[this.kind()]);
   protected readonly teachers = signal<CourseTeacher[]>([]);
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -25,7 +36,8 @@ export class CourseTeachers {
   protected readonly error = signal('');
   protected readonly status = signal('');
   private readonly found = signal<AdminUser[]>([]);
-  private readonly matches = computed(() => this.found().filter((user) => user.role === 'teacher' && user.status === 'active'));
+  private readonly matches = computed(() => this.found().filter((user) => user.status === 'active' &&
+    (user.role === 'teacher' || (this.kind() === 'reviewers' && user.role === 'admin'))));
   protected readonly results = computed(() => {
     const assigned = new Set(this.teachers().map((teacher) => teacher.id));
     return this.matches().filter((user) => !assigned.has(user.id));
@@ -75,10 +87,12 @@ export class CourseTeachers {
     this.loading.set(true);
     this.error.set('');
     this.status.set('');
-    const result = await this.courses.loadCourseTeachers(courseId, this.token());
+    const result = this.kind() === 'reviewers'
+      ? await this.courses.loadCourseReviewers(courseId, this.token())
+      : await this.courses.loadCourseTeachers(courseId, this.token());
     if (request !== this.request) return;
     this.loading.set(false);
-    if (result.ok) this.teachers.set(result.teachers);
+    if (result.ok) this.teachers.set('reviewers' in result ? result.reviewers : result.teachers);
     else this.error.set(result.message);
   }
 
@@ -87,15 +101,17 @@ export class CourseTeachers {
     this.saving.set(true);
     this.error.set('');
     this.status.set('');
-    const result = await this.courses.saveCourseTeachers(this.courseId(), teacherIds, this.token());
+    const result = this.kind() === 'reviewers'
+      ? await this.courses.saveCourseReviewers(this.courseId(), teacherIds, this.token())
+      : await this.courses.saveCourseTeachers(this.courseId(), teacherIds, this.token());
     if (request !== this.request) return false;
     this.saving.set(false);
     if (!result.ok) {
       this.error.set(result.message);
       return false;
     }
-    this.teachers.set(result.teachers);
-    this.status.set('Teachers saved');
+    this.teachers.set('reviewers' in result ? result.reviewers : result.teachers);
+    this.status.set('reviewers' in result && result.mailWarning ? result.mailWarning : this.copy().saved);
     return true;
   }
 
