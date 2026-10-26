@@ -108,12 +108,30 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect((await request(`/courses/${courseId}/price`, teacher, 'PATCH', { priceDkk: 100 })).status).toBe(403);
   });
 
-  it('3. the teacher submits; only an admin can publish', async () => {
+  it('3. the teacher submits and the revision stays frozen for review', async () => {
     expect((await act(teacher, 'submit')).status).toBe(200);
     expect((await act(teacher, 'publish')).status).toBe(403);
     expect((await save(teacher, `/courses/${courseId}/content`, { sections })).status).toBe(409);
     expect(await catalogIds()).not.toContain(courseId);
+  });
 
+  it('3a. US-A007-AC01/02/03 a reviewer approves before the admin publishes', async () => {
+    const assigned = await request(`/courses/${courseId}/reviewers`, admin, 'PUT', { reviewerIds: [otherTeacher.id] });
+    expect(assigned.status).toBe(200);
+    expect((await assigned.json()).reviewers).toEqual([{ id: otherTeacher.id, displayName: otherTeacher.displayName,
+      email: otherTeacher.email, active: true }]);
+    const before = await review(admin);
+    const blocked = await act(admin, 'publish');
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toEqual({ message: 'Waiting for 1 of 1 reviewers to approve this revision.' });
+    expect(await review(admin)).toEqual(before);
+    expect(await catalogIds()).not.toContain(courseId);
+    const preview = await request(`/courses/${courseId}/content?view=author`, otherTeacher);
+    expect(preview.status).toBe(200);
+    expect((await preview.json()).review.reviewers.viewerVerdict).toBe('waiting');
+    const approved = await act(otherTeacher, 'approve');
+    expect(approved.status).toBe(200);
+    expect((await approved.json()).review.reviewers).toEqual({ total: 1, approved: 1, viewerVerdict: 'approved' });
     expect((await act(admin, 'publish')).status).toBe(200);
     expect(await catalogIds()).toContain(courseId);
   });
