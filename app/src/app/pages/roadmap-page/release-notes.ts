@@ -9,6 +9,31 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.482',
+    date: '2026-10-26',
+    sections: [
+      {
+        title: 'New',
+        items: [
+          'The Feedback button now lets you choose between giving feedback, reporting a defect and requesting a change.',
+          'Admins can filter feedback by type, and defect reports show their steps and expected behaviour.',
+          'A quiz holds up to 50 questions and a lesson up to 50 files, and the editor says so when you reach the limit.',
+        ],
+      },
+      {
+        title: 'Fixed',
+        items: [
+          'An exercise gets its length in minutes from its intro video once the video is ready.',
+          'On a phone, the Save button in the course editor is no longer cut off.',
+          'On a phone, the career path setup steps fit on the screen.',
+          'Dialogs on the course page can be used with the keyboard alone and close with Escape.',
+          'Screen readers now say which lesson, chapter, career or invitation a button belongs to.',
+          'The server is better protected against unusual requests.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.468',
     date: '2026-10-25',
     sections: [
