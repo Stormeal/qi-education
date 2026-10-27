@@ -43,6 +43,7 @@ import { registerAdminUserRoutes } from './adminUsersRoutes.js';
 import { registerCourseLocksRoutes } from './courseLocksRoutes.js';
 import { registerCourseTeachersRoutes } from './courseTeachersRoutes.js';
 import { registerCourseReviewersRoutes } from './courseReviewersRoutes.js';
+import { registerTeachingRoutes } from './teachingRoutes.js';
 import {
   careerPathContentSchema,
   careerPathIdSchema,
@@ -635,6 +636,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerCourseReviewersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth,
     sender: mailSender, appUrl: apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200' });
   registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
+  registerTeachingRoutes(app, { authenticate: authenticateRequest(auth, 403), auth, courses, content: courseContent,
+    progress: learningProgress, feedback });
   registerOrganizationRoutes(app, authenticateRequest(auth), requireAdmin, organizations, clientLimit);
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
@@ -2120,7 +2123,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
-function authenticateRequest(authRepository: AuthRepository) {
+function authenticateRequest(authRepository: AuthRepository, disabledAccountStatus: 401 | 403 = 401) {
   return async (request: Request, response: Response, next: NextFunction) => {
     try {
       const authTokenSecret = apiConfig.AUTH_TOKEN_SECRET;
@@ -2150,7 +2153,8 @@ function authenticateRequest(authRepository: AuthRepository) {
       const user = await authRepository.findById(session.sub, { fresh: true });
 
       if (!user || user.status !== 'active') {
-        response.status(401).json({ message: 'Authentication required' });
+        response.status(user ? disabledAccountStatus : 401).json({ message: user && disabledAccountStatus === 403
+          ? 'Active teacher access is required.' : 'Authentication required' });
         return;
       }
 

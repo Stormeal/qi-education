@@ -2,6 +2,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { InMemoryLearningProgressRepository, MongoLearningProgressRepository } from './learningProgressRepository.js';
 
 describe('account completion storage boundaries', () => {
+  it('US-T016 bulk memory read selects only enrolled accounts on one course and returns snapshots', async () => {
+    const store = new InMemoryLearningProgressRepository();
+    await store.complete('enrolled', 'course', 'one');
+    await store.complete('author', 'course', 'two');
+    await store.complete('enrolled', 'other', 'three');
+    const rows = await store.listForCourse('course', ['enrolled', 'not-started']);
+    expect(rows).toEqual([expect.objectContaining({ userId: 'enrolled', courseId: 'course', completedIds: ['one'] })]);
+    rows[0].completedIds.push('forged');
+    expect((await store.get('enrolled', 'course'))?.completedIds).toEqual(['one']);
+    expect(await store.listForCourse('course', [])).toEqual([]);
+  });
+
+  it('US-T016 Mongo bulk read uses one course/enrolled-account query, including an empty enrollment shortcut', async () => {
+    const documents = [{ userId: 'enrolled', courseId: 'course', completedIds: ['one'] }];
+    const find = vi.fn().mockReturnValue({ toArray: async () => documents });
+    const repository = new MongoLearningProgressRepository(async () => ({ find }) as never);
+    expect(await repository.listForCourse('course', ['enrolled', 'second'])).toEqual(documents);
+    expect(find.mock.calls).toEqual([[{ courseId: 'course', userId: { $in: ['enrolled', 'second'] } }]]);
+    expect(await repository.listForCourse('course', [])).toEqual([]);
+    expect(find).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps account/course compound keys distinct and returns isolated snapshots', async () => {
     const store = new InMemoryLearningProgressRepository();
     await store.complete('a:b', 'c', 'one'); await store.complete('a', 'b:c', 'two');

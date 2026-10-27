@@ -23,7 +23,7 @@ import { ConfiguredMuxWebhookService } from './muxService.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
 
-type Permission = 'public' | 'signed-in' | 'admin';
+type Permission = 'public' | 'signed-in' | 'teacher' | 'admin';
 type Route = { method: string; path: string };
 type RouterLayer = {
   route?: { path: string | string[]; methods: Record<string, boolean> };
@@ -35,6 +35,7 @@ type RouterLayer = {
 // "signed-in" includes additional author/course-entitlement rules. Review actions
 // are signed-in because teachers can submit; publish itself also requires admin.
 const permissionTable: Record<string, Permission> = {
+  'GET /teaching/courses': 'teacher',
   'GET /reviews/mine': 'signed-in',
   'GET /users/me/organization': 'signed-in',
   'POST /users/me/organization-request': 'signed-in',
@@ -253,12 +254,12 @@ describe('X1 every registered route and /api alias', () => {
       expect(anonymous.status >= 200 && anonymous.status < 300, `${route.method} ${path} must not succeed without a token`).toBe(false);
       expect(anonymous.status, `${route.method} ${path}: anonymous must get 401`).toBe(401);
       const signedIn = await f.request(path, route.method, f.learnerA);
-      if (permission === 'admin') expect(signedIn.status, `${route.method} ${path}: student must get 403`).toBe(403);
+      if (permission === 'admin' || permission === 'teacher') expect(signedIn.status, `${route.method} ${path}: student must get 403`).toBe(403);
       else expect(signedIn.status, `${route.method} ${path}: a valid token must pass authentication`).not.toBe(401);
       // Express also serves HEAD using a GET handler unless HEAD is registered explicitly.
       if (route.method === 'GET') {
         expect((await f.request(path, 'HEAD')).status).toBe(401);
-        if (permission === 'admin') expect((await f.request(path, 'HEAD', f.learnerA)).status).toBe(403);
+        if (permission === 'admin' || permission === 'teacher') expect((await f.request(path, 'HEAD', f.learnerA)).status).toBe(403);
       }
     }
   });

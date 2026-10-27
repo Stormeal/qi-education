@@ -11,7 +11,7 @@ messages hold them.
 
 | Owner | Scope and files | State |
 | --- | --- | --- |
-| Codex | `GET /teaching/courses` in `api/src/**` ([handoff](handoffs/US-T016-codex.md)) | Not started |
+| Codex | `GET /teaching/courses` in `api/src/**` ([handoff](handoffs/US-T016-codex.md)) | API delivered locally in this commit, 2026-10-27, owner Codex, `main`, base `ba074e1` (includes `75ab1b7`). AC01–AC03: both paths, enrolled/current-lesson counts, final mean rounding, newest-five feedback, privacy and active-teacher access; bulk progress read in both repositories. Evidence: focused 254/254; full API 2,852/2,852 across 112 files with two workers; `npm run api:build` passed; review found no actionable issues. Initial default-worker run had three 5s timeouts (client-limit injectable policies; sign-in tests 03 and 05); affected files passed 44/44 independently before the green full rerun. Isolated memory/ephemeral ports only; Mongo query tested with a double, live Mongo not exercised. No push. Next: Claude's combined Home-card browser check and story/spec wrap-up. |
 | Claude | "Your teaching" Home card: `app/src/app/ui/teaching-overview/` (new), `services/course.service.ts` (`teachingOverview`), `app.models.ts`, `pages/dashboard-page/` | Built 2026-10-27: card, specs (app 572/572); browser on isolated servers shows the card's error state and Try again while the route is missing (404). Next: browser check with real data once Codex's route lands, then fold into `specs/learning/home-and-library.md` |
 
 US-L027 (certificate) and US-L028 (ratings) added as Proposed the same day; not started.

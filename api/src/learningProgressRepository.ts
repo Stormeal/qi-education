@@ -11,6 +11,7 @@ export type LearningProgressDocument = {
 };
 export interface LearningProgressRepository {
   list(userId: string): Promise<LearningProgressDocument[]>;
+  listForCourse(courseId: string, userIds: string[]): Promise<LearningProgressDocument[]>;
   get(userId: string, courseId: string): Promise<LearningProgressDocument | null>;
   complete(userId: string, courseId: string, componentId: string): Promise<void>;
   recordPass(userId: string, courseId: string, fingerprint: string): Promise<void>;
@@ -24,6 +25,10 @@ export class MongoLearningProgressRepository implements LearningProgressReposito
 
   async list(userId: string): Promise<LearningProgressDocument[]> {
     return (await this.collection()).find({ userId }).toArray();
+  }
+  async listForCourse(courseId: string, userIds: string[]): Promise<LearningProgressDocument[]> {
+    if (!userIds.length) return [];
+    return (await this.collection()).find({ courseId, userId: { $in: userIds } }).toArray();
   }
   async get(userId: string, courseId: string): Promise<LearningProgressDocument | null> {
     return (await this.collection()).findOne({ _id: key(userId, courseId), userId });
@@ -53,6 +58,10 @@ export class InMemoryLearningProgressRepository implements LearningProgressRepos
   private readonly documents = new Map<string, LearningProgressDocument>();
   async list(userId: string): Promise<LearningProgressDocument[]> {
     return structuredClone([...this.documents.values()].filter(document => document.userId === userId));
+  }
+  async listForCourse(courseId: string, userIds: string[]): Promise<LearningProgressDocument[]> {
+    const enrolled = new Set(userIds);
+    return structuredClone([...this.documents.values()].filter(document => document.courseId === courseId && enrolled.has(document.userId)));
   }
   async get(userId: string, courseId: string): Promise<LearningProgressDocument | null> {
     return structuredClone(this.documents.get(key(userId, courseId)) ?? null);
