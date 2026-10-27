@@ -37,7 +37,6 @@ budget, curriculum owner, backup developer.
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
-| US-T016 | Teacher overview on Home: own courses, learners, lesson feedback | Proposed; in progress 2026-10-27 | P2 | — | [stories/US-T016](stories/US-T016-teacher-overview.md) |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
 
@@ -72,36 +71,6 @@ Feature: Credible career milestone curation
     When I publish a material change to milestone criteria
     Then changed criteria use explicit requirement versions and an update explanation
     And historical evidence, goals and enrollments remain stored
-```
-
-### US-T016 — Teacher overview on Home
-
-**As a teacher, I want to see my courses, how my learners are doing and what they say about my
-lessons, so that I can improve a course without asking an admin.**
-
-State: Proposed (Claude after a site walk-through, added by Alex 2026-10-27); in progress
-2026-10-27. Today a teacher's Home is a learner's Home, and lesson feedback reaches only the admin
-inbox. Learners are shown only as counts; no names (employee data, US-P018-AC03). Contract and
-defaults to confirm: [stories/US-T016-teacher-overview.md](stories/US-T016-teacher-overview.md).
-
-```gherkin
-Feature: Teacher overview
-  Scenario: US-T016-AC01 See my courses with learner numbers
-    Given I am an assigned, active teacher of two courses
-    When I open Home
-    Then "Your teaching" lists both courses with status, enrolled, started and completed learners
-    And the average progress of the enrolled learners
-
-  Scenario: US-T016-AC02 See lesson feedback on my courses
-    Given learners sent lesson feedback on one of my courses
-    When I open Home
-    Then I see helpful, not helpful and problem counts for that course
-    And the newest feedback with lesson title, kind, category and message, without the learner's name
-
-  Scenario: US-T016-AC03 Only my courses
-    Given another teacher's course has learners and feedback
-    When I or a student ask for the teaching overview
-    Then that course is not included, and a student gets no overview
 ```
 
 ## Learner journey

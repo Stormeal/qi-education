@@ -1,6 +1,6 @@
 # US-T016 — Teacher overview, API part (Codex)
 
-Started 2026-10-27. Story contract: [stories/US-T016-teacher-overview.md](../stories/US-T016-teacher-overview.md).
+Started 2026-10-27, delivered the same day. The story contract is deleted (Git history, `b0aa9e9`); behavior in [home-and-library.md](../../specs/learning/home-and-library.md).
 Scenarios US-T016-AC01, AC02, AC03 (API side). Claude builds the Home card in `app/` at the same time.
 
 ## Scope (Codex owns)

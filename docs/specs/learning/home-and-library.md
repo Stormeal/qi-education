@@ -19,6 +19,16 @@ A signed-in learner sees where they are and what to do next, and finds every cou
   review panel; **Show all** lists the rest), **Organization requests** (pending; **Open all** opens
   Admin on Organizations) and **New feedback** (not yet triaged; **Open all** opens Admin on
   Feedback; read from the cached copy so Home spends no extra Google Sheets reads).
+- **Your teaching** (US-T016, 2026-10-27): an active teacher with at least one assigned course sees
+  it under "To review" and above the learning summary. Each course (every status, sorted by title)
+  links to its editor and shows its status, enrolled, started and completed learners and their
+  average progress ("No learners yet" without enrollments), and a fold-out "Lesson feedback: X
+  helpful, Y not helpful, Z problems" with the 5 newest items: kind, problem category in the
+  learner's wording, lesson title ("Removed lesson" when gone), date and message. Learners are
+  counts only; no name or email is sent. A failed load says so with **Try again**; the rest of Home
+  keeps working. Admins and students never see it. Percentages follow
+  [progress](progress.md) (current lessons only). Defaults set 2026-10-27, **confirm or change**
+  (Alex): counts not names, teachers only, every status listed, newest five items, placement.
 - **Confirm your email address**: while the account is unconfirmed, Home shows a notice naming
   the address, with **Send a new link** and the API's answer (US-L014). It disappears as soon as
   the link is opened in the same browser.
@@ -38,10 +48,15 @@ A signed-in learner sees where they are and what to do next, and finds every cou
 
 - App: `pages/dashboard-page/`, `pages/library-page/`, `routes/dashboard-route.ts`,
   `routes/library-route.ts`, `pages/progress-sync-notice.ts`, `services/learning-progress.service.ts`,
-  `services/career-path.service.ts`. Admin Home: `ui/admin-attention/`.
+  `services/career-path.service.ts`. Admin Home: `ui/admin-attention/`. Teacher Home:
+  `ui/teaching-overview/`, `CourseService.teachingOverview`.
 - API: `GET /users/me/learning-progress`, enrolled courses through `GET /auth/me` and `GET /courses`.
   Admin Home: `GET /admin/review-queue` (admin only), `GET /admin/organization-requests`, `GET /feedback`.
+  Teacher Home: `GET /teaching/courses` (`api/src/teachingRoutes.ts`; active teachers only, else 403;
+  `private, no-store`; one progress read per course through `listForCourse`).
 
 ## Limits
 
-- None known.
+- `GET /teaching/courses` reads every account and every feedback item on each call; fine at
+  internal scale, to be narrowed by query if the stores grow large. The Mongo progress query filters
+  on `courseId` and `userId` without an index (as `list` already does). Not verified on live MongoDB.

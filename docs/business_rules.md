@@ -91,6 +91,9 @@ The API enforces every rule here; the UI only mirrors them.
 
 - All active signed-in roles can give feedback, report defects and request changes. Identity comes
   from the session. Only admins read or triage the inbox; they explicitly choose GitHub work.
+- An active teacher also sees the lesson feedback (helpful, not helpful, problems) on the courses
+  they are assigned to, on Home, without the learner's name or email; triage stays with admins
+  (US-T016).
 - Sending confirms receipt for team review; it does not promise a reply or implementation date.
 - Runtime feedback uses MongoDB in shared/hosted mode; a storage outage never reports success in
   disposable memory. A maintenance freeze also prevents issue-creation side effects.

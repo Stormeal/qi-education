@@ -6,13 +6,18 @@ messages hold them.
 
 ## Active work
 
-**US-T016 teacher overview** (started 2026-10-27, base `ce0e9e6`; contract
-[stories/US-T016-teacher-overview.md](stories/US-T016-teacher-overview.md), defaults to confirm by Alex).
+No active work.
 
-| Owner | Scope and files | State |
-| --- | --- | --- |
-| Codex | `GET /teaching/courses` in `api/src/**` ([handoff](handoffs/US-T016-codex.md)) | API delivered locally in this commit, 2026-10-27, owner Codex, `main`, base `ba074e1` (includes `75ab1b7`). AC01–AC03: both paths, enrolled/current-lesson counts, final mean rounding, newest-five feedback, privacy and active-teacher access; bulk progress read in both repositories. Evidence: focused 254/254; full API 2,852/2,852 across 112 files with two workers; `npm run api:build` passed; review found no actionable issues. Initial default-worker run had three 5s timeouts (client-limit injectable policies; sign-in tests 03 and 05); affected files passed 44/44 independently before the green full rerun. Isolated memory/ephemeral ports only; Mongo query tested with a double, live Mongo not exercised. No push. Next: Claude's combined Home-card browser check and story/spec wrap-up. |
-| Claude | "Your teaching" Home card: `app/src/app/ui/teaching-overview/` (new), `services/course.service.ts` (`teachingOverview`), `app.models.ts`, `pages/dashboard-page/` | Built 2026-10-27: card, specs (app 572/572); browser on isolated servers shows the card's error state and Try again while the route is missing (404). Next: browser check with real data once Codex's route lands, then fold into `specs/learning/home-and-library.md` |
+Delivered locally 2026-10-27, not pushed: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
+Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
+[history/handoffs/US-T016-codex.md](history/handoffs/US-T016-codex.md)). Check routine by Claude: Codex kept
+to its files and the contract; its one shared change, an optional 403 for disabled accounts in
+`authenticateRequest`, defaults to 401 so other routes are unchanged. Checks: API 2,852/2,852, app
+572/572, journeys 20/20, Pages build (run one at a time; run side by side, both suites time out).
+Browser on isolated servers: a teacher's published course with one enrolled learner shows "1 enrolled,
+1 started, 0 completed", "Average progress 50%", "1 helpful, 1 not helpful, 1 problem" and the three
+items with lesson titles and no learner identity; student and admin get 403. Behavior in
+[specs/learning/home-and-library.md](specs/learning/home-and-library.md). Not verified: live MongoDB.
 
 US-L027 (certificate) and US-L028 (ratings) added as Proposed the same day; not started.
 
@@ -100,6 +105,7 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | Release 1 decisions for management | Hosting budget (about 450–700 DKK a month, needed by mid-November), curriculum owner, backup developer ([roadmap](https://claude.ai/artifact/M5vCXNJZqTWmxhFcWQLVCJ)) | Answers recorded under Releases in `user_stories.md` |
 | US-A004-AC04 curriculum review (release 1, Must) | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (release 2) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |
+| US-T016 defaults (built 2026-10-27) | Confirm or change: learners as counts not names, teachers only, every course status listed, newest five feedback items, placement under "To review" | Say so to Claude |
 | Defect pass decisions (built as defaults) | Confirm or change: course saves up to 4 MB (DEF-051); prices 0 = free, otherwise 3–999,999 DKK | Say so to Claude |
 | Dependency follow-ups (X7 report) | Decide what to schedule from [audits/2026-10-dependencies.md](audits/2026-10-dependencies.md): app audit has 3 critical and 21 high entries, mostly build and dev tooling (Angular CLI/build, `tar`, `piscina`), the critical ones fixed by Angular 22 or patch releases; root `concurrently`/`shell-quote` (critical, dev only); API Zod 4.6 (reverted, 163 test failures), Express 5.3 and the SOCKS/`ip-address` family (reverted) | A story or defect per item you want done |
 | Decisions | US-P003 (accept the account concurrency evidence; feedback durable triage live with US-A006 since 0.1.482), US-P001 (browser test runner); confirm the US-L001 and US-P005 defaults (recorded in `specs/catalog/course-details-and-enrollment.md` and `specs/platform/reliability.md`) | Decision recorded in the story or spec |
