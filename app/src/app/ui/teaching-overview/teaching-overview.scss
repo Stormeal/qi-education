@@ -1,0 +1,89 @@
+:host { display: block; }
+
+.to {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+}
+
+.to-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.to-list {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.to-course {
+  display: grid;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.to-course + .to-course { border-top: 1px solid var(--color-border); }
+
+.to-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.to-name {
+  min-width: 0;
+  color: var(--color-link);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.to-meta,
+.to-error {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+}
+
+.to-error { color: var(--color-danger); }
+
+.to-feedback summary {
+  color: var(--color-ink);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.to-feedback-list {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+  border-left: 2px solid var(--color-border);
+
+  li { display: grid; gap: 2px; }
+  li.is-problem .to-feedback-head { color: var(--color-danger); }
+}
+
+.to-feedback-head {
+  color: var(--color-ink);
+  font-size: var(--text-meta);
+  font-weight: 600;
+}
+
+.to-message {
+  color: var(--color-ink);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}

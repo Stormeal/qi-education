@@ -270,6 +270,16 @@ export type CourseReviewAction = 'start-revision' | 'submit' | 'return' | 'publi
 export type ReviewerVerdict = 'waiting' | 'approved' | 'changes-requested';
 /** US-A007: a course the signed-in account is asked to review. */
 export type MyReview = { courseId: string; title: string; status: CourseStatus; verdict: ReviewerVerdict };
+/** US-T016: one course of the signed-in teacher, learners as counts only (`GET /teaching/courses`). */
+export type TeachingCourse = {
+  courseId: string; title: string; status: CourseStatus;
+  enrolledLearners: number; startedLearners: number; completedLearners: number; averageProgress: number | null;
+  feedback: { helpful: number; notHelpful: number; problems: number };
+  recentFeedback: {
+    id: string; componentId: string; lessonTitle: string | null; kind: 'helpful' | 'not-helpful' | 'problem';
+    category: 'video' | 'content-error' | 'unclear' | 'files' | 'other' | null; message: string; createdAt: string;
+  }[];
+};
 export type CourseReviewState = {
   course: CourseListItem; version: number; revisionId: string | null;
   liveStatus: 'published' | 'archived' | null; editable: boolean;

@@ -1,0 +1,57 @@
+@if (error()) {
+  <section class="to" aria-labelledby="to-title">
+    <h2 id="to-title" class="to-title">Your teaching</h2>
+    <p class="to-error" role="alert">{{ error() }}</p>
+    <button appButton size="sm" (click)="load()">Try again</button>
+  </section>
+} @else if (courses(); as list) {
+  @if (list.length) {
+    <section class="to" aria-labelledby="to-title">
+      <h2 id="to-title" class="to-title">Your teaching</h2>
+      <ul class="to-list">
+        @for (course of list; track course.courseId) {
+          @let badge = status(course);
+          <li class="to-course">
+            <div class="to-head">
+              <a class="to-name" [routerLink]="['/courses', course.courseId, 'edit']">{{ course.title }}</a>
+              <span [appChip]="badge.chip">{{ badge.label }}</span>
+            </div>
+
+            @if (course.enrolledLearners) {
+              <p class="to-meta">
+                {{ course.enrolledLearners }} enrolled, {{ course.startedLearners }} started,
+                {{ course.completedLearners }} completed
+              </p>
+              <app-progress-bar size="sm" [value]="course.averageProgress ?? 0"
+                [label]="course.title + ' average progress'"
+                [valueText]="'Average progress ' + (course.averageProgress ?? 0) + '%'" />
+              <p class="to-meta">Average progress {{ course.averageProgress ?? 0 }}%</p>
+            } @else {
+              <p class="to-meta">No learners yet</p>
+            }
+
+            @if (course.recentFeedback.length) {
+              <details class="to-feedback">
+                <summary>
+                  Lesson feedback: {{ course.feedback.helpful }} helpful, {{ course.feedback.notHelpful }} not helpful,
+                  {{ course.feedback.problems }} {{ course.feedback.problems === 1 ? 'problem' : 'problems' }}
+                </summary>
+                <ul class="to-feedback-list">
+                  @for (item of course.recentFeedback; track item.id) {
+                    <li [class.is-problem]="item.kind === 'problem'">
+                      <span class="to-feedback-head">{{ feedbackLabel(item) }}</span>
+                      <span class="to-meta">{{ item.lessonTitle ?? 'Removed lesson' }} &middot; {{ item.createdAt | date: 'd MMM' }}</span>
+                      @if (item.message) { <span class="to-message">{{ item.message }}</span> }
+                    </li>
+                  }
+                </ul>
+              </details>
+            } @else {
+              <p class="to-meta">No lesson feedback yet</p>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}

@@ -12,7 +12,7 @@ messages hold them.
 | Owner | Scope and files | State |
 | --- | --- | --- |
 | Codex | `GET /teaching/courses` in `api/src/**` ([handoff](handoffs/US-T016-codex.md)) | Not started |
-| Claude | "Your teaching" Home card: `app/src/app/ui/teaching-overview/` (new), `services/teaching.service.ts` (new), `app.models.ts`, `pages/dashboard-page/` | In progress |
+| Claude | "Your teaching" Home card: `app/src/app/ui/teaching-overview/` (new), `services/course.service.ts` (`teachingOverview`), `app.models.ts`, `pages/dashboard-page/` | Built 2026-10-27: card, specs (app 572/572); browser on isolated servers shows the card's error state and Try again while the route is missing (404). Next: browser check with real data once Codex's route lands, then fold into `specs/learning/home-and-library.md` |
 
 US-L027 (certificate) and US-L028 (ratings) added as Proposed the same day; not started.
 

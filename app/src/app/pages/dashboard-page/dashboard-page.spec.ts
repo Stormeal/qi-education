@@ -82,6 +82,7 @@ describe('Home recommendation (US-L007)', () => {
     show([course('a', 'In progress', 1)]);
     const page = fixture.nativeElement as HTMLElement;
     expect(Boolean(page.querySelector('app-admin-attention'))).toBe(admin);
+    expect(Boolean(page.querySelector('app-teaching-overview'))).toBe(role === 'teacher');
     expect(Boolean(page.querySelector('.db-stats'))).toBe(!admin);
     expect(Boolean(page.querySelector('.db-actions-section'))).toBe(!admin);
     expect(page.querySelector('#actions')).not.toBeNull();

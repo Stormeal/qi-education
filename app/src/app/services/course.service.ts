@@ -12,6 +12,7 @@ import {
   CourseSection,
   LoginResponse,
   QuizAssessmentResult,
+  TeachingCourse,
 } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
@@ -149,6 +150,16 @@ export class CourseService {
   }
 
   /** Admin Home: courses waiting for review, newest first, including new versions of live courses. */
+  async teachingOverview(token: string): Promise<TeachingCourse[]> {
+    const { ok, body } = await this.apiClient.fetchJson<{ courses: TeachingCourse[] }>('/teaching/courses', {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!ok || !('courses' in body) || !Array.isArray(body.courses)) {
+      throw new Error('message' in body && body.message ? body.message : 'Unable to load your courses.');
+    }
+    return body.courses;
+  }
+
   async adminReviewQueue(token: string): Promise<ReviewQueueItem[]> {
     const { ok, body } = await this.apiClient.fetchJson<ReviewQueueItem[]>('/admin/review-queue', {
       headers: { authorization: `Bearer ${token}` },

@@ -36,6 +36,8 @@
 
   <app-my-reviews class="db-reviews" />
 
+  @if (isTeacher()) { <app-teaching-overview class="db-reviews" /> }
+
   @if (isAdmin()) {
     <!-- Admins do not enroll in courses, so their Home shows what waits for them instead. -->
     <app-admin-attention id="actions" />

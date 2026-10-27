@@ -7,13 +7,14 @@ import { LearningProgressService } from '../../services/learning-progress.servic
 import { PROGRESS_SYNC_NOTICE } from '../progress-sync-notice';
 import { AdminAttention } from '../../ui/admin-attention/admin-attention';
 import { MyReviews } from '../../ui/my-reviews/my-reviews';
+import { TeachingOverview } from '../../ui/teaching-overview/teaching-overview';
 import { Button } from '../../ui/button/button';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar],
+  imports: [AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar, TeachingOverview],
   templateUrl: './dashboard-page.html',
   styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +24,7 @@ export class DashboardPage {
   private readonly learningProgress = inject(LearningProgressService);
   protected readonly state = inject(AppStateService);
   protected readonly isAdmin = computed(() => this.state.loginState()?.user.role === 'admin');
+  protected readonly isTeacher = computed(() => this.state.loginState()?.user.role === 'teacher');
   protected readonly progressSyncNotice = computed(() => this.learningProgress.accountSyncState() === 'pending' ? PROGRESS_SYNC_NOTICE : '');
   readonly appVersion = input.required<string>();
   readonly currentYear = input.required<number>();
