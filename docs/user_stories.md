@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-23. Open work only. Priority order chosen by Alex: **teachers, learners,
+Updated: 2026-10-27. Open work only. Priority order chosen by Alex: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. What the app already does is
 in [specs/](specs/README.md); use [work_queue.md](work_queue.md) for the next item and active work.
 
@@ -37,6 +37,9 @@ budget, curriculum owner, backup developer.
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
+| US-T016 | Teacher overview on Home: own courses, learners, lesson feedback | Proposed; in progress 2026-10-27 | P2 | — | [stories/US-T016](stories/US-T016-teacher-overview.md) |
+| US-L027 | Course completion certificate | Proposed | P2 | — | Below |
+| US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -69,6 +72,97 @@ Feature: Credible career milestone curation
     When I publish a material change to milestone criteria
     Then changed criteria use explicit requirement versions and an update explanation
     And historical evidence, goals and enrollments remain stored
+```
+
+### US-T016 — Teacher overview on Home
+
+**As a teacher, I want to see my courses, how my learners are doing and what they say about my
+lessons, so that I can improve a course without asking an admin.**
+
+State: Proposed (Claude after a site walk-through, added by Alex 2026-10-27); in progress
+2026-10-27. Today a teacher's Home is a learner's Home, and lesson feedback reaches only the admin
+inbox. Learners are shown only as counts; no names (employee data, US-P018-AC03). Contract and
+defaults to confirm: [stories/US-T016-teacher-overview.md](stories/US-T016-teacher-overview.md).
+
+```gherkin
+Feature: Teacher overview
+  Scenario: US-T016-AC01 See my courses with learner numbers
+    Given I am an assigned, active teacher of two courses
+    When I open Home
+    Then "Your teaching" lists both courses with status, enrolled, started and completed learners
+    And the average progress of the enrolled learners
+
+  Scenario: US-T016-AC02 See lesson feedback on my courses
+    Given learners sent lesson feedback on one of my courses
+    When I open Home
+    Then I see helpful, not helpful and problem counts for that course
+    And the newest feedback with lesson title, kind, category and message, without the learner's name
+
+  Scenario: US-T016-AC03 Only my courses
+    Given another teacher's course has learners and feedback
+    When I or a student ask for the teaching overview
+    Then that course is not included, and a student gets no overview
+```
+
+## Learner journey
+
+### US-L027 — Course completion certificate
+
+**As a learner, I want a certificate when I complete a course, so that I can show my manager or
+put it on my CV.**
+
+State: Proposed (added by Alex 2026-10-27). Today nothing happens at 100%. Open decisions: what the
+certificate shows (default: learner name, course title, completion date, course length, teachers,
+a certificate ID), PDF or printable page (default: printable page with Save as PDF), and whether
+a public check link is needed (default: not in the first version).
+
+```gherkin
+Feature: Course completion certificate
+  Scenario: US-L027-AC01 Completing the last lesson
+    Given I am enrolled and complete the last lesson of a course
+    When the completion is saved
+    Then the learning page says the course is completed and offers my certificate
+
+  Scenario: US-L027-AC02 Finding certificates later
+    Given I completed courses earlier, on any device
+    When I open My Learning or my profile
+    Then each completed course offers its certificate with the date it was completed
+
+  Scenario: US-L027-AC03 Certificates are honest
+    Given a course gained a lesson after I completed it
+    When I open the certificate
+    Then it keeps its original completion date
+    And a learner who has not completed the course cannot get one
+```
+
+### US-L028 — Learner course ratings and reviews
+
+**As a learner, I want to rate a course and read others' ratings, so that I can choose good
+courses; as a teacher, I want to know what learners think.**
+
+State: Proposed (added by Alex 2026-10-27). Today the catalog shows "0.0, 0 ratings" from stored
+course fields ([browse spec](specs/catalog/browse.md)), so the stars, "Highest rated" sort,
+rating filter and "highly rated" instructors mean nothing. Open decisions: when a learner may rate
+(default: after completing at least one lesson), whether comments are shown publicly with the
+learner's name (default: first name only), and whether admins can hide a review (default: yes).
+
+```gherkin
+Feature: Course ratings
+  Scenario: US-L028-AC01 Rate a course
+    Given I am enrolled and completed at least one lesson
+    When I give the course 1 to 5 stars and an optional comment
+    Then my rating is saved, and sending again replaces it
+
+  Scenario: US-L028-AC02 Real averages in the catalog
+    Given a published course has learner ratings
+    When anyone browses the catalog or opens the course
+    Then the average and count come from those ratings
+    And the rating filter, "Highest rated" sort and instructor ratings use them
+
+  Scenario: US-L028-AC03 Who may rate
+    Given I am not enrolled, or have not started the course
+    When I try to rate it
+    Then the rating is refused and nothing is stored
 ```
 
 ## Platform reliability

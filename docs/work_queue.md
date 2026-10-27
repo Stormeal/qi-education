@@ -1,10 +1,20 @@
 # Work queue
 
-Updated: 2026-10-26. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-27. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
+
+**US-T016 teacher overview** (started 2026-10-27, base `ce0e9e6`; contract
+[stories/US-T016-teacher-overview.md](stories/US-T016-teacher-overview.md), defaults to confirm by Alex).
+
+| Owner | Scope and files | State |
+| --- | --- | --- |
+| Codex | `GET /teaching/courses` in `api/src/**` ([handoff](handoffs/US-T016-codex.md)) | Not started |
+| Claude | "Your teaching" Home card: `app/src/app/ui/teaching-overview/` (new), `services/teaching.service.ts` (new), `app.models.ts`, `pages/dashboard-page/` | In progress |
+
+US-L027 (certificate) and US-L028 (ratings) added as Proposed the same day; not started.
 
 Pushed 2026-10-26 as 0.1.503 (Vercel ready, Pages and CI green; hosted `/api/reviews/mine` and `/api/courses/:id/reviewers` answer 401 without sign-in): **US-A007 course reviewers** (release 1 Must). Codex Tasks 1–5
 (API, `67b563b`…`2286b01`, record [history/handoffs/US-A007-codex.md](history/handoffs/US-A007-codex.md)),
