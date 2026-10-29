@@ -4,7 +4,7 @@ import { lucideBell, lucideMenu, lucideMessageSquare, lucideSettings, lucideChev
   lucideChevronLeft, lucideChevronRight, lucideX, lucideUser, lucideMail, lucideLockKeyhole, lucideCompass,
   lucideLogOut, lucideShield, lucideBriefcase, lucideBookOpen, lucideCheck, lucidePlus, lucideArrowRight,
   lucideArrowLeft, lucideUpload, lucideDownload, lucideEye, lucideEyeOff, lucideExternalLink, lucideSearch,
-  lucideVideo, lucideTriangleAlert, lucideFileText, lucideAward } from '@ng-icons/lucide';
+  lucideVideo, lucideTriangleAlert, lucideFileText, lucideAward, lucideUsers } from '@ng-icons/lucide';
 
 const icons = { bell: lucideBell, menu: lucideMenu, message: lucideMessageSquare, settings: lucideSettings,
   chevronDown: lucideChevronDown, chevronUp: lucideChevronUp, chevronLeft: lucideChevronLeft, chevronRight: lucideChevronRight,
@@ -12,7 +12,7 @@ const icons = { bell: lucideBell, menu: lucideMenu, message: lucideMessageSquare
   logout: lucideLogOut, shield: lucideShield, briefcase: lucideBriefcase, book: lucideBookOpen, check: lucideCheck,
   plus: lucidePlus, arrowRight: lucideArrowRight, arrowLeft: lucideArrowLeft, upload: lucideUpload,
   download: lucideDownload, eye: lucideEye, eyeOff: lucideEyeOff, external: lucideExternalLink, search: lucideSearch,
-  video: lucideVideo, alert: lucideTriangleAlert, file: lucideFileText, award: lucideAward } as const;
+  video: lucideVideo, alert: lucideTriangleAlert, file: lucideFileText, award: lucideAward, users: lucideUsers } as const;
 export type IconName = keyof typeof icons;
 
 /** Trusted package SVGs only; no user-provided markup. Matches the existing builder renderer. */

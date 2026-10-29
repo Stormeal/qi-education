@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/icon/icon';
 import { CourseTeachers } from '../../ui/course-teachers/course-teachers';
 import { CourseReviewPanel } from '../../ui/course-review-panel/course-review-panel';
 import { CourseDraftStatus } from '../../ui/course-draft-status/course-draft-status';
@@ -23,7 +24,7 @@ import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 @Component({
   selector: 'app-course-editor-page',
-  imports: [CourseDraftStatus, CourseReviewPanel, CourseTeachers, Button, CourseBuilder, PageHeader, ProgressBar],
+  imports: [Icon, CourseDraftStatus, CourseReviewPanel, CourseTeachers, Button, CourseBuilder, PageHeader, ProgressBar],
   templateUrl: './course-editor-page.html',
   styleUrls: ['../../app.scss', './course-editor-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

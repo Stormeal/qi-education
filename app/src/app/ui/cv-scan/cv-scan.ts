@@ -1,3 +1,4 @@
+import { Icon } from '../icon/icon';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, output, signal } from '@angular/core';
 import { CareerPathService } from '../../services/career-path.service';
 import { CvReadResult, CvTextService } from '../../services/cv-text.service';
@@ -19,7 +20,7 @@ const READ_ERRORS: Record<Extract<CvReadResult, { ok: false }>['reason'], string
  */
 @Component({
   selector: 'app-cv-scan',
-  imports: [Button],
+  imports: [Icon, Button],
   templateUrl: './cv-scan.html',
   styleUrl: './cv-scan.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

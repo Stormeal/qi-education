@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/icon/icon';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Button } from '../../ui/button/button';
@@ -6,7 +7,7 @@ import { TurnstileChallenge } from '../../ui/turnstile-challenge/turnstile-chall
 
 @Component({
   selector: 'app-login-page',
-  imports: [Button, BrandLink, RouterLink, TurnstileChallenge],
+  imports: [Icon, Button, BrandLink, RouterLink, TurnstileChallenge],
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

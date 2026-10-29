@@ -83,7 +83,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.527';
+  readonly appVersion = '0.1.528';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -245,7 +245,7 @@ export class AppStateService {
 
   readonly isCoursesPage = computed(() => this.currentPath() === '/courses');
   readonly isLibraryPage = computed(() => this.currentPath() === '/library');
-  readonly isProfilePage = computed(() => this.currentPath() === '/profile');
+  readonly isProfilePage = computed(() => this.currentPath() === '/profile' || this.currentPath() === '/settings');
   readonly profileDirty = computed(() => this.serializeProfile() !== this.profileSnapshot());
   readonly profileMemberSince = computed(() => {
     const createdAt = this.loginState()?.user.createdAt;
@@ -3368,6 +3368,7 @@ export class AppStateService {
     }
     const path = this.currentPath();
     if (path === '/about') return 'About';
+    if (path === '/settings') return 'Settings';
     if (path === '/roadmap') return 'Roadmap';
     if (path.startsWith('/career-path')) return 'Career paths';
     if (path.startsWith('/organization')) return 'Organization';
@@ -3392,7 +3393,7 @@ export class AppStateService {
       withoutQuery === '/courses' ||
       withoutQuery === '/courses/new' ||
       withoutQuery === '/library' ||
-      withoutQuery === '/profile'
+      withoutQuery === '/profile' || withoutQuery === '/settings'
     ) {
       return withoutQuery;
     }

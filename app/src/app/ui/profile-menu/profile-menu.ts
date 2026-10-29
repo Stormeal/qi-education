@@ -1,9 +1,11 @@
+import { Icon } from '../icon/icon';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { HeaderIdentityService } from '../../services/header-identity.service';
 
 @Component({
   selector: 'app-profile-menu',
+  imports: [Icon],
   templateUrl: './profile-menu.html',
   styleUrl: './profile-menu.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

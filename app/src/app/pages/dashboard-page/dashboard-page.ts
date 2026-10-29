@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/icon/icon';
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { CourseSummary, FeedbackOption, StudentSummary } from '../../app.models';
 import { RouterLink } from '@angular/router';
@@ -14,7 +15,7 @@ import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar, TeachingOverview],
+  imports: [Icon, AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar, TeachingOverview],
   templateUrl: './dashboard-page.html',
   styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

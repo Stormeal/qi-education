@@ -1,3 +1,4 @@
+import { Icon } from '../../ui/icon/icon';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { lucideCheck, lucideChevronLeft, lucideChevronRight } from '@ng-icons/lucide';
@@ -34,7 +35,7 @@ const CAREER_WINDOW = 4;
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Button, CareerMap, CareerTree, CvScan, IconButton, PageHeader],
+  imports: [Icon, Button, CareerMap, CareerTree, CvScan, IconButton, PageHeader],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
