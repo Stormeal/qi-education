@@ -39,6 +39,7 @@ import {
 } from '../app.models';
 import { AuthService } from './auth.service';
 import { ApiClientService } from './api-client.service';
+import { NotificationService } from './notification.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { FeedbackComposerService } from './feedback-composer.service';
@@ -57,6 +58,8 @@ export class AppStateService {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly apiClient = inject(ApiClientService);
+  private readonly notifications = inject(NotificationService);
+  readonly unreadNotificationCount = this.notifications.unreadCount;
   private readonly courseService = inject(CourseService);
   readonly quizImageUrls = this.courseService.quizImageUrls;
   private readonly feedbackService = inject(FeedbackService);
@@ -79,7 +82,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.523';
+  readonly appVersion = '0.1.524';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -397,6 +400,8 @@ export class AppStateService {
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
   constructor() {
+    this.notifications.setSession(this.loginState()?.token ?? '');
+    effect(() => { const token = this.loginState()?.token ?? ''; untracked(() => this.notifications.setSession(token)); });
     effect(() => { const token = this.loginState()?.token ?? ''; untracked(() => this.feedbackComposer.setSession(token)); });
     effect(() => { const token = this.sessionToken(); untracked(() => void this.refreshOrganizationAccess(token)); });
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
@@ -550,6 +555,8 @@ export class AppStateService {
 
       const login = result.login;
       this.learningProgress.reset();
+      this.notifications.setSession(login.token);
+      void this.refreshUnreadNotifications(login.token);
       this.loginState.set({
         token: login.token,
         user: login.user,
@@ -663,6 +670,13 @@ export class AppStateService {
     if (this.courseEnrollmentError() === 'Confirm your email to enroll.') this.courseEnrollmentError.set('');
   }
 
+  private async refreshUnreadNotifications(token: string): Promise<void> {
+    try {
+      const result = await this.authService.restoreSession(token);
+      if (this.loginState()?.token === token && result) this.notifications.setUnreadCount(result.unreadNotifications ?? 0);
+    } catch { /* A notification outage does not interrupt sign-in. */ }
+  }
+
   async resendEmailConfirmation(): Promise<void> {
     const session = this.loginState();
     if (!session || this.emailConfirmationSending()) return;
@@ -745,6 +759,9 @@ export class AppStateService {
         this.loginError.set('Please log in again.');
         return;
       }
+
+      this.notifications.setSession(restoredSession.token);
+      this.notifications.setUnreadCount(restored.unreadNotifications ?? 0);
 
       // Nothing changed since the last visit: keep the session object, so loads already running stay valid.
       const same = (state: Pick<LoginState, 'user' | 'permissions'>) => JSON.stringify([state.user, state.permissions]);

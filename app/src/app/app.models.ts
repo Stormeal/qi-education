@@ -4,6 +4,7 @@ export type UserRole = 'student' | 'teacher' | 'admin';
 export type CoursePurchaseStatus = 'idle' | 'redirecting' | 'confirming' | 'paid' | 'unpaid' | 'unreachable' | 'cancelled';
 
 export type LoginResponse = {
+  unreadNotifications?: number;
   token: string;
   user: {
     id: string;
@@ -27,6 +28,13 @@ export type SignupRequest = {
   displayName: string;
   email: string;
   password: string;
+};
+
+export type NotificationItem = {
+  id: string; userId: string;
+  type: 'review-requested' | 'course-submitted' | 'review-changes-requested' | 'course-published' |
+    'org-invitation' | 'org-request-received' | 'org-request-approved' | 'org-request-declined' | 'org-member-joined';
+  title: string; link: string; createdAt: string; readAt: string | null;
 };
 
 export type LoginState = {
