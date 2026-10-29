@@ -1,5 +1,6 @@
 <a
   class="brand-link"
+  [class.brand-link-compact]="compact()"
   [class.brand-link-light]="appearance() === 'light'"
   [class.brand-link-large]="size() === 'large'"
   [routerLink]="href()"

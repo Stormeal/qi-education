@@ -3,6 +3,11 @@
   width: fit-content;
 }
 
+@media (max-width: 640px) {
+  .brand-link-compact { min-width: 0; gap: 6px; font-size: 17px; }
+  .brand-link-compact .brand-mark { width: 32px; height: 28px; }
+}
+
 .brand-link {
   display: inline-flex;
   align-items: center;

@@ -4,6 +4,38 @@ import { provideRouter } from '@angular/router';
 import { PageHeader } from './page-header';
 
 describe('PageHeader', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+  it('US-P019 B2 groups Notifications, labeled Feedback, Settings and the profile control', async () => {
+    TestBed.configureTestingModule({ imports: [PageHeader], providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(PageHeader);
+    for (const [key, value] of Object.entries({ displayName: 'Learner', email: 'learner@example.test', roleLabel: 'Student', unreadCount: 2 })) fixture.componentRef.setInput(key, value);
+    fixture.detectChanges();
+    const page = fixture.nativeElement as HTMLElement;
+    expect(page.querySelector('button[aria-label="Notifications"]')).not.toBeNull();
+    expect(page.querySelector('.notification-dot')).not.toBeNull();
+    expect(page.querySelector('a[aria-label="Settings"]')?.getAttribute('href')).toBe('/settings');
+    expect(page.querySelector('app-profile-menu')).not.toBeNull();
+    const feedback = Array.from(page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.trim() === 'Feedback')!;
+    const opened = vi.fn(); fixture.componentInstance.feedbackOpened.subscribe(opened);
+    feedback.click(); expect(opened).toHaveBeenCalled();
+  });
+  it('US-P019 B3 opens the compact navigation and returns focus on Escape', async () => {
+    TestBed.configureTestingModule({ imports: [PageHeader], providers: [provideRouter([])] });
+    const fixture = TestBed.createComponent(PageHeader);
+    for (const [key, value] of Object.entries({ displayName: 'Learner', email: 'learner@example.test', roleLabel: 'Teacher' })) fixture.componentRef.setInput(key, value);
+    fixture.detectChanges();
+    const page = fixture.nativeElement as HTMLElement;
+    document.body.append(page);
+    const trigger = page.querySelector<HTMLButtonElement>('button[aria-label="Open navigation"]')!;
+    trigger.click(); fixture.detectChanges();
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    const drawer = page.querySelector('#mobile-navigation')!;
+    for (const label of ['Home', 'About', 'Catalog', 'My Learning', 'Roadmap', 'Feedback', 'Settings']) expect(drawer.textContent).toContain(label);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); fixture.detectChanges();
+    expect(page.querySelector('#mobile-navigation')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    page.remove();
+  });
   it('uses the configured app base href for navbar CTA links', async () => {
     await TestBed.configureTestingModule({
       imports: [PageHeader],

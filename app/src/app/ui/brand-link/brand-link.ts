@@ -17,4 +17,5 @@ export class BrandLink {
   readonly ariaLabel = input('QI Academy home');
   readonly appearance = input<BrandLinkAppearance>('dark');
   readonly size = input<BrandLinkSize>('default');
+  readonly compact = input(false);
 }
