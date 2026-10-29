@@ -6,7 +6,8 @@ import {
   AccountProfileUnavailableError, MongoAccountProfileRepository, type AccountProfileCollection,
 } from './accountProfileRepository.js';
 
-const input = { bio: 'Bio', jobTitle: 'Title', company: 'Company', learningGoals: 'Goals', avatarColor: '#2f4f43' };
+const notificationPrefs = { reviewActivity: true, organization: true, adminInbox: true };
+const input = { bio: 'Bio', jobTitle: 'Title', company: 'Company', learningGoals: 'Goals', avatarColor: '#2f4f43', notificationPrefs };
 
 // Isolated document semantics at the driver's boundary; never connects to MongoDB.
 function memoryCollection() {
@@ -42,7 +43,7 @@ describe.each(['memory', 'mongo-adapter'])('US-L003 profile storage (%s)', kind 
     expect(first).toEqual({ _id: 'one', ...input, updatedAt: '2026-10-13T10:00:00.000Z' });
     await profiles.save('two', { ...input, bio: 'Second' });
     advance();
-    const replacement = { bio: '', jobTitle: 'New', company: '', learningGoals: 'New goal', avatarColor: '#FFFFFF' };
+    const replacement = { bio: '', jobTitle: 'New', company: '', learningGoals: 'New goal', avatarColor: '#FFFFFF', notificationPrefs };
     const saved = await profiles.save('one', replacement);
     expect(saved).toEqual({ _id: 'one', ...replacement, updatedAt: '2026-10-13T11:00:00.000Z' });
     expect(await profiles.get('one')).toEqual(saved);
@@ -52,7 +53,7 @@ describe.each(['memory', 'mongo-adapter'])('US-L003 profile storage (%s)', kind 
 
   it('AC09 retains a saved all-empty profile with its timestamp', async () => {
     const { profiles } = fixture();
-    const empty = { bio: '', jobTitle: '', company: '', learningGoals: '', avatarColor: '#2f4f43' };
+    const empty = { bio: '', jobTitle: '', company: '', learningGoals: '', avatarColor: '#2f4f43', notificationPrefs };
     await profiles.save('one', empty);
     expect(await profiles.get('one')).toEqual({ _id: 'one', ...empty, updatedAt: '2026-10-13T10:00:00.000Z' });
   });

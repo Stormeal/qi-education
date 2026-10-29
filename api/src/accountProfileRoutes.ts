@@ -27,6 +27,9 @@ export function registerAccountProfileRoutes(app: Express, dependencies: {
       return;
     }
     try {
+      if (request.body.notificationPrefs === undefined) {
+        parsed.data.notificationPrefs = accountProfileResponse(await profiles.get(owner(request))).notificationPrefs;
+      }
       const stored = await profiles.save(owner(request), parsed.data);
       response.json(accountProfileResponse(stored));
     } catch { unavailable(response); }

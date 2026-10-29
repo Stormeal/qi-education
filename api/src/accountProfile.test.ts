@@ -8,8 +8,9 @@ import { InMemoryAuthRepository } from './authRepository.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
 
-const original = { bio: 'Private bio', jobTitle: 'Tester', company: 'QI', learningGoals: 'Learn testing', avatarColor: '#aBc123' };
-const defaults = { bio: '', jobTitle: '', company: '', learningGoals: '', avatarColor: '#2f4f43', updatedAt: null };
+const notificationPrefs = { reviewActivity: true, organization: true, adminInbox: true };
+const original = { bio: 'Private bio', jobTitle: 'Tester', company: 'QI', learningGoals: 'Learn testing', avatarColor: '#aBc123', notificationPrefs };
+const defaults = { bio: '', jobTitle: '', company: '', learningGoals: '', avatarColor: '#2f4f43', updatedAt: null, notificationPrefs };
 const textLimits = [['bio', 280], ['jobTitle', 120], ['company', 120], ['learningGoals', 280]] as const;
 const fields = ['bio', 'jobTitle', 'company', 'learningGoals', 'avatarColor'] as const;
 
@@ -58,6 +59,20 @@ describe.each(['', '/api'])('US-L003 account profile HTTP (%s)', prefix => {
     expect(response.headers.get('vary')?.split(/,\s*/)).toContain('Authorization');
   }
 
+  it('US-P019 A1 defaults all groups, saves a muted group and preserves it for legacy profile edits', async () => {
+    expect((await (await request(student)).json()).notificationPrefs).toEqual({ reviewActivity: true, organization: true, adminInbox: true });
+    const saved = await request(student, 'PUT', { ...original, notificationPrefs: { organization: false } });
+    expect(saved.status).toBe(200);
+    expect((await saved.json()).notificationPrefs).toEqual({ reviewActivity: true, organization: false, adminInbox: true });
+    const legacy = { ...original, bio: 'Edited by the previous frontend' };
+    delete (legacy as Record<string, unknown>).notificationPrefs;
+    expect((await request(student, 'PUT', legacy)).status).toBe(200);
+    expect((await (await request(student)).json()).notificationPrefs.organization).toBe(false);
+    const invalid = await request(student, 'PUT', { ...original, notificationPrefs: { organization: 'false' } });
+    expect(invalid.status).toBe(400);
+    expect((await (await request(student)).json()).notificationPrefs.organization).toBe(false);
+  });
+
   it('AC03 returns exact never-saved defaults without creating a profile', async () => {
     const response = await request(student);
     expect(response.status).toBe(200);
@@ -87,7 +102,7 @@ describe.each(['', '/api'])('US-L003 account profile HTTP (%s)', prefix => {
     });
     expect(saved.status).toBe(200);
     const expected = { bio: 'New bio', jobTitle: 'New title', company: 'New company', learningGoals: 'New goal',
-      avatarColor: '#FFFFFF', updatedAt: '2026-10-13T10:01:00.000Z' };
+      avatarColor: '#FFFFFF', updatedAt: '2026-10-13T10:01:00.000Z', notificationPrefs };
     expect(await saved.json()).toEqual(expected);
     expect(await profiles.get(student.id)).toEqual({ _id: student.id, ...expected });
     expect(await profiles.get(teacher.id)).toBeNull();
