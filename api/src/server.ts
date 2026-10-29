@@ -1,4 +1,4 @@
-import { coursePriceMessage, courseReviewerIds } from './course.js';
+import { coursePriceMessage, courseReviewerIds, courseTeacherIds } from './course.js';
 import { sendReviewRequest } from './courseReviewerMail.js';
 import { logError } from './errorLogger.js';
 import { isMongoConnectionError } from './storageErrors.js';
@@ -73,6 +73,7 @@ import { createPaymentWebhookHandler, registerPaymentRoutes } from './paymentRou
 import { createTurnstileVerifier, type TurnstileVerifier } from './turnstileService.js';
 import { createNotificationRepository, type NotificationRepository } from './notificationRepository.js';
 import { registerNotificationRoutes } from './notificationRoutes.js';
+import { NotificationService, safelyNotify } from './notificationService.js';
 import { createAccountProfileRepository, type AccountProfileRepository } from './accountProfileRepository.js';
 import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
@@ -205,8 +206,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
   // repository. Apply the same freeze above that existing review projection.
   const courses = courseWriteFreeze(reviewedCourses, storedCourses.readOnly === true);
   const organizationStore = dependencies.organizationRepository ?? createOrganizationRepository();
+  const notificationService = new NotificationService({ repository: notifications, auth, profiles: accountProfiles, organizations: organizationStore });
   const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
-    careers: careerPaths, courses, options: dependencies.organizationOptions });
+    careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService });
   const withOrganizationCourses = async (user: AuthenticatedUser): Promise<AuthenticatedUser> => ({
     ...user,
     enrolledCourseIds: [...new Set([...user.enrolledCourseIds, ...await organizations.learnableOrgCourseIds(user.id)])],
@@ -643,7 +645,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     sender: mailSender, options: dependencies.passwordResetOptions, changes: userChanges, changeOptions: dependencies.userChangeOptions });
   registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
   registerCourseReviewersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth,
-    sender: mailSender, appUrl: apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200' });
+    sender: mailSender, appUrl: apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200', notifications: notificationService });
   registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
   registerTeachingRoutes(app, { authenticate: authenticateRequest(auth, 403), auth, courses, content: courseContent,
     progress: learningProgress, feedback });
@@ -1293,6 +1295,17 @@ export function createServer(dependencies: ServerDependencies = {}) {
         const input = reviewActionSchema.parse(request.body), user = (request as AuthenticatedRequest).user;
         await review.act(courseId, input, user);
         const state = await review.state(courseId, user);
+        const notificationLink = `/courses/${encodeURIComponent(courseId)}/edit`;
+        if (input.action === 'submit') {
+          await safelyNotify(() => notificationService.notifyAdmins({ type: 'course-submitted',
+            title: `Course submitted: ${state.course.title}`, link: notificationLink }));
+        }
+        if (['return', 'request-changes', 'publish'].includes(input.action)) {
+          const ownerId = state.course.ownerUserId ?? courseTeacherIds(state.course)[0];
+          if (ownerId) await safelyNotify(() => notificationService.notify({ recipientUserId: ownerId,
+            type: input.action === 'publish' ? 'course-published' : 'review-changes-requested',
+            title: `${input.action === 'publish' ? 'Course published' : 'Changes requested'}: ${state.course.title}`, link: notificationLink }));
+        }
         if (input.action === 'submit') {
           try {
             await Promise.all(courseReviewerIds(state.course).map(async id => {

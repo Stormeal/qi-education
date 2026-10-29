@@ -7,6 +7,7 @@ import type { CareerPathRepository } from './careerPathRepository.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { OrganizationRepository } from './organizationRepository.js';
 import { apiConfig } from './config.js';
+import { safelyNotify, type NotificationService } from './notificationService.js';
 import { resetTokenHash } from './passwordResetDelivery.js';
 import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema, inviteSchema,
   type OrgRequest, type MyOrganization, type StoredOrgRequest, type Organization, type StoredInvitation, type Invitation,
@@ -20,7 +21,8 @@ export class OrganizationService {
   private readonly sender: MailSender;
   private readonly now: () => number;
   constructor(private readonly dependencies: { repository: OrganizationRepository; auth: AuthRepository;
-    sender: MailSender; options?: OrganizationOptions; careers?: CareerPathRepository; courses?: CourseRepository }) {
+    sender: MailSender; options?: OrganizationOptions; careers?: CareerPathRepository; courses?: CourseRepository;
+    notifications?: NotificationService }) {
     this.repository = dependencies.repository; this.auth = dependencies.auth; this.sender = dependencies.sender;
     this.now = dependencies.options?.now ?? Date.now;
   }
@@ -49,6 +51,8 @@ export class OrganizationService {
     return this.requestView(value);
   }
   private async notifyAdmins(value: StoredOrgRequest) {
+    await safelyNotify(async () => this.dependencies.notifications?.notifyAdmins({ type: 'org-request-received',
+      title: `Organization requested: ${value.displayName}`, link: '/admin' }));
     for (const user of (await this.auth.listUsers({ fresh: true })).filter(v => v.role === 'admin' && v.status === 'active')) {
       await this.mail(user.email, `New organization request: ${value.displayName}`, `${value.displayName} has requested an organization. ${value.message}`);
     }
@@ -116,6 +120,9 @@ export class OrganizationService {
         throw new OrganizationError(409, 'Request is no longer pending');
       }
       await this.mail(user.email, `Organization request ${patch.state}`, reason ?? `Your organization ${request.displayName} is approved.`);
+      await safelyNotify(async () => this.dependencies.notifications?.notify({ recipientUserId: user.id,
+        type: patch.state === 'approved' ? 'org-request-approved' : 'org-request-declined',
+        title: `Organization request ${patch.state}: ${request.displayName}`, link: '/organization' }));
       return this.requestView({ ...request, ...patch });
     });
   }
@@ -178,6 +185,8 @@ export class OrganizationService {
     const { raw, ...token } = this.newInvitationToken();
     const invitation: StoredInvitation = { ...token, id: randomUUID(), orgId, email: input.email, state: 'not-sent', createdAt: new Date(this.now()).toISOString() };
     await this.repository.createInvitation(invitation);
+    if (user) await safelyNotify(async () => this.dependencies.notifications?.notify({ recipientUserId: user.id,
+      type: 'org-invitation', title: `Invitation to ${organization.displayName}. Check your email to join.`, link: '/organization' }));
     return this.sendInvitation(organization, invitation, raw);
   }
   async listInvitations(ownerId: string, orgId: string) {
@@ -244,6 +253,8 @@ export class OrganizationService {
     });
   }
   private async memberJoined(organization: Organization, user: User) {
+    await safelyNotify(async () => this.dependencies.notifications?.notifyOrgOwners(organization.id, {
+      type: 'org-member-joined', title: `${user.displayName} joined ${organization.displayName}`, link: '/organization' }));
     for (const member of (await this.repository.listMembers(organization.id)).filter(v => v.role === 'owner' && v.state === 'active')) {
       const owner = await this.auth.findById(member.userId, { fresh: true });
       if (owner?.status === 'active') await this.mail(owner.email, `Member joined ${organization.displayName}`, `${user.displayName} joined ${organization.displayName}.`);

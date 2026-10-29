@@ -14,6 +14,10 @@ export const TYPE_GROUP: Record<NotificationType, keyof NotificationPrefs> = {
 export type NotificationEvent = Omit<NewNotification, 'userId'>;
 const warn = () => console.warn('Notification delivery unavailable; the original action is preserved.');
 
+export async function safelyNotify(operation: () => Promise<unknown>): Promise<void> {
+  try { await operation(); } catch { warn(); }
+}
+
 export class NotificationService {
   constructor(private readonly dependencies: {
     repository: NotificationRepository; auth: AuthRepository; profiles: AccountProfileRepository;
