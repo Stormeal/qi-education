@@ -51,12 +51,15 @@ export type StudentSummary = {
 };
 
 export type UserProfileDetails = {
+  notificationPrefs?: NotificationPreferences;
   bio: string;
   jobTitle: string;
   company: string;
   learningGoals: string;
   avatarColor: string;
 };
+
+export type NotificationPreferences = { reviewActivity: boolean; organization: boolean; adminInbox: boolean };
 
 export type CourseSummary = {
   id: string;

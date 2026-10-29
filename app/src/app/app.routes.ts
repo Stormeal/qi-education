@@ -37,6 +37,10 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/profile-route').then((module) => module.ProfileRoute),
   },
   {
+    path: 'settings', data: { initialTab: 'notifications' },
+    loadComponent: () => import('./routes/profile-route').then(module => module.ProfileRoute),
+  },
+  {
     path: 'terms',
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
   },

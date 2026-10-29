@@ -326,3 +326,8 @@ h2.profile-label {
     transform: none;
   }
 }
+
+.notification-setting { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--color-border); cursor: pointer; }
+.notification-setting strong { display: block; color: var(--color-ink); font-size: var(--text-body); }
+.notification-setting small { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: var(--text-meta); line-height: 1.5; }
+.notification-setting input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--color-primary); cursor: pointer; }

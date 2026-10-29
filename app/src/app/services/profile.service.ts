@@ -1,8 +1,11 @@
 import { Injectable, inject } from '@angular/core';
-import { UserProfileDetails } from '../app.models';
+import { UserProfileDetails, type NotificationPreferences } from '../app.models';
 import { ApiClientService } from './api-client.service';
 
 const PROFILE_STORAGE_PREFIX = 'qiEducationProfile:';
+export function notificationPreferences(value?: Partial<NotificationPreferences> | null): NotificationPreferences {
+  return { reviewActivity: value?.reviewActivity !== false, organization: value?.organization !== false, adminInbox: value?.adminInbox !== false };
+}
 
 /** A course bought by this account (`GET /users/me/payments`). */
 export type CoursePurchase = { id: string; courseId: string; courseTitle: string; amountDkk: number; paidAt: string; refunded: boolean };
@@ -29,7 +32,8 @@ export class ProfileService {
       if (!response.ok || typeof body?.avatarColor !== 'string') return null;
       const text = (value: unknown) => (typeof value === 'string' ? value : '');
       return { bio: text(body.bio), jobTitle: text(body.jobTitle), company: text(body.company), learningGoals: text(body.learningGoals),
-        avatarColor: body.avatarColor, updatedAt: typeof body.updatedAt === 'string' ? body.updatedAt : null };
+        avatarColor: body.avatarColor, updatedAt: typeof body.updatedAt === 'string' ? body.updatedAt : null,
+        notificationPrefs: notificationPreferences(body.notificationPrefs) };
     } catch {
       return null;
     }
@@ -103,6 +107,7 @@ export class ProfileService {
         jobTitle: typeof parsed.jobTitle === 'string' ? parsed.jobTitle : '',
         company: typeof parsed.company === 'string' ? parsed.company : '',
         learningGoals: typeof parsed.learningGoals === 'string' ? parsed.learningGoals : '',
+        notificationPrefs: notificationPreferences(parsed.notificationPrefs),
         avatarColor:
           typeof parsed.avatarColor === 'string' && parsed.avatarColor
             ? parsed.avatarColor
@@ -128,6 +133,7 @@ export class ProfileService {
       company: '',
       learningGoals: '',
       avatarColor: DEFAULT_AVATAR_COLOR,
+      notificationPrefs: notificationPreferences(),
     };
   }
 

@@ -7,7 +7,8 @@ import { AppStateService } from './app-state.service';
 const reply = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
 const never = { bio: '', jobTitle: '', company: '', learningGoals: '', avatarColor: '#2f4f43', updatedAt: null };
 const onAccount = { bio: 'Tester since 2019', jobTitle: 'QA engineer', company: 'Nordic Test', learningGoals: 'ISTQB Advanced', avatarColor: '#7a4b2a', updatedAt: '2026-10-13T08:00:00.000Z' };
-const onDevice: UserProfileDetails = { bio: 'Old bio', jobTitle: 'Tester', company: '', learningGoals: 'Automation', avatarColor: '#2f4f43' };
+const notificationPrefs = { reviewActivity: true, organization: true, adminInbox: true };
+const onDevice: UserProfileDetails = { bio: 'Old bio', jobTitle: 'Tester', company: '', learningGoals: 'Automation', avatarColor: '#2f4f43', notificationPrefs };
 
 describe('US-L003 profile details on the account', () => {
   const login = (id = 'u1') => ({ token: `token-${id}`, user: { id, role: 'student' as const, email: `${id}@example.test`, displayName: 'U One',
@@ -54,7 +55,7 @@ describe('US-L003 profile details on the account', () => {
     await state.saveProfile();
     expect(puts()).toHaveLength(1);
     expect(puts()[0].authorization).toBe('Bearer token-u1');
-    expect(puts()[0].body).toEqual({ bio: '', jobTitle: 'Test lead', company: '', learningGoals: '', avatarColor: '#2f4f43' });
+    expect(puts()[0].body).toEqual({ bio: '', jobTitle: 'Test lead', company: '', learningGoals: '', avatarColor: '#2f4f43', notificationPrefs });
     expect(state.profileSaved()).toBe(true);
     expect(state.profileDirty()).toBe(false);
   });

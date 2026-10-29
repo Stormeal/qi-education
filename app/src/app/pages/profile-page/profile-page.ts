@@ -1,8 +1,8 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { CoursePurchase, ProfileService } from '../../services/profile.service';
-import { FeedbackOption } from '../../app.models';
+import { FeedbackOption, type NotificationPreferences } from '../../app.models';
 import { Button } from '../../ui/button/button';
 import { Chip } from '../../ui/chip/chip';
 import { PageHeader } from '../../ui/page-header/page-header';
@@ -37,6 +37,14 @@ export class ProfilePage {
   readonly profileSaved = input.required<boolean>();
   readonly bioPublic = input(false);
   readonly authToken = input('');
+  readonly initialTab = input('details');
+  readonly notificationPrefs = input<NotificationPreferences>({ reviewActivity: true, organization: true, adminInbox: true });
+  readonly notificationPrefsChanged = output<NotificationPreferences>();
+  protected readonly notificationGroups = computed(() => [
+    { key: 'organization' as const, label: 'Organization', description: 'Invitations, request decisions and people joining your team.' },
+    ...(this.roleLabel() !== 'Student' ? [{ key: 'reviewActivity' as const, label: 'Review activity', description: 'Review requests, submissions, requested changes and publication.' }] : []),
+    ...(this.canAccessAdmin() ? [{ key: 'adminInbox' as const, label: 'Admin inbox', description: 'New and resubmitted organization requests.' }] : []),
+  ]);
   readonly saveError = input('');
   readonly profileDirty = input.required<boolean>();
   readonly isFeedbackOpen = input.required<boolean>();
@@ -74,8 +82,14 @@ export class ProfilePage {
     { id: 'details', label: 'Profile' },
     { id: 'password', label: 'Password' },
     { id: 'purchases', label: 'Purchases' },
+    { id: 'notifications', label: 'Notifications' },
   ];
   protected readonly activeTab = signal('details');
+  constructor() { effect(() => this.activeTab.set(this.initialTab())); }
+  protected changePreference(key: keyof NotificationPreferences, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.notificationPrefsChanged.emit({ ...this.notificationPrefs(), [key]: checked });
+  }
 
   protected selectTab(id: string): void {
     this.activeTab.set(id);

@@ -67,6 +67,7 @@ export class ProfileMenu {
   protected selectSettings(): void {
     this.settingsSelected.emit();
     this.closeMenu();
+    void this.router.navigateByUrl('/settings');
   }
 
   protected selectCareerPath(): void {

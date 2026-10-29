@@ -36,6 +36,22 @@
 
   <div class="profile-panel" role="tabpanel" [id]="tabPanelId('profile', activeTab())" [attr.aria-labelledby]="tabId('profile', activeTab())">
     @switch (activeTab()) {
+      @case ('notifications') {
+        <form class="profile-card" (submit)="onSubmit($event)">
+          <h2>Notifications</h2>
+          <p class="profile-section-hint">Choose the activity that appears in your notification bell.</p>
+          @for (group of notificationGroups(); track group.key) {
+            <label class="notification-setting">
+              <span><strong>{{ group.label }}</strong><small>{{ group.description }}</small></span>
+              <input type="checkbox" [checked]="notificationPrefs()[group.key]" (change)="changePreference(group.key, $event)" />
+            </label>
+          }
+          <div class="profile-actions">
+            <p class="profile-save-state" role="status">{{ saveError() || (profileSaved() ? 'Preferences saved.' : '') }}</p>
+            <button appButton="primary" type="submit" [disabled]="profileSaving() || !profileDirty()">{{ profileSaving() ? 'Saving...' : 'Save preferences' }}</button>
+          </div>
+        </form>
+      }
       @case ('details') {
         <form class="profile-card" (submit)="onSubmit($event)">
           <fieldset class="profile-section profile-section-color">

@@ -43,7 +43,8 @@ import { NotificationService } from './notification.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { FeedbackComposerService } from './feedback-composer.service';
-import { DEFAULT_AVATAR_COLOR, ProfileService } from './profile.service';
+import { DEFAULT_AVATAR_COLOR, ProfileService, notificationPreferences } from './profile.service';
+import type { NotificationPreferences } from '../app.models';
 import { InstructorProfileService } from './instructor-profile.service';
 import { SessionService } from './session.service';
 import { CareerPathService } from './career-path.service';
@@ -82,7 +83,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.526';
+  readonly appVersion = '0.1.527';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -121,6 +122,7 @@ export class AppStateService {
   readonly profileBioPublic = computed(() => ['teacher', 'admin'].includes(this.loginState()?.user.role ?? ''));
   readonly canSeeRoadmap = this.profileBioPublic;
   private readonly profileSnapshot = signal('');
+  readonly profileNotificationPrefs = signal(notificationPreferences());
   private profileSavedTimeout: ReturnType<typeof setTimeout> | null = null;
   readonly avatarColorOptions: readonly string[] = [
     '#2f4f43',
@@ -731,6 +733,7 @@ export class AppStateService {
     this.profileCompany.set('');
     this.profileLearningGoals.set('');
     this.profileAvatarColor.set(DEFAULT_AVATAR_COLOR);
+    this.profileNotificationPrefs.set(notificationPreferences());
     this.profileSnapshot.set('');
     this.profileSaved.set(false);
     this.emailConfirmedHere.set(false);
@@ -879,6 +882,7 @@ export class AppStateService {
       company: this.profileCompany().trim(),
       learningGoals: this.profileLearningGoals().trim(),
       avatarColor: this.profileAvatarColor(),
+      notificationPrefs: this.profileNotificationPrefs(),
     };
 
     try {
@@ -908,6 +912,7 @@ export class AppStateService {
     this.profileCompany.set(profile.company);
     this.profileLearningGoals.set(profile.learningGoals);
     this.profileAvatarColor.set(profile.avatarColor);
+    this.profileNotificationPrefs.set(notificationPreferences(profile.notificationPrefs));
     this.profileSnapshot.set(this.serializeProfile());
     this.profileSaved.set(false);
     this.profileError.set('');
@@ -928,6 +933,7 @@ export class AppStateService {
       this.profileCompany.set(account.company);
       this.profileLearningGoals.set(account.learningGoals);
       this.profileAvatarColor.set(account.avatarColor);
+      this.profileNotificationPrefs.set(notificationPreferences(account.notificationPrefs));
       this.profileSnapshot.set(this.serializeProfile());
       this.profileService.saveProfile(userId, { ...account, bio: this.profileBio() });
     });
@@ -943,13 +949,19 @@ export class AppStateService {
   }
 
   private serializeProfile(details?: UserProfileDetails): string {
-    return JSON.stringify(details ?? {
+    const profile = details ?? {
       bio: this.profileBio().trim(),
       jobTitle: this.profileJobTitle().trim(),
       company: this.profileCompany().trim(),
       learningGoals: this.profileLearningGoals().trim(),
       avatarColor: this.profileAvatarColor(),
-    });
+      notificationPrefs: this.profileNotificationPrefs(),
+    };
+    return JSON.stringify({ ...profile, notificationPrefs: notificationPreferences(profile.notificationPrefs) });
+  }
+
+  updateNotificationPrefs(value: NotificationPreferences): void {
+    this.profileNotificationPrefs.set({ ...value }); this.profileSaved.set(false);
   }
 
   private showProfileSaved(): void {
