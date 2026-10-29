@@ -145,6 +145,23 @@ expiry sweep.
 
 ## Testing
 
+### Backend delivery (Codex, 2026-10-29)
+
+API Tasks 1–4 are implemented on `main` (`5c92bb8`, `3fffe4a`, `1390473`, `083edf6`).
+Frontend Tasks 5–7 and browser verification remain open; keep this contract until those ship.
+
+| Contract area | Regression evidence |
+| --- | --- |
+| API-01 verifier/config/isolation | `turnstileService.test.ts` (12 tests) |
+| API-02 signup aliases, validation and budget order | `signupHardeningRoutes.test.ts` |
+| API-03 public key/config, no secret | `signupHardeningRoutes.test.ts` |
+| API-04 free/paid gate and exceptions | `enrollmentConfirmation.test.ts`, updated email-confirmation test |
+
+Each new behavior was observed failing before implementation. API: 2,878/2,878; release journeys:
+20/20; API build passed. No shared-service mutations. Optional provider `remoteip` is omitted;
+verification has a ten-second timeout and a 2,048-character token limit. Already-held enrollment
+remains idempotent. Live Turnstile and combined frontend/API behavior remain unverified.
+
 - Isolated/test mode uses `NullTurnstileVerifier` (always pass); tests inject a stub returning
   `false`/`true` to assert reject/pass — no network mocking.
 - API (`api/src/**`): signup with configured verifier + missing/invalid token → `400

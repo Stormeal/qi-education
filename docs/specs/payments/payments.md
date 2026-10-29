@@ -13,6 +13,9 @@ payment pages; the API keeps the record of who paid for what.
 - **Buy** sends the learner to Stripe Checkout (`POST /users/me/courses/:id/checkout`, body
   `{ returnUrl }`). The price is read on the server when the session is created. Stripe returns to
   the course page with `?payment=success&session_id=…` or `?payment=cancelled`.
+- An unconfirmed account cannot start a new checkout (403 `email-not-confirmed`, before creating
+  a provider session; US-P020 API). Legacy accounts without the flag pass. Paid returns and
+  webhooks still record the purchase and enroll: confirmation is never checked after payment.
 - On return the page removes those parameters from the address and calls
   `POST /users/me/courses/:id/checkout/confirm` with the session id. The API asks Stripe whether it
   is paid. The page then shows one of: "Payment received. The course is in My Learning." with

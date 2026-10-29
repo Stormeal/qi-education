@@ -1,20 +1,24 @@
 # Work queue
 
-Updated: 2026-10-27. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-29. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
 
-**US-P020 and US-P019 API implementation** (started 2026-10-29, owner Codex).
-Branch `main`, base `a5afe5f`. Codex owns `api/src/**`, API specs/tests and handoff;
-Claude owns the frontend in both contracts. Version files are shared and bumped at commit.
+**US-P020 and US-P019 — API delivered locally; frontend pending** (2026-10-29).
+Branch `main`, base `a5afe5f`. Codex completed API scope; Claude owns the pending frontend.
 Contracts: [US-P020](stories/US-P020-signup-hardening.md),
-[US-P019](stories/US-P019-header-notifications-settings.md); execute US-P020 Tasks 1–4,
-then US-P019 A1–A6. US-P020 API complete: 2,878 API tests, 20 journeys and API build pass;
-frontend/browser checks remain. Next: US-P019 notification preferences and repositories.
-Defaults retained: no Turnstile keys means signup stays open; grandfathered accounts pass;
-notification list capped at 50 without deletion. No shared-service mutation probes or push.
+[US-P019](stories/US-P019-header-notifications-settings.md). US-P020 Tasks 1–4: `5c92bb8`…`083edf6`;
+US-P019 A1–A6: `d1b9667`…`c3e2051`. API 2,908/2,908, app 572/572, journeys 20/20,
+API and Pages builds pass (0.1.520);
+independent read-only review found no issues. A sign-in timeout in a full run passed on full rerun.
+Full evidence and decisions: [Codex handoff](history/handoffs/US-P019-US-P020-codex.md).
+Next: Claude implements US-P020 Tasks 5–7 (widget/config and confirm-to-enroll UX), then US-P019
+B–D (header/Lucide, bell and settings); complete browser evidence before closing either story.
+No shared-service mutation probes, push or deployment. Missing keys keep signup open; legacy
+accounts pass; notification reads cap at 50 without deletion. Feedback notification type/recipients
+remain undefined in the design and need a contract before implementation.
 
 Delivered locally 2026-10-27, not pushed: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
 Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
@@ -125,6 +129,11 @@ Release 1 (internal, mid-December 2026) comes first; see Releases in
 as they arrive.
 
 ## Open release checks
+
+- US-P020 / US-P019 API (built locally 2026-10-29): after frontend delivery and an authorized push,
+  configure both hosted Turnstile keys and exercise real signup/confirmation/free and paid
+  acquisition; check Mongo notifications/indexes, all recipients, muted preferences and read state
+  across devices. No shared mutations or combined browser checks were performed during API work.
 
 - US-A007 course reviewers, after the next push: as admin assign a second real account as reviewer
   on a submitted course; it receives the email (link opens the course), Publish stays disabled until

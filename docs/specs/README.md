@@ -18,7 +18,7 @@ How the code is put together is in [architecture.md](../architecture.md).
 | [learning/](learning/) | [home-and-library](learning/home-and-library.md), [learning-page](learning/learning-page.md), [progress](learning/progress.md) | Home dashboard, My Learning, the learning page, notes, lesson feedback, completion and quiz attempts |
 | [career-paths/](career-paths/) | [careers](career-paths/careers.md), [milestones-and-achievements](career-paths/milestones-and-achievements.md), [curation](career-paths/curation.md) | Following careers, focus, the milestone tree, declarations, unlocks, Home guidance, the admin career editor |
 | [admin/](admin/) | [users](admin/users.md), [feedback](admin/feedback.md) | User search, roles, status, admin reset, change log, site and lesson feedback, GitHub triage |
-| [platform/](platform/) | [storage-and-run-modes](platform/storage-and-run-modes.md), [reliability](platform/reliability.md), [deployment-and-checks](platform/deployment-and-checks.md), [ui-foundation](platform/ui-foundation.md) | Stores, isolated/shared/hosted modes, health, doctor, migration scripts, locks, retries, caching, CI, Pages, Vercel, version hook, shared UI components and design values |
+| [platform/](platform/) | [storage-and-run-modes](platform/storage-and-run-modes.md), [reliability](platform/reliability.md), [deployment-and-checks](platform/deployment-and-checks.md), [ui-foundation](platform/ui-foundation.md), [notifications](platform/notifications.md) | Stores, isolated/shared/hosted modes, health, doctor, migration scripts, locks, retries, caching, CI, Pages, Vercel, version hook, shared UI components and design values |
 
 ## Writing a spec file
 

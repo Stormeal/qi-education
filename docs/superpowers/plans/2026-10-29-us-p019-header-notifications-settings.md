@@ -1,6 +1,6 @@
 # US-P019 Header, Notifications & Settings Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Redesign the top-right header into a claude.ai-style cluster (bell · Feedback · gear · avatar), back the bell with a real in-app notifications subsystem, and add a `/settings` Notifications tab.
 
@@ -40,11 +40,11 @@
 **Interfaces:**
 - Produces: `accountProfileSchema` gains `notificationPrefs: z.object({ reviewActivity: z.boolean(), organization: z.boolean(), adminInbox: z.boolean() }).default({ reviewActivity:true, organization:true, adminInbox:true })`. Default/never-saved profile returns all three `true`.
 
-- [ ] **Step 1:** Failing test — a never-saved profile returns `notificationPrefs` all `true`; `PUT` persisting `{organization:false}` round-trips.
-- [ ] **Step 2:** Run the accountProfile test — FAIL.
-- [ ] **Step 3:** Add the field + default to `accountProfileSchema` and the empty-profile constant.
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing test — a never-saved profile returns `notificationPrefs` all `true`; `PUT` persisting `{organization:false}` round-trips.
+- [x] **Step 2:** Run the accountProfile test — FAIL.
+- [x] **Step 3:** Add the field + default to `accountProfileSchema` and the empty-profile constant.
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task A2: Notification repository + type
 
@@ -53,11 +53,11 @@
 **Interfaces:**
 - Produces: `type Notification = { id: string; userId: string; type: NotificationType; title: string; link: string; createdAt: string; readAt: string | null }`; `type NotificationType = 'review-requested'|'course-submitted'|'review-changes-requested'|'course-published'|'org-invitation'|'org-request-received'|'org-request-approved'|'org-request-declined'|'org-member-joined'`; `interface NotificationRepository { create(n: Omit<Notification,'id'|'createdAt'|'readAt'>): Promise<Notification>; listForUser(userId: string, limit?: number): Promise<Notification[]>; markRead(id: string, userId: string): Promise<boolean>; markAllRead(userId: string): Promise<void>; countUnread(userId: string): Promise<number> }`; `InMemoryNotificationRepository`, `MongoNotificationRepository`, `createNotificationRepository()`.
 
-- [ ] **Step 1:** Failing tests (InMemory) — `create` then `listForUser` returns newest-first capped at 50; `countUnread` counts `readAt==null`; `markRead(id, otherUserId)` returns `false` and leaves the row unread; `markAllRead` zeroes the caller's unread only.
-- [ ] **Step 2:** Run `npm --prefix api test -- src/notificationRepository.test.ts` — FAIL.
-- [ ] **Step 3:** Implement the type, in-memory repo, Mongo repo (follow an existing `*Repository.ts`), and `createNotificationRepository()` (in-memory when `mode==='isolated'`).
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests (InMemory) — `create` then `listForUser` returns newest-first capped at 50; `countUnread` counts `readAt==null`; `markRead(id, otherUserId)` returns `false` and leaves the row unread; `markAllRead` zeroes the caller's unread only.
+- [x] **Step 2:** Run `npm --prefix api test -- src/notificationRepository.test.ts` — FAIL.
+- [x] **Step 3:** Implement the type, in-memory repo, Mongo repo (follow an existing `*Repository.ts`), and `createNotificationRepository()` (in-memory when `mode==='isolated'`).
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task A3: NotificationService (create, fan-out, prefs/role gate)
 
@@ -67,11 +67,11 @@
 - Consumes: `NotificationRepository` (A2), `AuthRepository`, `AccountProfileRepository` (A1 prefs).
 - Produces: `NotificationService` with `notify(input: { recipientUserId: string; type: NotificationType; title: string; link: string }): Promise<void>` (single), `notifyAdmins(input)`, `notifyOrgOwners(orgId, input)`. A `TYPE_GROUP: Record<NotificationType, 'reviewActivity'|'organization'|'adminInbox'>` map. `notify` skips silently when the recipient's group pref is `false`; **never throws** (internal try/catch + warn).
 
-- [ ] **Step 1:** Failing tests — `notify` with a muted group creates no row; with group on, creates one; `notifyAdmins` fans out one row per admin; a repo that throws does not propagate (resolves, warns); `TYPE_GROUP` maps each type to the group in the spec table.
-- [ ] **Step 2:** Run — FAIL.
-- [ ] **Step 3:** Implement using the repos; recipient-not-found (e.g. no account) → no row, no throw.
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests — `notify` with a muted group creates no row; with group on, creates one; `notifyAdmins` fans out one row per admin; a repo that throws does not propagate (resolves, warns); `TYPE_GROUP` maps each type to the group in the spec table.
+- [x] **Step 2:** Run — FAIL.
+- [x] **Step 3:** Implement using the repos; recipient-not-found (e.g. no account) → no row, no throw.
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task A4: Notification read/write routes
 
@@ -81,11 +81,11 @@
 - Consumes: `NotificationRepository` (A2), `authenticateRequest`.
 - Produces: `GET /notifications` (+`/api`) → `{ notifications: Notification[] }` newest-50 for caller; `POST /notifications/:id/read` (+`/api`) → 204, 404 if not the caller's; `POST /notifications/read-all` (+`/api`) → 204.
 
-- [ ] **Step 1:** Failing tests — list returns only the caller's rows newest-first; marking another user's id → 404 and row stays unread; read-all zeroes caller's unread; all three in `routePermissions.test.ts` (authenticated, any role) with `/api` aliases.
-- [ ] **Step 2:** Run the route test + `routePermissions.test.ts` — FAIL.
-- [ ] **Step 3:** Implement the routes and register them; add permission-table rows.
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests — list returns only the caller's rows newest-first; marking another user's id → 404 and row stays unread; read-all zeroes caller's unread; all three in `routePermissions.test.ts` (authenticated, any role) with `/api` aliases.
+- [x] **Step 2:** Run the route test + `routePermissions.test.ts` — FAIL.
+- [x] **Step 3:** Implement the routes and register them; add permission-table rows.
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task A5: `unreadNotifications` on `/auth/me`
 
@@ -94,11 +94,11 @@
 **Interfaces:**
 - Produces: `/auth/me` response gains `unreadNotifications: number` (= `countUnread(user.id)`).
 
-- [ ] **Step 1:** Failing test — `/auth/me` returns `unreadNotifications` reflecting the caller's unread count.
-- [ ] **Step 2:** Run — FAIL.
-- [ ] **Step 3:** Add `unreadNotifications` to the handler (tolerate a count failure as `0`, warn).
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing test — `/auth/me` returns `unreadNotifications` reflecting the caller's unread count.
+- [x] **Step 2:** Run — FAIL.
+- [x] **Step 3:** Add `unreadNotifications` to the handler (tolerate a count failure as `0`, warn).
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task A6: Wire `notify` at the trigger routes
 
@@ -107,11 +107,11 @@
 **Interfaces:**
 - Consumes: `NotificationService` (A3). No new routes.
 
-- [ ] **Step 1:** Failing tests, one per trigger — the right `type` is created for the right recipient(s): `review-requested`→reviewer(s); `course-submitted`/`org-request-received`→each admin; `review-changes-requested`/`course-published`→course owner; `org-invitation`→invited account **only if it exists** (none otherwise); `org-request-approved/declined`→requester; `org-member-joined`→org owner(s). Plus: a `NotificationService` that throws does **not** fail the underlying action (publish/invite/submit still 200/201).
-- [ ] **Step 2:** Run the affected suites — FAIL.
-- [ ] **Step 3:** Call `notificationService.notify*` at each trigger with a rendered `title` + `link`; trace each route's recipient resolution.
-- [ ] **Step 4:** Run the suites, then `npm run api:test` and `npm run verify:journeys` — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests, one per trigger — the right `type` is created for the right recipient(s): `review-requested`→reviewer(s); `course-submitted`/`org-request-received`→each admin; `review-changes-requested`/`course-published`→course owner; `org-invitation`→invited account **only if it exists** (none otherwise); `org-request-approved/declined`→requester; `org-member-joined`→org owner(s). Plus: a `NotificationService` that throws does **not** fail the underlying action (publish/invite/submit still 200/201).
+- [x] **Step 2:** Run the affected suites — FAIL.
+- [x] **Step 3:** Call `notificationService.notify*` at each trigger with a rendered `title` + `link`; trace each route's recipient resolution.
+- [x] **Step 4:** Run the suites, then `npm run api:test` and `npm run verify:journeys` — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ---
 

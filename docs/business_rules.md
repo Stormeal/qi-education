@@ -101,6 +101,14 @@ The API enforces every rule here; the UI only mirrors them.
 - Runtime feedback uses MongoDB in shared/hosted mode; a storage outage never reports success in
   disposable memory. A maintenance freeze also prevents issue-creation side effects.
 
+## Notifications
+
+- Private review and organization notices belong only to their recipient. Preference groups
+  default on; review notices require a teacher/admin, admin-inbox notices require an admin.
+- Notification delivery is best effort and cannot fail the original action. Opening the list
+  leaves unread state unchanged; reading an item or all items affects only the caller.
+- The API is implemented under US-P019; the bell and settings UI remain pending.
+
 ## Limits
 
 | Thing | Limit |

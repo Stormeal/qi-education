@@ -62,6 +62,10 @@ US-O001; the owner progress overview comes in release 2 ([decisions](../../stori
   or mail unavailable. A failed email shows "Not sent. Try again." with a resend where one exists.
 - `GET /auth/me`, sign-in and the enroll reply list organization-started courses in
   `enrolledCourseIds` (computed when answering, never stored) and add `organization: { id, role }`.
+- US-P019 adds private notices for requests/resubmissions (admins), decisions (requester),
+  invitations (existing account only) and active joins (owners, including delayed confirmation).
+  Preferences and failures are handled by the [notification service](../platform/notifications.md);
+  the original operation still succeeds if notice delivery fails. The bell UI remains pending.
 
 | Route | Who |
 | --- | --- |

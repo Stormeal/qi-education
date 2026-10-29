@@ -40,6 +40,9 @@ Admins review what teachers submit before learners see it, and own pricing and c
   demoted reviewer still counts until removed. A course with no reviewers publishes as before.
 - Only admins receive a course's `reviewerIds`; review state carries `reviewers: { total, approved,
   viewerVerdict }` for everyone who may read it.
+- The US-P019 backend adds preference-controlled private notices for newly assigned reviewers,
+  admins on submission, and course owners on requested changes or publication. Delivery failure
+  preserves the action; the bell UI is pending. See [notifications](../platform/notifications.md).
 - Defaults built 2026-10-26 (confirm or change): at most 20 reviewers; comment required only for
   Request changes; admins cannot publish over a missing approval (remove the reviewer instead).
 

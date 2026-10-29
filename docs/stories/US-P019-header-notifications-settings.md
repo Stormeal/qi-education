@@ -115,6 +115,23 @@ exist, so the notifications are an in-app mirror of events shipping anyway.
 
 ## Testing
 
+### Backend implementation (Codex, 2026-10-29)
+
+Group A is implemented; header/bell/settings Groups B–D remain Claude-owned and open.
+A1 preferences: `accountProfile.test.ts` and `accountProfileRepository.test.ts`;
+A2 storage: `notificationRepository.test.ts` (memory semantics and isolated Mongo driver boundary);
+A3 recipient/mute/fan-out policy: `notificationService.test.ts`;
+A4 caller-scoped routes and A5 session count: `notificationRoutes.test.ts` plus the permission
+inventory; A6 review/organization actions and failure boundaries: `notificationTriggers.test.ts`.
+New behavior was observed failing before implementation. Current API behavior is summarized in
+[notifications](../specs/platform/notifications.md). Final counts/commits are in the work queue.
+
+Implementation decisions: old profile PUTs omitting preferences preserve saved choices;
+organization notifications live in the existing service so delayed email activation is covered;
+invitation notices link to `/organization` and direct the user to the emailed link, avoiding raw
+token storage. The nine event types above are implemented; feedback notification types and
+recipients are not defined, so no extra feedback type was invented.
+
 - API (`api/src/**`): notification repo unit (create, list newest-50, mark one/all read,
   caller-scoping); each trigger creates the right type for the right recipient(s) and fan-out for
   admins/owners; a notification-store failure does not fail publish/invite/submit; muted group →

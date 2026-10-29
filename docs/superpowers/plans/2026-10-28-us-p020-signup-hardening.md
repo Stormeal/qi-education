@@ -1,6 +1,6 @@
 # US-P020 Signup Hardening Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Defend signup against bot/mass fake accounts with a Cloudflare Turnstile human check, and make unconfirmed accounts unable to enroll until they confirm their email.
 
@@ -42,19 +42,19 @@
 **Interfaces:**
 - Produces: `interface TurnstileVerifier { readonly configured: boolean; verify(token: string | undefined, remoteIp?: string): Promise<boolean>; }`; `class CloudflareTurnstileVerifier`; `class NullTurnstileVerifier`; `function createTurnstileVerifier(): TurnstileVerifier`; `function hasTurnstileConfig(): boolean`. `createServer` gains `turnstileVerifier?: TurnstileVerifier | null` in `ServerDependencies`, resolved as `dependencies.turnstileVerifier ?? createTurnstileVerifier()` into a local `turnstile`.
 
-- [ ] **Step 1: Write failing tests** in `api/src/turnstileService.test.ts`:
+- [x] **Step 1: Write failing tests** in `api/src/turnstileService.test.ts`:
   - `NullTurnstileVerifier.verify()` returns `true` for any input and `configured === false`.
   - `CloudflareTurnstileVerifier.verify(undefined)` returns `false` **without** calling fetch (spy asserts 0 calls).
   - `CloudflareTurnstileVerifier.verify('tok')` with a stubbed fetch returning `{ success: true }` → `true`; `{ success: false }` → `false`.
   - `CloudflareTurnstileVerifier.verify('tok')` with fetch rejecting / returning 500 → `false` (fail-closed), and a warning is logged without the token value.
 
-- [ ] **Step 2: Run** `npm --prefix api test -- src/turnstileService.test.ts` — expect FAIL (module not found).
+- [x] **Step 2: Run** `npm --prefix api test -- src/turnstileService.test.ts` — expect FAIL (module not found).
 
-- [ ] **Step 3: Implement** `api/src/turnstileService.ts` modeled on `api/src/muxService.ts`. Cloudflare impl POSTs form-encoded `secret`/`response`/`remoteip` to `https://challenges.cloudflare.com/turnstile/v0/siteverify` and returns `json.success === true`; empty token short-circuits to `false`; any throw/non-2xx → `false` + `logError`-style warning. Add `TURNSTILE_SECRET_KEY` and `TURNSTILE_SITE_KEY` as `z.string().min(1).optional()` to the env schema; add `TURNSTILE_` to the isolated strip-list regex at config.ts:66; add `hasTurnstileConfig()` = both keys present. `createTurnstileVerifier()` returns Cloudflare impl when `apiConfig.mode !== 'isolated' && hasTurnstileConfig()`, else `new NullTurnstileVerifier()`. Wire `turnstileVerifier?` into `ServerDependencies` and resolve `const turnstile = dependencies.turnstileVerifier ?? createTurnstileVerifier();` next to the `muxVideo` line.
+- [x] **Step 3: Implement** `api/src/turnstileService.ts` modeled on `api/src/muxService.ts`. Cloudflare impl POSTs form-encoded `secret`/`response`/`remoteip` to `https://challenges.cloudflare.com/turnstile/v0/siteverify` and returns `json.success === true`; empty token short-circuits to `false`; any throw/non-2xx → `false` + `logError`-style warning. Add `TURNSTILE_SECRET_KEY` and `TURNSTILE_SITE_KEY` as `z.string().min(1).optional()` to the env schema; add `TURNSTILE_` to the isolated strip-list regex at config.ts:66; add `hasTurnstileConfig()` = both keys present. `createTurnstileVerifier()` returns Cloudflare impl when `apiConfig.mode !== 'isolated' && hasTurnstileConfig()`, else `new NullTurnstileVerifier()`. Wire `turnstileVerifier?` into `ServerDependencies` and resolve `const turnstile = dependencies.turnstileVerifier ?? createTurnstileVerifier();` next to the `muxVideo` line.
 
-- [ ] **Step 4: Run** `npm --prefix api test -- src/turnstileService.test.ts` — expect PASS.
+- [x] **Step 4: Run** `npm --prefix api test -- src/turnstileService.test.ts` — expect PASS.
 
-- [ ] **Step 5: Commit** (bump version per Global Constraints).
+- [x] **Step 5: Commit** (bump version per Global Constraints).
 ```bash
 git add api/src/turnstileService.ts api/src/turnstileService.test.ts api/src/config.ts api/src/server.ts package.json package-lock.json app/package.json app/src/app/services/app-state.service.ts
 git commit -m "feat(US-P020): Turnstile verifier service and config"
@@ -73,19 +73,19 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
 - Consumes: `turnstile` from Task 1.
 - Produces: `signupSchema` gains `turnstileToken: z.string().min(1).optional()`; signup answers `400 { message: 'human-check-failed' }` when `turnstile.configured` and verification fails.
 
-- [ ] **Step 1: Write failing tests** (inject a stub `turnstileVerifier` into `createServer`):
+- [x] **Step 1: Write failing tests** (inject a stub `turnstileVerifier` into `createServer`):
   - verifier `{ configured: true, verify: async () => false }` + signup body → `400`, body `{ message: 'human-check-failed' }`, and **no** account created (a follow-up `findByEmail` / login is unauthorized).
   - verifier `{ configured: true, verify: async () => true }` → `201` as today.
   - default (isolated null verifier, no `turnstileToken`) → `201` (unchanged behavior).
   - the check runs **before** the client-limit: with the stub returning `false`, the client-limit budget is not consumed (a subsequent valid signup from the same client still succeeds).
 
-- [ ] **Step 2: Run** the signup test file — expect FAIL.
+- [x] **Step 2: Run** the signup test file — expect FAIL.
 
-- [ ] **Step 3: Implement.** Add `turnstileToken` to `signupSchema`. In the handler, after `signupSchema.parse(body)` and before `clientLimit.allow('signup', …)`, insert the guard from the spec returning `400 human-check-failed` when `turnstile.configured && !(await turnstile.verify(input.turnstileToken, clientAddress))`. Use the same client-address source `clientLimit` uses, or omit the arg if none is exposed.
+- [x] **Step 3: Implement.** Add `turnstileToken` to `signupSchema`. In the handler, after `signupSchema.parse(body)` and before `clientLimit.allow('signup', …)`, insert the guard from the spec returning `400 human-check-failed` when `turnstile.configured && !(await turnstile.verify(input.turnstileToken, clientAddress))`. Use the same client-address source `clientLimit` uses, or omit the arg if none is exposed.
 
-- [ ] **Step 4: Run** the signup test file — expect PASS.
+- [x] **Step 4: Run** the signup test file — expect PASS.
 
-- [ ] **Step 5: Commit** (bump version). Stage `api/src/auth.ts`, `api/src/server.ts`, the test file, and the four version files.
+- [x] **Step 5: Commit** (bump version). Stage `api/src/auth.ts`, `api/src/server.ts`, the test file, and the four version files.
 
 ---
 
@@ -98,15 +98,15 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
 **Interfaces:**
 - Produces: `/health/config` response gains `turnstile: { configured: boolean, siteKey: string | null }`.
 
-- [ ] **Step 1: Write failing test:** `/health/config` in isolated mode returns `turnstile.configured === false` and `turnstile.siteKey === null`.
+- [x] **Step 1: Write failing test:** `/health/config` in isolated mode returns `turnstile.configured === false` and `turnstile.siteKey === null`.
 
-- [ ] **Step 2: Run** the test — expect FAIL.
+- [x] **Step 2: Run** the test — expect FAIL.
 
-- [ ] **Step 3: Implement.** Add `turnstile: { configured: hasTurnstileConfig(), siteKey: apiConfig.TURNSTILE_SITE_KEY ?? null }` to the `/health/config` body.
+- [x] **Step 3: Implement.** Add `turnstile: { configured: hasTurnstileConfig(), siteKey: apiConfig.TURNSTILE_SITE_KEY ?? null }` to the `/health/config` body.
 
-- [ ] **Step 4: Run** the test — expect PASS.
+- [x] **Step 4: Run** the test — expect PASS.
 
-- [ ] **Step 5: Commit** (bump version).
+- [x] **Step 5: Commit** (bump version).
 
 ---
 
@@ -121,7 +121,7 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
 **Interfaces:**
 - Produces: `function requireConfirmedEmail(user: { emailConfirmed?: boolean }): boolean` (`user.emailConfirmed !== false`). Both enroll doors answer `403 { message: 'email-not-confirmed' }` when it returns `false`.
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - Free enroll with `emailConfirmed: false` → `403 { message: 'email-not-confirmed' }`, not enrolled.
   - Free enroll with `emailConfirmed: undefined` (grandfathered) → enrolls (200).
   - Free enroll with `emailConfirmed: true` → enrolls.
@@ -129,13 +129,13 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
   - `POST .../checkout` with `emailConfirmed: false` → `403 email-not-confirmed`, `createCheckout` not called.
   - `checkout/confirm` is **not** gated (a paid session still enrolls regardless of `emailConfirmed`).
 
-- [ ] **Step 2: Run** the enroll + checkout tests — expect FAIL.
+- [x] **Step 2: Run** the enroll + checkout tests — expect FAIL.
 
-- [ ] **Step 3: Implement** `requireConfirmedEmail` in `auth.ts`; call it in the enroll handler after the org branch and before the free-enroll write, and in the checkout handler after course lookup and before `createCheckout`, returning `403 email-not-confirmed`. Do not touch `checkout/confirm`.
+- [x] **Step 3: Implement** `requireConfirmedEmail` in `auth.ts`; call it in the enroll handler after the org branch and before the free-enroll write, and in the checkout handler after course lookup and before `createCheckout`, returning `403 email-not-confirmed`. Do not touch `checkout/confirm`.
 
-- [ ] **Step 4: Run** the enroll + checkout tests — expect PASS.
+- [x] **Step 4: Run** the enroll + checkout tests — expect PASS.
 
-- [ ] **Step 5: Run** `npm run api:test` and `npm run verify:journeys` — expect PASS. **Commit** (bump version).
+- [x] **Step 5: Run** `npm run api:test` and `npm run verify:journeys` — expect PASS. **Commit** (bump version).
 
 ---
 

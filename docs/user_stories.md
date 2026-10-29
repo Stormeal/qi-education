@@ -48,8 +48,8 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
-| US-P020 | Harden signup: Turnstile + confirm-to-enroll gate | Designed | P2 | Turnstile keys (Alex) | [Contract](stories/US-P020-signup-hardening.md) |
-| US-P019 | Header cluster + notifications + /settings | Designed | P3 | UI foundation | [Contract](stories/US-P019-header-notifications-settings.md) |
+| US-P020 | Harden signup: Turnstile + confirm-to-enroll gate | In progress: API built; app pending | P2 | Turnstile keys (Alex) | [Contract](stories/US-P020-signup-hardening.md) |
+| US-P019 | Header cluster + notifications + /settings | In progress: API built; app pending | P3 | UI foundation | [Contract](stories/US-P019-header-notifications-settings.md) |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Proposed | P2 | — | Below |
 | US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
@@ -283,7 +283,7 @@ Feature: Fit for company use
 **As any user, I want a clear, modern top navigation, so that notifications, feedback, settings and
 my account are easy to reach.**
 
-State: Designed (Alex, 2026-10-29) — contract:
+State: In progress (API built 2026-10-29; frontend pending). Designed with Alex 2026-10-29 — contract:
 [stories/US-P019-header-notifications-settings.md](stories/US-P019-header-notifications-settings.md),
 plan: [plans/2026-10-29-us-p019-header-notifications-settings.md](superpowers/plans/2026-10-29-us-p019-header-notifications-settings.md).
 Suggested release 1 — confirm or change. Grew from a header restyle into one story with three
@@ -299,7 +299,7 @@ profile route. Frontend work uses the `design-taste-frontend` skill; API notific
 **As a maintainer, I want signup and sign-in hardened, so that open registration cannot be abused
 and accounts are not easily guessed.**
 
-State: Designed (Alex, 2026-10-28) — contract: [stories/US-P020-signup-hardening.md](stories/US-P020-signup-hardening.md).
+State: In progress (API built 2026-10-29; frontend pending). Designed with Alex 2026-10-28 — contract: [stories/US-P020-signup-hardening.md](stories/US-P020-signup-hardening.md).
 Suggested release 1 — confirm or change. Chosen threat (Alex): **bot / mass fake signups**. Scope
 narrowed to two prongs: a Cloudflare Turnstile human check at signup, and a confirm-to-enroll gate
 (an unconfirmed account may sign in and browse but cannot enroll, free or paid, until it confirms).

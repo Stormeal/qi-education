@@ -12,6 +12,11 @@ public instructor description shown with their published courses.
   A never-saved profile reads as empty texts, color `#2f4f43` and `updatedAt: null`. PUT replaces
   the whole profile; invalid input changes nothing (400). Storage failure answers 503 and the page
   keeps the unsaved edits.
+- **Notification preferences** (US-P019 API): private profiles additionally carry
+  `notificationPrefs: { reviewActivity, organization, adminInbox }`. Each boolean defaults to true,
+  including absent/legacy profiles. A partial preference object fills missing groups with true;
+  an old client that omits the whole object preserves the stored preferences. Invalid booleans
+  answer 400 without writing. The Notifications tab is still pending in the story.
 - **Instructor description** (`GET/PUT /users/me/instructor-profile`, teacher/admin only): one
   trimmed text of 0–280 characters; empty clears it. Saving publishes immediately, no approval.
 - **Public instructors** (`GET /instructors`): only non-empty descriptions of people who own at

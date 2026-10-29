@@ -16,6 +16,10 @@ A learner reads what a course offers, then joins it so it appears in My Learning
   course. Enrolling again is harmless: the course appears once. A priced course answers 402
   unless the caller is its author or an admin, or an organization opens it to them (**Enroll
   (included by {Organization})**, free; see [organizations](../organizations/organizations.md)).
+- **Email confirmation** (US-P020 API): an account explicitly marked unconfirmed gets
+  403 `email-not-confirmed` before a new self-serve enrollment. Existing enrollment and
+  organization-included enrollment remain available; absent legacy flags count as confirmed.
+  The frontend confirm-first notice is pending in the open story.
 - After enrolling, the course opens from My Learning at `/library/:id` (see
   [learning page](../learning/learning-page.md)).
 - Owners and admins see management actions here: Edit, and for admins **Catalog settings** and
