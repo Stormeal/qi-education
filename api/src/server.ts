@@ -573,6 +573,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       },
       mail: { configured: hasMailConfig(), provider: mailSender.provider },
       payments: { configured: Boolean(paymentService), keyMode: stripeKeyMode() },
+      turnstile: { configured: turnstile.configured, siteKey: turnstile.configured ? apiConfig.TURNSTILE_SITE_KEY ?? null : null },
       content: {
         storage: courseContent.storageType,
         configured: hasMongoConfig(),

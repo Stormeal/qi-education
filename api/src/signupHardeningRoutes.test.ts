@@ -27,6 +27,16 @@ async function setup(configured: boolean) {
 }
 
 describe('US-P020 API-02 signup human check', () => {
+  it('API-03 exposes public Turnstile state without credentials on both config aliases', async () => {
+    const { base } = await setup(false);
+    for (const prefix of ['', '/api']) {
+      const response = await fetch(base + prefix + '/health/config');
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      const config = await response.json();
+      expect(config.turnstile).toEqual({ configured: false, siteKey: null });
+      expect(JSON.stringify(config)).not.toContain('TURNSTILE_SECRET_KEY');
+    }
+  });
   it.each(['/signup', '/auth/signup', '/api/signup', '/api/auth/signup'])('rejects missing/invalid tokens before account lookups or budget use (%s)', async path => {
     const { auth, verify, post } = await setup(true);
     const find = vi.spyOn(auth, 'findByEmail'), create = vi.spyOn(auth, 'createUser');
