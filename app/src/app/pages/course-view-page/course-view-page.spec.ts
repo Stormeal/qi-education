@@ -55,6 +55,27 @@ describe('course details page', () => {
     expect(started).toEqual(['course']);
   });
 
+  it.each([null, 499])('US-P020 disables new acquisition and offers resend for an unconfirmed learner (%s DKK)', priceDkk => {
+    const page = render({ priceDkk }, false);
+    fixture.componentRef.setInput('mustConfirmEmail', true); fixture.detectChanges();
+    expect(page.textContent).toContain('Confirm your email to enroll');
+    const action = page.querySelector<HTMLButtonElement>('.course-enroll-body button')!;
+    expect(action.disabled).toBe(true);
+    const resend = vi.fn(); rendered.confirmationResendRequested.subscribe(resend);
+    const resendButton = Array.from(page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.includes('Resend confirmation link'))!;
+    resendButton.click(); expect(resend).toHaveBeenCalled();
+  });
+  it('US-P020 preserves held and organization-included access', () => {
+    const page = render({ priceDkk: 499 }, false);
+    fixture.componentRef.setInput('mustConfirmEmail', true);
+    fixture.componentRef.setInput('organizationAccess', { name: 'Team', openCourseIds: ['course'] });
+    fixture.detectChanges();
+    expect(page.textContent).not.toContain('Confirm your email to enroll');
+    expect(page.querySelector<HTMLButtonElement>('.course-enroll-body button')?.disabled).toBe(false);
+    fixture.componentRef.setInput('isEnrolled', true); fixture.detectChanges();
+    expect(page.textContent).toContain('Start learning');
+  });
+
   it('price field accepts free or 3 to 999,999 DKK only (Stripe minimum)', () => {
     render({ priceDkk: null }, false);
     const page = rendered as unknown as { updatePriceDraft(v: string): void; applyPriceDraft(id: string): void; priceDraftError(): string };

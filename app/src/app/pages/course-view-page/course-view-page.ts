@@ -127,6 +127,12 @@ export class CourseViewPage {
   readonly enrollmentSubmitting = input.required<boolean>();
   readonly enrollmentError = input.required<string>();
   readonly purchaseStatus = input<CoursePurchaseStatus>('idle');
+  readonly mustConfirmEmail = input(false);
+  readonly confirmationSending = input(false);
+  readonly confirmationMessage = input('');
+  readonly confirmationResendRequested = output<void>();
+  protected readonly confirmationRequired = computed(() => this.mustConfirmEmail() && !this.isEnrolled()
+    && !this.canEditCourse() && !this.includedBy() && this.course()?.status === 'published');
   readonly isFeedbackOpen = input.required<boolean>();
   readonly feedbackSubmitted = input.required<boolean>();
   readonly feedbackPage = input.required<string>();
@@ -331,7 +337,7 @@ export class CourseViewPage {
   }
 
   protected openEnrollDialog(): void {
-    if (this.course()?.status !== 'published') return;
+    if (this.course()?.status !== 'published' || this.confirmationRequired()) return;
     this.pendingEnrollment.set(false);
     this.isEnrollDialogOpen.set(true);
   }

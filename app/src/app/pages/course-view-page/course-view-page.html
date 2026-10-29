@@ -264,7 +264,7 @@
             } @else if (currentCourse.status === 'published' && isPriced(currentCourse.priceDkk)) {
               <button
                 appButton="primary"
-                [disabled]="enrollmentSubmitting() || purchaseStatus() === 'confirming'"
+                [disabled]="confirmationRequired() || enrollmentSubmitting() || purchaseStatus() === 'confirming'"
                 (click)="coursePurchaseStarted.emit(currentCourse.id)"
                 fullWidth
               >
@@ -279,11 +279,20 @@
                 <p class="course-error" role="alert">{{ enrollmentError() }}</p>
               }
             } @else if (currentCourse.status === 'published') {
-              <button appButton="primary" (click)="openEnrollDialog()" fullWidth>Enroll</button>
+              <button appButton="primary" [disabled]="confirmationRequired()" (click)="openEnrollDialog()" fullWidth>Enroll</button>
             } @else {
               <p>Enrollment is closed for this course.</p>
             }
 
+            @if (confirmationRequired()) {
+              <div class="course-confirmation" role="status">
+                <p>Confirm your email to enroll.</p>
+                <button appButton="ghost" size="sm" [disabled]="confirmationSending()" (click)="confirmationResendRequested.emit()">
+                  {{ confirmationSending() ? 'Sending...' : 'Resend confirmation link' }}
+                </button>
+                @if (confirmationMessage()) { <p>{{ confirmationMessage() }}</p> }
+              </div>
+            }
             <p class="purchase-status" [class.purchase-status-warning]="purchaseStatus() === 'unreachable'" role="status" aria-live="polite">
               @switch (purchaseStatus()) {
                 @case ('confirming') { Confirming payment... }
@@ -431,12 +440,16 @@
       @if (enrollmentError()) {
         <p class="course-error" role="alert">{{ enrollmentError() }}</p>
       }
+      @if (confirmationRequired()) {
+        <button appButton="ghost" [disabled]="confirmationSending()" (click)="confirmationResendRequested.emit()">Resend confirmation link</button>
+        @if (confirmationMessage()) { <p role="status">{{ confirmationMessage() }}</p> }
+      }
 
       <footer class="price-modal-actions">
         <button appButton [disabled]="enrollmentSubmitting()" (click)="closeEnrollDialog()">Cancel</button>
         <button
           appButton="primary"
-          [disabled]="enrollmentSubmitting()"
+          [disabled]="confirmationRequired() || enrollmentSubmitting()"
           (click)="confirmEnrollment(enrollCourse.id)"
         >
           @if (enrollmentSubmitting()) {

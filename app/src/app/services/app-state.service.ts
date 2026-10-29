@@ -79,7 +79,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.522';
+  readonly appVersion = '0.1.523';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -100,6 +100,8 @@ export class AppStateService {
   // US-L014. Confirming in this tab hides the Home notice at once; the next session check brings the stored flag.
   private readonly emailConfirmedHere = signal(false);
   readonly emailNeedsConfirmation = computed(() => this.loginState()?.user.emailConfirmed === false && !this.emailConfirmedHere());
+  private readonly confirmationRequiredByServer = signal(false);
+  readonly mustConfirmEmail = computed(() => this.emailNeedsConfirmation() || this.confirmationRequiredByServer());
   readonly emailConfirmationSending = signal(false);
   readonly emailConfirmationMessage = signal('');
   readonly currentPath = signal(this.normalizePath(this.router.url));
@@ -657,6 +659,8 @@ export class AppStateService {
 
   markEmailConfirmed(): void {
     this.emailConfirmedHere.set(true);
+    this.confirmationRequiredByServer.set(false);
+    if (this.courseEnrollmentError() === 'Confirm your email to enroll.') this.courseEnrollmentError.set('');
   }
 
   async resendEmailConfirmation(): Promise<void> {
@@ -716,6 +720,7 @@ export class AppStateService {
     this.profileSnapshot.set('');
     this.profileSaved.set(false);
     this.emailConfirmedHere.set(false);
+    this.confirmationRequiredByServer.set(false);
     this.emailConfirmationMessage.set('');
     this.sessionService.clearStoredSession();
     this.clearCourseCatalogNotice();
@@ -2325,7 +2330,7 @@ export class AppStateService {
       if (!isCurrent()) return;
 
       if (!result.ok) {
-        this.courseEnrollmentError.set(result.message);
+        this.setEnrollmentFailure(result.message);
         return;
       }
 
@@ -2345,6 +2350,14 @@ export class AppStateService {
     if (this.sessionToken() !== token) return;
     const mine = result.ok && result.body.organization ? result.body as MyOrganization : null;
     this.organizationAccess.set(mine ? { name: mine.organization.displayName, openCourseIds: mine.openCourseIds } : null);
+  }
+
+  private setEnrollmentFailure(message: string): void {
+    if (message === 'email-not-confirmed') {
+      this.confirmationRequiredByServer.set(true);
+      this.emailConfirmedHere.set(false);
+      this.courseEnrollmentError.set('Confirm your email to enroll.');
+    } else this.courseEnrollmentError.set(message);
   }
 
   /** After joining, leaving or a career change: reload course access and the account's course list. */
@@ -2381,7 +2394,7 @@ export class AppStateService {
       const result = await this.courseService.startCheckout(courseId, token, `${window.location.origin}${window.location.pathname}`);
       if (!isCurrent()) return;
       if (!result.ok) {
-        this.courseEnrollmentError.set(result.message);
+        this.setEnrollmentFailure(result.message);
         this.courseEnrollmentSubmitting.set(false);
         return;
       }
