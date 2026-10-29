@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { Icon } from '../icon/icon';
+import { NotificationBell } from '../notification-bell/notification-bell';
 import { RouterLink } from '@angular/router';
 import { Button } from '../button/button';
 import { BrandLink } from '../brand-link/brand-link';
@@ -9,7 +10,7 @@ export type PageHeaderSection = 'home' | 'courses' | 'library' | 'admin' | 'edit
 
 @Component({
   selector: 'app-page-header',
-  imports: [Button, BrandLink, ProfileMenu, RouterLink, Icon],
+  imports: [Button, BrandLink, ProfileMenu, RouterLink, Icon, NotificationBell],
   templateUrl: './page-header.html',
   styleUrl: './page-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

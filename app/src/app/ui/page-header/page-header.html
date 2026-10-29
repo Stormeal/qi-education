@@ -12,10 +12,7 @@
     @if (canSeeRoadmap()) { <a class="tab-link" routerLink="/roadmap" [class.active]="activeSection() === 'roadmap'">Roadmap</a> }
   </div>
   <div class="header-controls">
-    <button class="header-icon notification-trigger" type="button" aria-label="Notifications" (click)="notificationsOpened.emit()">
-      <app-icon name="bell" aria-hidden="true" />
-      @if ((unreadCount() ?? 0) > 0) { <span class="notification-dot" aria-hidden="true"></span> }
-    </button>
+    <app-notification-bell [unreadCount]="unreadCount()" (opened)="closeMobileMenu(false); notificationsOpened.emit()" />
     <button class="feedback-control" appButton type="button" (click)="feedbackOpened.emit()">
       <app-icon name="message" aria-hidden="true" /> Feedback <app-icon name="chevronDown" aria-hidden="true" />
     </button>
