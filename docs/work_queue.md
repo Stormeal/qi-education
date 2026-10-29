@@ -15,9 +15,12 @@ review/fix evidence and remaining release checks. Do not start a Proposed story 
 **US-P019 / US-P020 release verification** (2026-10-29, owner Codex, `main`, base `98d4b6a`):
 CI, Pages and Vercel are green; public signup, health/config, signed-out route protection and
 release-bundle identity checked live. [Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md).
-Next: user signs into the open QI Academy panel and confirms Cloudflare widget setup/access.
-Neither Turnstile key exists in production. CLI access works despite the app connection needing
-reauthentication. Mongo metadata inspection timed out; index checks remain open. No shared mutations.
+The user signed in: admin header/bell/settings and existing account tabs pass read-only checks.
+Next: approve Create on the prepared Cloudflare widget (`QI Academy production signup`,
+`stormeal.github.io`, Managed, pre-clearance off), then configure real keys and deploy that config.
+Neither key exists in production yet. CLI access works despite the app connection needing
+reauthentication. Mongo metadata inspection timed out; direct index checks remain open. No shared
+mutation probes; inbox opens without changing read state. Teacher and cross-device checks remain.
 
 Delivered 2026-10-27, included in release 0.1.532: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
 Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
@@ -132,7 +135,8 @@ as they arrive.
 - US-P020 / US-P019 (live as 0.1.532, 2026-10-29): deployment/public checks pass; see
   [hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md). Configure both
   real Turnstile keys, then verify signup/mail/confirmation/free and paid acquisition, including
-  DEF-064. Authenticated header/bell/settings and teacher overview await a signed-in test account.
+  DEF-064. Authenticated admin header/bell/settings pass read-only checks; teacher overview needs
+  a teacher-account walkthrough. The Cloudflare widget form is prepared, awaiting Create approval.
   Check Mongo notification indexes, all nine event recipients, muted groups and read/preferences
   across devices. Direct read-only metadata inspection timed out. Isolated synthetic-provider
   evidence does not establish real integrations. Include the new controls in the real screen
