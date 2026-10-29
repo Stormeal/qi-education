@@ -11,7 +11,8 @@ Branch `main`, base `a5afe5f`. Codex owns `api/src/**`, API specs/tests and hand
 Claude owns the frontend in both contracts. Version files are shared and bumped at commit.
 Contracts: [US-P020](stories/US-P020-signup-hardening.md),
 [US-P019](stories/US-P019-header-notifications-settings.md); execute US-P020 Tasks 1–4,
-then US-P019 A1–A6. Next: implement and verify the injected Turnstile verifier in isolated tests.
+then US-P019 A1–A6. US-P020 API complete: 2,878 API tests, 20 journeys and API build pass;
+frontend/browser checks remain. Next: US-P019 notification preferences and repositories.
 Defaults retained: no Turnstile keys means signup stays open; grandfathered accounts pass;
 notification list capped at 50 without deletion. No shared-service mutation probes or push.
 

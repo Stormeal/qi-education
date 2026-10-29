@@ -13,7 +13,16 @@ signed in across page loads.
   sent a confirmation link (see [passwords and email](passwords-and-email.md)); a failed mail does
   not fail the signup. Every user object carries `emailConfirmed`; accounts created before
   2026-10-19 have no stored flag and count as confirmed. An unconfirmed account can sign in and
-  enroll as before.
+  browse, but self-serve enrollment and starting paid checkout answer 403 `email-not-confirmed`.
+  Organization-included courses, already-held courses and already-paid checkout returns remain
+  available. Confirmation unlocks new self-serve acquisition (US-P020 API, 2026-10-29).
+- **Signup human check** (US-P020 API): with both `TURNSTILE_SECRET_KEY` and `TURNSTILE_SITE_KEY`
+  configured outside isolated mode, signup validates a Turnstile token after body validation and
+  before consuming the client budget or accessing accounts. Rejection/provider outage answers
+  400 `human-check-failed`; provider verification has a ten-second timeout. Missing keys keep
+  signup open. Isolated runs strip the keys and never contact Cloudflare. `/health/config`
+  exposes only `{ turnstile: { configured, siteKey } }`; the secret and tokens are never logged.
+  The frontend widget and confirm-first notice are pending in the open story.
 - **Login** answers a signed session token (12-hour lifetime) and the user. A wrong password, an
   unknown address and a disabled account all get the same generic 401.
 - **Remember me** stores the session in `localStorage`; otherwise `sessionStorage`. Logout clears both.
@@ -51,4 +60,4 @@ signed in across page loads.
 
 - Sign-in has no per-client limit, only the per-address one.
 - Existing sessions survive a password change until their token expires.
-- Confirming the address unlocks nothing yet; it only makes recovery mail trustworthy.
+- Hosted Turnstile verification and the frontend widget have not yet been exercised together.

@@ -44,6 +44,9 @@ The API enforces every rule here; the UI only mirrors them.
 | Assigned reviewer | The author view (read-only) and review history of the course they review; not the reviewer list |
 
 - New enrollment only in a published course; enrolling twice keeps one enrollment.
+- Self-serve enrollment and starting paid checkout require a confirmed email; accounts without
+  a stored flag count as confirmed. Organization-included access, held courses and paid returns
+  are exempt (US-P020 API).
 - Archiving stops new enrollment; existing learners keep access.
 - Prices are DKK. Empty or 0 = free. A priced course is enrolled by buying it once through Stripe
   and kept unless the payment is fully refunded (US-L025); authors, admins and anyone enrolled before

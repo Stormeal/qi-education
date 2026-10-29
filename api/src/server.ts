@@ -26,6 +26,7 @@ import {
   hashPasswordAsync,
   loginSchema,
   roleCanCreateCourses,
+  requireConfirmedEmail,
   signupSchema,
   toAuthenticatedUser,
   verifyPasswordAsync,
@@ -778,6 +779,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
       if (!authenticatedRequest.user.enrolledCourseIds.includes(courseId) && await organizations.startCourse(authenticatedRequest.user.id, courseId)) {
         response.json({ user: await withOrganizationCourses(authenticatedRequest.user), permissions: getRolePermissions(authenticatedRequest.user.role) });
+        return;
+      }
+      if (!authenticatedRequest.user.enrolledCourseIds.includes(courseId) && !requireConfirmedEmail(authenticatedRequest.user)) {
+        response.status(403).json({ message: 'email-not-confirmed' });
         return;
       }
       if ((matchingCourse.priceDkk ?? 0) > 0 && !authenticatedRequest.user.enrolledCourseIds.includes(courseId) && !canAuthorCourse(matchingCourse, authenticatedRequest.user)) {

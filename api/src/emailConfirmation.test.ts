@@ -121,17 +121,21 @@ describe('US-L014 email confirmation HTTP', () => {
     if (mail.messages.length) expect(await tokens.findActive(resetTokenHash(rawToken(mail))!, 1000)).toBeNull();
   });
 
-  it('AC02 unconfirmed users can sign in and enroll, and resend returns the exact accepted message', async () => {
+  it('AC02 / US-P020 unconfirmed users can sign in and resend, but must confirm before enrolling', async () => {
     const { register, mail, post, me } = await setup();
     const session = await register();
     const login = await post('/api/login', { email: signup.email, password: signup.password });
     expect(login.status).toBe(200); expect((await login.json()).user.emailConfirmed).toBe(false);
     expect((await (await me('/auth/me', session.token)).json()).user.emailConfirmed).toBe(false);
-    expect((await post('/users/me/courses/demo-course-1', {}, session.token)).status).toBe(200);
+    const blocked = await post('/users/me/courses/demo-course-1', {}, session.token);
+    expect(blocked.status).toBe(403);
+    expect(await blocked.json()).toEqual({ message: 'email-not-confirmed' });
     const response = await post('/api' + resend, {}, session.token);
     expect(response.status).toBe(202);
     expect(await response.json()).toEqual({ message: 'We have sent a new link to new@example.test. It works for 24 hours.' });
     expect(mail.messages).toHaveLength(2);
+    expect((await post(confirm, { token: rawToken(mail, 1) })).status).toBe(204);
+    expect((await post('/users/me/courses/demo-course-1', {}, session.token)).status).toBe(200);
   });
 
   it('AC02 the signup mail counts toward three, with exact rolling expiry and rounded Retry-After', async () => {

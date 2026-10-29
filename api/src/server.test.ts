@@ -21,9 +21,11 @@ import { InMemoryAuthRepository } from './authRepository.js';
 describe('QI Academy API', () => {
   let server: Server;
   let baseUrl: string;
+  let auth: InMemoryAuthRepository;
 
   beforeAll(() => {
-    server = createServer().listen(0);
+    auth = new InMemoryAuthRepository();
+    server = createServer({ authRepository: auth }).listen(0);
     const address = server.address() as AddressInfo;
     baseUrl = `http://127.0.0.1:${address.port}`;
   });
@@ -211,6 +213,7 @@ describe('QI Academy API', () => {
       },
       mail: { configured: false, provider: 'local' },
       payments: { configured: true, keyMode: null },
+      turnstile: { configured: false, siteKey: null },
       content: {
         storage: 'memory',
         configured: false,
@@ -944,6 +947,7 @@ describe('QI Academy API', () => {
       }),
     });
     const signup = await signupResponse.json();
+    await auth.confirmEmail(signup.user.id);
     const blockedResponse = await freshAuthoringFetch(
       `${baseUrl}/courses/${created.id}/content/attachments/${uploaded.attachment.assetId}`,
       {

@@ -60,6 +60,10 @@ export function toAuthenticatedUser(user: AuthUser): AuthenticatedUser {
   return { ...publicUser, emailConfirmed: user.emailConfirmed !== false };
 }
 
+export function requireConfirmedEmail(user: { emailConfirmed?: boolean }): boolean {
+  return user.emailConfirmed !== false;
+}
+
 export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('base64url');
   const hash = scryptSync(password, salt, 64).toString('base64url');

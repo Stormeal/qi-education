@@ -2,7 +2,7 @@ import { coursePriceDkkSchema, coursePriceMessage } from './course.js';
 import { logError } from './errorLogger.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import { z } from 'zod';
-import { getRolePermissions, toAuthenticatedUser, type AuthenticatedUser } from './auth.js';
+import { getRolePermissions, requireConfirmedEmail, toAuthenticatedUser, type AuthenticatedUser } from './auth.js';
 import type { AuthRepository } from './authRepository.js';
 import { getCorsOrigins } from './config.js';
 import type { CourseRepository } from './courseRepository.js';
@@ -113,6 +113,7 @@ export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): 
     if (!(course.priceDkk && course.priceDkk > 0)) { response.status(400).json({ message: 'This course is free.' }); return; }
     const user = caller(request);
     if (user.enrolledCourseIds.includes(course.id)) { response.status(409).json({ message: 'Already enrolled in this course.' }); return; }
+    if (!requireConfirmedEmail(user)) { response.status(403).json({ message: 'email-not-confirmed' }); return; }
     const customerId = await payments.latestCustomerId(user.id);
     try {
       response.json(await paymentService.createCheckout({ userId: user.id, email: user.email, courseId: course.id,
