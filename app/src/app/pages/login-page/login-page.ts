@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { RouterLink } from '@angular/router';
 import { Button } from '../../ui/button/button';
 import { BrandLink } from '../../ui/brand-link/brand-link';
+import { TurnstileChallenge } from '../../ui/turnstile-challenge/turnstile-challenge';
 
 @Component({
   selector: 'app-login-page',
-  imports: [Button, BrandLink, RouterLink],
+  imports: [Button, BrandLink, RouterLink, TurnstileChallenge],
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,6 +25,9 @@ export class LoginPage {
   readonly canSubmit = input.required<boolean>();
   readonly canSignupSubmit = input.required<boolean>();
   readonly learningHighlights = input.required<string[]>();
+  readonly turnstileSiteKey = input<string | null>(null);
+  readonly turnstileResetVersion = input(0);
+  readonly turnstileTokenChanged = output<string>();
 
   readonly authModeChanged = output<'login' | 'signup'>();
   readonly signupDisplayNameChanged = output<string>();

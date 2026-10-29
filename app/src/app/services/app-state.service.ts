@@ -38,6 +38,7 @@ import {
   UserRole,
 } from '../app.models';
 import { AuthService } from './auth.service';
+import { ApiClientService } from './api-client.service';
 import { CourseService } from './course.service';
 import { FeedbackService } from './feedback.service';
 import { FeedbackComposerService } from './feedback-composer.service';
@@ -55,6 +56,7 @@ import { ConfirmService } from './confirm.service';
 export class AppStateService {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
+  private readonly apiClient = inject(ApiClientService);
   private readonly courseService = inject(CourseService);
   readonly quizImageUrls = this.courseService.quizImageUrls;
   private readonly feedbackService = inject(FeedbackService);
@@ -77,7 +79,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.521';
+  readonly appVersion = '0.1.522';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -86,6 +88,10 @@ export class AppStateService {
   readonly signupDisplayName = signal('');
   readonly signupPasswordConfirmation = signal('');
   readonly signupError = signal('');
+  readonly signupConfigLoading = signal(false);
+  readonly turnstileSiteKey = signal<string | null>(null);
+  readonly turnstileToken = signal('');
+  readonly turnstileResetVersion = signal(0);
   readonly rememberMe = signal(true);
   readonly passwordVisible = signal(false);
   readonly isSubmitting = signal(false);
@@ -198,6 +204,7 @@ export class AppStateService {
       this.email().trim().length > 0 &&
       this.password().length >= 8 &&
       this.signupPasswordConfirmation().length > 0 &&
+      !this.signupConfigLoading() && (!this.turnstileSiteKey() || !!this.turnstileToken()) &&
       !this.isSubmitting(),
   );
 
@@ -497,6 +504,8 @@ export class AppStateService {
     }
 
     this.authMode.set(mode);
+    this.turnstileToken.set('');
+    if (mode === 'signup') void this.loadSignupConfig();
     this.loginError.set('');
     this.signupError.set('');
     this.password.set('');
@@ -505,6 +514,14 @@ export class AppStateService {
 
   toggleRememberMe(): void {
     this.rememberMe.update((value) => !value);
+  }
+
+  setTurnstileToken(token: string): void { this.turnstileToken.set(token); }
+
+  private async loadSignupConfig(): Promise<void> {
+    this.signupConfigLoading.set(true);
+    try { this.turnstileSiteKey.set((await this.apiClient.getPublicConfig()).turnstile.siteKey); }
+    finally { this.signupConfigLoading.set(false); }
   }
 
   togglePasswordVisibility(): void {
@@ -582,6 +599,7 @@ export class AppStateService {
         displayName: this.signupDisplayName(),
         email: this.email(),
         password: this.password(),
+        turnstileToken: this.turnstileToken() || undefined,
       });
 
       if (!result.ok) {
@@ -613,6 +631,8 @@ export class AppStateService {
       this.signupError.set('Unable to reach the API. Please try again shortly.');
     } finally {
       this.isSubmitting.set(false);
+      this.turnstileToken.set('');
+      this.turnstileResetVersion.update(value => value + 1);
     }
   }
 

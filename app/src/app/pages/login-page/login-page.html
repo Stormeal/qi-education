@@ -336,6 +336,10 @@
           </div>
 
           <div class="mt-auto grid gap-3">
+            @if (authMode() === 'signup' && turnstileSiteKey()) {
+              <app-turnstile-challenge [siteKey]="turnstileSiteKey()" [resetVersion]="turnstileResetVersion()"
+                (tokenChanged)="turnstileTokenChanged.emit($event)" />
+            }
             @if (authMode() === 'login' && loginError()) {
               <div
                 class="rounded-[24px] border border-[rgba(185,28,28,0.16)] bg-[rgba(254,242,242,0.92)] px-5 py-4 text-[15px] leading-6 text-[var(--danger-ink)]"
