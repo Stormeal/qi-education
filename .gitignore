@@ -13,3 +13,6 @@ api-dev.log
 Thumbs.db
 
 .vercel
+
+# Brainstorming visual-companion mockups and server state (superpowers)
+.superpowers/

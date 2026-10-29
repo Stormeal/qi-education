@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-27. Open work only. Priority order chosen by Alex: **teachers, learners,
+Updated: 2026-10-29. Open work only. Priority order chosen by Alex: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. What the app already does is
 in [specs/](specs/README.md); use [work_queue.md](work_queue.md) for the next item and active work.
 
@@ -27,6 +27,15 @@ period and public prices are set at launch, so colleagues enrolled before then k
 (existing rule, no new feature); sign-up stays open and unannounced. Open for management: hosting
 budget, curriculum owner, backup developer.
 
+New candidates from Alex's 2026-10-27 brainstorm, filed below as Proposed and awaiting triage into
+a release: US-P019 (nav header), US-P020 (signup hardening), US-P021 (GDPR data rights), US-P022
+(terms page), US-L029 (account achievements), US-T017 (browser video editing), US-A008 (discount
+campaigns), US-P023 (Azure storage spike). The suggested release in each story is confirm-or-change;
+Alex (product owner) assigns the release. Organization-private courses from the same brainstorm are
+already delivered under US-O001.
+
+Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account achievements is US-L029; US-T016 already identifies the delivered teacher overview and US-L027 identifies certificates.
+
 ## Backlog
 
 | ID | Story | State | Priority | Dependencies | Contract |
@@ -39,6 +48,14 @@ budget, curriculum owner, backup developer.
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
+| US-P020 | Harden signup: Turnstile + confirm-to-enroll gate | Designed | P2 | Turnstile keys (Alex) | [Contract](stories/US-P020-signup-hardening.md) |
+| US-P019 | Header cluster + notifications + /settings | Designed | P3 | UI foundation | [Contract](stories/US-P019-header-notifications-settings.md) |
+| US-P021 | GDPR data rights (export, erasure, cookie consent) | Proposed | P2 | — | Below |
+| US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
+| US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
+| US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
+| US-T017 | Record and lightly edit course video in the browser | Proposed | P3 | — | Below |
+| US-A008 | Sales and discount campaigns | Proposed | P3 | Payments, careers | Below |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -72,6 +89,31 @@ Feature: Credible career milestone curation
     Then changed criteria use explicit requirement versions and an update explanation
     And historical evidence, goals and enrollments remain stored
 ```
+
+### US-T017 — Record and lightly edit course video in the browser
+
+**As a teacher, I want to record and lightly edit lesson video in the browser, so that I can
+produce lessons without separate software.**
+
+State: Proposed (Alex, 2026-10-27). Suggested release 2+ (heavy; outside the fixed release-1 scope)
+— confirm or change. Builds on the existing Mux upload flow ([video](specs/authoring/video.md)).
+Scope: record from the webcam into a lesson, record several clips, trim a clip and append another,
+then upload through Mux. Deliberately not a full editor. Open decisions: capture scope (webcam only
+vs screen); client-side vs server trimming/splicing; browser support and size limits; and saving an
+in-progress recording. The heaviest new item. Needs its own `stories/` contract when selected.
+
+### US-A008 — Sales and discount campaigns
+
+**As an admin, I want time-boxed discounts, so that I can promote individual courses and whole
+careers.**
+
+State: Proposed (Alex, 2026-10-27). Suggested release 2+ (release 1 is free/internal; public prices
+begin at launch) — confirm or change. Builds on payments ([payments](specs/payments/payments.md))
+and careers. Scope: a campaign targets one course or every course under a career, with a discount
+(percent or fixed) and a start/end window; the catalog and course pages show the sale price while
+active, and checkout records the amount actually paid. Open decisions: discount type and whether
+course and career campaigns stack or conflict; rounding and currency; automatic vs code-based; and
+interaction with organization add-on prices. Needs its own contract.
 
 ## Learner journey
 
@@ -133,6 +175,19 @@ Feature: Course ratings
     When I try to rate it
     Then the rating is refused and nothing is stored
 ```
+
+### US-L029 — Earn account-level achievements
+
+**As a learner, I want achievements for what I do across the whole site, so that progress feels
+rewarding beyond any one course or career.**
+
+State: Proposed (Alex, 2026-10-27). Suggested release 2+ (engagement, not a release-1 internal
+must) — confirm or change. Distinct from career-milestone achievements, which already exist
+([milestones](specs/career-paths/milestones-and-achievements.md)): these are site-wide and
+automatic (for example first login, total hours watched, completion streaks), shown on the account.
+Open decisions: the starter set and thresholds; computing them server-side from existing
+progress/activity (cross-device) as milestones do; where they display and whether they are
+shareable; and whether earning one notifies the learner. Needs its own contract.
 
 ## Platform reliability
 
@@ -222,6 +277,77 @@ Feature: Fit for company use
     When release 1 starts
     Then every high or critical finding in the API's production dependencies is fixed or accepted with a reason
 ```
+
+### US-P019 — Redesign the top navigation header
+
+**As any user, I want a clear, modern top navigation, so that notifications, feedback, settings and
+my account are easy to reach.**
+
+State: Designed (Alex, 2026-10-29) — contract:
+[stories/US-P019-header-notifications-settings.md](stories/US-P019-header-notifications-settings.md),
+plan: [plans/2026-10-29-us-p019-header-notifications-settings.md](superpowers/plans/2026-10-29-us-p019-header-notifications-settings.md).
+Suggested release 1 — confirm or change. Grew from a header restyle into one story with three
+sub-areas (Alex's choice): the cluster redesign (layout B + mobile hamburger), a real in-app
+**notifications** subsystem (review / organization / admin-inbox events, stored per account, unread
+count on `/auth/me`, a bell dropdown), and a `/settings` Notifications tab on the account page. Also
+standardizes site icons on `@ng-icons/lucide`. Open decisions in the contract: the release
+assignment, a notification-retention sweep, and whether `/settings` is a new route or reuses the
+profile route. Frontend work uses the `design-taste-frontend` skill; API notifications are Codex's.
+
+### US-P020 — Harden signup against abuse and weak passwords
+
+**As a maintainer, I want signup and sign-in hardened, so that open registration cannot be abused
+and accounts are not easily guessed.**
+
+State: Designed (Alex, 2026-10-28) — contract: [stories/US-P020-signup-hardening.md](stories/US-P020-signup-hardening.md).
+Suggested release 1 — confirm or change. Chosen threat (Alex): **bot / mass fake signups**. Scope
+narrowed to two prongs: a Cloudflare Turnstile human check at signup, and a confirm-to-enroll gate
+(an unconfirmed account may sign in and browse but cannot enroll, free or paid, until it confirms).
+Re-grounding on current `main` moved items out of scope: the HTTP security headers are already
+shipped (`securityHeaders.test.ts`), and credential-stuffing defences and breached-password checks
+are deferred to their own rows. A full external penetration test stays release 2. Open decisions in
+the contract: the release assignment, and whether production with no Turnstile keys stays open
+(recommended) or hard-blocks signup.
+
+### US-P021 — GDPR data rights: export, erasure and cookie consent
+
+**As a user in the EU, I want to see, export and delete my personal data and control non-essential
+cookies, so that the platform meets GDPR.**
+
+State: Proposed (Alex, 2026-10-27). Suggested release 2 (the external review is release 2;
+EU-region storage, processor data-processing agreements and the privacy notice are already release
+1 under US-P018-AC03) — confirm or change. Scope beyond US-P018: self-service data export, account
+and data deletion (right to erasure) honouring retention rules, and a cookie-consent mechanism for
+any non-essential cookies or analytics. Open decisions: what personal data is in scope and its
+retention; how erasure interacts with enrolments, progress, organization membership and payment
+records that must be kept; and whether any non-essential cookies exist yet. Needs its own contract.
+
+### US-P022 — Terms of service and purchase-terms page
+
+**As a user, I want to read the platform's terms and purchase terms, so that I know the rules
+before I sign up or buy.**
+
+State: Proposed (Alex, 2026-10-27). Suggested release 2 (purchase terms matter at public launch; a
+basic terms page could come sooner) — confirm or change. Scope: a dedicated, versioned page (or
+pages) for terms of service and purchase/refund terms, linked from signup, checkout and the footer,
+with acceptance recorded where legally needed. Open decisions: the actual legal content (owner:
+Alex/legal); whether acceptance is logged per user and per version; and the relationship to the
+privacy notice (US-P018) and US-P021. Mostly content plus a small acceptance record. Needs its own
+contract.
+
+### US-P023 — Spike: move storage from MongoDB to Azure
+
+**As a maintainer, I want to know whether to move our data store to Azure, so that an
+infrastructure decision is made on evidence, not assumption.**
+
+State: Proposed — spike first (Alex, 2026-10-27). Note: accounts and courses moved to MongoDB only
+on 2026-10-18, and release 1 targets MongoDB Atlas in an EU region (US-P018-AC03), so this would
+reverse a recent decision; clarify the goal before any work. The original ask said "AzureDevs" — the
+target is unconfirmed (Azure Cosmos DB with the Mongo API vs Azure SQL). Spike scope: confirm the
+target and the reason (cost, data residency, company IT policy), estimate the rewrite against the
+repository-pattern seam (`*Repository.ts`, `mongo*.ts`), and sketch the migration, cutover and
+EU-region implications. No implementation until the spike reports and Alex decides the target and
+release. Needs a spike note, then a contract.
 
 ## Adding a story
 
