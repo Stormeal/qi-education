@@ -6,13 +6,13 @@ messages hold them.
 
 ## Active work
 
-No active implementation. US-P019 and US-P020 are delivered locally (2026-10-29), not pushed;
+No active implementation. US-P019 and US-P020 are included in release 0.1.532 (2026-10-29);
 frontend delivery `20ccf39` through `a2e100b`, API delivery in the earlier handoff. Current specs
 replace the retired story contracts. [Final handoff](history/handoffs/US-P019-US-P020-frontend.md)
 and [verification](history/verification/2026-10-29-header-signup/README.md) carry commits, checks,
 review/fix evidence and remaining release checks. Do not start a Proposed story without selection.
 
-Delivered locally 2026-10-27, not pushed: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
+Delivered 2026-10-27, included in release 0.1.532: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
 Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
 [history/handoffs/US-T016-codex.md](history/handoffs/US-T016-codex.md)). Check routine by Claude: Codex kept
 to its files and the contract; its one shared change, an optional 403 for disabled accounts in

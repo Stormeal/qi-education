@@ -9,6 +9,28 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.532',
+    date: '2026-10-29',
+    sections: [
+      {
+        title: 'New',
+        items: [
+          'Teachers can see course enrollment, learner progress and recent lesson feedback under "Your teaching" on Home.',
+          'The header brings notifications, Feedback, Settings and your account together, with a navigation menu on phones.',
+          'The notification bell shows course review and organization updates, and Settings lets you choose which updates you receive.',
+          'New accounts must confirm their email before enrolling, and sign-up supports a quick human check when enabled.',
+        ],
+      },
+      {
+        title: 'Fixed',
+        items: [
+          'Returning from a successful payment now shows Start learning instead of staying on "Confirming payment".',
+          'Notification choices cannot change while they are being saved.',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.1.503',
     date: '2026-10-26',
     sections: [
