@@ -83,7 +83,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.529';
+  readonly appVersion = '0.1.530';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -358,6 +358,7 @@ export class AppStateService {
   private pendingCourseContentKey = '';
   private courseContentGeneration = 0;
   private courseOperationGeneration = 0;
+  private purchaseReturnGeneration = 0;
   private initializedCourseEditorPath = '';
 
   private courseResponseIsCurrent(): () => boolean {
@@ -692,6 +693,7 @@ export class AppStateService {
   }
 
   private endSession(): void {
+    this.purchaseReturnGeneration++;
     this.feedbackComposer.setSession('');
     this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
@@ -2439,6 +2441,8 @@ export class AppStateService {
 
   /** US-L024: the course page was opened by Stripe's success or cancel redirect. */
   async handleCoursePurchaseReturn(courseId: string, payment: string | null, sessionId: string | null): Promise<void> {
+    if (payment !== 'cancelled' && (payment !== 'success' || !sessionId)) return;
+    const generation = ++this.purchaseReturnGeneration;
     if (payment === 'cancelled') {
       this.coursePurchaseStatus.set('cancelled');
       return;
@@ -2449,7 +2453,11 @@ export class AppStateService {
       this.coursePurchaseStatus.set('unreachable');
       return;
     }
-    const isCurrent = this.courseResponseIsCurrent();
+    const userId = this.loginState()?.user.id;
+    // Initial navigation and same-account /me hydration can finish during this
+    // request. Money already taken must not be hidden by a replaced session object.
+    const isCurrent = () => generation === this.purchaseReturnGeneration && this.loginState()?.token === token
+      && this.loginState()?.user.id === userId && this.currentPath() === `/courses/${encodeURIComponent(courseId)}`;
     this.coursePurchaseStatus.set('confirming');
     try {
       const result = await this.courseService.confirmCheckout(courseId, token, sessionId);

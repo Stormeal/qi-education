@@ -1,10 +1,15 @@
 // US-L024: buying a priced course through Stripe Checkout and confirming on return.
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Component } from '@angular/core';
+import { Router, provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { LoginState } from '../app.models';
 import { AppStateService } from './app-state.service';
 import { CourseService } from './course.service';
+import { ApiClientService } from './api-client.service';
+
+@Component({ template: '' })
+class PaymentReturnTestPage {}
 
 function session(enrolledCourseIds: string[] = []): LoginState {
   return { token: 'token', user: { id: 'learner', role: 'student', email: 'learner@example.test', displayName: 'Learner',
@@ -19,9 +24,11 @@ describe('US-L024 course purchase', () => {
   beforeEach(() => {
     localStorage.clear(); sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async () => new Response('[]'));
     state = TestBed.inject(AppStateService);
     service = TestBed.inject(CourseService);
     state.loginState.set(session());
+    state.currentPath.set('/courses/course-1');
     assigned = [];
     (state as unknown as { assignLocation: (url: string) => void }).assignLocation = url => assigned.push(url);
   });
@@ -32,6 +39,33 @@ describe('US-L024 course purchase', () => {
     expect(start).toHaveBeenCalledWith('course-1', 'token', `${window.location.origin}${window.location.pathname}`);
     expect(assigned).toEqual(['https://checkout.stripe.test/cs_1']);
     expect(state.coursePurchaseStatus()).toBe('redirecting');
+  });
+  it('DEF-064 completes a paid return while initial navigation and account hydration settle', async () => {
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async () => new Response('[]'));
+    const router = TestBed.inject(Router);
+    router.resetConfig([{ path: 'courses/:id', component: PaymentReturnTestPage }]);
+    let answer!: (value: Awaited<ReturnType<CourseService['confirmCheckout']>>) => void;
+    vi.spyOn(service, 'confirmCheckout').mockReturnValue(new Promise(resolve => answer = resolve));
+    state.currentPath.set('/');
+    const pending = state.handleCoursePurchaseReturn('course-1', 'success', 'cs-1');
+    await router.navigateByUrl('/courses/course-1');
+    // The same signed-in account may also be refreshed before the payment response arrives.
+    state.loginState.set({ ...session(), user: { ...session().user, emailConfirmed: true } });
+    answer({ status: 'paid', login: { user: session(['course-1']).user, permissions: session().permissions } });
+    await pending;
+    expect(state.coursePurchaseStatus()).toBe('paid');
+    expect(state.loginState()?.user.enrolledCourseIds).toContain('course-1');
+  });
+  it.each(['account', 'course'])('DEF-064 still rejects a paid reply after leaving the original %s', async changed => {
+    let answer!: (value: Awaited<ReturnType<CourseService['confirmCheckout']>>) => void;
+    vi.spyOn(service, 'confirmCheckout').mockReturnValue(new Promise(resolve => answer = resolve));
+    const pending = state.handleCoursePurchaseReturn('course-1', 'success', 'cs-1');
+    if (changed === 'course') state.currentPath.set('/courses/course-2');
+    else state.loginState.set({ ...session(), token: 'other-token', user: { ...session().user, id: 'other' } });
+    answer({ status: 'paid', login: { user: session(['course-1']).user, permissions: session().permissions } });
+    await pending;
+    expect(state.coursePurchaseStatus()).not.toBe('paid');
+    expect(state.loginState()?.user.enrolledCourseIds).not.toContain('course-1');
   });
 
   it('shows the API message when checkout is refused', async () => {

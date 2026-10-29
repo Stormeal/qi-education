@@ -32,6 +32,8 @@ describe('US-P019 D1 notification settings', () => {
     const changed = vi.fn(); fixture.componentInstance.notificationPrefsChanged.subscribe(changed);
     toggles[0].checked = false; toggles[0].dispatchEvent(new Event('change'));
     expect(changed).toHaveBeenCalledWith({ reviewActivity: true, organization: false, adminInbox: true });
+    fixture.componentRef.setInput('profileSaving', true); fixture.detectChanges();
+    expect(toggles.every(input => input.disabled), 'DEF-065 toggles cannot diverge from the preferences being saved').toBe(true);
     expect(routes.find(route => route.path === 'settings')?.data?.['initialTab']).toBe('notifications');
   });
   it('round-trips preferences with the account profile and marks the edit clean after save', async () => {

@@ -22,8 +22,14 @@ export class CourseViewRoute {
     const payment = query.get('payment');
     if (!payment) return;
     const courseId = route.snapshot.paramMap.get('id') ?? '';
-    void inject(Router).navigate([], { relativeTo: route, queryParams: { payment: null, session_id: null },
-      queryParamsHandling: 'merge', replaceUrl: true });
-    void this.state.handleCoursePurchaseReturn(courseId, payment, query.get('session_id'));
+    const router = inject(Router);
+    // Wait for the initial navigation and query cleanup before applying a return.
+    // A navigation elsewhere must not start a confirmation on that other page.
+    void router.navigate([], { relativeTo: route, queryParams: { payment: null, session_id: null },
+      queryParamsHandling: 'merge', replaceUrl: true }).then(() => {
+      if (router.url.split('?')[0] === `/courses/${encodeURIComponent(courseId)}`) {
+        void this.state.handleCoursePurchaseReturn(courseId, payment, query.get('session_id'));
+      }
+    });
   }
 }

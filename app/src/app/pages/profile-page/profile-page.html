@@ -43,7 +43,7 @@
           @for (group of notificationGroups(); track group.key) {
             <label class="notification-setting">
               <span><strong>{{ group.label }}</strong><small>{{ group.description }}</small></span>
-              <input type="checkbox" [checked]="notificationPrefs()[group.key]" (change)="changePreference(group.key, $event)" />
+              <input type="checkbox" [disabled]="profileSaving()" [checked]="notificationPrefs()[group.key]" (change)="changePreference(group.key, $event)" />
             </label>
           }
           <div class="profile-actions">
