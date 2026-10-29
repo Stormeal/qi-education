@@ -33,6 +33,14 @@ describe('US-P019 C2 notification bell', () => {
     expect(f.service.unreadCount()).toBe(0);
     expect(navigate).toHaveBeenCalledWith('/organization');
   });
+  it('refreshes the count when new activity arrived since sign-in', async () => {
+    const f = await setup(); f.service.setUnreadCount(0);
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path => new Response(JSON.stringify(
+      path === '/me' ? { unreadNotifications: 1 } : { notifications: [row] })));
+    await f.open();
+    await vi.waitFor(() => expect(f.service.unreadCount()).toBe(1));
+    expect(Array.from(f.page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.includes('Mark all read'))?.disabled).toBe(false);
+  });
   it('marks all read and returns keyboard focus to the trigger on Escape', async () => {
     const f = await setup(); document.body.append(f.page);
     await f.open();

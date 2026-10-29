@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { ProfilePage } from './profile-page';
 import { ApiClientService } from '../../services/api-client.service';
 import { AppStateService } from '../../services/app-state.service';
@@ -9,10 +9,16 @@ import { routes } from '../../app.routes';
 describe('US-P019 D1 notification settings', () => {
   beforeEach(() => {
     localStorage.clear(); sessionStorage.clear();
-    TestBed.configureTestingModule({ imports: [ProfilePage], providers: [provideRouter([])] });
+    TestBed.configureTestingModule({ imports: [ProfilePage], providers: [provideRouter(routes)] });
     vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async () => new Response('[]'));
   });
   afterEach(() => { vi.restoreAllMocks(); TestBed.resetTestingModule(); });
+  it('keeps the settings URL and page context while reusing the profile route', async () => {
+    const state = TestBed.inject(AppStateService);
+    await TestBed.inject(Router).navigateByUrl('/settings');
+    expect(state.currentPath()).toBe('/settings');
+    expect(state.isProfilePage()).toBe(true);
+  });
   it.each([['Student', false, ['Organization']], ['Teacher', false, ['Organization', 'Review activity']], ['Platform admin', true, ['Organization', 'Review activity', 'Admin inbox']]] as const)('shows role-appropriate choices for %s', (roleLabel, canAccessAdmin, labels) => {
     const fixture = TestBed.createComponent(ProfilePage);
     const inputs = { appVersion: 'test', currentYear: 2026, displayName: 'Learner', email: 'learner@example.test', roleLabel,

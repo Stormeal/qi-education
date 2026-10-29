@@ -30,6 +30,12 @@ describe('US-P020 runtime human-check configuration', () => {
     await TestBed.inject(AuthService).signup({ displayName: ' Learner ', email: ' learner@example.test ', password: 'Password123!', turnstileToken: 'solved' });
     expect(JSON.parse(String(request.mock.calls[0][1].body))).toEqual({ displayName: 'Learner', email: 'learner@example.test', password: 'Password123!', turnstileToken: 'solved' });
   });
+  it('explains how to recover when server-side verification fails', async () => {
+    TestBed.configureTestingModule({});
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockResolvedValue(new Response(JSON.stringify({ message: 'human-check-failed' }), { status: 400 }));
+    const result = await TestBed.inject(AuthService).signup({ displayName: 'Learner', email: 'learner@example.test', password: 'Password123!', turnstileToken: 'expired' });
+    expect(result).toEqual({ ok: false, message: 'The human check could not be verified. Please retry, or refresh this page.' });
+  });
 });
 
 describe('resolveApiBaseUrls', () => {

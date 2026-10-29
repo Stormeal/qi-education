@@ -1,7 +1,8 @@
 <button #trigger class="notification-trigger" type="button" aria-label="Notifications" [attr.aria-expanded]="isOpen()"
+  [attr.aria-describedby]="count() > 0 ? 'notification-unread-count' : null"
   aria-controls="notification-panel" (click)="toggle()">
   <app-icon name="bell" />
-  @if (count() > 0) { <span class="notification-dot" aria-hidden="true"></span><span class="sr-only">{{ count() }} unread</span> }
+  @if (count() > 0) { <span class="notification-dot" aria-hidden="true"></span><span id="notification-unread-count" class="sr-only">{{ count() }} unread</span> }
 </button>
 @if (isOpen()) {
   <section id="notification-panel" class="notification-panel" role="region" aria-label="Notifications">

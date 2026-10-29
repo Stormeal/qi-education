@@ -19,6 +19,16 @@ export class NotificationService {
     this.sessionVersion.update(value => value + 1);
   }
   setUnreadCount(count: number): void { this.unread.set(Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0); }
+  async refreshCount(): Promise<void> {
+    if (!this.token) return;
+    const generation = this.generation, token = this.token;
+    try {
+      const response = await this.api.fetch('/me', { method: 'GET', headers: { authorization: `Bearer ${token}` } });
+      if (!response.ok) return;
+      const body = await response.json() as { unreadNotifications?: unknown };
+      if (generation === this.generation && typeof body.unreadNotifications === 'number') this.setUnreadCount(body.unreadNotifications);
+    } catch { /* Keep the last known count while the list remains available. */ }
+  }
   list(refresh = false): Promise<NotificationItem[]> {
     if (!this.token) return Promise.resolve([]);
     if (refresh) this.invalidate();

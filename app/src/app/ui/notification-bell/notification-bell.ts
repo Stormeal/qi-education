@@ -33,7 +33,7 @@ export class NotificationBell {
   }
   protected async toggle(): Promise<void> {
     if (this.isOpen()) { this.close(false); return; }
-    this.isOpen.set(true); this.opened.emit(); await this.load();
+    this.isOpen.set(true); this.opened.emit(); await Promise.all([this.load(), this.notifications.refreshCount()]);
   }
   protected async load(): Promise<void> {
     const request = ++this.request, session = this.notifications.sessionVersion();

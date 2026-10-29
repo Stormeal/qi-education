@@ -77,7 +77,8 @@ export class AuthService {
 
       return {
         ok: false,
-        message,
+        message: message === 'human-check-failed'
+          ? 'The human check could not be verified. Please retry, or refresh this page.' : message,
       };
     }
 
