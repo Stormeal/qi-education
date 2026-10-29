@@ -3,6 +3,35 @@ import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
 import { CourseService } from './course.service';
 
+describe('US-P020 runtime human-check configuration', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+  afterEach(() => vi.restoreAllMocks());
+  it('loads the public site key once across concurrent and later callers', async () => {
+    const service = new ApiClientService();
+    const fetcher = vi.spyOn(service, 'fetch').mockResolvedValue(new Response(JSON.stringify({ turnstile: { configured: true, siteKey: 'public-key' } })));
+    const [first, second] = await Promise.all([service.getPublicConfig(), service.getPublicConfig()]);
+    expect(first).toEqual({ turnstile: { configured: true, siteKey: 'public-key' } });
+    expect(second).toEqual(first);
+    expect(await service.getPublicConfig()).toEqual(first);
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith('/health/config', { method: 'GET' });
+  });
+  it.each(['network', 'http', 'invalid', 'unconfigured'])('falls back to no key for %s configuration', async failure => {
+    const service = new ApiClientService();
+    const fetcher = vi.spyOn(service, 'fetch');
+    if (failure === 'network') fetcher.mockRejectedValue(new Error('offline'));
+    else fetcher.mockResolvedValue(new Response(JSON.stringify(failure === 'unconfigured'
+      ? { turnstile: { configured: false, siteKey: 'unused' } } : {}), { status: failure === 'http' ? 503 : 200 }));
+    expect(await service.getPublicConfig()).toEqual({ turnstile: { configured: false, siteKey: null } });
+  });
+  it('includes the solved token in the signup request', async () => {
+    TestBed.configureTestingModule({});
+    const client = TestBed.inject(ApiClientService);
+    const request = vi.spyOn(client, 'fetch').mockResolvedValue(new Response('{}', { status: 201 }));
+    await TestBed.inject(AuthService).signup({ displayName: ' Learner ', email: ' learner@example.test ', password: 'Password123!', turnstileToken: 'solved' });
+    expect(JSON.parse(String(request.mock.calls[0][1].body))).toEqual({ displayName: 'Learner', email: 'learner@example.test', password: 'Password123!', turnstileToken: 'solved' });
+  });
+});
+
 describe('resolveApiBaseUrls', () => {
   it('uses the hosted API from any GitHub Pages host', () => {
     expect(

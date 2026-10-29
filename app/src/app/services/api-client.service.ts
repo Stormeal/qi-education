@@ -18,12 +18,31 @@ export type ApiJsonResult<T> = {
   body: T | { message?: string };
 };
 
+export type PublicApiConfig = { turnstile: { configured: boolean; siteKey: string | null } };
+
 @Injectable({ providedIn: 'root' })
 export class ApiClientService {
   private readonly apiJsonCache = new Map<string, ApiJsonCacheEntry>();
   private readonly unauthorizedHandlers = new Set<() => void>();
   private hasLoggedApiBaseUrls = false;
   private sessionContext: () => unknown = () => undefined;
+  private publicConfig?: Promise<PublicApiConfig>;
+
+  getPublicConfig(): Promise<PublicApiConfig> {
+    return this.publicConfig ??= this.loadPublicConfig();
+  }
+
+  private async loadPublicConfig(): Promise<PublicApiConfig> {
+    const fallback: PublicApiConfig = { turnstile: { configured: false, siteKey: null } };
+    try {
+      const response = await this.fetch('/health/config', { method: 'GET' });
+      if (!response.ok) return fallback;
+      const config = await response.json() as { turnstile?: { configured?: unknown; siteKey?: unknown } } | null;
+      const turnstile = config?.turnstile;
+      return turnstile?.configured === true && typeof turnstile.siteKey === 'string' && turnstile.siteKey.trim()
+        ? { turnstile: { configured: true, siteKey: turnstile.siteKey } } : fallback;
+    } catch { return fallback; }
+  }
 
   setSessionContextProvider(provider: () => unknown): void {
     this.sessionContext = provider;

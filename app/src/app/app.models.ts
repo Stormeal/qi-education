@@ -23,6 +23,7 @@ export type LoginResponse = {
 };
 
 export type SignupRequest = {
+  turnstileToken?: string;
   displayName: string;
   email: string;
   password: string;

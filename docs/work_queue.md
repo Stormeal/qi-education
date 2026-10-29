@@ -6,15 +6,16 @@ messages hold them.
 
 ## Active work
 
-**US-P020 and US-P019 — API delivered locally; frontend pending** (2026-10-29).
-Branch `main`, base `a5afe5f`. Codex completed API scope; Claude owns the pending frontend.
+**US-P020 and US-P019 — frontend in progress** (2026-10-29, owner Codex).
+On Alex's "Continue working", Codex takes the remaining frontend tasks; no Claude changes are
+present in the clean tree. Branch `main`, frontend base `80aa541`; API base `a5afe5f`.
 Contracts: [US-P020](stories/US-P020-signup-hardening.md),
 [US-P019](stories/US-P019-header-notifications-settings.md). US-P020 Tasks 1–4: `5c92bb8`…`083edf6`;
 US-P019 A1–A6: `d1b9667`…`c3e2051`. API 2,908/2,908, app 572/572, journeys 20/20,
 API and Pages builds pass (0.1.520);
 independent read-only review found no issues. A sign-in timeout in a full run passed on full rerun.
 Full evidence and decisions: [Codex handoff](history/handoffs/US-P019-US-P020-codex.md).
-Next: Claude implements US-P020 Tasks 5–7 (widget/config and confirm-to-enroll UX), then US-P019
+Next: Codex implements US-P020 Tasks 5–7 (widget/config and confirm-to-enroll UX), then US-P019
 B–D (header/Lucide, bell and settings); complete browser evidence before closing either story.
 No shared-service mutation probes, push or deployment. Missing keys keep signup open; legacy
 accounts pass; notification reads cap at 50 without deletion. Feedback notification type/recipients

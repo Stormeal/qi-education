@@ -66,6 +66,7 @@ export class AuthService {
         displayName: input.displayName.trim(),
         email: input.email.trim(),
         password: input.password,
+        turnstileToken: input.turnstileToken,
       }),
     });
     const body = (await response.json()) as LoginResponse | { message?: string };
