@@ -71,6 +71,8 @@ import { createPaymentRepository, type PaymentRepository } from './paymentReposi
 import { createPaymentService, type PaymentService } from './paymentService.js';
 import { createPaymentWebhookHandler, registerPaymentRoutes } from './paymentRoutes.js';
 import { createTurnstileVerifier, type TurnstileVerifier } from './turnstileService.js';
+import { createNotificationRepository, type NotificationRepository } from './notificationRepository.js';
+import { registerNotificationRoutes } from './notificationRoutes.js';
 import { createAccountProfileRepository, type AccountProfileRepository } from './accountProfileRepository.js';
 import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
@@ -156,6 +158,7 @@ type ServerDependencies = {
   muxVideoService?: MuxVideoService | null;
   muxWebhookService?: MuxWebhookService | null;
   turnstileVerifier?: TurnstileVerifier | null;
+  notificationRepository?: NotificationRepository;
 };
 
 type AuthenticatedRequest = Request & {
@@ -189,6 +192,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const careerPaths = dependencies.careerPathRepository ?? createCareerPathRepository();
   const instructorProfiles = dependencies.instructorProfileRepository ?? createInstructorProfileRepository();
   const accountProfiles = dependencies.accountProfileRepository ?? createAccountProfileRepository();
+  const notifications = dependencies.notificationRepository ?? createNotificationRepository();
   const payments = dependencies.paymentRepository ?? createPaymentRepository();
   const paymentService = dependencies.paymentService === undefined ? createPaymentService() : dependencies.paymentService;
   const learningProgress = dependencies.learningProgressRepository ?? createLearningProgressRepository();
@@ -759,6 +763,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerInstructorProfileRoutes(app, { authenticate: authenticateRequest(auth), requireCreator: requireCourseCreator,
     requireAdmin, profiles: instructorProfiles, auth, courses });
   registerAccountProfileRoutes(app, { authenticate: authenticateRequest(auth), profiles: accountProfiles });
+  registerNotificationRoutes(app, { authenticate: authenticateRequest(auth), notifications });
   registerPaymentRoutes(app, paymentDependencies);
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
