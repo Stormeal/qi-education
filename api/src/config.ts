@@ -50,6 +50,8 @@ const envSchema = z.object({
   MUX_TOKEN_ID: z.string().min(1).optional(),
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   MUX_TOKEN_SECRET: z.string().min(1).optional(),
   MUX_WEBHOOK_SECRET: z.string().min(1).optional(),
   MUX_DEFAULT_PLAYBACK_POLICY: z.enum(['public', 'signed']).default('public'),
@@ -63,7 +65,7 @@ export function buildApiConfig(source: Record<string, string | undefined>) {
   const mode = getServicesMode(source), settings = { ...source };
   if (mode === 'isolated') {
     for (const key of Object.keys(settings)) {
-      if (/^(GOOGLE_|MONGODB_|MUX_|STRIPE_|GITHUB_FEEDBACK_)/.test(key)) delete settings[key];
+      if (/^(GOOGLE_|MONGODB_|MUX_|STRIPE_|TURNSTILE_|GITHUB_FEEDBACK_)/.test(key)) delete settings[key];
     }
   }
   if (source.NODE_ENV === 'test') delete settings.BREVO_API_KEY;
@@ -181,6 +183,9 @@ export function hasMuxWebhookConfig() {
 
 export function hasStripeConfig() {
   return sharedServicesEnabled() && Boolean(apiConfig.STRIPE_SECRET_KEY);
+}
+export function hasTurnstileConfig() {
+  return apiConfig.mode !== 'isolated' && Boolean(apiConfig.TURNSTILE_SECRET_KEY && apiConfig.TURNSTILE_SITE_KEY);
 }
 export function stripeKeyMode(key = apiConfig.STRIPE_SECRET_KEY): 'test' | 'live' | null {
   return key?.startsWith('sk_test_') ? 'test' : key?.startsWith('sk_live_') ? 'live' : null;

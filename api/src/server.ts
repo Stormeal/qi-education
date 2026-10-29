@@ -69,6 +69,7 @@ import { registerAccountProfileRoutes } from './accountProfileRoutes.js';
 import { createPaymentRepository, type PaymentRepository } from './paymentRepository.js';
 import { createPaymentService, type PaymentService } from './paymentService.js';
 import { createPaymentWebhookHandler, registerPaymentRoutes } from './paymentRoutes.js';
+import { createTurnstileVerifier, type TurnstileVerifier } from './turnstileService.js';
 import { createAccountProfileRepository, type AccountProfileRepository } from './accountProfileRepository.js';
 import { createLearningProgressRepository, type LearningProgressRepository } from './learningProgressRepository.js';
 import {
@@ -153,6 +154,7 @@ type ServerDependencies = {
   gitHubFeedbackService?: GitHubFeedbackService;
   muxVideoService?: MuxVideoService | null;
   muxWebhookService?: MuxWebhookService | null;
+  turnstileVerifier?: TurnstileVerifier | null;
 };
 
 type AuthenticatedRequest = Request & {
@@ -211,6 +213,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const feedbackTriage = new FeedbackTriageService(feedback, gitHubFeedback,
     dependencies.feedbackIssueOperationRepository ?? createFeedbackIssueOperationRepository());
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
+  const turnstile = dependencies.turnstileVerifier ?? createTurnstileVerifier();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
   app.use((request, _response, next) => courseRequestReads.run({ reads: new Map(), reuseRecent: request.method === 'GET' }, next));

@@ -6,7 +6,14 @@ messages hold them.
 
 ## Active work
 
-No active work.
+**US-P020 and US-P019 API implementation** (started 2026-10-29, owner Codex).
+Branch `main`, base `a5afe5f`. Codex owns `api/src/**`, API specs/tests and handoff;
+Claude owns the frontend in both contracts. Version files are shared and bumped at commit.
+Contracts: [US-P020](stories/US-P020-signup-hardening.md),
+[US-P019](stories/US-P019-header-notifications-settings.md); execute US-P020 Tasks 1–4,
+then US-P019 A1–A6. Next: implement and verify the injected Turnstile verifier in isolated tests.
+Defaults retained: no Turnstile keys means signup stays open; grandfathered accounts pass;
+notification list capped at 50 without deletion. No shared-service mutation probes or push.
 
 Delivered locally 2026-10-27, not pushed: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
 Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
