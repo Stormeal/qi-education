@@ -753,8 +753,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
       publicUser = await withOrganizationCourses(authenticatedRequest.user);
     }
     catch { response.status(503).json({ message: 'Organizations are temporarily unavailable. Please try again.' }); return; }
+    let unreadNotifications = 0;
+    try { unreadNotifications = await notifications.countUnread(authenticatedRequest.user.id); }
+    catch { console.warn('Notification count unavailable; session remains available.'); }
     response.json({
       user: publicUser,
+      unreadNotifications,
       permissions: getRolePermissions(authenticatedRequest.user.role),
       organization: membership?.state === 'active' ? { id: membership.orgId, role: membership.role } : null,
     });

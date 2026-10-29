@@ -26,6 +26,20 @@ async function setup() {
   return { auth, notifications, user, other, request, create };
 }
 describe.each(['', '/api'])('US-P019 A4 notification HTTP (%s)', prefix => {
+  it('A5 auth/me reports the caller unread count and keeps working during a count outage', async () => {
+    const f = await setup();
+    await f.create(f.user.id); await f.create(f.user.id); await f.create(f.other.id);
+    expect((await (await f.request(prefix + '/auth/me')).json()).unreadNotifications).toBe(2);
+    await f.request(prefix + '/notifications/read-all', 'POST');
+    expect((await (await f.request(prefix + '/auth/me')).json()).unreadNotifications).toBe(0);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(f.notifications, 'countUnread').mockRejectedValue(new Error('private provider detail'));
+    const response = await f.request(prefix + '/auth/me');
+    expect(response.status).toBe(200);
+    expect((await response.json()).unreadNotifications).toBe(0);
+    expect(warn).toHaveBeenCalled();
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('private provider detail');
+  });
   it('lists only caller snapshots, never marks on open, and scopes read/all writes', async () => {
     const f = await setup(), own = await f.create(f.user.id), foreign = await f.create(f.other.id);
     const list = await f.request(prefix + '/notifications');
