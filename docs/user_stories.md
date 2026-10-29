@@ -28,11 +28,11 @@ period and public prices are set at launch, so colleagues enrolled before then k
 budget, curriculum owner, backup developer.
 
 New candidates from Alex's 2026-10-27 brainstorm, filed below as Proposed and awaiting triage into
-a release: US-P019 (nav header), US-P020 (signup hardening), US-P021 (GDPR data rights), US-P022
+a release: US-P021 (GDPR data rights), US-P022
 (terms page), US-L029 (account achievements), US-T017 (browser video editing), US-A008 (discount
 campaigns), US-P023 (Azure storage spike). The suggested release in each story is confirm-or-change;
 Alex (product owner) assigns the release. Organization-private courses from the same brainstorm are
-already delivered under US-O001.
+already delivered under US-O001. US-P019 and US-P020 were delivered locally on 2026-10-29; hosted checks are in the work queue.
 
 Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account achievements is US-L029; US-T016 already identifies the delivered teacher overview and US-L027 identifies certificates.
 
@@ -48,8 +48,6 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
-| US-P020 | Harden signup: Turnstile + confirm-to-enroll gate | In progress: API built; app pending | P2 | Turnstile keys (Alex) | [Contract](stories/US-P020-signup-hardening.md) |
-| US-P019 | Header cluster + notifications + /settings | In progress: API built; app pending | P3 | UI foundation | [Contract](stories/US-P019-header-notifications-settings.md) |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Proposed | P2 | — | Below |
 | US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
@@ -277,37 +275,6 @@ Feature: Fit for company use
     When release 1 starts
     Then every high or critical finding in the API's production dependencies is fixed or accepted with a reason
 ```
-
-### US-P019 — Redesign the top navigation header
-
-**As any user, I want a clear, modern top navigation, so that notifications, feedback, settings and
-my account are easy to reach.**
-
-State: In progress (API built 2026-10-29; frontend pending). Designed with Alex 2026-10-29 — contract:
-[stories/US-P019-header-notifications-settings.md](stories/US-P019-header-notifications-settings.md),
-plan: [plans/2026-10-29-us-p019-header-notifications-settings.md](superpowers/plans/2026-10-29-us-p019-header-notifications-settings.md).
-Suggested release 1 — confirm or change. Grew from a header restyle into one story with three
-sub-areas (Alex's choice): the cluster redesign (layout B + mobile hamburger), a real in-app
-**notifications** subsystem (review / organization / admin-inbox events, stored per account, unread
-count on `/auth/me`, a bell dropdown), and a `/settings` Notifications tab on the account page. Also
-standardizes site icons on `@ng-icons/lucide`. Open decisions in the contract: the release
-assignment, a notification-retention sweep, and whether `/settings` is a new route or reuses the
-profile route. Frontend work uses the `design-taste-frontend` skill; API notifications are Codex's.
-
-### US-P020 — Harden signup against abuse and weak passwords
-
-**As a maintainer, I want signup and sign-in hardened, so that open registration cannot be abused
-and accounts are not easily guessed.**
-
-State: In progress (API built 2026-10-29; frontend pending). Designed with Alex 2026-10-28 — contract: [stories/US-P020-signup-hardening.md](stories/US-P020-signup-hardening.md).
-Suggested release 1 — confirm or change. Chosen threat (Alex): **bot / mass fake signups**. Scope
-narrowed to two prongs: a Cloudflare Turnstile human check at signup, and a confirm-to-enroll gate
-(an unconfirmed account may sign in and browse but cannot enroll, free or paid, until it confirms).
-Re-grounding on current `main` moved items out of scope: the HTTP security headers are already
-shipped (`securityHeaders.test.ts`), and credential-stuffing defences and breached-password checks
-are deferred to their own rows. A full external penetration test stays release 2. Open decisions in
-the contract: the release assignment, and whether production with no Turnstile keys stays open
-(recommended) or hard-blocks signup.
 
 ### US-P021 — GDPR data rights: export, erasure and cookie consent
 

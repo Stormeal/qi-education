@@ -46,7 +46,7 @@ The API enforces every rule here; the UI only mirrors them.
 - New enrollment only in a published course; enrolling twice keeps one enrollment.
 - Self-serve enrollment and starting paid checkout require a confirmed email; accounts without
   a stored flag count as confirmed. Organization-included access, held courses and paid returns
-  are exempt (US-P020 API).
+  are exempt (US-P020).
 - Archiving stops new enrollment; existing learners keep access.
 - Prices are DKK. Empty or 0 = free. A priced course is enrolled by buying it once through Stripe
   and kept unless the payment is fully refunded (US-L025); authors, admins and anyone enrolled before
@@ -107,7 +107,7 @@ The API enforces every rule here; the UI only mirrors them.
   default on; review notices require a teacher/admin, admin-inbox notices require an admin.
 - Notification delivery is best effort and cannot fail the original action. Opening the list
   leaves unread state unchanged; reading an item or all items affects only the caller.
-- The API is implemented under US-P019; the bell and settings UI remain pending.
+- The bell refreshes on session refresh and opening; notification groups are managed in Settings → Notifications.
 
 ## Limits
 

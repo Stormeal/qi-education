@@ -6,20 +6,11 @@ messages hold them.
 
 ## Active work
 
-**US-P020 and US-P019 — frontend in progress** (2026-10-29, owner Codex).
-On Alex's "Continue working", Codex takes the remaining frontend tasks; no Claude changes are
-present in the clean tree. Branch `main`, frontend base `80aa541`; API base `a5afe5f`.
-Contracts: [US-P020](stories/US-P020-signup-hardening.md),
-[US-P019](stories/US-P019-header-notifications-settings.md). US-P020 Tasks 1–4: `5c92bb8`…`083edf6`;
-US-P019 A1–A6: `d1b9667`…`c3e2051`. API 2,908/2,908, app 572/572, journeys 20/20,
-API and Pages builds pass (0.1.520);
-independent read-only review found no issues. A sign-in timeout in a full run passed on full rerun.
-Full evidence and decisions: [Codex handoff](history/handoffs/US-P019-US-P020-codex.md).
-Next: Codex implements US-P020 Tasks 5–7 (widget/config and confirm-to-enroll UX), then US-P019
-B–D (header/Lucide, bell and settings); complete browser evidence before closing either story.
-No shared-service mutation probes, push or deployment. Missing keys keep signup open; legacy
-accounts pass; notification reads cap at 50 without deletion. Feedback notification type/recipients
-remain undefined in the design and need a contract before implementation.
+No active implementation. US-P019 and US-P020 are delivered locally (2026-10-29), not pushed;
+frontend delivery `20ccf39` through `a2e100b`, API delivery in the earlier handoff. Current specs
+replace the retired story contracts. [Final handoff](history/handoffs/US-P019-US-P020-frontend.md)
+and [verification](history/verification/2026-10-29-header-signup/README.md) carry commits, checks,
+review/fix evidence and remaining release checks. Do not start a Proposed story without selection.
 
 Delivered locally 2026-10-27, not pushed: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
 Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
@@ -131,10 +122,13 @@ as they arrive.
 
 ## Open release checks
 
-- US-P020 / US-P019 API (built locally 2026-10-29): after frontend delivery and an authorized push,
-  configure both hosted Turnstile keys and exercise real signup/confirmation/free and paid
-  acquisition; check Mongo notifications/indexes, all recipients, muted preferences and read state
-  across devices. No shared mutations or combined browser checks were performed during API work.
+- US-P020 / US-P019 (delivered locally 2026-10-29, through `a2e100b`): after an authorized
+  push, configure both hosted Turnstile keys and exercise real signup/mail/confirmation/free and
+  paid acquisition, including the DEF-064 payment-return fix. Check Mongo notifications/indexes,
+  all nine event recipients, muted groups and read/preferences across devices. Isolated browser
+  checks cover both no-key and synthetic-key flows, bell and settings; they do not establish real
+  provider behavior. Include the header/bell/settings in the real screen reader pass. No shared
+  mutations or deployment were performed. Add the release note before pushing.
 
 - US-A007 course reviewers, after the next push: as admin assign a second real account as reviewer
   on a submitted course; it receives the email (link opens the course), Publish stays disabled until

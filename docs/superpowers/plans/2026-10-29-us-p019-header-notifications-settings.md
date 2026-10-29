@@ -1,6 +1,6 @@
 # US-P019 Header, Notifications & Settings Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Redesign the top-right header into a claude.ai-style cluster (bell · Feedback · gear · avatar), back the bell with a real in-app notifications subsystem, and add a `/settings` Notifications tab.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Express + Zod + Vitest (api), Angular signals + `@ng-icons/lucide` + Vitest (app).
 
-**Spec:** [docs/stories/US-P019-header-notifications-settings.md](../../stories/US-P019-header-notifications-settings.md)
+**Delivered 2026-10-29.** Current behavior: [notifications](../../specs/platform/notifications.md), [UI foundation](../../specs/platform/ui-foundation.md), [profiles](../../specs/accounts/profiles.md). Contract retained in Git at `a2e100b`; frontend ownership transferred to Codex on Alex’s continuation. [Evidence](../../history/verification/2026-10-29-header-signup/README.md).
 
 ## Global Constraints
 
@@ -124,11 +124,11 @@
 **Interfaces:**
 - Produces: header renders the right cluster — bell (`lucideBell`, slot; wired in C2), labeled **Feedback** button (`lucideMessageSquare`, emits existing `feedbackOpened`), gear link to `/settings` (`lucideSettings`), avatar pill (existing `profile-menu`). Brand + nav tabs unchanged. New input `unreadCount = input(0)` for the dot; no `AppStateService` injection.
 
-- [ ] **Step 1:** Failing tests — cluster shows bell, labeled Feedback, gear linking `/settings`, avatar pill; Feedback click emits `feedbackOpened`; header still does not inject `AppStateService`.
-- [ ] **Step 2:** Run the page-header spec — FAIL.
-- [ ] **Step 3:** Implement with `@ng-icons/lucide` (`provideIcons`), design tokens only, global focus ring.
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests — cluster shows bell, labeled Feedback, gear linking `/settings`, avatar pill; Feedback click emits `feedbackOpened`; header still does not inject `AppStateService`.
+- [x] **Step 2:** Run the page-header spec — FAIL.
+- [x] **Step 3:** Implement with `@ng-icons/lucide` (`provideIcons`), design tokens only, global focus ring.
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task B3: Mobile hamburger drawer
 
@@ -137,11 +137,11 @@
 **Interfaces:**
 - Produces: at ≤375px, top bar = brand · bell · avatar; a `lucideMenu` button toggles a drawer listing all nav tabs + Feedback + Settings.
 
-- [ ] **Step 1:** Failing tests — below the mobile breakpoint the hamburger renders and toggles a drawer containing the tabs + Feedback + Settings; above it the inline tabs render; no element forces horizontal overflow (assert the layout’s wrap/overflow rule, not pixel counts).
-- [ ] **Step 2:** Run — FAIL.
-- [ ] **Step 3:** Implement the responsive drawer (tokens, global ring, `aria-expanded`).
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests — below the mobile breakpoint the hamburger renders and toggles a drawer containing the tabs + Feedback + Settings; above it the inline tabs render; no element forces horizontal overflow (assert the layout’s wrap/overflow rule, not pixel counts).
+- [x] **Step 2:** Run — FAIL.
+- [x] **Step 3:** Implement the responsive drawer (tokens, global ring, `aria-expanded`).
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task B4: Lucide migration (remaining inline SVGs)
 
@@ -149,9 +149,9 @@
 
 **Interfaces:** Consumes B2's `@ng-icons/lucide` pattern. No behavior change — icons swap to Lucide equivalents.
 
-- [ ] **Step 1:** For each template, replace inline `<svg>` with the matching `<ng-icon name="lucide…">`, preserving `aria-label`/`title` and size. Keep `brand-link`'s bespoke logo if it is not a generic icon.
-- [ ] **Step 2:** Run `npm run app:test` (includes `check-ui-foundation.mjs`) — PASS (no new hard-coded colours, focus ring intact); note Lucide as the icon source in `ui-foundation.md`.
-- [ ] **Step 3:** Commit (bump version). Split across commits per few templates if large.
+- [x] **Step 1:** For each template, replace inline `<svg>` with the matching `<ng-icon name="lucide…">`, preserving `aria-label`/`title` and size. Keep `brand-link`'s bespoke logo if it is not a generic icon.
+- [x] **Step 2:** Run `npm run app:test` (includes `check-ui-foundation.mjs`) — PASS (no new hard-coded colours, focus ring intact); note Lucide as the icon source in `ui-foundation.md`.
+- [x] **Step 3:** Commit (bump version). Split across commits per few templates if large.
 
 ---
 
@@ -165,11 +165,11 @@
 - Consumes: A4 routes, A5 `/auth/me` field.
 - Produces: `NotificationService.list(): Promise<Notification[]>` (cached until invalidated), `markRead(id)`, `markAllRead()`; `AppStateService.unreadNotificationCount` signal fed from `/auth/me`.
 
-- [ ] **Step 1:** Failing tests (clear storage in `beforeEach`) — `list()` fetches `/notifications` and caches; `markRead`/`markAllRead` POST and invalidate; `unreadNotificationCount` reflects the `/auth/me` payload.
-- [ ] **Step 2:** Run the spec — FAIL.
-- [ ] **Step 3:** Implement against `ApiClientService`.
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests (clear storage in `beforeEach`) — `list()` fetches `/notifications` and caches; `markRead`/`markAllRead` POST and invalidate; `unreadNotificationCount` reflects the `/auth/me` payload.
+- [x] **Step 2:** Run the spec — FAIL.
+- [x] **Step 3:** Implement against `ApiClientService`.
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ### Task C2: Bell dropdown
 
@@ -177,11 +177,11 @@
 
 **Interfaces:** Consumes C1 (`NotificationService`, `unreadNotificationCount`). Feeds B2's bell slot.
 
-- [ ] **Step 1:** Failing tests — dot shows when count>0; opening the panel lists newest-first and does **not** change the count; clicking a row navigates to `link` and marks it read (count decrements); Mark-all-read clears; empty state shows "You're all caught up."; Escape closes and returns focus to the bell.
-- [ ] **Step 2:** Run — FAIL.
-- [ ] **Step 3:** Implement (Lucide icons by type, tokens, menu keyboard contract like `profile-menu`; full-width panel on mobile).
-- [ ] **Step 4:** Run — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests — dot shows when count>0; opening the panel lists newest-first and does **not** change the count; clicking a row navigates to `link` and marks it read (count decrements); Mark-all-read clears; empty state shows "You're all caught up."; Escape closes and returns focus to the bell.
+- [x] **Step 2:** Run — FAIL.
+- [x] **Step 3:** Implement (Lucide icons by type, tokens, menu keyboard contract like `profile-menu`; full-width panel on mobile).
+- [x] **Step 4:** Run — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ---
 
@@ -193,11 +193,11 @@
 
 **Interfaces:** Consumes A1 (`notificationPrefs` on the profile) via the existing profile save (`PUT /users/me/profile`).
 
-- [ ] **Step 1:** Failing tests (clear storage in `beforeEach`) — the Notifications tab shows role-appropriate toggles (everyone: Organization; teacher/admin: + Review activity; admin: + Admin inbox); toggling and saving round-trips through the profile; existing Profile/Password/Purchases tabs unchanged; `/settings` resolves to this page.
-- [ ] **Step 2:** Run the profile-page spec — FAIL.
-- [ ] **Step 3:** Implement the tab + route (tokens, `app-tabs`, global ring).
-- [ ] **Step 4:** Run `npm run app:test` and `npm run app:build:pages` — PASS.
-- [ ] **Step 5:** Commit (bump version).
+- [x] **Step 1:** Failing tests (clear storage in `beforeEach`) — the Notifications tab shows role-appropriate toggles (everyone: Organization; teacher/admin: + Review activity; admin: + Admin inbox); toggling and saving round-trips through the profile; existing Profile/Password/Purchases tabs unchanged; `/settings` resolves to this page.
+- [x] **Step 2:** Run the profile-page spec — FAIL.
+- [x] **Step 3:** Implement the tab + route (tokens, `app-tabs`, global ring).
+- [x] **Step 4:** Run `npm run app:test` and `npm run app:build:pages` — PASS.
+- [x] **Step 5:** Commit (bump version).
 
 ---
 

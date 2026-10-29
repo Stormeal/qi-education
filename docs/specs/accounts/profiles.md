@@ -12,11 +12,13 @@ public instructor description shown with their published courses.
   A never-saved profile reads as empty texts, color `#2f4f43` and `updatedAt: null`. PUT replaces
   the whole profile; invalid input changes nothing (400). Storage failure answers 503 and the page
   keeps the unsaved edits.
-- **Notification preferences** (US-P019 API): private profiles additionally carry
+- **Notification preferences** (US-P019): private profiles additionally carry
   `notificationPrefs: { reviewActivity, organization, adminInbox }`. Each boolean defaults to true,
   including absent/legacy profiles. A partial preference object fills missing groups with true;
   an old client that omits the whole object preserves the stored preferences. Invalid booleans
-  answer 400 without writing. The Notifications tab is still pending in the story.
+  answer 400 without writing. Notifications shows Organization for everyone, Review activity for
+  teachers/admins and Admin inbox for admins. Edits share the profile dirty/save flow and survive
+  tab changes; controls are disabled during save to prevent a false saved state (DEF-065).
 - **Instructor description** (`GET/PUT /users/me/instructor-profile`, teacher/admin only): one
   trimmed text of 0–280 characters; empty clears it. Saving publishes immediately, no approval.
 - **Public instructors** (`GET /instructors`): only non-empty descriptions of people who own at
@@ -24,8 +26,10 @@ public instructor description shown with their published courses.
 - **Moderation**: admins list every stored description and can clear one
   (`GET/DELETE /admin/instructor-profiles…`).
 - The private bio never flows into the public description.
-- The profile page has three tabs: **Profile** (avatar colour, about you, job, company, goals),
-  **Password** and **Purchases**. Unsaved edits survive switching tabs.
+- The account page has four tabs: **Profile** (avatar colour, about you, job, company, goals),
+  **Password**, **Purchases** and **Notifications**. Unsaved edits survive switching tabs.
+  `/settings` reuses that page and initially selects Notifications; `/profile` starts on Profile.
+  The header gear and avatar-menu Settings open `/settings`.
 - **Purchases** (every role): each bought course with date, amount and "Refunded" when refunded,
   newest first, and a **Receipt** button that opens Stripe's receipt page; **Manage saved card**
   opens Stripe's customer portal (see [payments](../payments/payments.md)).

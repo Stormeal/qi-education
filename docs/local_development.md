@@ -50,7 +50,7 @@ Never commit `.env` or log credentials.
 | Area | Configuration |
 | --- | --- |
 | Auth | `AUTH_TOKEN_SECRET` (required in production) |
-| Signup human check (US-P020 API) | `TURNSTILE_SECRET_KEY` and public `TURNSTILE_SITE_KEY`, both required to enable; stripped in isolated mode, optional while frontend rollout is pending |
+| Signup human check (US-P020) | `TURNSTILE_SECRET_KEY` and public `TURNSTILE_SITE_KEY`, both required to enable; stripped in isolated mode, optional; signup stays open until both hosted keys are set |
 | Accounts and courses | MongoDB (the Mongo content settings below) in shared and hosted mode; without them those routes answer "unavailable". Isolated runs use the demo users and demo course |
 | Maintenance freeze | `USER_STORE_READ_ONLY=1` / `COURSE_STORE_READ_ONLY=1` refuse account or course-detail writes (503 with a retry message). Any value other than `0` or `1` stops start-up |
 | Feedback | MongoDB content settings; `FEEDBACK_STORE_READ_ONLY=1` freezes submission/lesson feedback/triage |

@@ -15,14 +15,18 @@ signed in across page loads.
   2026-10-19 have no stored flag and count as confirmed. An unconfirmed account can sign in and
   browse, but self-serve enrollment and starting paid checkout answer 403 `email-not-confirmed`.
   Organization-included courses, already-held courses and already-paid checkout returns remain
-  available. Confirmation unlocks new self-serve acquisition (US-P020 API, 2026-10-29).
-- **Signup human check** (US-P020 API): with both `TURNSTILE_SECRET_KEY` and `TURNSTILE_SITE_KEY`
+  available. Confirmation unlocks new self-serve acquisition (US-P020, 2026-10-29).
+- **Signup human check** (US-P020): with both `TURNSTILE_SECRET_KEY` and `TURNSTILE_SITE_KEY`
   configured outside isolated mode, signup validates a Turnstile token after body validation and
   before consuming the client budget or accessing accounts. Rejection/provider outage answers
   400 `human-check-failed`; provider verification has a ten-second timeout. Missing keys keep
   signup open. Isolated runs strip the keys and never contact Cloudflare. `/health/config`
   exposes only `{ turnstile: { configured, siteKey } }`; the secret and tokens are never logged.
-  The frontend widget and confirm-first notice are pending in the open story.
+  The signup form fetches memoized public config at runtime and loads the explicit widget script
+  only in signup mode with a site key. Submit waits for config and, when configured, a solved
+  token. Expiry/errors clear it; each attempted signup resets the single-use token. A failed script
+  load offers Retry. Provider rejection explains how to retry rather than showing its raw code.
+  No key or failed public-config fetch means no widget; the API still enforces its configured rule.
 - **Login** answers a signed session token (12-hour lifetime) and the user. A wrong password, an
   unknown address and a disabled account all get the same generic 401.
 - **Remember me** stores the session in `localStorage`; otherwise `sessionStorage`. Logout clears both.
@@ -30,6 +34,8 @@ signed in across page loads.
   background: same user and permissions → nothing changes; changed → state is reset and reloaded;
   401 → signed out with "Please log in again."; any other failure → the session is kept.
   A stored token whose own expiry has passed is cleared without a request.
+  Notification counts update even when the user object is unchanged; fresh sign-in also fetches
+  the count (see [notifications](../platform/notifications.md)).
 - **Every protected request** re-reads the account, so a role change or a disabled account takes
   effect on the next request without a new token.
 - **Sign-in limit**: ten failed attempts for one address within 15 minutes lock that address for
@@ -60,4 +66,4 @@ signed in across page loads.
 
 - Sign-in has no per-client limit, only the per-address one.
 - Existing sessions survive a password change until their token expires.
-- Hosted Turnstile verification and the frontend widget have not yet been exercised together.
+- Widget/API behavior was checked with an isolated synthetic provider. Real hosted Turnstile verification remains a release check.

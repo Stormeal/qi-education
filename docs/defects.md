@@ -20,33 +20,6 @@ Next free IDs: DEF-066, INV-020.
 
 ## Open defects
 
-### DEF-064 — Paid return stays on "Confirming payment" after successful enrollment
-
-P2 / In progress, Codex, 2026-10-29, `main`, discovered at `64439cb` during isolated US-P020
-browser verification. Reproduction: a confirmed new learner buys the published demo course
-through `FakePaymentService`; checkout and paid-confirm API replies succeed, and the account
-repository includes the course, but `/courses/demo-course-1` remains on "Confirming payment..."
-with Buy visible. [Before screenshot](history/verification/2026-10-29-header-signup/payment-return-before-fix.png).
-The payment return starts in the route constructor before initial NavigationEnd and can overlap
-same-account `/me` hydration. `courseResponseIsCurrent` rejects the result when the initial path,
-generation or session object changes. This guard is unchanged from the frontend base `80aa541`.
-Expected: the paid result completes for the same account and course after initial navigation;
-another account or course must still reject stale replies. Regression:
-`DEF-064 completes a paid return while initial navigation and account hydration settle`.
-Next: verify a return-specific identity/course guard, rerun HTTP/UI checks, record the fix commit.
-No real Stripe, shared data or money involved.
-
-### DEF-065 — Notification preference can change while its save is in flight
-
-P2 / In progress, Codex, 2026-10-29, `main`, discovered at `64439cb` in independent review of
-US-P019. Reproduction with the actual save method and a deferred account response: Organization
-on → toggle off → Save → toggle back on before reply. Server persists off; the visible toggle is
-on, dirty becomes false and the page claims saved. The new checkbox is enabled during save and
-the existing profile save snapshots current values after awaiting. Expected: users cannot make
-an unsaved preference appear saved. Regression: the role-specific Notifications-tab cases assert
-all toggles are disabled while `profileSaving` (labeled DEF-065). Next: disable those controls
-during save and verify the profile request/dirty-state behavior before recording the fix commit.
-
 X3 discoveries below were reproduced on 2026-10-20 against `546a2d4` using isolated stores and
 synthetic inputs only. No production incident is asserted. Full scenarios, verified causes,
 suggested fixes and evidence limits are in the linked audit sections. All remain unfixed;

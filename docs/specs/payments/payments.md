@@ -14,7 +14,7 @@ payment pages; the API keeps the record of who paid for what.
   `{ returnUrl }`). The price is read on the server when the session is created. Stripe returns to
   the course page with `?payment=success&session_id=…` or `?payment=cancelled`.
 - An unconfirmed account cannot start a new checkout (403 `email-not-confirmed`, before creating
-  a provider session; US-P020 API). Legacy accounts without the flag pass. Paid returns and
+  a provider session; US-P020). Legacy accounts without the flag pass. Paid returns and
   webhooks still record the purchase and enroll: confirmation is never checked after payment.
 - On return the page removes those parameters from the address and calls
   `POST /users/me/courses/:id/checkout/confirm` with the session id. The API asks Stripe whether it
@@ -22,6 +22,9 @@ payment pages; the API keeps the record of who paid for what.
   **Start learning**; "The payment was not completed. You have not been charged." with **Try
   again**; "We could not confirm your payment yet. Do not pay again: …" when Stripe or the API
   cannot be reached; "Payment cancelled. You have not been charged."
+- Return confirmation starts after query cleanup/navigation settles. Its reply remains valid across
+  same-account session hydration; changing account/course, logout or a newer return discards it
+  (DEF-064). A successful paid return must leave "Confirming payment" and expose Start learning.
 - The Stripe webhook (`POST /webhooks/stripe`, also `/api/webhooks/stripe`, signed with
   `STRIPE_WEBHOOK_SECRET`) records the same purchase when the learner never comes back. Confirm and
   webhook share one write, keyed by the Checkout session id: whichever arrives first stores the

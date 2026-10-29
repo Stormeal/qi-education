@@ -69,6 +69,10 @@ purpose; never return a stored document as is.
 - **`ApiClientService`** chooses the base URL (`window.qiEducationConfig.apiBaseUrl`, else Pages →
   hosted API, else local `:3001` only), caches successful JSON reads until invalidated, honors
   `no-store`, and reports 401s. On a local frontend it never sends anything to the hosted API.
+- **Notifications**: `NotificationService` owns account-scoped list/count/cache and request
+  generations; AppState feeds session refresh counts and clears it at account boundaries.
+  `TurnstileService` owns the shared lazy script loader; `ui/turnstile-challenge` owns widget
+  lifecycle. Presentational login and header components communicate through inputs/outputs.
 - **Session guards**: every async reply checks that the session (and course/route) that started it
   is still current before touching signals or storage. Keep this when adding requests.
 - **Browser storage** only through the owning service (`SessionService`, draft recovery, progress

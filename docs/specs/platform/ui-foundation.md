@@ -21,7 +21,10 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   - `<app-progress-bar>`: required `label`, value clamped 0–100, announced as a percentage; `indeterminate` (unknown amount) shows a sliding segment, a still bar with reduced motion, and announces no number.
   - `span[appChip]`: `neutral`, `primary`, `highlight`, `danger`.
   - Also: `page-header`, `confirm-dialog` (with `services/confirm.service.ts`), `loading-skeleton`,
-    `profile-menu`, `brand-link`.
+    `profile-menu`, `brand-link`, `notification-bell`, `app-icon`.
+- **Icons** use the installed `@ng-icons/lucide` SVG exports. `ui/icon` maps typed names to
+  trusted static SVG, matching the existing builder pattern. Bespoke brand marks, career graph
+  connections and countdown/progress drawings remain custom because they are not generic icons.
 - **One focus ring** for every focusable control, set globally in `styles.scss`
   (`:focus-visible`, inverse colour on `data-surface="dark"` bands). Components do not draw their own.
 - Primary text contrast is at least 4.5:1; the focus ring at least 3:1.
@@ -48,6 +51,11 @@ Every page looks and behaves like one product: the same buttons, tabs, progress,
   The page has two tabs, Roadmap and Release notes. Release notes come from
   `pages/roadmap-page/release-notes.ts`, newest first; Claude adds the note for each push there,
   in the commit that is pushed. There is no in-app editor.
+- **Header cluster**: brand and primary navigation on the left; bell, Feedback with caret,
+  Settings gear and avatar pill on the right. Feedback retains its existing composer. At 1100px
+  and below, a hamburger drawer carries all permitted links plus Feedback and Settings; the bell
+  and avatar remain in the top bar. The brand compacts below 640px. Outside click/Escape close
+  the drawer; Escape restores trigger focus. Verified at 375px without page overflow.
 - No dark theme.
 - Every modal dialog follows the confirm dialog's keyboard contract: focus moves into it when it
   opens, Tab and Shift+Tab stay inside, Escape closes it, and focus returns to the control that

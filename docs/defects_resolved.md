@@ -1528,3 +1528,38 @@ remain release checks; no unconditional exactly-once external transaction claime
   archive response also returned `private, no-store`.
 - Evidence: full API 2,658 passed. Local HTTP/browser only; verify hosted headers
   after deployment. No production feedback records were accessed.
+
+## Findings resolved 2026-10-29
+
+### DEF-064 — Paid return stays on "Confirming payment" after successful enrollment
+
+P2 / Fixed, Codex, 2026-10-29, `main`, discovered at `64439cb` during isolated US-P020
+browser verification. Reproduction: a confirmed new learner buys the published demo course
+through `FakePaymentService`; checkout and paid-confirm API replies succeed, and the account
+repository includes the course, but `/courses/demo-course-1` remains on "Confirming payment..."
+with Buy visible. [Before screenshot](history/verification/2026-10-29-header-signup/payment-return-before-fix.png).
+The payment return starts in the route constructor before initial NavigationEnd and can overlap
+same-account `/me` hydration. `courseResponseIsCurrent` rejects the result when the initial path,
+generation or session object changes. This guard is unchanged from the frontend base `80aa541`.
+Expected: the paid result completes for the same account and course after initial navigation;
+another account or course must still reject stale replies. Regression:
+`DEF-064 completes a paid return while initial navigation and account hydration settle`.
+Resolution 2026-10-29, `a2e100b`: wait for query-cleanup navigation and use a return-specific
+account/token/course/generation guard. Three DEF-064 regressions now pass, including rejecting
+changed-account/course results. The isolated paid-session browser replay reaches Start learning
+and "Payment received" ([after screenshot](history/verification/2026-10-29-header-signup/confirmed-purchase.png)).
+No real Stripe, shared data or money involved.
+
+### DEF-065 — Notification preference can change while its save is in flight
+
+P2 / Fixed, Codex, 2026-10-29, `main`, discovered at `64439cb` in independent review of
+US-P019. Reproduction with the actual save method and a deferred account response: Organization
+on → toggle off → Save → toggle back on before reply. Server persists off; the visible toggle is
+on, dirty becomes false and the page claims saved. The new checkbox is enabled during save and
+the existing profile save snapshots current values after awaiting. Expected: users cannot make
+an unsaved preference appear saved. Regression: the role-specific Notifications-tab cases assert
+all toggles are disabled while `profileSaving` (labeled DEF-065).
+Resolution 2026-10-29, `a2e100b`: disable preference controls during the existing profile save.
+The three role cases failed before and pass after; profile round-trip/dirty-state tests pass.
+Together with DEF-064, focused tests are 19/19 and the full app suite is 612/612.
+The [verification record](history/verification/2026-10-29-header-signup/README.md) records remaining hosted checks.

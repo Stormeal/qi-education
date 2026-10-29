@@ -2,8 +2,7 @@
 
 ## Purpose
 
-Mirror review and organization events in a private inbox. The US-P019 backend is implemented;
-the header bell and settings UI remain in the open story.
+Mirror review and organization events in a private inbox, reached from the header bell (US-P019).
 
 ## Behavior
 
@@ -29,6 +28,17 @@ the header bell and settings UI remain in the open story.
 | Invitation created | Invited account, if it exists | `organization` |
 | Membership becomes active | Active organization owners | `organization` |
 
+- The bell shows an orange unread dot and an accessible unread count. Opening it fetches the
+  newest list and refreshes `/me` count, without marking anything read. Counts also refresh on
+  session restore and fresh sign-in; there is no background poller. Replies from an old session
+  cannot update a new account, and logout clears the list/count.
+- Rows show a Lucide event icon, saved title and relative time. Clicking marks the row read and
+  navigates to its link; Mark all read clears the account's unread state. Failures offer Retry;
+  an empty inbox says "You're all caught up." Reopening refetches the list.
+- Outside click and Escape close the panel; Escape returns focus to the bell. On a phone the
+  panel fits below the header without sideways page scroll. Preferences are in
+  [Settings → Notifications](../accounts/profiles.md).
+
 ## Rules
 
 - `notificationPrefs` are saved on the private account profile, default all on, including legacy
@@ -48,11 +58,14 @@ the header bell and settings UI remain in the open story.
 `api/src/notification.ts`, `notificationRepository.ts`, `notificationService.ts`,
 `notificationRoutes.ts`; trigger wiring in `server.ts`, `courseReviewersRoutes.ts` and
 `organizationService.ts`; preferences in `accountProfile.ts` and `accountProfileRoutes.ts`.
+App: `services/notification.service.ts`, `ui/notification-bell/`, header and account settings;
+session counts are connected through `AppStateService`.
 
 ## Limits
 
 - No retention deletion, realtime channel or new poller. Notifications are best effort and have
   no delivery retry queue. Mongo behavior is verified at the isolated driver boundary; live
-  Mongo, the bell and cross-device browser behavior remain release checks.
+  Mongo and cross-device browser behavior remain release checks. The bell was exercised with
+  isolated HTTP stores.
 - The design mentions feedback notifications but specifies no feedback event type or recipients;
   those remain undefined and are not implemented.

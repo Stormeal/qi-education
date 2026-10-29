@@ -1,5 +1,8 @@
 # US-P019 / US-P020 API handoff — 2026-10-29
 
+Frontend and browser work subsequently completed by Codex on Alex's continuation; see the
+[final delivery handoff](US-P019-US-P020-frontend.md). The partial-state notes below describe the API handoff at that time.
+
 Owner: Codex, `api/src/**` plus API documentation. Branch `main`, base `a5afe5f`.
 Frontend remains Claude-owned; neither story is Done. No push or deployment.
 

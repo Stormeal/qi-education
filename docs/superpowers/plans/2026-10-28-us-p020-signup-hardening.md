@@ -1,6 +1,6 @@
 # US-P020 Signup Hardening Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Defend signup against bot/mass fake accounts with a Cloudflare Turnstile human check, and make unconfirmed accounts unable to enroll until they confirm their email.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Express + Zod + Vitest (api), Angular signals + Vitest (app), Cloudflare Turnstile.
 
-**Spec:** [docs/stories/US-P020-signup-hardening.md](../../stories/US-P020-signup-hardening.md)
+**Delivered 2026-10-29.** Current behavior: [signup](../../specs/accounts/sign-in-and-sessions.md), [enrollment](../../specs/catalog/course-details-and-enrollment.md). Contract retained in Git at `a2e100b`; frontend ownership transferred to Codex on Alex’s continuation. [Evidence](../../history/verification/2026-10-29-header-signup/README.md).
 
 ## Global Constraints
 
@@ -150,15 +150,15 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
 - Consumes: `/health/config` `turnstile` section from Task 3.
 - Produces: `ApiClientService.getPublicConfig(): Promise<{ turnstile: { configured: boolean; siteKey: string | null } }>` (memoized, single fetch); `SignupRequest` gains `turnstileToken?: string`.
 
-- [ ] **Step 1: Write failing tests:** `getPublicConfig()` returns the `turnstile` section and fetches once across repeated calls; on a fetch error it resolves to `{ turnstile: { configured: false, siteKey: null } }` (degradation).
+- [x] **Step 1: Write failing tests:** `getPublicConfig()` returns the `turnstile` section and fetches once across repeated calls; on a fetch error it resolves to `{ turnstile: { configured: false, siteKey: null } }` (degradation).
 
-- [ ] **Step 2: Run** `(cd app && npx ng test --watch=false --include src/app/services/api-client.service.spec.ts)` — expect FAIL.
+- [x] **Step 2: Run** `(cd app && npx ng test --watch=false --include src/app/services/api-client.service.spec.ts)` — expect FAIL.
 
-- [ ] **Step 3: Implement** `getPublicConfig()` (cache the promise) and add `turnstileToken?: string` to `SignupRequest`; include it in the `/signup` body in `auth.service.ts`.
+- [x] **Step 3: Implement** `getPublicConfig()` (cache the promise) and add `turnstileToken?: string` to `SignupRequest`; include it in the `/signup` body in `auth.service.ts`.
 
-- [ ] **Step 4: Run** the spec — expect PASS.
+- [x] **Step 4: Run** the spec — expect PASS.
 
-- [ ] **Step 5: Commit** (bump version). Stage the two `app/` files, the spec, and the four version files.
+- [x] **Step 5: Commit** (bump version). Stage the two `app/` files, the spec, and the four version files.
 
 ---
 
@@ -173,19 +173,19 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
 - Consumes: `getPublicConfig()` (Task 5), `SignupRequest.turnstileToken` (Task 5).
 - Produces: a signup form that renders the widget only when a site key exists and submits the token.
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - no site key → widget not rendered and submit enabled (today's behavior).
   - site key present → submit disabled until a token is set; once set, enabled and the token rides on the signup request.
   - after a failed signup, the widget is reset (a replaceable reset hook is invoked) so the next attempt gets a fresh token.
   - Use a **replaceable script loader** member on the component (do not `vi.mock` the Cloudflare script at module level — CI gotcha). Clear `localStorage`/`sessionStorage` in `beforeEach`.
 
-- [ ] **Step 2: Run** the login-page spec — expect FAIL.
+- [x] **Step 2: Run** the login-page spec — expect FAIL.
 
-- [ ] **Step 3: Implement** (load `design-taste-frontend` first). Lazy-load `https://challenges.cloudflare.com/turnstile/v0/api.js` only when `authMode === 'signup'` and a site key is present; render the widget; store its token; extend `canSignupSubmit` with the token clause (vacuous when no key); reset the widget on failed signup.
+- [x] **Step 3: Implement** (load `design-taste-frontend` first). Lazy-load `https://challenges.cloudflare.com/turnstile/v0/api.js` only when `authMode === 'signup'` and a site key is present; render the widget; store its token; extend `canSignupSubmit` with the token clause (vacuous when no key); reset the widget on failed signup.
 
-- [ ] **Step 4: Run** the login-page spec — expect PASS.
+- [x] **Step 4: Run** the login-page spec — expect PASS.
 
-- [ ] **Step 5: Commit** (bump version).
+- [x] **Step 5: Commit** (bump version).
 
 ---
 
@@ -200,19 +200,19 @@ git commit -m "feat(US-P020): Turnstile verifier service and config"
 - Consumes: `403 email-not-confirmed` from Task 4; existing `auth.service.resendEmailConfirmation()` (US-L014).
 - Produces: `AppStateService.mustConfirmEmail` computed (`loginState()?.user.emailConfirmed === false`); enroll/buy UI shows a confirm-first notice + resend when true; `enrollInCourse()` and the checkout starter map `403 email-not-confirmed` to that notice.
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `mustConfirmEmail()` is `true` only when `emailConfirmed === false` (undefined/true → false).
   - with `mustConfirmEmail()`, the enroll and buy controls are disabled and show the confirm-first notice with a resend action; resend calls `auth.service.resendEmailConfirmation`.
   - a server `403 email-not-confirmed` from `enrollInCourse()` / checkout starter sets the confirm-first message (not the generic enrollment-failed text).
   - already-enrolled / confirmed / org-member cases are unaffected. Clear storage in `beforeEach`.
 
-- [ ] **Step 2: Run** the spec — expect FAIL.
+- [x] **Step 2: Run** the spec — expect FAIL.
 
-- [ ] **Step 3: Implement** (load `design-taste-frontend` first) `mustConfirmEmail`, the enroll/buy notice + resend, and the `403 email-not-confirmed` mapping in `enrollInCourse` and the checkout starter.
+- [x] **Step 3: Implement** (load `design-taste-frontend` first) `mustConfirmEmail`, the enroll/buy notice + resend, and the `403 email-not-confirmed` mapping in `enrollInCourse` and the checkout starter.
 
-- [ ] **Step 4: Run** the spec — expect PASS.
+- [x] **Step 4: Run** the spec — expect PASS.
 
-- [ ] **Step 5: Run** `npm run app:test` and `npm run app:build:pages` — expect PASS. **Commit** (bump version).
+- [x] **Step 5: Run** `npm run app:test` and `npm run app:build:pages` — expect PASS. **Commit** (bump version).
 
 ---
 
