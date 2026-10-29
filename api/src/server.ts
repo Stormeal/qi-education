@@ -701,6 +701,10 @@ export function createServer(dependencies: ServerDependencies = {}) {
       const body = auth.storageType === 'mongodb' && typeof request.body?.email === 'string'
         ? { ...request.body, email: request.body.email.trim().toLowerCase() } : request.body;
       const input = signupSchema.parse(body);
+      if (turnstile.configured && !await turnstile.verify(input.turnstileToken)) {
+        response.status(400).json({ message: 'human-check-failed' });
+        return;
+      }
       if (!await clientLimit.allow('signup', request, response)) return;
       await signupWrites.run(input.email, async () => {
         const existingUser = await auth.findByEmail(input.email);

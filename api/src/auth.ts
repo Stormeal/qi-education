@@ -17,6 +17,7 @@ export const loginSchema = z.object({
 });
 
 export const signupSchema = z.object({
+  turnstileToken: z.string().min(1).max(2048).optional(),
   displayName: z.string().trim().min(2).max(120),
   email: z.email().transform((value) => value.trim().toLowerCase()),
   password: z
