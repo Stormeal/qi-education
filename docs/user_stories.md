@@ -45,7 +45,7 @@ already delivered under US-O001.
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-P020 | Harden signup: Turnstile + confirm-to-enroll gate | Designed | P2 | Turnstile keys (Alex) | [Contract](stories/US-P020-signup-hardening.md) |
-| US-P019 | Redesign the top navigation header | Proposed | P3 | UI foundation | Below |
+| US-P019 | Header cluster + notifications + /settings | Designed | P3 | UI foundation | [Contract](stories/US-P019-header-notifications-settings.md) |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Proposed | P2 | — | Below |
 | US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
@@ -220,14 +220,16 @@ Feature: Fit for company use
 **As any user, I want a clear, modern top navigation, so that notifications, feedback, settings and
 my account are easy to reach.**
 
-State: Proposed (Alex, 2026-10-27), with a reference image of a top-right cluster: a notifications
-bell, a Feedback control, settings, and an account menu. Suggested release 1 (small UX, fine for
-internal use) — confirm or change. Builds on [ui-foundation](specs/platform/ui-foundation.md) and
-the existing `ui/page-header` and `ui/profile-menu`. Scope: restyle the header and add the control
-cluster. Open decisions: whether the bell is a real notifications feed (a new feature) or a
-placeholder; which controls show for which roles (the header takes its role from the `roleLabel`
-input and must not inject `AppStateService`); and the mobile layout. Frontend; use the
-`design-taste-frontend` skill. Likely a bounded design, unless a notifications feed is included.
+State: Designed (Alex, 2026-10-29) — contract:
+[stories/US-P019-header-notifications-settings.md](stories/US-P019-header-notifications-settings.md),
+plan: [plans/2026-10-29-us-p019-header-notifications-settings.md](superpowers/plans/2026-10-29-us-p019-header-notifications-settings.md).
+Suggested release 1 — confirm or change. Grew from a header restyle into one story with three
+sub-areas (Alex's choice): the cluster redesign (layout B + mobile hamburger), a real in-app
+**notifications** subsystem (review / organization / admin-inbox events, stored per account, unread
+count on `/auth/me`, a bell dropdown), and a `/settings` Notifications tab on the account page. Also
+standardizes site icons on `@ng-icons/lucide`. Open decisions in the contract: the release
+assignment, a notification-retention sweep, and whether `/settings` is a new route or reuses the
+profile route. Frontend work uses the `design-taste-frontend` skill; API notifications are Codex's.
 
 ### US-P020 — Harden signup against abuse and weak passwords
 
