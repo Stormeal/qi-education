@@ -49,7 +49,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Designed | P2 | — | [Contract](stories/US-P021-gdpr-data-rights.md) |
-| US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
+| US-P022 | Terms of service and purchase-terms page | Designed | P3 | Legal content (Alex) | [Contract](stories/US-P022-terms-of-service.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
 | US-T017 | Record and lightly edit course video in the browser | Proposed | P3 | — | Below |
@@ -297,13 +297,15 @@ customer deletion, and the confirmation-phrase wording.
 **As a user, I want to read the platform's terms and purchase terms, so that I know the rules
 before I sign up or buy.**
 
-State: Proposed (Alex, 2026-10-27). Suggested release 2 (purchase terms matter at public launch; a
-basic terms page could come sooner) — confirm or change. Scope: a dedicated, versioned page (or
-pages) for terms of service and purchase/refund terms, linked from signup, checkout and the footer,
-with acceptance recorded where legally needed. Open decisions: the actual legal content (owner:
-Alex/legal); whether acceptance is logged per user and per version; and the relationship to the
-privacy notice (US-P018) and US-P021. Mostly content plus a small acceptance record. Needs its own
-contract.
+State: Designed (Alex, 2026-10-30) — contract: [stories/US-P022-terms-of-service.md](stories/US-P022-terms-of-service.md).
+Release 2 (a basic ToS page already ships; the recorded-acceptance + purchase-terms work is the R2
+part). Two in-code versioned documents — Terms of Service (accepted at signup) and Purchase & Refund
+Terms (accepted at checkout) — stored as typed constants (the `release-notes.ts` pattern). A per-account
+`termsAcceptances` record stores `{ userId, documentId, version, acceptedAt }`; the server stamps the
+current version when the user ticks a checkbox at signup and at checkout. A ToS version bump sets
+`termsPending` on `/auth/me`, which drives a blocking re-accept gate at next load; purchase terms are
+required at each checkout. Adds a `POST /users/me/terms/accept` route, a new `/purchase-terms` page, and
+a shared site footer. Legal wording is Alex/legal's (placeholders until supplied).
 
 ### US-P023 — Spike: move storage from MongoDB to Azure
 
