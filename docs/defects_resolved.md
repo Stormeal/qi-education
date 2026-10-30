@@ -1576,7 +1576,7 @@ The [verification record](history/verification/2026-10-29-header-signup/README.m
 
 ### DEF-066 — Null milestone revision fields break hosted career reads
 
-P2 / Fixed, Codex, 2026-10-30; implementation base `177d48f`, `main`; hosted discovery on
+P2 / Verified, Codex, 2026-10-30; implementation base `177d48f`, `main`; hosted discovery on
 production `dpl_CXTpjqJY7vnXvmXdJ1jxuotDSvYL`,
 frontend 0.1.536 (also seen in the previously open 0.1.532 tab). During the user's real signup
 walkthrough, a new learner's Home showed **Career path Unavailable — Career path could not be
@@ -1608,9 +1608,12 @@ Home, career comparison, follow and return-to-Home passed with a null-metadata f
 found no blocking issues; the memory-record preservation assertion was tightened (repository
 suite 19/19). [Detailed evidence](history/verification/2026-10-30-def-066/README.md).
 
-Remaining: after an authorized push/deployment, repeat hosted read-only public and authenticated
-career checks. This is Fixed in code, not Verified on production. No shared records or provider
-settings were changed. DEF-067 is separate and remains Open.
+Hosted verification 2026-10-30: released in 0.1.542 (`9610f47`), Vercel production
+`dpl_4uaGy3jLhWefkts5idrydJu2TfDY`. Public list and all three detail routes return 200
+with valid requirement metadata; the original learner and real teacher now have normal Home
+career guidance. No stored records were repaired.
+[Hosted evidence](history/verification/2026-10-30-release/walkthrough.md).
+DEF-067 remains a separate later-deployment release check.
 
 
 ### DEF-067 — An open Pages tab cannot load routes after a newer deployment

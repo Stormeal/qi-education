@@ -62,7 +62,8 @@ the only browser mutation and used memory-only storage. The user's hosted accoun
 
 ## Remaining release check
 
-After an explicitly authorized push/deployment, repeat read-only public career list/detail
-and authenticated Home/career browsing against the existing hosted null records. Confirm no
-400/500 and normal career guidance. This record proves local compatibility through the Mongo
-adapter, not live MongoDB behavior or a deployed fix. DEF-067 remains a separate open defect.
+Completed 2026-10-30 after the authorized 0.1.542 release (`9610f47`, Vercel
+`dpl_4uaGy3jLhWefkts5idrydJu2TfDY`): all three public detail routes and the list return 200
+with valid requirement metadata. Both the original new learner and the real teacher show normal
+career guidance on Home. [Hosted evidence](../2026-10-30-release/walkthrough.md).
+No stored records were repaired. DEF-067's later-deployment cohort check remains separate.

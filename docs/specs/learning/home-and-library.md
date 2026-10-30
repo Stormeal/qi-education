@@ -59,4 +59,6 @@ A signed-in learner sees where they are and what to do next, and finds every cou
 
 - `GET /teaching/courses` reads every account and every feedback item on each call; fine at
   internal scale, to be narrowed by query if the stores grow large. The Mongo progress query filters
-  on `courseId` and `userId` without an index (as `list` already does). Not verified on live MongoDB.
+  on `courseId` and `userId` without an index (as `list` already does). Hosted MongoDB walkthrough
+  2026-10-30 verified an assigned draft's empty-enrollment state and historical lesson feedback;
+  non-empty learner/progress metrics remain a release check.

@@ -7,16 +7,20 @@ messages hold them.
 ## Active work
 
 **Release DEF-066 / DEF-067 — In progress** (2026-10-30, Codex, `main`, base `f8659ec`).
-Alex authorized push and the hosted walkthrough. Next: finish full release checks, push the
-prepared fixes/release note, monitor Pages/Vercel, then verify careers/Home and teacher header,
-overview, bell and Settings. Hosted mutations remain user-performed; agent probes stay isolated.
+Alex authorized push and the hosted walkthrough. Released 0.1.542 (`9610f47`); Pages/CI green,
+Vercel Ready. API 2,916, frontend 620, journeys 20 and both builds pass. DEF-066 hosted public
+and learner/teacher Home checks pass; teacher overview, feedback summary, empty bell and
+role-specific Settings checked. [Evidence](history/verification/2026-10-30-release/walkthrough.md).
+Next: Alex is preparing a disposable draft and separate admin session for submit/return/publish
+notification checks. Leave his preparation form untouched. Hosted mutations remain user-performed;
+agent probes stay isolated. DEF-067 cohort check needs a later deployment with a fixed tab open.
 
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
 confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
 2026-10-30. Student/admin header and Settings checks pass; Stripe webhook returned 200.
 [Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md) and
 [delivery handoff](history/handoffs/US-P019-US-P020-frontend.md) preserve the checks and commits.
-DEF-066 and DEF-067 are fixed locally in `99cb544` and `5e4683a`. Prioritize confirmed defects before
+DEF-066 and DEF-067 are live in 0.1.542; DEF-066 hosted verification passes. Prioritize confirmed defects before
 enhancements. No agent shared mutation probes. Do not start a Proposed story without selection.
 
 Delivered 2026-10-27, included in release 0.1.532: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
@@ -123,8 +127,8 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 
 ## Next candidate
 
-DEF-066 and DEF-067 await the release checks below after an authorized push. No new enhancement
-is selected; continue with a Ready item within the user's requested scope.
+Finish the active hosted walkthrough. DEF-067's later-deployment cohort check remains below.
+No new enhancement is selected; continue with a Ready item within the user's requested scope.
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
 [user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
@@ -132,24 +136,20 @@ as they arrive.
 
 ## Open release checks
 
-- DEF-067, fixed locally in `5e4683a` (0.1.540): after authorized deployment, keep a tab containing
+- DEF-067, live in 0.1.542, fixing commit `5e4683a`: keep a tab containing
   this fix across a later Pages release and check explicit reload recovery on an uncached route.
   Older pre-fix tabs need one manual browser reload. Frontend 620/620, UI foundation, Pages builds
   and isolated browser build swap/draft protection pass;
   [evidence](history/verification/2026-10-30-def-067/README.md).
-
-- DEF-066, fixed locally in `99cb544` (0.1.538): after an authorized push/deployment, repeat
-  read-only public career list/detail and authenticated Home/career browsing against the existing
-  hosted records. No shared-data migration is needed. API 2,916/2,916, journeys 20/20, both builds
-  and isolated browser pass; [evidence](history/verification/2026-10-30-def-066/README.md).
 
 - US-P020 / US-P019 (live as 0.1.532, 2026-10-29): deployment/public checks pass; see
   [hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md). Real Turnstile
   keys are active; the user completed signup, received the mail and confirmed the address. Buy
   correctly changed from blocked to available. Free enrollment and the real Stripe test-mode
   return pass, including DEF-064; both courses persist in My Learning. Stripe webhook returned
-  200. Authenticated student/admin header/bell/settings pass read-only checks; teacher overview
-  needs a teacher-account walkthrough. DEF-066 and DEF-067 await deployment verification.
+  200. Authenticated student/admin/teacher header/bell/settings pass read-only checks. Teacher
+  overview's assigned-draft/empty-enrollment state and historical feedback pass; populated progress
+  metrics remain unchecked. DEF-066 hosted check passes; DEF-067 awaits a later-deployment cohort.
   Check Mongo notification indexes, all nine event recipients, muted groups and read/preferences
   across devices. Direct read-only metadata inspection timed out. Isolated synthetic-provider
   evidence does not establish real integrations. Include the new controls in the real screen
