@@ -290,7 +290,8 @@ payments and the audit log pseudonymized, transfer a teacher's courses to a seed
 an org owner until ownership is transferred (409); gated by re-auth + a typed phrase, immediate and
 irreversible. Cookie consent: a minimal, extensible client-only mechanism (essential-only today, analytics
 opt-in by construction). Remaining open decisions in the contract: reconfirm R2 at planning, Stripe-side
-customer deletion, and the confirmation-phrase wording.
+customer deletion, and the confirmation-phrase wording. Implementation plan:
+[superpowers/plans/2026-10-30-us-p021-gdpr-data-rights.md](superpowers/plans/2026-10-30-us-p021-gdpr-data-rights.md).
 
 ### US-P022 — Terms of service and purchase-terms page
 
@@ -305,7 +306,8 @@ Terms (accepted at checkout) — stored as typed constants (the `release-notes.t
 current version when the user ticks a checkbox at signup and at checkout. A ToS version bump sets
 `termsPending` on `/auth/me`, which drives a blocking re-accept gate at next load; purchase terms are
 required at each checkout. Adds a `POST /users/me/terms/accept` route, a new `/purchase-terms` page, and
-a shared site footer. Legal wording is Alex/legal's (placeholders until supplied).
+a shared site footer. Legal wording is Alex/legal's (placeholders until supplied). Implementation plan:
+[superpowers/plans/2026-10-30-us-p022-terms-of-service.md](superpowers/plans/2026-10-30-us-p022-terms-of-service.md).
 
 ### US-P023 — Spike: move storage from MongoDB to Azure
 
