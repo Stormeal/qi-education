@@ -8,16 +8,24 @@ behavior: [sign-in and sessions](../specs/accounts/sign-in-and-sessions.md),
 
 ## Why
 
-A paid public launch (release 2) needs terms that are real and, where money is involved, provably
-accepted. Today `/terms` is a static placeholder with generic sections and no purchase/refund terms,
-no versioning, and no recorded acceptance (signup only says "by creating an account you agree"). This
-story adds purchase/refund terms, versioned documents, recorded acceptance at the two moments that
-matter (signup, checkout), and the links a public site needs (footer, checkout).
+Release 1 opens the platform to TestHuset colleagues, who should agree to the platform's terms
+before using it, and a paid public launch (release 2) additionally needs purchase terms provably
+accepted where money changes hands. Today `/terms` is a static placeholder with generic sections and
+no purchase/refund terms, no versioning, and no recorded acceptance (signup only says "by creating an
+account you agree"). This story adds purchase/refund terms, versioned documents, recorded acceptance
+at the two moments that matter (signup, checkout), and the links a public site needs (footer,
+checkout).
+
+**R1 scope note:** release 1 keeps courses free (no charging), so the purchase-terms-at-checkout half
+is dormant until paid checkout goes live. The code ships, but in R1 this story effectively delivers
+the Terms of Service acceptance at signup, the versioning + blocking re-accept gate, and the footer;
+the purchase-terms page and checkout acceptance become active when charging is enabled (release 2).
 
 ## Release
 
-Suggested **release 2** (purchase terms matter at public launch; the basic ToS page already exists) —
-confirm or change at planning.
+**Release 1** (assigned by Alex, 2026-10-30). The Terms of Service acceptance, versioning + re-accept
+gate and footer land in R1; the purchase-terms-at-checkout half is dormant until paid checkout goes
+live at release 2 (R1 keeps courses free) — see the R1 scope note above.
 
 ## Scope decisions (confirmed by Alex, 2026-10-30)
 
@@ -112,8 +120,8 @@ injection pattern.
 
 ## Open decisions (confirm or change)
 
-- Release assignment: **R2** (suggested) — reconfirm at planning; a basic ToS page already ships, so
-  the recorded-acceptance + purchase-terms work is the R2 part.
+- Release assignment: **R1** (assigned by Alex, 2026-10-30). ToS acceptance + footer + gate are the
+  R1 deliverable; purchase-terms/checkout acceptance stays dormant until charging is enabled (R2).
 - The legal content itself (owner: Alex/legal) — placeholders until supplied.
 - Relationship to the privacy notice (US-P018) and the US-P021 cookie-preferences link — the footer
   leaves a slot; wording aligned when US-P021 lands.

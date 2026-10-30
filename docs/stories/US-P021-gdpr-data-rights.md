@@ -10,14 +10,19 @@ forgotten), and a **cookie-consent** mechanism. Relevant current behavior:
 
 ## Why
 
-Public launch (release 2) sells to individuals in the EU, so data-subject rights must be real and
-**self-service**: a user exports and deletes their own data without admin help, and controls any
-non-essential cookies. EU-region storage, processor data-processing agreements and the privacy
-notice already ship in release 1 (US-P018-AC03); this story adds the rights on top.
+Release 1 opens the platform to TestHuset colleagues, whose accounts, progress and notes are
+personal data, so GDPR data-subject rights apply from the internal launch — not only at the public
+launch (release 2) that adds EU individuals. Either way the rights must be real and **self-service**:
+a user exports and deletes their own data without admin help, and controls any non-essential cookies.
+EU-region storage, processor data-processing agreements and the privacy notice already ship in
+release 1 (US-P018-AC03); this story adds the rights on top.
 
 ## Release
 
-**Release 2**, full self-service, highest rigor (confirmed by Alex, 2026-10-30).
+**Release 1** (assigned by Alex, 2026-10-30), full self-service, highest rigor. Colleagues' GDPR
+rights apply from the internal launch, so the rights ship with it rather than waiting for public
+launch. Full self-service scope is retained; if the mid-December timeline is tight, the staged
+"admin-assisted now, self-service later" option from brainstorming remains available as a fallback.
 
 ## Scope decisions (confirmed by Alex, 2026-10-30)
 
@@ -178,7 +183,8 @@ frontend — no API route.
 
 ## Open decisions (confirm or change)
 
-- Release assignment: **R2** (suggested and confirmed in brainstorming) — reconfirm at planning.
+- Release assignment: **R1** (assigned by Alex, 2026-10-30). Full self-service scope retained; staged
+  admin-assisted fallback available if the mid-December timeline is tight.
 - Stripe-side data: whether erasure also deletes the Stripe customer object (vs retaining it for the
   accounting record it anchors). Default: retain, pseudonymize our copy; revisit with payments.
 - The required confirmation phrase wording (`DELETE` assumed).
