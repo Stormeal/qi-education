@@ -48,7 +48,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
-| US-P021 | GDPR data rights (export, erasure, cookie consent) | Proposed | P2 | — | Below |
+| US-P021 | GDPR data rights (export, erasure, cookie consent) | Designed | P2 | — | [Contract](stories/US-P021-gdpr-data-rights.md) |
 | US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
@@ -281,13 +281,16 @@ Feature: Fit for company use
 **As a user in the EU, I want to see, export and delete my personal data and control non-essential
 cookies, so that the platform meets GDPR.**
 
-State: Proposed (Alex, 2026-10-27). Suggested release 2 (the external review is release 2;
-EU-region storage, processor data-processing agreements and the privacy notice are already release
-1 under US-P018-AC03) — confirm or change. Scope beyond US-P018: self-service data export, account
-and data deletion (right to erasure) honouring retention rules, and a cookie-consent mechanism for
-any non-essential cookies or analytics. Open decisions: what personal data is in scope and its
-retention; how erasure interacts with enrolments, progress, organization membership and payment
-records that must be kept; and whether any non-essential cookies exist yet. Needs its own contract.
+State: Designed (Alex, 2026-10-30) — contract: [stories/US-P021-gdpr-data-rights.md](stories/US-P021-gdpr-data-rights.md).
+Release 2, full self-service, confirmed in brainstorming. A central injected `PrivacyService` composes
+per-repo `collectForExport` / `anonymizeForUser` / `removeForUser` methods, guarded by a coverage test.
+Export: one JSON object plus a readable/printable summary (`GET /users/me/privacy/export`). Erasure
+(`POST /users/me/privacy/erase`): anonymize-and-retain — strip identifiers to a tombstone account, keep
+payments and the audit log pseudonymized, transfer a teacher's courses to a seeded system account, block
+an org owner until ownership is transferred (409); gated by re-auth + a typed phrase, immediate and
+irreversible. Cookie consent: a minimal, extensible client-only mechanism (essential-only today, analytics
+opt-in by construction). Remaining open decisions in the contract: reconfirm R2 at planning, Stripe-side
+customer deletion, and the confirmation-phrase wording.
 
 ### US-P022 — Terms of service and purchase-terms page
 
