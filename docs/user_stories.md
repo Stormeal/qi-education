@@ -18,7 +18,7 @@ department); new requests enter here as Proposed stories.
 
 | Release | Target | Goal | In scope |
 | --- | --- | --- | --- |
-| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26), US-A007 course reviewers (Must, added by Alex 2026-10-26; built 2026-10-26, not live) |
+| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26), US-A007 course reviewers (Must, added by Alex 2026-10-26; built 2026-10-26, not live), US-P021 GDPR data rights (Must, added by Alex 2026-10-30), US-P022 terms of service (Must, added by Alex 2026-10-30; purchase-terms half dormant until charging) |
 | 2, public launch | Around Q2 2027 | Sell to individuals and organizations | US-O001 owner overview, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
 | 3, organization billing | After launch, 2027 | Paid organization seats | US-O002 |
 
@@ -28,10 +28,10 @@ period and public prices are set at launch, so colleagues enrolled before then k
 budget, curriculum owner, backup developer.
 
 New candidates from Alex's 2026-10-27 brainstorm, filed below as Proposed and awaiting triage into
-a release: US-P021 (GDPR data rights), US-P022
-(terms page), US-L029 (account achievements), US-T017 (browser video editing), US-A008 (discount
+a release: US-L029 (account achievements), US-T017 (browser video editing), US-A008 (discount
 campaigns), US-P023 (Azure storage spike). The suggested release in each story is confirm-or-change;
-Alex (product owner) assigns the release. Organization-private courses from the same brainstorm are
+Alex (product owner) assigns the release. US-P021 (GDPR data rights) and US-P022 (terms of service)
+were designed and assigned to release 1 by Alex on 2026-10-30. Organization-private courses from the same brainstorm are
 already delivered under US-O001. US-P019 and US-P020 were delivered locally on 2026-10-29; hosted checks are in the work queue.
 
 Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account achievements is US-L029; US-T016 already identifies the delivered teacher overview and US-L027 identifies certificates.
@@ -48,8 +48,8 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
-| US-P021 | GDPR data rights (export, erasure, cookie consent) | Proposed | P2 | — | Below |
-| US-P022 | Terms of service and purchase-terms page | Proposed | P3 | Legal content (Alex) | Below |
+| US-P021 | GDPR data rights (export, erasure, cookie consent) | Designed | P1 | Release 1 | [Contract](stories/US-P021-gdpr-data-rights.md) |
+| US-P022 | Terms of service and purchase-terms page | Designed | P1 | Legal content (Alex), Release 1 | [Contract](stories/US-P022-terms-of-service.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
 | US-T017 | Record and lightly edit course video in the browser | Proposed | P3 | — | Below |
@@ -281,26 +281,32 @@ Feature: Fit for company use
 **As a user in the EU, I want to see, export and delete my personal data and control non-essential
 cookies, so that the platform meets GDPR.**
 
-State: Proposed (Alex, 2026-10-27). Suggested release 2 (the external review is release 2;
-EU-region storage, processor data-processing agreements and the privacy notice are already release
-1 under US-P018-AC03) — confirm or change. Scope beyond US-P018: self-service data export, account
-and data deletion (right to erasure) honouring retention rules, and a cookie-consent mechanism for
-any non-essential cookies or analytics. Open decisions: what personal data is in scope and its
-retention; how erasure interacts with enrolments, progress, organization membership and payment
-records that must be kept; and whether any non-essential cookies exist yet. Needs its own contract.
+State: Designed (Alex, 2026-10-30) — contract: [stories/US-P021-gdpr-data-rights.md](stories/US-P021-gdpr-data-rights.md).
+Release 1 (assigned by Alex, 2026-10-30), full self-service; staged admin-assisted fallback available if the December timeline is tight. A central injected `PrivacyService` composes
+per-repo `collectForExport` / `anonymizeForUser` / `removeForUser` methods, guarded by a coverage test.
+Export: one JSON object plus a readable/printable summary (`GET /users/me/privacy/export`). Erasure
+(`POST /users/me/privacy/erase`): anonymize-and-retain — strip identifiers to a tombstone account, keep
+payments and the audit log pseudonymized, transfer a teacher's courses to a seeded system account, block
+an org owner until ownership is transferred (409); gated by re-auth + a typed phrase, immediate and
+irreversible. Cookie consent: a minimal, extensible client-only mechanism (essential-only today, analytics
+opt-in by construction). Remaining open decisions in the contract: reconfirm R2 at planning, Stripe-side
+customer deletion, and the confirmation-phrase wording. Implementation plan:
+[superpowers/plans/2026-10-30-us-p021-gdpr-data-rights.md](superpowers/plans/2026-10-30-us-p021-gdpr-data-rights.md).
 
 ### US-P022 — Terms of service and purchase-terms page
 
 **As a user, I want to read the platform's terms and purchase terms, so that I know the rules
 before I sign up or buy.**
 
-State: Proposed (Alex, 2026-10-27). Suggested release 2 (purchase terms matter at public launch; a
-basic terms page could come sooner) — confirm or change. Scope: a dedicated, versioned page (or
-pages) for terms of service and purchase/refund terms, linked from signup, checkout and the footer,
-with acceptance recorded where legally needed. Open decisions: the actual legal content (owner:
-Alex/legal); whether acceptance is logged per user and per version; and the relationship to the
-privacy notice (US-P018) and US-P021. Mostly content plus a small acceptance record. Needs its own
-contract.
+State: Designed (Alex, 2026-10-30) — contract: [stories/US-P022-terms-of-service.md](stories/US-P022-terms-of-service.md).
+Release 1 (assigned by Alex, 2026-10-30); the ToS acceptance, versioning + re-accept gate and footer are the R1 deliverable, with purchase-terms/checkout acceptance dormant until charging is enabled (R2, courses are free in R1). Two in-code versioned documents — Terms of Service (accepted at signup) and Purchase & Refund
+Terms (accepted at checkout) — stored as typed constants (the `release-notes.ts` pattern). A per-account
+`termsAcceptances` record stores `{ userId, documentId, version, acceptedAt }`; the server stamps the
+current version when the user ticks a checkbox at signup and at checkout. A ToS version bump sets
+`termsPending` on `/auth/me`, which drives a blocking re-accept gate at next load; purchase terms are
+required at each checkout. Adds a `POST /users/me/terms/accept` route, a new `/purchase-terms` page, and
+a shared site footer. Legal wording is Alex/legal's (placeholders until supplied). Implementation plan:
+[superpowers/plans/2026-10-30-us-p022-terms-of-service.md](superpowers/plans/2026-10-30-us-p022-terms-of-service.md).
 
 ### US-P023 — Spike: move storage from MongoDB to Azure
 
