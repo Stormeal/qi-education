@@ -29,6 +29,10 @@ Admins write and publish the careers learners follow.
   is refused with the milestone named; with it, the milestone gets the next version, the note and
   the date, and its previous routes are kept (last 10 versions). Text, stage, courses and CV
   keywords are not requirement changes. The published draft is stored with the same versions.
+- **Legacy stored metadata** (DEF-066): absent or null `requirementVersion` and
+  `requirementHistory` in stored draft/published milestones read as `1` and `[]`. Public,
+  account and admin views use these defaults without rewriting records. Existing versions,
+  history, criteria and account achievements remain intact; new requests still reject nulls.
 - **Convert to milestone format** turns an old-format draft into milestones: a step ID another
   milestone career already uses becomes that shared milestone; linked courses become course actions
   (any one completes it); a step without a course gets one activity. Learners see nothing until publish.

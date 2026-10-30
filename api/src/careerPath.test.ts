@@ -10,7 +10,7 @@ import { InMemoryCourseAssetRepository } from './courseAssetRepository.js';
 import { InMemoryFeedbackRepository } from './feedbackRepository.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
-import { careerPathContentSchema, careerPathIssues, careerPathSeeds } from './careerPath.js';
+import { careerPathContentSchema, careerPathIssues, careerPathSeeds, type CareerPathDocument } from './careerPath.js';
 
 const step = (id: string, courses: { courseId?: string; title?: string }[], extra = {}) =>
   ({ id, title: `Step ${id}`, courses, ...extra });
@@ -74,6 +74,49 @@ describe.each(['', '/api'])('career paths: US-L006, US-L009, US-T008 (%s)', (pre
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterEach(async () => { await new Promise<void>(resolve => server.close(() => resolve())); });
+
+  it('DEF-066 reads stored null requirement metadata across public, learner and admin views without rewriting it', async () => {
+    const published = careerPathContentSchema.parse({ schemaVersion: 2, ...path([step('legacy-foundation', [], {
+      actions: [{ id: 'legacy-foundation-exam', kind: 'exam', title: 'Foundation exam' }],
+      requirementBundles: [['legacy-foundation-exam']],
+    })]) });
+    const legacy = { ...published, steps: published.steps.map(item => ({ ...item,
+      requirementVersion: null, requirementHistory: null })) };
+    const stored = await paths.savePath({ _id: 'legacy-null', revision: 1, published: legacy, draft: legacy,
+      updatedAt: '2026-10-01T00:00:00.000Z' } as unknown as CareerPathDocument);
+    const writes = vi.spyOn(paths, 'savePath');
+
+    const replies = await Promise.all([request('/career-paths'), request('/career-paths/legacy-null'),
+      request('/users/me/careers', student), request('/admin/career-paths', admin)]);
+    expect(replies.map(reply => reply.status)).toEqual([200, 200, 200, 200]);
+    for (const reply of replies.slice(0, 2)) {
+      const body = await reply.json();
+      const view = Array.isArray(body) ? body.find(item => item.id === 'legacy-null') : body;
+      expect(view).toMatchObject({ revision: 1, steps: [{ requirementVersion: 1, requirementHistory: [] }] });
+    }
+    const account = replies[2];
+    expect(await account.json()).toMatchObject({ followedPathIds: [], achievements: [],
+      milestoneStates: { 'legacy-foundation': 'ready' }, earlierCriteriaMet: [] });
+
+    const adminReply = replies[3];
+    const adminRows = await adminReply.json();
+    const adminView = adminRows.find((item: { id: string }) => item.id === 'legacy-null');
+    expect(adminView).toMatchObject({ revision: 1, updatedAt: stored.updatedAt,
+      published: { steps: [{ requirementVersion: 1, requirementHistory: [] }] },
+      draft: { steps: [{ requirementVersion: 1, requirementHistory: [] }] } });
+    expect(writes).not.toHaveBeenCalled();
+  });
+
+  it('DEF-066 still rejects null requirement metadata in a new admin request', async () => {
+    const invalid = { schemaVersion: 2, ...path([step('new-foundation', [], {
+      actions: [{ id: 'new-foundation-exam', kind: 'exam', title: 'Foundation exam' }],
+      requirementBundles: [['new-foundation-exam']], requirementVersion: null, requirementHistory: null,
+    })]) };
+    const writes = vi.spyOn(paths, 'savePath');
+    const reply = await request('/admin/career-paths/new-null', admin, 'PUT', invalid);
+    expect(reply.status).toBe(400);
+    expect(writes).not.toHaveBeenCalled();
+  });
 
   it('US-L023-AC07 public career data includes cvKeywords', async () => {
     const content = { schemaVersion: 2, ...path([step('foundation', [], {

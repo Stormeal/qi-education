@@ -47,6 +47,36 @@ describe.each(['memory', 'mongo-adapter'] as const)('US-A003 conditional path wr
     return { ...fixture, first, second };
   };
 
+  it.each(['null', 'missing'])('DEF-066 defaults %s metadata in draft/published reads while preserving real history and stored records', async missing => {
+    const { first, records, collection } = setup();
+    const content = careerPathContentSchema.parse({ schemaVersion: 2, title: 'Legacy milestones', steps: [
+      { id: 'legacy', title: 'Legacy milestone' },
+      { id: 'versioned', title: 'Changed milestone', requirementVersion: 3,
+        requirementHistory: [{ version: 2, bundles: [['previous-exam']] }],
+        requirementChange: { note: 'Changed exam', changedAt: '2026-10-01' } },
+    ] });
+    const legacy = { ...content, steps: content.steps.map((item, index) => {
+      if (index !== 0) return item;
+      const { requirementVersion: _version, requirementHistory: _history, ...oldStep } = item;
+      return missing === 'null' ? { ...oldStep, requirementVersion: null, requirementHistory: null } : oldStep;
+    }) };
+    const saved = await first.savePath({ ...document('old'), revision: 7, draft: legacy, published: legacy } as unknown as CareerPathDocument);
+    const storedRecords = storage === 'memory'
+      ? (first as unknown as { paths: Map<string, CareerPathDocument> }).paths
+      : records;
+    const persistedBefore = structuredClone([...storedRecords.values()]);
+    collection.insertOne.mockClear(); collection.replaceOne.mockClear();
+
+    const [read] = await first.listPaths();
+    for (const snapshot of [read.draft, read.published]) {
+      expect(snapshot!.steps[0]).toMatchObject({ requirementVersion: 1, requirementHistory: [] });
+      expect(snapshot!.steps[1]).toEqual(content.steps[1]);
+    }
+    expect(read).toMatchObject({ revision: 7, updatedAt: saved.updatedAt });
+    expect([...storedRecords.values()]).toEqual(persistedBefore);
+    expect(collection.insertOne).not.toHaveBeenCalled(); expect(collection.replaceOne).not.toHaveBeenCalled();
+  });
+
   it('US-A004-AC06 atomically refuses a legacy save after another writer upgrades the stored schema', async () => {
     const { first, second } = setup();
     const old = await first.savePath(document('old'));

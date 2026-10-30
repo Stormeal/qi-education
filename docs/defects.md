@@ -22,7 +22,8 @@ Next free IDs: DEF-068, INV-020.
 
 ### DEF-066 — Null milestone revision fields break hosted career reads
 
-P2 / Open, Codex, 2026-10-30; hosted production `dpl_CXTpjqJY7vnXvmXdJ1jxuotDSvYL`,
+P2 / In progress, Codex, 2026-10-30; implementation base `177d48f`, `main`; hosted discovery on
+production `dpl_CXTpjqJY7vnXvmXdJ1jxuotDSvYL`,
 frontend 0.1.536 (also seen in the previously open 0.1.532 tab). During the user's real signup
 walkthrough, a new learner's Home showed **Career path Unavailable — Career path could not be
 loaded**. Read-only request logs showed `GET /api/career-paths` → 400 and

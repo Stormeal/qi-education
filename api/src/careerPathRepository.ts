@@ -1,5 +1,5 @@
 import { apiConfig, hasMongoConfig } from './config.js';
-import { nextCareerPathUpdatedAt, type CareerPathDocument, type CareerPathSelection } from './careerPath.js';
+import { nextCareerPathUpdatedAt, type CareerPathContent, type CareerPathDocument, type CareerPathSelection } from './careerPath.js';
 import { getMongoDatabase } from './mongo.js';
 import { CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
 
@@ -10,6 +10,19 @@ export class CareerPathSchemaError extends Error {
 function protectMilestoneSchema(current: CareerPathDocument | null | undefined, next: CareerPathDocument): void {
   if ((current?.draft?.schemaVersion === 2 || current?.published?.schemaVersion === 2)
     && next.draft?.schemaVersion !== 2) throw new CareerPathSchemaError();
+}
+
+/** DEF-066: old stored snapshots can contain null instead of absent publish metadata.
+ * Normalize read copies only; request validation and persisted history stay unchanged. */
+function withLegacyRequirementDefaults(document: CareerPathDocument): CareerPathDocument {
+  const normalize = (content: CareerPathContent | null): CareerPathContent | null => {
+    if (!content || !Array.isArray(content.steps)) return content;
+    return { ...content, steps: content.steps.map(step => step && typeof step === 'object' ? {
+      ...step, requirementVersion: step.requirementVersion ?? 1,
+      requirementHistory: step.requirementHistory ?? [],
+    } : step) };
+  };
+  return { ...document, draft: normalize(document.draft), published: normalize(document.published) };
 }
 
 export interface CareerPathRepository {
@@ -38,7 +51,8 @@ export class MongoCareerPathRepository implements CareerPathRepository {
   }
 
   async listPaths(): Promise<CareerPathDocument[]> {
-    return (await this.collection<CareerPathDocument>('career_paths')).find().toArray();
+    const collection = await this.collection<CareerPathDocument>('career_paths');
+    return (await collection.find().toArray()).map(withLegacyRequirementDefaults);
   }
 
   async savePath(document: CareerPathDocument, expectedUpdatedAt?: string): Promise<CareerPathDocument> {
@@ -104,7 +118,7 @@ export class InMemoryCareerPathRepository implements CareerPathRepository {
   private readonly selections = new Map<string, CareerPathSelection>();
 
   async listPaths(): Promise<CareerPathDocument[]> {
-    return [...this.paths.values()];
+    return [...this.paths.values()].map(withLegacyRequirementDefaults);
   }
 
   async savePath(document: CareerPathDocument, expectedUpdatedAt?: string): Promise<CareerPathDocument> {

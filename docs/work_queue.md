@@ -6,7 +6,14 @@ messages hold them.
 
 ## Active work
 
-No active implementation. US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
+**DEF-066 — In progress** (2026-10-30, owner Codex, `main`, base `177d48f`).
+Restore reads of legacy stored null/missing milestone requirement versions/history using the
+existing defaults, preserving real version history and strict request validation. Implementation
+and verification pass: API 2,916, journeys 20, both builds, isolated Home/browse/follow walkthrough.
+Next: commit and close the defect record with its fixing hash. [Evidence](history/verification/2026-10-30-def-066/README.md).
+No shared-data repair, push or deployment. DEF-067 remains queued.
+
+US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
 confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
 2026-10-30. Student/admin header and Settings checks pass; Stripe webhook returned 200.
 [Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md) and
