@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-29. Open work only. Priority order chosen by Alex: **teachers, learners,
+Updated: 2026-10-30. Open work only. Priority order chosen by Alex: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. What the app already does is
 in [specs/](specs/README.md); use [work_queue.md](work_queue.md) for the next item and active work.
 
@@ -40,6 +40,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
+| US-P024 | Load notifications in the background after sign-in | In progress (Codex, requested by Alex) | P3 | US-P019 delivered | [Contract](stories/US-P024-notification-background-loading.md) |
 | US-O001 | Organizations: request, approval, invites, owner overview | Release 1 delivered 2026-10-24 (not live); owner overview in release 2 | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review (changed criteria delivered) | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
@@ -322,7 +323,15 @@ repository-pattern seam (`*Repository.ts`, `mongo*.ts`), and sketch the migratio
 EU-region implications. No implementation until the spike reports and Alex decides the target and
 release. Needs a spike note, then a contract.
 
+### US-P024 — Notification background loading
+
+As a signed-in user, I want my notifications ready when I open the bell, so that I can check
+updates without waiting for a fresh list request on every opening. Alex requested this during
+the 2026-10-30 live walkthrough. In progress; acceptance criteria and scope are in the
+[contract](stories/US-P024-notification-background-loading.md).
+
 ## Adding a story
+
 
 Allocate the next unused ID in the journey (T teacher, A admin, L learner, P platform). Add a table
 row and a section with actor/goal/benefit, state, scope, dependencies, source, decisions and

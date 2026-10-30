@@ -57,4 +57,116 @@ describe('US-P019 C1 notification session service', () => {
     await state.submitLogin();
     await vi.waitFor(() => expect(TestBed.inject(NotificationService).unreadCount()).toBe(4));
   });
+
+  it('US-P024-AC01 starts a list during sign-in without waiting for it to complete', async () => {
+    let resolveList!: (response: Response) => void;
+    const listReply = new Promise<Response>(resolve => resolveList = resolve);
+    const fetcher = vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/notifications' ? listReply : new Response('[]'));
+    const session: LoginState = { token: 'new-session', user: { id: 'one', email: 'one@example.test', displayName: 'One',
+      role: 'student', status: 'active', createdAt: '', enrolledCourseIds: [] },
+      permissions: { canCreateCourses: false, hasAdminAccess: false } };
+    vi.spyOn(TestBed.inject(AuthService), 'login').mockResolvedValue({ ok: true, login: session });
+    vi.spyOn(TestBed.inject(AuthService), 'restoreSession').mockResolvedValue({ ...session, unreadNotifications: 1 });
+    const state = TestBed.inject(AppStateService);
+    state.updateEmail('one@example.test'); state.updatePassword('Password123!');
+    await state.submitLogin();
+    expect(state.loginState()?.token).toBe('new-session');
+    expect(state.isSubmitting()).toBe(false);
+    expect(fetcher).toHaveBeenCalledWith('/notifications', expect.objectContaining({ method: 'GET' }));
+    resolveList(new Response(JSON.stringify({ notifications: [row] })));
+    expect(await TestBed.inject(NotificationService).list()).toEqual([row]);
+  });
+
+  it('US-P024-AC01 preloads after validating an unchanged restored session', async () => {
+    const session: LoginState = { token: 'restored', user: { id: 'one', email: 'one@example.test', displayName: 'One',
+      role: 'student', status: 'active', createdAt: '', enrolledCourseIds: [] },
+      permissions: { canCreateCourses: false, hasAdminAccess: false } };
+    sessionStorage.setItem('qiEducationSession', JSON.stringify(session));
+    const fetcher = vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      new Response(JSON.stringify(path === '/notifications' ? { notifications: [row] } : [])));
+    vi.spyOn(TestBed.inject(AuthService), 'restoreSession').mockResolvedValue({ ...session, unreadNotifications: 1 });
+    TestBed.inject(AppStateService);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledWith('/notifications', expect.objectContaining({ method: 'GET' })));
+    expect(await TestBed.inject(NotificationService).list()).toEqual([row]);
+  });
+
+  it('US-P024-AC01 starts a list after signup without delaying the new session', async () => {
+    const fetcher = vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/notifications' ? new Promise<Response>(() => {}) : new Response('[]'));
+    const session: LoginState = { token: 'signed-up', user: { id: 'one', email: 'one@example.test', displayName: 'One',
+      role: 'student', status: 'active', createdAt: '', enrolledCourseIds: [] },
+      permissions: { canCreateCourses: false, hasAdminAccess: false } };
+    vi.spyOn(TestBed.inject(AuthService), 'signup').mockResolvedValue({ ok: true, login: session });
+    const state = TestBed.inject(AppStateService);
+    state.signupDisplayName.set('One User'); state.updateEmail('one@example.test');
+    state.updatePassword('Password123!'); state.signupPasswordConfirmation.set('Password123!');
+    await state.submitSignup();
+    expect(state.loginState()?.token).toBe('signed-up'); expect(state.isSubmitting()).toBe(false);
+    expect(fetcher).toHaveBeenCalledWith('/notifications', expect.objectContaining({ method: 'GET' }));
+  });
+
+  it('US-P024-AC04 a failed background preload does not fail sign-in and a later list retries', async () => {
+    let failList!: (response: Response) => void;
+    const failedReply = new Promise<Response>(resolve => failList = resolve);
+    const fetcher = vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/notifications' ? failedReply : new Response('[]'));
+    const session: LoginState = { token: 'session', user: { id: 'one', email: 'one@example.test', displayName: 'One',
+      role: 'student', status: 'active', createdAt: '', enrolledCourseIds: [] },
+      permissions: { canCreateCourses: false, hasAdminAccess: false } };
+    vi.spyOn(TestBed.inject(AuthService), 'login').mockResolvedValue({ ok: true, login: session });
+    vi.spyOn(TestBed.inject(AuthService), 'restoreSession').mockResolvedValue({ ...session, unreadNotifications: 1 });
+    const state = TestBed.inject(AppStateService);
+    state.updateEmail('one@example.test'); state.updatePassword('Password123!');
+    await state.submitLogin();
+    await vi.waitFor(() => expect(TestBed.inject(NotificationService).unreadCount()).toBe(1));
+    expect(state.loginState()?.token).toBe('session'); expect(state.loginError()).toBe('');
+    const failedRequest = TestBed.inject(NotificationService).list();
+    failList(new Response('{}', { status: 503 }));
+    await expect(failedRequest).rejects.toThrow('could not be loaded');
+    fetcher.mockResolvedValue(new Response(JSON.stringify({ notifications: [row] })));
+    expect(await TestBed.inject(NotificationService).list()).toEqual([row]);
+  });
+
+  it.each(['one', 'all'])('US-P024-AC05 applies marking %s read even if a list refreshed while the POST was pending', async action => {
+    const service = TestBed.inject(NotificationService);
+    let finishWrite!: (response: Response) => void;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async (_path, init) =>
+      init.method === 'POST' ? new Promise(resolve => finishWrite = resolve)
+        : new Response(JSON.stringify({ notifications: [row] })));
+    service.setSession('token'); service.setUnreadCount(1); await service.list();
+    const write = action === 'one' ? service.markRead('n') : service.markAllRead();
+    await service.list(true);
+    finishWrite(new Response(null, { status: 204 })); await write;
+    expect(service.unreadCount()).toBe(0);
+    expect((await service.list())[0].readAt).not.toBeNull();
+  });
+
+  it('US-P024-AC05 ignores a pre-read sign-in count that arrives after Mark all read', async () => {
+    const session: LoginState = { token: 'session', user: { id: 'one', email: 'one@example.test', displayName: 'One',
+      role: 'student', status: 'active', createdAt: '', enrolledCourseIds: [] },
+      permissions: { canCreateCourses: false, hasAdminAccess: false } };
+    let finishCount!: (value: Omit<LoginState, 'token'> & { unreadNotifications: number }) => void;
+    const oldCount = new Promise<Omit<LoginState, 'token'> & { unreadNotifications: number }>(resolve => finishCount = resolve);
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async (path, init) => init.method === 'POST'
+      ? new Response(null, { status: 204 }) : new Response(JSON.stringify(path === '/notifications' ? { notifications: [row] } : [])));
+    vi.spyOn(TestBed.inject(AuthService), 'login').mockResolvedValue({ ok: true, login: session });
+    vi.spyOn(TestBed.inject(AuthService), 'restoreSession').mockReturnValue(oldCount);
+    const state = TestBed.inject(AppStateService), service = TestBed.inject(NotificationService);
+    state.updateEmail('one@example.test'); state.updatePassword('Password123!'); await state.submitLogin();
+    service.setUnreadCount(1); await service.markAllRead();
+    finishCount({ ...session, unreadNotifications: 1 }); await oldCount;
+    expect(service.unreadCount()).toBe(0);
+  });
+
+  it('US-P024-AC05 keeps the newer count when two background count replies arrive out of order', async () => {
+    const service = TestBed.inject(NotificationService);
+    const replies: ((response: Response) => void)[] = [];
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(() => new Promise(resolve => replies.push(resolve)));
+    service.setSession('token');
+    const older = service.refreshCount(), newer = service.refreshCount();
+    replies[1](new Response(JSON.stringify({ unreadNotifications: 3 }))); await newer;
+    replies[0](new Response(JSON.stringify({ unreadNotifications: 1 }))); await older;
+    expect(service.unreadCount()).toBe(3);
+  });
 });

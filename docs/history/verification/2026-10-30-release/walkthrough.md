@@ -39,9 +39,23 @@ Both Pages and CI completed successfully. Vercel production is Ready; Pages serv
 - Teacher Settings opens directly on Notifications; Organization and Review activity are enabled,
   Admin inbox is absent and Save preferences is disabled without edits. No preferences changed.
 
-Real notification-event and preference-persistence walkthrough: awaiting Alex's prepared
-disposable course and separate admin session. Alex performs the real mutations; the agent
-observes the outcomes. The course preparation form was left untouched.
+## Review-event walkthrough
+
+Alex created/submitted **Test Course** (`8ace9b8b-a71d-4dc0-9b7a-3b40c1b35995`) and used a
+separate reviewer/admin session to request changes with **This is a test**. The teacher's
+inbox displayed **Changes requested: Test Course** and the header showed **1 unread**.
+The course's Publishing step showed **Changes requested by reviewer**, the exact comment,
+and **Waiting for 1 of 1 reviewer**; the course stayed Ready for review as expected for a
+reviewer verdict (an admin Return is the action that unlocks teacher editing).
+
+Alex then clicked the notification. He reported navigation/unread clearing; reopening the
+teacher inbox showed the row retained, no unread indicator and Mark all read disabled. The
+agent did not perform a shared read-state mutation. This establishes real reviewer-change
+delivery and persisted read state; submission delivery to admins, admin Return, publication,
+preference suppression and organization events remain unchecked.
+
+Alex observed slow notification loading and requested background loading at sign-in. This
+follow-up is selected before the remaining mutation walkthrough; Test Course remains in review.
 
 ## Walkthrough scope and limits
 

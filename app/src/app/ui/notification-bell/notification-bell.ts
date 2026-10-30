@@ -37,7 +37,9 @@ export class NotificationBell {
   }
   protected async load(): Promise<void> {
     const request = ++this.request, session = this.notifications.sessionVersion();
-    this.loading.set(true); this.error.set('');
+    const cached = this.notifications.cachedList();
+    this.items.set(cached ?? []);
+    this.loading.set(cached === undefined); this.error.set('');
     try {
       const rows = await this.notifications.list(true);
       if (request === this.request && session === this.notifications.sessionVersion()) this.items.set(rows);
@@ -69,11 +71,18 @@ export class NotificationBell {
     if (this.busy()) return;
     const session = this.notifications.sessionVersion();
     this.busy.set(true); this.error.set('');
+    // A background list started before this write must not replace the newly read rows.
+    this.request++;
     try {
       await this.notifications.markAllRead();
-      if (session === this.notifications.sessionVersion()) this.items.update(rows => rows.map(row => ({ ...row, readAt: row.readAt ?? new Date().toISOString() })));
+      if (session === this.notifications.sessionVersion()) {
+        this.request++; // Also supersede a refresh started by reopening during the write.
+        const cached = this.notifications.cachedList();
+        if (cached !== undefined) this.items.set(cached);
+        else if (this.isOpen()) await this.load();
+      }
     } catch { if (session === this.notifications.sessionVersion()) this.error.set('Read status could not be saved. Please try again.'); }
-    finally { this.busy.set(false); }
+    finally { this.busy.set(false); this.loading.set(false); }
   }
   protected icon(row: NotificationItem): IconName { return eventIcons[row.type] ?? 'bell'; }
   protected relativeTime(createdAt: string): string {

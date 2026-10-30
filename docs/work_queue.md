@@ -6,13 +6,24 @@ messages hold them.
 
 ## Active work
 
+**US-P024 — Notification background loading — In progress** (2026-10-30, Codex,
+`main`, base `2a36250`; explicitly requested during the live walkthrough).
+Preload the account's list after successful login/session restore, show cached results immediately
+on bell open, refresh in the background and share in-flight loads. Preserve account boundaries,
+freshness, retries and read state. Files: notification service/bell, auth hooks, regressions and
+notification spec. All AC01–AC05 pass locally: frontend 637/637 (27 notification tests), UI
+foundation, Pages build and isolated delayed-response browser. Review findings reproduced/fixed.
+Next: commit and close the story; [evidence](history/verification/2026-10-30-us-p024/README.md).
+No new poller, API change, push or hosted mutation probes.
+
 **Release DEF-066 / DEF-067 — In progress** (2026-10-30, Codex, `main`, base `f8659ec`).
 Alex authorized push and the hosted walkthrough. Released 0.1.542 (`9610f47`); Pages/CI green,
 Vercel Ready. API 2,916, frontend 620, journeys 20 and both builds pass. DEF-066 hosted public
 and learner/teacher Home checks pass; teacher overview, feedback summary, empty bell and
 role-specific Settings checked. [Evidence](history/verification/2026-10-30-release/walkthrough.md).
-Next: Alex is preparing a disposable draft and separate admin session for submit/return/publish
-notification checks. Leave his preparation form untouched. Hosted mutations remain user-performed;
+Alex created Test Course and requested reviewer changes with “This is a test”; the teacher received
+the notice, review history matched, and user-performed read marking persisted. Next after US-P024:
+admin Return, resubmit/publish and preference checks. Hosted mutations remain user-performed;
 agent probes stay isolated. DEF-067 cohort check needs a later deployment with a fixed tab open.
 
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/

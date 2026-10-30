@@ -69,4 +69,127 @@ describe('US-P019 C2 notification bell', () => {
     await f.fixture.whenStable(); f.fixture.detectChanges();
     expect(f.page.textContent).toContain('Join the team');
   });
+
+  it('US-P024-AC02 displays cached notices immediately while a slow refresh gets newer activity', async () => {
+    const f = await setup(); await f.service.list();
+    let answer!: (response: Response) => void;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/me' ? new Response(JSON.stringify({ unreadNotifications: 2 })) : new Promise(resolve => answer = resolve));
+    f.trigger.click(); f.fixture.detectChanges();
+    expect(f.page.textContent).toContain('Join the team');
+    expect(f.page.textContent).not.toContain('Loading notifications...');
+    answer(new Response(JSON.stringify({ notifications: [{ ...row, id: 'new', title: 'New review activity' }, row] })));
+    await vi.waitFor(() => { f.fixture.detectChanges(); expect(f.page.textContent).toContain('New review activity'); });
+    expect(f.page.textContent).toContain('Join the team');
+  });
+
+  it('US-P024-AC03 joins an unfinished preload instead of restarting it when the bell opens', async () => {
+    const f = await setup();
+    let answer!: (response: Response) => void;
+    const fetcher = vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/me' ? new Response(JSON.stringify({ unreadNotifications: 1 })) : new Promise(resolve => answer = resolve));
+    const preload = f.service.list();
+    f.trigger.click(); f.fixture.detectChanges();
+    expect(fetcher.mock.calls.filter(([path]) => path === '/notifications')).toHaveLength(1);
+    answer(new Response(JSON.stringify({ notifications: [row] })));
+    await preload;
+    await vi.waitFor(() => { f.fixture.detectChanges(); expect(f.page.textContent).toContain('Join the team'); });
+  });
+
+  it('US-P024-AC02 treats a cached empty inbox as ready while refreshing it', async () => {
+    const f = await setup([]); await f.service.list();
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/me' ? new Response(JSON.stringify({ unreadNotifications: 0 })) : new Promise<Response>(() => {}));
+    f.trigger.click(); f.fixture.detectChanges();
+    expect(f.page.textContent).toContain("You're all caught up.");
+    expect(f.page.textContent).not.toContain('Loading notifications...');
+  });
+
+  it('US-P024-AC05 keeps marked-read rows when an older background refresh finishes', async () => {
+    const f = await setup(); await f.service.list();
+    let answer!: (response: Response) => void;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async (path, init) =>
+      init.method === 'POST' ? new Response(null, { status: 204 }) : path === '/me'
+        ? new Response(JSON.stringify({ unreadNotifications: 1 })) : new Promise(resolve => answer = resolve));
+    f.trigger.click(); f.fixture.detectChanges();
+    const refresh = f.service.list(true);
+    Array.from(f.page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.trim() === 'Mark all read')!.click();
+    await vi.waitFor(() => expect(f.service.unreadCount()).toBe(0));
+    answer(new Response(JSON.stringify({ notifications: [row] })));
+    await refresh;
+    await f.fixture.whenStable(); f.fixture.detectChanges();
+    expect(f.page.textContent).toContain('Join the team');
+    expect(f.page.querySelector('.notification-item.unread')).toBeNull();
+    expect(f.service.unreadCount()).toBe(0);
+  });
+
+  it('US-P024-AC05 clears visible cached notices and ignores a late refresh after switching account', async () => {
+    const f = await setup(); await f.service.list();
+    let answer!: (response: Response) => void;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/me' ? new Response(JSON.stringify({ unreadNotifications: 1 })) : new Promise(resolve => answer = resolve));
+    f.trigger.click(); f.fixture.detectChanges();
+    const refresh = f.service.list(true);
+    f.service.setSession('other-account'); f.fixture.detectChanges();
+    answer(new Response(JSON.stringify({ notifications: [row] })));
+    await refresh;
+    await f.fixture.whenStable(); f.fixture.detectChanges();
+    expect(f.page.textContent).not.toContain('Join the team');
+    expect(f.page.querySelector('.notification-panel')).toBeNull();
+    expect(f.service.unreadCount()).toBe(0);
+  });
+
+  it.each(['one', 'all'])('US-P024-AC02 keeps the cached list ready after marking %s read', async action => {
+    const f = await setup();
+    vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
+    await f.open();
+    if (action === 'one') f.page.querySelector<HTMLButtonElement>('.notification-item')!.click();
+    else Array.from(f.page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.trim() === 'Mark all read')!.click();
+    await vi.waitFor(() => expect(f.service.unreadCount()).toBe(0));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); f.fixture.detectChanges();
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path =>
+      path === '/me' ? new Response(JSON.stringify({ unreadNotifications: 0 })) : new Promise<Response>(() => {}));
+    f.trigger.click(); f.fixture.detectChanges();
+    expect(f.page.textContent).toContain('Join the team');
+    expect(f.page.textContent).not.toContain('Loading notifications...');
+    expect(f.page.querySelector('.notification-item.unread')).toBeNull();
+  });
+
+  it('US-P024-AC05 keeps the initial notices after Mark all read during an unfinished preload', async () => {
+    const f = await setup();
+    let finishInitial!: (response: Response) => void;
+    let lists = 0;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async (path, init) => {
+      if (init.method === 'POST') return new Response(null, { status: 204 });
+      if (path === '/me') return new Response(JSON.stringify({ unreadNotifications: 1 }));
+      if (++lists === 1) return new Promise(resolve => finishInitial = resolve);
+      return new Response(JSON.stringify({ notifications: [{ ...row, readAt: '2026-10-30T17:00:00Z' }] }));
+    });
+    f.trigger.click(); f.fixture.detectChanges();
+    expect(f.page.textContent).toContain('Loading notifications...');
+    Array.from(f.page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.trim() === 'Mark all read')!.click();
+    await vi.waitFor(() => expect(f.service.unreadCount()).toBe(0));
+    finishInitial(new Response(JSON.stringify({ notifications: [row] })));
+    await vi.waitFor(() => { f.fixture.detectChanges(); expect(f.page.textContent).toContain('Join the team'); });
+    expect(f.page.textContent).not.toContain("You're all caught up.");
+    expect(f.page.querySelector('.notification-item.unread')).toBeNull();
+  });
+
+  it('US-P024-AC05 keeps the read list when closing and reopening during a slow Mark all read', async () => {
+    const f = await setup(); await f.open();
+    let finishWrite!: (response: Response) => void, finishList!: (response: Response) => void;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async (path, init) => init.method === 'POST'
+      ? new Promise(resolve => finishWrite = resolve) : path === '/me'
+        ? new Response(JSON.stringify({ unreadNotifications: 1 })) : new Promise(resolve => finishList = resolve));
+    Array.from(f.page.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent?.trim() === 'Mark all read')!.click();
+    f.trigger.click(); f.fixture.detectChanges(); f.trigger.click(); f.fixture.detectChanges();
+    const refresh = f.service.list(true);
+    finishWrite(new Response(null, { status: 204 }));
+    await vi.waitFor(() => expect(f.service.unreadCount()).toBe(0));
+    finishList(new Response(JSON.stringify({ notifications: [row] }))); await refresh;
+    await f.fixture.whenStable(); f.fixture.detectChanges();
+    expect(f.page.textContent).toContain('Join the team');
+    expect(f.page.querySelector('.notification-item.unread')).toBeNull();
+    expect(f.service.unreadCount()).toBe(0);
+  });
 });

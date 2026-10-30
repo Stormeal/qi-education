@@ -83,7 +83,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.543';
+  readonly appVersion = '0.1.544';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -559,6 +559,7 @@ export class AppStateService {
       const login = result.login;
       this.learningProgress.reset();
       this.notifications.setSession(login.token);
+      void this.notifications.prefetch();
       void this.refreshUnreadNotifications(login.token);
       this.loginState.set({
         token: login.token,
@@ -623,6 +624,8 @@ export class AppStateService {
 
       const login = result.login;
       this.learningProgress.reset();
+      this.notifications.setSession(login.token);
+      void this.notifications.prefetch();
       this.loginState.set({
         token: login.token,
         user: login.user,
@@ -674,9 +677,10 @@ export class AppStateService {
   }
 
   private async refreshUnreadNotifications(token: string): Promise<void> {
+    const request = this.notifications.beginCountRefresh();
     try {
       const result = await this.authService.restoreSession(token);
-      if (this.loginState()?.token === token && result) this.notifications.setUnreadCount(result.unreadNotifications ?? 0);
+      if (this.loginState()?.token === token && result) this.notifications.setUnreadCount(result.unreadNotifications ?? 0, request);
     } catch { /* A notification outage does not interrupt sign-in. */ }
   }
 
@@ -755,6 +759,7 @@ export class AppStateService {
     }
 
     // US-P010: the pages already render and load from the stored session. This only checks it.
+    const countRequest = this.notifications.beginCountRefresh();
     try {
       const restored = await this.authService.restoreSession(restoredSession.token);
       if (this.loginState() !== restoredSession) return;
@@ -766,7 +771,8 @@ export class AppStateService {
       }
 
       this.notifications.setSession(restoredSession.token);
-      this.notifications.setUnreadCount(restored.unreadNotifications ?? 0);
+      this.notifications.setUnreadCount(restored.unreadNotifications ?? 0, countRequest);
+      void this.notifications.prefetch();
 
       // Nothing changed since the last visit: keep the session object, so loads already running stay valid.
       const same = (state: Pick<LoginState, 'user' | 'permissions'>) => JSON.stringify([state.user, state.permissions]);

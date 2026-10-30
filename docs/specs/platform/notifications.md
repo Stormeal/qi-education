@@ -32,6 +32,13 @@ Mirror review and organization events in a private inbox, reached from the heade
   newest list and refreshes `/me` count, without marking anything read. Counts also refresh on
   session restore and fresh sign-in; there is no background poller. Replies from an old session
   cannot update a new account, and logout clears the list/count.
+- **Background loading** (US-P024): successful sign-in/signup and validated session restoration
+  start a non-blocking list preload. Opening the bell immediately displays its session-memory
+  cache, including an empty list, while refreshing in the background. A pending preload is shared
+  instead of restarted. A failed preload never fails login; opening/retry can recover.
+- Successful read actions retain the cached rows with updated read state. Older list/count replies,
+  including delayed sign-in counts, cannot undo the action. If Mark all read finishes before the
+  first list exists, a replacement list loads rather than presenting a false empty inbox.
 - Rows show a Lucide event icon, saved title and relative time. Clicking marks the row read and
   navigates to its link; Mark all read clears the account's unread state. Failures offer Retry;
   an empty inbox says "You're all caught up." Reopening refetches the list.
@@ -66,7 +73,10 @@ session counts are connected through `AppStateService`.
 - No retention deletion, realtime channel or new poller. Notifications are best effort and have
   no delivery retry queue. Mongo behavior is verified at the isolated driver boundary; live
   event delivery/index metadata and cross-device browser behavior remain release checks. The bell
-  was exercised with isolated HTTP stores and an authenticated hosted empty inbox; student/admin
-  preference visibility was checked live without saving.
+  was exercised with isolated HTTP stores and authenticated hosted empty inboxes; student/admin/
+  teacher preference visibility was checked live without saving. On 2026-10-30 the user performed
+  a real reviewer Request changes on Test Course, the teacher received the notice, and marking it
+  read persisted. [Hosted evidence](../../history/verification/2026-10-30-release/walkthrough.md).
+  Background loading is verified locally with delayed responses; its hosted check remains pending.
 - The design mentions feedback notifications but specifies no feedback event type or recipients;
   those remain undefined and are not implemented.
