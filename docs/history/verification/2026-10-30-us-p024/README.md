@@ -3,6 +3,7 @@
 Codex, 2026-10-30, `main`, base `2a36250`. Alex requested this after observing slow bell opening
 during the real review-notification walkthrough. No API/storage changes, poller or shared mutation
 probes. Production remains 0.1.542 until a further authorized release.
+Delivery commit: `3fcd215` (0.1.544); the subsequent closure changes only records/version metadata.
 
 ## Change and behavior
 

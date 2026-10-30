@@ -6,24 +6,18 @@ messages hold them.
 
 ## Active work
 
-**US-P024 — Notification background loading — In progress** (2026-10-30, Codex,
-`main`, base `2a36250`; explicitly requested during the live walkthrough).
-Preload the account's list after successful login/session restore, show cached results immediately
-on bell open, refresh in the background and share in-flight loads. Preserve account boundaries,
-freshness, retries and read state. Files: notification service/bell, auth hooks, regressions and
-notification spec. All AC01–AC05 pass locally: frontend 637/637 (27 notification tests), UI
-foundation, Pages build and isolated delayed-response browser. Review findings reproduced/fixed.
-Next: commit and close the story; [evidence](history/verification/2026-10-30-us-p024/README.md).
-No new poller, API change, push or hosted mutation probes.
-
 **Release DEF-066 / DEF-067 — In progress** (2026-10-30, Codex, `main`, base `f8659ec`).
 Alex authorized push and the hosted walkthrough. Released 0.1.542 (`9610f47`); Pages/CI green,
 Vercel Ready. API 2,916, frontend 620, journeys 20 and both builds pass. DEF-066 hosted public
 and learner/teacher Home checks pass; teacher overview, feedback summary, empty bell and
 role-specific Settings checked. [Evidence](history/verification/2026-10-30-release/walkthrough.md).
 Alex created Test Course and requested reviewer changes with “This is a test”; the teacher received
-the notice, review history matched, and user-performed read marking persisted. Next after US-P024:
-admin Return, resubmit/publish and preference checks. Hosted mutations remain user-performed;
+the notice, review history matched, and user-performed read marking persisted. US-P024 background
+loading is delivered locally in `3fcd215` (637 frontend tests, Pages build and delayed-response
+browser pass), awaiting an authorized release; [evidence](history/verification/2026-10-30-us-p024/README.md).
+Next: Alex was asked to use admin **Return for changes** with reason **Return notification test**,
+then report “returned”; observe the new teacher notice and editable course. Resubmit/publish and
+preference checks follow. Hosted mutations remain user-performed;
 agent probes stay isolated. DEF-067 cohort check needs a later deployment with a fixed tab open.
 
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
@@ -146,6 +140,11 @@ Release 1 (internal, mid-December 2026) comes first; see Releases in
 as they arrive.
 
 ## Open release checks
+
+- US-P024, delivered locally in `3fcd215`: after authorized deployment, check background list
+  loading after real sign-in/session restoration, ready cached display and freshness on open.
+  Local app 637/637, UI foundation, Pages build and delayed-response browser pass;
+  [evidence](history/verification/2026-10-30-us-p024/README.md).
 
 - DEF-067, live in 0.1.542, fixing commit `5e4683a`: keep a tab containing
   this fix across a later Pages release and check explicit reload recovery on an uncached route.
