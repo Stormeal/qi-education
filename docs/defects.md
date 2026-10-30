@@ -20,29 +20,6 @@ Next free IDs: DEF-068, INV-020.
 
 ## Open defects
 
-### DEF-066 — Null milestone revision fields break hosted career reads
-
-P2 / In progress, Codex, 2026-10-30; implementation base `177d48f`, `main`; hosted discovery on
-production `dpl_CXTpjqJY7vnXvmXdJ1jxuotDSvYL`,
-frontend 0.1.536 (also seen in the previously open 0.1.532 tab). During the user's real signup
-walkthrough, a new learner's Home showed **Career path Unavailable — Career path could not be
-loaded**. Read-only request logs showed `GET /api/career-paths` → 400 and
-`GET /api/users/me/careers` → 500 at 2026-10-30 15:02 UTC. A separate unauthenticated GET to
-the public route reproduced 400 `Invalid request body`, with issues on
-`steps[0..3].requirementVersion` (expected number, received null) and
-`steps[0..3].requirementHistory` (expected array, received null).
-
-Expected: valid public career definitions and new-account guidance load; malformed stored data
-must not be reported as an invalid caller request (career and reliability specs). Cause evidence:
-`careerPath.ts` defaults these fields for missing values but rejects explicit null; the Mongo
-repository returns stored documents directly. The writer/migration that introduced null is not
-established. No production records were changed. Impact: published-career browsing and learner
-career context fail, independently of Turnstile/email confirmation.
-
-Next: reproduce with isolated stored milestone documents containing those nulls; determine the
-backward-compatible normalization boundary or required data repair, then add a permanent
-regression. Fixing commit: none; no fix or shared-data repair performed.
-
 ### DEF-067 — An open Pages tab cannot load routes after a newer deployment
 
 P2 / Open, Codex, 2026-10-30; observed 0.1.532 tab across the 0.1.536 Pages deployment.

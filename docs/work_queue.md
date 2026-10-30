@@ -6,19 +6,12 @@ messages hold them.
 
 ## Active work
 
-**DEF-066 — In progress** (2026-10-30, owner Codex, `main`, base `177d48f`).
-Restore reads of legacy stored null/missing milestone requirement versions/history using the
-existing defaults, preserving real version history and strict request validation. Implementation
-and verification pass: API 2,916, journeys 20, both builds, isolated Home/browse/follow walkthrough.
-Next: commit and close the defect record with its fixing hash. [Evidence](history/verification/2026-10-30-def-066/README.md).
-No shared-data repair, push or deployment. DEF-067 remains queued.
-
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
 confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
 2026-10-30. Student/admin header and Settings checks pass; Stripe webhook returned 200.
 [Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md) and
 [delivery handoff](history/handoffs/US-P019-US-P020-frontend.md) preserve the checks and commits.
-The walkthrough found new DEF-066 and DEF-067; prioritize these confirmed defects before
+DEF-066 is fixed locally in `99cb544`; DEF-067 remains open. Prioritize confirmed defects before
 enhancements. No agent shared mutation probes. Do not start a Proposed story without selection.
 
 Delivered 2026-10-27, included in release 0.1.532: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
@@ -125,10 +118,9 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 
 ## Next candidate
 
-Confirmed defects found during the new-learner walkthrough: DEF-066 (stored null milestone
-fields break career browsing/Home context) first, then DEF-067 (older open tabs lose lazy-route
-navigation after a Pages deployment). Reproduce with isolated data/two builds before changing
-code; neither fix has started. Evidence and next actions are in [defects.md](defects.md).
+DEF-067: older open tabs lose lazy-route navigation after a Pages deployment. Reproduce with
+two isolated builds before changing code; implementation has not started. Evidence and next
+actions are in [defects.md](defects.md).
 
 Release 1 (internal, mid-December 2026) comes first; see Releases in
 [user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
@@ -136,13 +128,18 @@ as they arrive.
 
 ## Open release checks
 
+- DEF-066, fixed locally in `99cb544` (0.1.538): after an authorized push/deployment, repeat
+  read-only public career list/detail and authenticated Home/career browsing against the existing
+  hosted records. No shared-data migration is needed. API 2,916/2,916, journeys 20/20, both builds
+  and isolated browser pass; [evidence](history/verification/2026-10-30-def-066/README.md).
+
 - US-P020 / US-P019 (live as 0.1.532, 2026-10-29): deployment/public checks pass; see
   [hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md). Real Turnstile
   keys are active; the user completed signup, received the mail and confirmed the address. Buy
   correctly changed from blocked to available. Free enrollment and the real Stripe test-mode
   return pass, including DEF-064; both courses persist in My Learning. Stripe webhook returned
   200. Authenticated student/admin header/bell/settings pass read-only checks; teacher overview
-  needs a teacher-account walkthrough. New DEF-066 and DEF-067 need fixes.
+  needs a teacher-account walkthrough. DEF-066 awaits deployment verification; DEF-067 needs a fix.
   Check Mongo notification indexes, all nine event recipients, muted groups and read/preferences
   across devices. Direct read-only metadata inspection timed out. Isolated synthetic-provider
   evidence does not establish real integrations. Include the new controls in the real screen

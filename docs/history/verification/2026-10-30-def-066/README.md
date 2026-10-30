@@ -1,6 +1,7 @@
 # DEF-066 — Legacy milestone metadata
 
 Verified locally by Codex, 2026-10-30, on `main`, implementation base `177d48f`.
+Fixing commit: `99cb544` (0.1.538). Subsequent documentation closure changes only records/version.
 No hosted records, settings or deployments were changed. Hosted reproduction is preserved
 in the defect record and the [signup walkthrough](../2026-10-29-header-signup/hosted-checks.md).
 

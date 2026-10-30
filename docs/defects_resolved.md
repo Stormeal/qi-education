@@ -1570,3 +1570,44 @@ Resolution 2026-10-29, `a2e100b`: disable preference controls during the existin
 The three role cases failed before and pass after; profile round-trip/dirty-state tests pass.
 Together with DEF-064, focused tests are 19/19 and the full app suite is 612/612.
 The [verification record](history/verification/2026-10-29-header-signup/README.md) records remaining hosted checks.
+
+
+## Findings resolved 2026-10-30
+
+### DEF-066 — Null milestone revision fields break hosted career reads
+
+P2 / Fixed, Codex, 2026-10-30; implementation base `177d48f`, `main`; hosted discovery on
+production `dpl_CXTpjqJY7vnXvmXdJ1jxuotDSvYL`,
+frontend 0.1.536 (also seen in the previously open 0.1.532 tab). During the user's real signup
+walkthrough, a new learner's Home showed **Career path Unavailable — Career path could not be
+loaded**. Read-only request logs showed `GET /api/career-paths` → 400 and
+`GET /api/users/me/careers` → 500 at 2026-10-30 15:02 UTC. A separate unauthenticated GET to
+the public route reproduced 400 `Invalid request body`, with issues on
+`steps[0..3].requirementVersion` (expected number, received null) and
+`steps[0..3].requirementHistory` (expected array, received null).
+
+Expected: valid public career definitions and new-account guidance load; malformed stored data
+must not be reported as an invalid caller request (career and reliability specs). Cause evidence:
+`careerPath.ts` defaults these fields for missing values but rejects explicit null; the Mongo
+repository returns stored documents directly. The writer/migration that introduced null is not
+established. No production records were changed. Impact: published-career browsing and learner
+career context fail, independently of Turnstile/email confirmation.
+
+Original next action: reproduce with isolated stored milestone documents containing those nulls; determine the
+backward-compatible normalization boundary or required data repair, then add a permanent
+regression. At discovery, fixing commit: none; no fix or shared-data repair had been performed.
+
+Resolution 2026-10-30: fixed locally in `99cb544` (0.1.538). Both repository read adapters
+normalize only null/missing requirement versions/history in draft and published snapshots to
+`1`/`[]`, without saving records. Real history, criteria, document revision/timestamp and learner
+achievements remain intact; request bodies still reject nulls. No data repair was needed.
+
+Regression: six cases failed before; eight DEF-066 cases now pass. Focused suites 137/137;
+full API 2,916/2,916; release journeys 20/20; API and Pages builds passed. Isolated browser
+Home, career comparison, follow and return-to-Home passed with a null-metadata fixture. Review
+found no blocking issues; the memory-record preservation assertion was tightened (repository
+suite 19/19). [Detailed evidence](history/verification/2026-10-30-def-066/README.md).
+
+Remaining: after an authorized push/deployment, repeat hosted read-only public and authenticated
+career checks. This is Fixed in code, not Verified on production. No shared records or provider
+settings were changed. DEF-067 is separate and remains Open.
