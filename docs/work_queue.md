@@ -6,6 +6,11 @@ messages hold them.
 
 ## Active work
 
+**Release DEF-066 / DEF-067 — In progress** (2026-10-30, Codex, `main`, base `f8659ec`).
+Alex authorized push and the hosted walkthrough. Next: finish full release checks, push the
+prepared fixes/release note, monitor Pages/Vercel, then verify careers/Home and teacher header,
+overview, bell and Settings. Hosted mutations remain user-performed; agent probes stay isolated.
+
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
 confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
 2026-10-30. Student/admin header and Settings checks pass; Stripe webhook returned 200.
