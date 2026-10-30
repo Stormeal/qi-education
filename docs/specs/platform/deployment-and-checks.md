@@ -12,6 +12,13 @@ Every change is tested before it reaches users, and the frontend and API stay co
 - **API** → Vercel serverless (`api/[...path].ts`, routes in `vercel.json`). A push to `main`
   deploys it immediately, even when the Pages workflow later fails, so API changes must stay
   backward compatible with the deployed frontend.
+- **Older open tabs** (DEF-067): a failed lazy-route import shows a root-level recovery message
+  while keeping the current page. **Reload page** explicitly reloads the current address, including
+  fragment-bearing links; it never reloads or redirects automatically. Unsaved course changes
+  disable the action until saved or reverted; existing navigation and browser-departure guards
+  remain in force. Successful navigation clears the message. Failed navigation resolves `false`,
+  and unrelated errors still reach the normal error reporter. Tabs opened before this handling
+  was deployed need one manual browser reload to acquire it.
 - **CI** (`ci.yml`) on pull requests and pushes to `main`: app build, Pages build, app tests, API
   build, API tests (Ubuntu, Node 22).
 - **Version hook**: `.githooks` pre-commit and pre-push require a semver change, also for docs.
@@ -25,6 +32,7 @@ Every change is tested before it reaches users, and the frontend and API stay co
 
 - `.github/workflows/ci.yml`, `.github/workflows/pages.yml`, `.githooks/`, `vercel.json`,
   `api/[...path].ts`, `scripts/create-pages-fallback.mjs`.
+- App routing: `app.config.ts`, `services/navigation-recovery.service.ts`, root `app.html`.
 
 ## Limits
 

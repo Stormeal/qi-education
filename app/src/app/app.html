@@ -1,4 +1,16 @@
 <div [attr.inert]="state.isFeedbackOpen() ? '' : null">
+  @if (navigationRecovery.loadFailed()) {
+    <section class="navigation-recovery" aria-label="Page loading problem">
+      <div role="alert">
+        <p>This page could not be loaded. Save any changes, then reload and try again.</p>
+        @if (state.hasUnsavedCourseChanges()) {
+          <p>Save your course changes before reloading. Your edits are still here.</p>
+        }
+      </div>
+      <button appButton="secondary" [disabled]="state.hasUnsavedCourseChanges()"
+        (click)="navigationRecovery.reload(state.hasUnsavedCourseChanges())">Reload page</button>
+    </section>
+  }
   <router-outlet />
 </div>
 <app-confirm-dialog />

@@ -6,6 +6,14 @@ messages hold them.
 
 ## Active work
 
+**DEF-067 — In progress** (2026-10-30, owner Codex, `main`, base `4a2db58`).
+Reproduce removed lazy-route assets with two isolated Pages builds, then add an explicit reload
+path while retaining course draft protection. Scope: router/bootstrap, root recovery message,
+regressions and platform docs. Implementation and checks pass: 620 frontend tests, UI foundation,
+Pages builds and a two-build browser recovery, including fragment links and unsaved course edits.
+Next: commit, then close the defect record with its fixing hash.
+[Evidence](history/verification/2026-10-30-def-067/README.md). No push/deployment or shared-data probes.
+
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
 confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
 2026-10-30. Student/admin header and Settings checks pass; Stripe webhook returned 200.

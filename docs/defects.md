@@ -22,7 +22,8 @@ Next free IDs: DEF-068, INV-020.
 
 ### DEF-067 — An open Pages tab cannot load routes after a newer deployment
 
-P2 / Open, Codex, 2026-10-30; observed 0.1.532 tab across the 0.1.536 Pages deployment.
+P2 / In progress, Codex, 2026-10-30; implementation base `4a2db58`, `main`;
+observed 0.1.532 tab across the 0.1.536 Pages deployment.
 Reproduction: keep Home open on the older release, then after the new deployment click
 **Browse courses** or header **Catalog**. Both leave the page on Home without a usable recovery
 message. The tab still references `/qi-education/main-2OHAS6IG.js` and displays Version 0.1.532;
