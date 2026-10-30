@@ -2,6 +2,7 @@
 
 Codex, 2026-10-30, `main`, implementation base `4a2db58`. Local verification only;
 no push, hosted deployment, shared-store mutation or real-account changes.
+Fixing commit: `5e4683a` (0.1.540); subsequent closure changes only records/version metadata.
 
 ## Reproduction and cause
 

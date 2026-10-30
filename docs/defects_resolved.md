@@ -1611,3 +1611,45 @@ suite 19/19). [Detailed evidence](history/verification/2026-10-30-def-066/README
 Remaining: after an authorized push/deployment, repeat hosted read-only public and authenticated
 career checks. This is Fixed in code, not Verified on production. No shared records or provider
 settings were changed. DEF-067 is separate and remains Open.
+
+
+### DEF-067 — An open Pages tab cannot load routes after a newer deployment
+
+P2 / Fixed, Codex, 2026-10-30; implementation base `4a2db58`, `main`;
+observed 0.1.532 tab across the 0.1.536 Pages deployment.
+Reproduction: keep Home open on the older release, then after the new deployment click
+**Browse courses** or header **Catalog**. Both leave the page on Home without a usable recovery
+message. The tab still references `/qi-education/main-2OHAS6IG.js` and displays Version 0.1.532;
+current Pages HTML references `main-QJYHBIJ2.js`. The old bundle's Courses route imports
+`./chunk-QJUHZA7H.js`; a read-only GET of that asset returns **404 text/html**. Full navigation
+to `/courses` loads 0.1.536 and restores navigation.
+
+Expected: a lazy-route asset removed by a release offers a safe reload/recovery path; existing
+editor drafts must remain protected. Cause evidence: Pages replaces hashed assets, while the
+running old bundle retains its old dynamic-import URLs. Documentation-only releases still
+change asset hashes through aligned app-version metadata. No unrelated code changed during
+the reproduction; the user's account and form state were preserved on the reload.
+
+Original next action: isolated two-build browser reproduction and a regression for failed lazy imports, then
+implement safe route recovery that respects unsaved work. At discovery, fixing commit: none; reload was the
+verified workaround. No source fix had been made at discovery.
+
+Resolution 2026-10-30: fixed locally in `5e4683a` (0.1.540). A router error handler recognizes
+failed dynamic imports and exposes a root recovery message without removing the current page.
+Reload page explicitly calls native location.reload(), including on fragment-bearing addresses;
+there is no automatic reload or redirect. Unsaved course changes disable it and are checked
+again at activation. Existing guards and browser-departure recovery remain unchanged.
+Successful navigation clears the message; unrelated exceptions retain normal error reporting.
+
+Regression: seven initial cases failed before implementation. Review caught same-URL fragment
+navigation in the first anchor-based action; four strengthened/new activation and initial-entry
+cases failed against that action before it became a native reload button. Final frontend suite
+620/620, UI-foundation checks and Pages builds pass. Isolated browser build swap 0.1.539 →
+0.1.540 proved reload at a fragment URL and restored Catalog. A separate unsaved editor kept
+its title, honored Cancel, and disabled Reload after an accepted departure hit a missing chunk.
+[Detailed evidence](history/verification/2026-10-30-def-067/README.md).
+
+Remaining: after authorized deployment, keep a tab containing this fix across a later Pages
+release and verify its cache/CDN recovery. Tabs already running older code need one manual
+browser reload to acquire the fix. Fixed locally, not Verified on production; no deployment,
+shared data changes, asset retention policy or service worker was added.
