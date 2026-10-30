@@ -65,7 +65,8 @@ session counts are connected through `AppStateService`.
 
 - No retention deletion, realtime channel or new poller. Notifications are best effort and have
   no delivery retry queue. Mongo behavior is verified at the isolated driver boundary; live
-  Mongo and cross-device browser behavior remain release checks. The bell was exercised with
-  isolated HTTP stores.
+  event delivery/index metadata and cross-device browser behavior remain release checks. The bell
+  was exercised with isolated HTTP stores and an authenticated hosted empty inbox; student/admin
+  preference visibility was checked live without saving.
 - The design mentions feedback notifications but specifies no feedback event type or recipients;
   those remain undefined and are not implemented.

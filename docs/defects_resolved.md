@@ -1533,7 +1533,7 @@ remain release checks; no unconditional exactly-once external transaction claime
 
 ### DEF-064 — Paid return stays on "Confirming payment" after successful enrollment
 
-P2 / Fixed, Codex, 2026-10-29, `main`, discovered at `64439cb` during isolated US-P020
+P2 / Verified, Codex, 2026-10-29, `main`, discovered at `64439cb` during isolated US-P020
 browser verification. Reproduction: a confirmed new learner buys the published demo course
 through `FakePaymentService`; checkout and paid-confirm API replies succeed, and the account
 repository includes the course, but `/courses/demo-course-1` remains on "Confirming payment..."
@@ -1549,6 +1549,13 @@ account/token/course/generation guard. Three DEF-064 regressions now pass, inclu
 changed-account/course results. The isolated paid-session browser replay reaches Start learning
 and "Payment received" ([after screenshot](history/verification/2026-10-29-header-signup/confirmed-purchase.png)).
 No real Stripe, shared data or money involved.
+
+Hosted verification 2026-10-30, frontend 0.1.536: the user completed real Stripe **test-mode**
+checkout for ISTQB Foundation 4.0. Return showed "Payment received. The course is in My Learning"
+and Start learning; access survived reload, and My Learning listed the course. The Stripe webhook
+returned 200. The user performed the shared-store transaction; the agent observed read-only.
+Fix remains `a2e100b`; no real-card/live-money charge was tested.
+[Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md).
 
 ### DEF-065 — Notification preference can change while its save is in flight
 

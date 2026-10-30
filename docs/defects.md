@@ -16,9 +16,51 @@ Capture user data only in anonymized form.
 
 When a defect is fixed, move its whole record to `defects_resolved.md` with the resolution date,
 fixing commit, passing regression checks and any remaining release checks. Never delete or reuse IDs.
-Next free IDs: DEF-066, INV-020.
+Next free IDs: DEF-068, INV-020.
 
 ## Open defects
+
+### DEF-066 — Null milestone revision fields break hosted career reads
+
+P2 / Open, Codex, 2026-10-30; hosted production `dpl_CXTpjqJY7vnXvmXdJ1jxuotDSvYL`,
+frontend 0.1.536 (also seen in the previously open 0.1.532 tab). During the user's real signup
+walkthrough, a new learner's Home showed **Career path Unavailable — Career path could not be
+loaded**. Read-only request logs showed `GET /api/career-paths` → 400 and
+`GET /api/users/me/careers` → 500 at 2026-10-30 15:02 UTC. A separate unauthenticated GET to
+the public route reproduced 400 `Invalid request body`, with issues on
+`steps[0..3].requirementVersion` (expected number, received null) and
+`steps[0..3].requirementHistory` (expected array, received null).
+
+Expected: valid public career definitions and new-account guidance load; malformed stored data
+must not be reported as an invalid caller request (career and reliability specs). Cause evidence:
+`careerPath.ts` defaults these fields for missing values but rejects explicit null; the Mongo
+repository returns stored documents directly. The writer/migration that introduced null is not
+established. No production records were changed. Impact: published-career browsing and learner
+career context fail, independently of Turnstile/email confirmation.
+
+Next: reproduce with isolated stored milestone documents containing those nulls; determine the
+backward-compatible normalization boundary or required data repair, then add a permanent
+regression. Fixing commit: none; no fix or shared-data repair performed.
+
+### DEF-067 — An open Pages tab cannot load routes after a newer deployment
+
+P2 / Open, Codex, 2026-10-30; observed 0.1.532 tab across the 0.1.536 Pages deployment.
+Reproduction: keep Home open on the older release, then after the new deployment click
+**Browse courses** or header **Catalog**. Both leave the page on Home without a usable recovery
+message. The tab still references `/qi-education/main-2OHAS6IG.js` and displays Version 0.1.532;
+current Pages HTML references `main-QJYHBIJ2.js`. The old bundle's Courses route imports
+`./chunk-QJUHZA7H.js`; a read-only GET of that asset returns **404 text/html**. Full navigation
+to `/courses` loads 0.1.536 and restores navigation.
+
+Expected: a lazy-route asset removed by a release offers a safe reload/recovery path; existing
+editor drafts must remain protected. Cause evidence: Pages replaces hashed assets, while the
+running old bundle retains its old dynamic-import URLs. Documentation-only releases still
+change asset hashes through aligned app-version metadata. No unrelated code changed during
+the reproduction; the user's account and form state were preserved on the reload.
+
+Next: isolated two-build browser reproduction and a regression for failed lazy imports, then
+implement safe route recovery that respects unsaved work. Fixing commit: none; reload is the
+verified workaround. No source fix has been made.
 
 X3 discoveries below were reproduced on 2026-10-20 against `546a2d4` using isolated stores and
 synthetic inputs only. No production incident is asserted. Full scenarios, verified causes,

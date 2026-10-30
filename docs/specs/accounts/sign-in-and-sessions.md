@@ -66,4 +66,6 @@ signed in across page loads.
 
 - Sign-in has no per-client limit, only the per-address one.
 - Existing sessions survive a password change until their token expires.
-- Widget/API behavior was checked with an isolated synthetic provider. Real hosted Turnstile verification remains a release check.
+- Real hosted Turnstile, signup, confirmation mail and the confirmation-to-acquisition gate
+  were verified with the user on 2026-10-30 ([evidence](../../history/verification/2026-10-29-header-signup/hosted-checks.md)).
+  Provider outage/expiry/failure cases additionally use isolated regression coverage.

@@ -1,26 +1,18 @@
 # Work queue
 
-Updated: 2026-10-29. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-30. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
 
-No active implementation. US-P019 and US-P020 are included in release 0.1.532 (2026-10-29);
-frontend delivery `20ccf39` through `a2e100b`, API delivery in the earlier handoff. Current specs
-replace the retired story contracts. [Final handoff](history/handoffs/US-P019-US-P020-frontend.md)
-and [verification](history/verification/2026-10-29-header-signup/README.md) carry commits, checks,
-review/fix evidence and remaining release checks. Do not start a Proposed story without selection.
-
-**US-P019 / US-P020 release verification** (2026-10-29, owner Codex, `main`, base `98d4b6a`):
-CI, Pages and Vercel are green; public signup, health/config, signed-out route protection and
-release-bundle identity checked live. [Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md).
-The user signed in: admin header/bell/settings and existing account tabs pass read-only checks.
-Next: approve Create on the prepared Cloudflare widget (`QI Academy production signup`,
-`stormeal.github.io`, Managed, pre-clearance off), then configure real keys and deploy that config.
-Neither key exists in production yet. CLI access works despite the app connection needing
-reauthentication. Mongo metadata inspection timed out; direct index checks remain open. No shared
-mutation probes; inbox opens without changing read state. Teacher and cross-device checks remain.
+No active implementation. US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
+confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
+2026-10-30. Student/admin header and Settings checks pass; Stripe webhook returned 200.
+[Hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md) and
+[delivery handoff](history/handoffs/US-P019-US-P020-frontend.md) preserve the checks and commits.
+The walkthrough found new DEF-066 and DEF-067; prioritize these confirmed defects before
+enhancements. No agent shared mutation probes. Do not start a Proposed story without selection.
 
 Delivered 2026-10-27, included in release 0.1.532: **US-T016 teacher overview** ("Your teaching" on a teacher's Home).
 Claude: Home card (`ba074e1`); Codex: `GET /teaching/courses` (`b0aa9e9`, record
@@ -126,6 +118,11 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 
 ## Next candidate
 
+Confirmed defects found during the new-learner walkthrough: DEF-066 (stored null milestone
+fields break career browsing/Home context) first, then DEF-067 (older open tabs lose lazy-route
+navigation after a Pages deployment). Reproduce with isolated data/two builds before changing
+code; neither fix has started. Evidence and next actions are in [defects.md](defects.md).
+
 Release 1 (internal, mid-December 2026) comes first; see Releases in
 [user_stories.md](user_stories.md). Ready to start without waiting on anyone: the live-site checks below. US-P018-AC01–AC03 wait on the hosting budget and Alex. Requests from the department interviews are added
 as they arrive.
@@ -133,10 +130,12 @@ as they arrive.
 ## Open release checks
 
 - US-P020 / US-P019 (live as 0.1.532, 2026-10-29): deployment/public checks pass; see
-  [hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md). Configure both
-  real Turnstile keys, then verify signup/mail/confirmation/free and paid acquisition, including
-  DEF-064. Authenticated admin header/bell/settings pass read-only checks; teacher overview needs
-  a teacher-account walkthrough. The Cloudflare widget form is prepared, awaiting Create approval.
+  [hosted evidence](history/verification/2026-10-29-header-signup/hosted-checks.md). Real Turnstile
+  keys are active; the user completed signup, received the mail and confirmed the address. Buy
+  correctly changed from blocked to available. Free enrollment and the real Stripe test-mode
+  return pass, including DEF-064; both courses persist in My Learning. Stripe webhook returned
+  200. Authenticated student/admin header/bell/settings pass read-only checks; teacher overview
+  needs a teacher-account walkthrough. New DEF-066 and DEF-067 need fixes.
   Check Mongo notification indexes, all nine event recipients, muted groups and read/preferences
   across devices. Direct read-only metadata inspection timed out. Isolated synthetic-provider
   evidence does not establish real integrations. Include the new controls in the real screen
@@ -148,8 +147,8 @@ as they arrive.
 - US-A006 feedback, live since 0.1.482 (copy verified 2026-10-26): still open, as admin open the
   feedback inbox on the live site (24 old items, type filters), send one feedback of each type,
   and mark one for follow-up to check a real GitHub issue is created once.
-- Since 0.1.482: the next real Stripe test payment and Mux video upload still reach their webhooks
-  (we assume neither sends compressed bodies; a 415 in `npx vercel logs` would mean otherwise).
+- Since 0.1.482: Stripe test payment webhook verified 200 on 2026-10-30. Still open: the next real
+  Mux upload reaches its webhook (compressed bodies would be refused with 415).
 
 Delivered work whose real-environment check has not been done. Tick off here when checked.
 
