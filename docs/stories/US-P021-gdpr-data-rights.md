@@ -188,6 +188,11 @@ frontend — no API route.
 - Stripe-side data: whether erasure also deletes the Stripe customer object (vs retaining it for the
   accounting record it anchors). Default: retain, pseudonymize our copy; revisit with payments.
 - The required confirmation phrase wording (`DELETE` assumed).
+- Wrong password on erase answers **400** `{ code: 'password-incorrect' }`, not 401 (Claude,
+  2026-10-31): the app logs out on every 401, so a typo would sign the user out. Same as
+  change-password. Confirm or change.
+- The Privacy & data tab sits last in Settings; the cookie banner sits at the bottom of the
+  screen, not as a blocking dialog (Claude, 2026-10-31). Confirm or change.
 
 ## Codex split (at implementation)
 

@@ -6,11 +6,14 @@ messages hold them.
 
 ## Active work
 
-**US-P021 privacy — API delivered, app part next (Claude, 2026-10-31).** Codex built API tasks 1–6
-on `main` (export, erasure, system account, mutation admission); Claude took over after Codex stopped,
-fixed the admission middleware's early 401 (now falls through to the route's own 401 and cache headers)
-and committed. Full API suite 3016/3016 and `verify:journeys` pass. Next: app tasks 7–9 (privacy client,
-Privacy & data tab, cookie consent). No push.
+**US-P021 privacy — app increment, in progress (started 2026-10-31).** API delivered in `30a2cac`.
+- **Codex:** erase wrong password → 400 `password-incorrect` (was 401, which logs the app out) and
+  the app data service `privacy.service.ts` (Task 7). Files: `api/src/privacyRoutes.ts` (+ test),
+  `app/src/app/services/privacy.service.ts` (+ spec). State: not started.
+  Handoff: [handoffs/US-P021-app-codex.md](handoffs/US-P021-app-codex.md).
+- **Claude:** Privacy & data tab in Settings (Task 8), cookie consent banner, preferences and
+  footer link (Task 9). Files: `pages/profile-page/*`, `services/consent.service.ts`,
+  `ui/cookie-consent/*`, app shell/footer. State: in progress.
 
 No active implementation. The selected DEF-066/DEF-067 release and teacher/review/learner
 walkthrough is complete (Codex, `main`, base `f8659ec`; released 0.1.542 in `9610f47`).
