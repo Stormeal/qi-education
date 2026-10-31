@@ -9,6 +9,17 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.561',
+    date: '2026-10-31',
+    sections: [{ title: 'New', items: [
+      'You can download all your personal data, or delete your account, under Settings → Privacy & data.',
+      'A cookie notice lets you see and choose which cookies the site may use.',
+      'The site now has Terms of Service and Purchase terms, linked at the bottom of every page.',
+      'New accounts agree to the Terms of Service at sign-up, and everyone else is asked once at their next sign-in.',
+      'QI Academy has a refreshed logo, and its short logo now shows in the browser tab.',
+    ] }],
+  },
+  {
     version: '0.1.550',
     date: '2026-10-31',
     sections: [{ title: 'New', items: [
