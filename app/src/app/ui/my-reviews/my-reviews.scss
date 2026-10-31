@@ -7,12 +7,14 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
 }
 
 .mr-title {
   margin: 0;
   color: var(--color-ink);
-  font-size: var(--text-body);
+  font-family: var(--font-display);
+  font-size: var(--text-title-sm);
   font-weight: 700;
 }
 

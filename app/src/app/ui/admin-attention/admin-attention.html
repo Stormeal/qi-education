@@ -2,10 +2,10 @@
   <h2 id="aa-title" class="aa-title">Needs your attention</h2>
 
   <div class="aa-grid">
-    <article class="aa-card" aria-labelledby="aa-reviews">
+    <article class="aa-card" [class.aa-card-waiting]="!!queue()?.length" aria-labelledby="aa-reviews">
       <header class="aa-card-head">
         <h2 id="aa-reviews">Courses waiting for review</h2>
-        @if (queue(); as items) { <span class="aa-count" appChip="primary">{{ items.length }}</span> }
+        @if (queue(); as items) { <span class="aa-count">{{ items.length }}</span> }
       </header>
       @if (queueError()) {
         <p class="aa-error" role="alert">{{ queueError() }}</p>
@@ -31,10 +31,10 @@
       }
     </article>
 
-    <article class="aa-card" aria-labelledby="aa-organizations">
+    <article class="aa-card" [class.aa-card-waiting]="!!requests()?.length" aria-labelledby="aa-organizations">
       <header class="aa-card-head">
         <h2 id="aa-organizations">Organization requests</h2>
-        @if (requests(); as items) { <span class="aa-count" appChip="primary">{{ items.length }}</span> }
+        @if (requests(); as items) { <span class="aa-count">{{ items.length }}</span> }
       </header>
       @if (requestsError()) {
         <p class="aa-error" role="alert">{{ requestsError() }}</p>
@@ -58,10 +58,10 @@
       }
     </article>
 
-    <article class="aa-card" aria-labelledby="aa-feedback">
+    <article class="aa-card" [class.aa-card-waiting]="newFeedback().length > 0" aria-labelledby="aa-feedback">
       <header class="aa-card-head">
         <h2 id="aa-feedback">New feedback</h2>
-        @if (!state.adminFeedbackLoading() && !state.adminFeedbackError()) { <span class="aa-count" appChip="primary">{{ newFeedback().length }}</span> }
+        @if (!state.adminFeedbackLoading() && !state.adminFeedbackError()) { <span class="aa-count">{{ newFeedback().length }}</span> }
       </header>
       @if (state.adminFeedbackError()) {
         <p class="aa-error" role="alert">{{ state.adminFeedbackError() }}</p>

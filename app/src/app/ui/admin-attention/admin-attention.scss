@@ -4,50 +4,88 @@
 
 .aa {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .aa-title {
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-display);
-  font-size: var(--text-title-sm);
+  font-size: var(--text-title);
+  font-weight: 700;
 }
 
 .aa-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
 }
 
+/* Equal-height tiles; the footer action sits on the bottom edge of every card. */
 .aa-card {
-  display: grid;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 12px;
-  justify-items: start;
-  padding: 20px;
+  overflow: hidden;
+  padding: 22px 22px 18px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   background: var(--color-surface-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+
+  > button:last-child { margin-top: auto; }
+}
+
+.aa-card:hover {
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-2px);
+}
+
+/* A card with something waiting gets the brand's warm accent along its top edge. */
+.aa-card-waiting::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  content: '';
+  background: var(--color-highlight);
 }
 
 .aa-card-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
 
   h2 {
     margin: 0;
-    color: var(--color-ink);
-    font-size: var(--text-body);
-    font-weight: 700;
+    padding-top: 6px;
+    color: var(--color-text-muted);
+    font-size: var(--text-meta);
+    font-weight: 600;
   }
+}
+
+.aa-count {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.aa-card:not(.aa-card-waiting) .aa-count {
+  color: var(--color-text-muted);
+  opacity: 0.55;
 }
 
 .aa-list {
   display: grid;
+  gap: 6px;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -55,12 +93,10 @@
 
   li {
     display: grid;
-    gap: 2px;
-    padding: 10px 0;
-  }
-
-  li + li {
-    border-top: 1px solid var(--color-border);
+    gap: 3px;
+    padding: 10px 12px;
+    border-radius: var(--radius-card);
+    background: var(--color-surface-sunken);
   }
 }
 
@@ -91,6 +127,10 @@ a.aa-item-title {
   margin: 0;
   color: var(--color-danger);
   font-size: var(--text-meta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aa-card, .aa-card:hover { transition: none; transform: none; }
 }
 
 @media (max-width: 960px) {

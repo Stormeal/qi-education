@@ -3,57 +3,30 @@
   width: fit-content;
 }
 
-@media (max-width: 640px) {
-  .brand-link-compact { min-width: 0; gap: 6px; font-size: 17px; }
-  .brand-link-compact .brand-mark { width: 32px; height: 28px; }
-}
-
 .brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-width: 216px;
-  color: var(--color-text-muted);
-  font-size: 21px;
-  font-weight: 800;
-  line-height: 1;
+  line-height: 0;
   text-decoration: none;
 }
 
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 44px;
+}
+
+.brand-link-compact .brand-logo { height: 40px; }
+.brand-link-large .brand-logo { height: 60px; }
+
+/* The drawn logo is brown on transparent, so dark backgrounds get a light plate. */
 .brand-link-light {
-  gap: 12px;
-  min-width: 0;
-  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-card, none);
 }
 
-.brand-link-large {
-  font-size: 31px;
-  font-weight: 800;
-}
-
-.brand-mark {
-  width: 48px;
-  height: 36px;
-  flex: 0 0 auto;
-}
-
-.brand-link-large .brand-mark {
-  width: 56px;
-  height: 42px;
-}
-
-.brand-line {
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: square;
-  stroke-linejoin: miter;
-  stroke-width: 4.4;
-}
-
-.brand-accent {
-  fill: none;
-  stroke: #ff8a1c;
-  stroke-linecap: round;
-  stroke-linejoin: miter;
-  stroke-width: 4.4;
+@media (max-width: 640px) {
+  .brand-link-compact .brand-logo { height: 32px; }
 }

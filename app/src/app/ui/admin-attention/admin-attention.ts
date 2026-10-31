@@ -6,7 +6,6 @@ import { AppStateService } from '../../services/app-state.service';
 import { CourseService, ReviewQueueItem } from '../../services/course.service';
 import { OrgRequest, OrganizationService } from '../../services/organization.service';
 import { Button } from '../button/button';
-import { Chip } from '../chip/chip';
 
 const SHOWN = 5;
 // The Admin page remembers its tab here (admin-page.ts); setting it first opens the right tab.
@@ -16,7 +15,7 @@ const TYPE_LABEL = { feedback: 'Feedback', defect: 'Defect', 'change-request': '
 /** Admin Home: what waits for an admin. Each source loads and fails on its own. */
 @Component({
   selector: 'app-admin-attention',
-  imports: [Button, Chip, DatePipe, RouterLink],
+  imports: [Button, DatePipe, RouterLink],
   templateUrl: './admin-attention.html',
   styleUrl: './admin-attention.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

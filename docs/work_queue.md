@@ -7,9 +7,9 @@ messages hold them.
 ## Active work
 
 **US-P021 privacy — API delivered, app part next (Claude, 2026-10-31).** Codex built API tasks 1–6
-on  (export, erasure, system account, mutation admission); Claude took over after Codex stopped,
+on `main` (export, erasure, system account, mutation admission); Claude took over after Codex stopped,
 fixed the admission middleware's early 401 (now falls through to the route's own 401 and cache headers)
-and committed. Full API suite 3016/3016 and  pass. Next: app tasks 7–9 (privacy client,
+and committed. Full API suite 3016/3016 and `verify:journeys` pass. Next: app tasks 7–9 (privacy client,
 Privacy & data tab, cookie consent). No push.
 
 No active implementation. The selected DEF-066/DEF-067 release and teacher/review/learner
