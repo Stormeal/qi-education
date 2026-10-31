@@ -52,6 +52,9 @@ or names an old ID. Keep this table identical to the one in `AGENTS.md`.
   original path: `git show 6c94eba:docs/specs/<file>.md` reads an old contract.
 - Docs written by other tools may contain stray Windows-1252 bytes (old `defect_management.md` had
   `0x97` dashes); Read/Edit refuse such files until the bytes are replaced (`perl -pi -e 's/\x97/-/g'`).
+- Do not script file edits as `node -e "..."` in bash: the shell expands backticks and `$` inside the
+  double quotes, silently dropping words (a `docs/work_queue.md` edit lost its `code` spans this way).
+  Use the Edit tool, or a quoted heredoc (`node - <<'EOF'`).
 
 ## Default skills
 
@@ -213,6 +216,11 @@ Invalid JSON, oversized bodies and bad encodings answer 400/413/415; other failu
 Bearer tokens are required on protected routes.
 Every new route needs an entry in the permission table in `api/src/routePermissions.test.ts`
 (both the route and its `/api` alias are checked), or `npm run api:test` fails.
+`PrivacyMutationCoordinator.middleware` (US-P021) runs before every signed-in POST/PUT/PATCH/DELETE.
+When it refuses admission it must fall through to the route, not answer itself: routes send
+different cache headers on their 401 (`no-store` vs `private, no-store`) and tests check each.
+A test server that served `GET /notifications/stream` must call `server.closeAllConnections()`
+before `close()` resolves; an open event stream otherwise holds it for its 50-second lifetime.
 
 ### Frontend (`app/`)
 
