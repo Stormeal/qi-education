@@ -19,14 +19,6 @@
 .brand-link-compact .brand-logo { height: 40px; }
 .brand-link-large .brand-logo { height: 60px; }
 
-/* The drawn logo is brown on transparent, so dark backgrounds get a light plate. */
-.brand-link-light {
-  padding: 10px 16px;
-  border-radius: var(--radius-panel);
-  background: var(--color-surface-card);
-  box-shadow: var(--shadow-card, none);
-}
-
 @media (max-width: 640px) {
   .brand-link-compact .brand-logo { height: 32px; }
 }

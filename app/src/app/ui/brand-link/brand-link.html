@@ -1,10 +1,9 @@
 <a
   class="brand-link"
   [class.brand-link-compact]="compact()"
-  [class.brand-link-light]="appearance() === 'light'"
   [class.brand-link-large]="size() === 'large'"
   [routerLink]="href()"
   [attr.aria-label]="ariaLabel()"
 >
-  <img class="brand-logo" src="qi-academy-logo.webp" alt="" width="2000" height="586" decoding="async" />
+  <img class="brand-logo" [src]="appearance() === 'light' ? 'qi-academy-logo-light.webp' : 'qi-academy-logo.webp'" alt="" width="2000" height="492" decoding="async" />
 </a>
