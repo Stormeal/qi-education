@@ -12,6 +12,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   lucideBanknote,
@@ -41,6 +42,7 @@ import {
   StudentSummary,
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
+import { CourseRatingsService, CourseReviews } from '../../services/course-ratings.service';
 import { InstructorProfileService } from '../../services/instructor-profile.service';
 import { Button } from '../../ui/button/button';
 import { IconButton } from '../../ui/icon-button/icon-button';
@@ -48,10 +50,11 @@ import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { RouterLink } from '@angular/router';
 import { LegalLinks } from '../../ui/legal-links/legal-links';
+import { StarRating } from '../../ui/star-rating/star-rating';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [OrganizationPriceField, Button, DatePipe, IconButton, LoadingSkeleton, PageHeader, RouterLink, LegalLinks],
+  imports: [OrganizationPriceField, Button, DatePipe, IconButton, LoadingSkeleton, PageHeader, RouterLink, LegalLinks, StarRating],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,6 +62,7 @@ import { LegalLinks } from '../../ui/legal-links/legal-links';
 export class CourseViewPage {
   private readonly courseService = inject(CourseService);
   private readonly instructorProfiles = inject(InstructorProfileService);
+  private readonly courseRatings = inject(CourseRatingsService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly document = inject(DOCUMENT);
 
@@ -85,8 +89,6 @@ export class CourseViewPage {
   protected readonly pendingCatalogSave = signal(false);
   protected readonly catalogPremiumDraft = signal(false);
   protected readonly catalogBestsellerDraft = signal(false);
-  protected readonly catalogRatingDraft = signal('0');
-  protected readonly catalogRatingCountDraft = signal('0');
   protected readonly catalogCategoryDraft = signal<CourseCategory>('Uncategorized');
   protected readonly catalogLanguagesDraft = signal<CourseLanguage[]>([]);
   protected readonly catalogCategoryOptions = COURSE_CATEGORIES;
@@ -164,8 +166,24 @@ export class CourseViewPage {
   readonly feedbackTextChanged = output<string>();
   readonly feedbackSubmittedClicked = output<void>();
 
+  // US-L028 learner reviews; the average shown is theirs once loaded.
+  protected readonly reviews = signal<CourseReviews | null>(null);
+  protected readonly reviewsError = signal('');
+  protected readonly reviewBusyId = signal('');
+  protected readonly shownRating = computed(() => {
+    const reviews = this.reviews();
+    const course = this.course();
+    return reviews ? { rating: reviews.average, count: reviews.count } : { rating: course?.rating ?? 0, count: course?.ratingCount ?? 0 };
+  });
+
   constructor() {
     void this.instructorProfiles.loadPublic();
+    effect(() => {
+      const courseId = this.course()?.id ?? '';
+      const token = this.authToken();
+      untracked(() => { this.reviews.set(null); this.reviewsError.set(''); });
+      if (courseId) void this.loadReviews(courseId, token);
+    });
     // Same keyboard contract as the confirm dialog: an open dialog takes focus and gives it back on close.
     let returnFocusTo: HTMLElement | null = null;
     effect(() => {
@@ -249,8 +267,6 @@ export class CourseViewPage {
   protected openCatalogModal(course: CourseListItem): void {
     this.catalogPremiumDraft.set(course.isPremium);
     this.catalogBestsellerDraft.set(course.isBestseller);
-    this.catalogRatingDraft.set(String(course.rating));
-    this.catalogRatingCountDraft.set(String(course.ratingCount));
     this.catalogCategoryDraft.set(course.category ?? 'Uncategorized');
     this.catalogLanguagesDraft.set([...(course.languages ?? [])]);
     this.pendingCatalogSave.set(false);
@@ -292,14 +308,6 @@ export class CourseViewPage {
     this.catalogBestsellerDraft.set(value);
   }
 
-  protected updateCatalogRating(value: string): void {
-    this.catalogRatingDraft.set(value);
-  }
-
-  protected updateCatalogRatingCount(value: string): void {
-    this.catalogRatingCountDraft.set(value);
-  }
-
   protected updateCatalogCategory(value: string): void {
     const parsed = COURSE_CATEGORIES.find((category) => category === value);
     this.catalogCategoryDraft.set(parsed ?? 'Uncategorized');
@@ -320,24 +328,43 @@ export class CourseViewPage {
   }
 
   protected applyCatalogDraft(courseId: string): void {
-    const parsedRating = Number.parseFloat(this.catalogRatingDraft().trim());
-    const parsedRatingCount = Number.parseInt(this.catalogRatingCountDraft().trim(), 10);
-
     this.pendingCatalogSave.set(true);
     this.courseCatalogSaved.emit({
       courseId,
       metadata: {
         isPremium: this.catalogPremiumDraft(),
         isBestseller: this.catalogBestsellerDraft(),
-        rating:
-          Number.isFinite(parsedRating) && parsedRating >= 0
-            ? Math.min(5, Math.round(parsedRating * 10) / 10)
-            : 0,
-        ratingCount: Number.isFinite(parsedRatingCount) && parsedRatingCount >= 0 ? parsedRatingCount : 0,
+        // Learner ratings set these now (US-L028); the API ignores them, older APIs still require them.
+        rating: this.course()?.rating ?? 0,
+        ratingCount: this.course()?.ratingCount ?? 0,
         category: this.catalogCategoryDraft(),
         languages: [...this.catalogLanguagesDraft()],
       },
     });
+  }
+
+  private async loadReviews(courseId: string, token: string): Promise<void> {
+    try {
+      const reviews = await this.courseRatings.reviews(courseId, token);
+      if (this.course()?.id === courseId) this.reviews.set(reviews);
+    } catch (error: unknown) {
+      if (this.course()?.id === courseId) this.reviewsError.set(error instanceof Error ? error.message : 'Unable to load reviews.');
+    }
+  }
+
+  protected async setReviewHidden(reviewId: string, hidden: boolean): Promise<void> {
+    const courseId = this.course()?.id;
+    if (!courseId || this.reviewBusyId()) return;
+    this.reviewBusyId.set(reviewId);
+    this.reviewsError.set('');
+    try {
+      await this.courseRatings.setHidden(courseId, reviewId, hidden, this.authToken());
+      await this.loadReviews(courseId, this.authToken());
+    } catch (error: unknown) {
+      this.reviewsError.set(error instanceof Error ? error.message : 'Unable to update the review.');
+    } finally {
+      this.reviewBusyId.set('');
+    }
   }
 
   protected openEnrollDialog(): void {

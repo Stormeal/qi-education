@@ -323,6 +323,35 @@
                     <h2>About the course</h2>
                     <p>{{ currentCourse.description }}</p>
                   </div>
+                  @if (isEnrolled()) {
+                    <section class="course-rating" aria-labelledby="course-rating-title">
+                      <h2 id="course-rating-title">{{ myCourseRating()?.rating ? 'Your rating' : 'Rate this course' }}</h2>
+                      @if (!canRateCourse()) {
+                        <p class="empty-note">Complete a lesson to rate this course.</p>
+                      } @else {
+                        <form class="note-form" (submit)="$event.preventDefault(); saveCourseRating()">
+                          <app-star-rating [editable]="true" label="Your rating" [value]="courseRatingStars()" [disabled]="courseRatingSaving()"
+                            (valueChange)="courseRatingStars.set($event); courseRatingSaved.set(false)" />
+                          <label class="field">
+                            <span>Comment (optional)</span>
+                            <textarea rows="3" maxlength="1000" [value]="courseRatingComment()"
+                              (input)="courseRatingComment.set(controlValue($event)); courseRatingSaved.set(false)"></textarea>
+                          </label>
+                          @if (courseRatingError()) { <p class="form-error" role="alert">{{ courseRatingError() }}</p> }
+                          <div class="form-actions">
+                            <span class="note-private" aria-live="polite">
+                              @if (courseRatingSaved()) { Saved. Others see your first name with your rating. }
+                              @else if (myCourseRating()?.rating?.hidden) { An admin has hidden your review. }
+                              @else { Shown with your first name. }
+                            </span>
+                            <button appButton="primary" size="sm" type="submit" [disabled]="courseRatingStars() < 1 || courseRatingSaving()">
+                              {{ courseRatingSaving() ? 'Saving…' : myCourseRating()?.rating ? 'Update rating' : 'Send rating' }}
+                            </button>
+                          </div>
+                        </form>
+                      }
+                    </section>
+                  }
                 </div>
                 <dl class="course-facts" aria-label="Course facts">
                   <div><dt>Length</dt><dd>{{ formatDuration(totalMinutes()) }}</dd></div>

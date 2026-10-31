@@ -1033,3 +1033,10 @@
     display: none;
   }
 }
+
+.course-rating {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}

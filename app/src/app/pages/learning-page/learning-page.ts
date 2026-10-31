@@ -51,6 +51,7 @@ import {
 } from '../../app.models';
 import { CourseService } from '../../services/course.service';
 import { LearningProgressService } from '../../services/learning-progress.service';
+import { CourseRatingsService, MyCourseRatingState } from '../../services/course-ratings.service';
 import { LessonExtrasService, LessonNote } from '../../services/lesson-extras.service';
 import { Button } from '../../ui/button/button';
 import { Chip } from '../../ui/chip/chip';
@@ -58,6 +59,7 @@ import { IconButton } from '../../ui/icon-button/icon-button';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
+import { StarRating } from '../../ui/star-rating/star-rating';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 import { LegalLinks } from '../../ui/legal-links/legal-links';
 import {
@@ -77,7 +79,7 @@ const VIDEO_COMPLETE_SHARE = 0.9;
 
 @Component({
   selector: 'app-learning-page',
-  imports: [Button, Chip, DatePipe, IconButton, LoadingSkeleton, PageHeader, ProgressBar, Tabs, LegalLinks],
+  imports: [Button, Chip, DatePipe, IconButton, LoadingSkeleton, PageHeader, ProgressBar, StarRating, Tabs, LegalLinks],
   templateUrl: './learning-page.html',
   styleUrl: './learning-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -88,6 +90,7 @@ export class LearningPage {
   private readonly courseService = inject(CourseService);
   private readonly learningProgress = inject(LearningProgressService);
   private readonly lessonExtras = inject(LessonExtrasService);
+  private readonly courseRatings = inject(CourseRatingsService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly document = inject(DOCUMENT);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -245,6 +248,15 @@ export class LearningPage {
   // Course facts
   protected readonly enrolledLearners = signal<number | null>(null);
 
+  // Course rating (US-L028). Local completion also unlocks the form: the API may not have it yet.
+  protected readonly myCourseRating = signal<MyCourseRatingState | null>(null);
+  protected readonly courseRatingStars = signal(0);
+  protected readonly courseRatingComment = signal('');
+  protected readonly courseRatingSaving = signal(false);
+  protected readonly courseRatingError = signal('');
+  protected readonly courseRatingSaved = signal(false);
+  protected readonly canRateCourse = computed(() => this.myCourseRating()?.canRate === true || this.completedIds().length > 0);
+
   // Quiz attempt
   protected readonly quizSelectedAnswerIds = signal<Record<string, string[]>>({});
   protected readonly submittedQuizQuestionIds = signal<string[]>([]);
@@ -302,8 +314,22 @@ export class LearningPage {
         this.notes.set([]);
         this.notesError.set('');
         this.enrolledLearners.set(null);
+        this.myCourseRating.set(null);
+        this.courseRatingStars.set(0);
+        this.courseRatingComment.set('');
+        this.courseRatingError.set('');
+        this.courseRatingSaved.set(false);
       });
       if (!courseId || !token) return;
+      this.courseRatings.mine(courseId, token).then(
+        (state) => {
+          if (this.courseContent()?._id !== courseId) return;
+          this.myCourseRating.set(state);
+          this.courseRatingStars.set(state.rating?.stars ?? 0);
+          this.courseRatingComment.set(state.rating?.comment ?? '');
+        },
+        () => undefined,
+      );
       this.lessonExtras.listNotes(courseId, token).then(
         (notes) => { if (this.courseContent()?._id === courseId) this.notes.set(notes); },
         (error: unknown) => { if (this.courseContent()?._id === courseId) this.notesError.set(this.message(error, 'Your notes could not be loaded.')); },
@@ -313,6 +339,26 @@ export class LearningPage {
         () => undefined,
       );
     });
+  }
+
+  protected async saveCourseRating(): Promise<void> {
+    const courseId = this.courseContent()?._id;
+    const stars = this.courseRatingStars();
+    if (!courseId || stars < 1 || this.courseRatingSaving()) return;
+    const comment = this.courseRatingComment().trim();
+    this.courseRatingSaving.set(true);
+    this.courseRatingError.set('');
+    this.courseRatingSaved.set(false);
+    try {
+      const saved = await this.courseRatings.save(courseId, { stars, ...(comment ? { comment } : {}) }, this.authToken());
+      if (this.courseContent()?._id !== courseId) return;
+      this.myCourseRating.set({ canRate: true, rating: saved.rating });
+      this.courseRatingSaved.set(true);
+    } catch (error: unknown) {
+      this.courseRatingError.set(this.message(error, 'Your rating could not be saved.'));
+    } finally {
+      this.courseRatingSaving.set(false);
+    }
   }
 
   // Navigation

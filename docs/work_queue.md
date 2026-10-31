@@ -13,7 +13,7 @@ messages hold them.
 | Owner | Scope | State |
 | --- | --- | --- |
 | Codex | API: rating store, routes, eligibility, course aggregate, admin hide, privacy wiring | Not started |
-| Claude | App: learning-page rating panel, course details reviews and admin hide, catalog settings without rating inputs; specs | In progress |
+| Claude | App: learning-page rating panel, course details reviews and admin hide, catalog settings without rating inputs; specs | Built, waits on the API for the browser check |
 
 US-P021 and US-P022 are live in 0.1.561 (pushed 2026-10-31); hosted checks not done yet.
 **US-P022 terms of service was delivered locally (2026-10-31)**: Claude `48bd3f2` (pages, footer links, checkboxes, re-accept gate), Codex `ed3053a`

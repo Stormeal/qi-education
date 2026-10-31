@@ -48,7 +48,7 @@
           @if (currentCourse.isBestseller) {
             <span class="rating-chip">Bestseller</span>
           }
-          <span>{{ ratingLabel(currentCourse.rating) }} ({{ currentCourse.ratingCount }})</span>
+          <span>{{ ratingLabel(shownRating().rating) }} ({{ shownRating().count }})</span>
           <span>{{ courseStatusLabel(currentCourse.status) }}</span>
           <span>Created by <strong>{{ currentCourse.teacher }}</strong></span>
           <span>Updated {{ currentCourse.createdAt | date: 'MMM yyyy' }}</span>
@@ -232,6 +232,41 @@
             <p>{{ currentCourse.audience }}</p>
           </section>
         }
+
+        <section class="course-text-section" id="course-reviews" aria-labelledby="reviews-title">
+          <h2 id="reviews-title">Learner reviews</h2>
+          @if (reviewsError()) { <p class="form-error" role="alert">{{ reviewsError() }}</p> }
+          @if (reviews(); as list) {
+            @if (list.count > 0) {
+              <p class="review-summary">
+                <app-star-rating [value]="list.average" />
+                <strong>{{ ratingLabel(list.average) }}</strong>
+                <span>{{ ratingCountLabel(list.count) }}</span>
+              </p>
+            }
+            @if (list.reviews.length === 0) {
+              <p class="review-empty">No reviews yet. Learners can rate the course once they have completed a lesson.</p>
+            } @else {
+              <ul class="review-list">
+                @for (review of list.reviews; track review.id) {
+                  <li class="review" [class.is-hidden]="review.hidden">
+                    <div class="review-meta">
+                      <app-star-rating [value]="review.stars" />
+                      <strong>{{ review.firstName }}{{ review.mine ? ' (you)' : '' }}</strong>
+                      <span>{{ review.updatedAt | date: 'd MMM yyyy' }}</span>
+                      @if (review.hidden) { <span class="review-hidden-label">Hidden</span> }
+                      @if (canAccessAdmin()) {
+                        <button appButton size="sm" type="button" class="review-toggle" [disabled]="reviewBusyId() !== ''"
+                          (click)="setReviewHidden(review.id, !review.hidden)">{{ review.hidden ? 'Show' : 'Hide' }}</button>
+                      }
+                    </div>
+                    @if (review.comment) { <p>{{ review.comment }}</p> }
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </section>
       </article>
 
       <aside class="course-enroll-column" aria-label="Course enrollment">
@@ -252,8 +287,8 @@
             <h2>{{ currentCourse.title }}</h2>
             <p class="course-price">{{ coursePriceLabel(currentCourse.priceDkk) }}</p>
             <div class="course-price-meta">
-              <span>{{ ratingLabel(currentCourse.rating) }}</span>
-              <span>{{ ratingCountLabel(currentCourse.ratingCount) }}</span>
+              <span>{{ ratingLabel(shownRating().rating) }}</span>
+              <span>{{ ratingCountLabel(shownRating().count) }}</span>
             </div>
             @if (isEnrolled() || canEditCourse()) {
               <button appButton="primary" (click)="openLearningWorkspace(currentCourse.id)" fullWidth>
@@ -501,29 +536,6 @@
           <span>Bestseller</span>
         </label>
       </div>
-
-      <label class="price-field">
-        <span>Course rating</span>
-        <input
-          type="number"
-          min="0"
-          max="5"
-          step="0.1"
-          [value]="catalogRatingDraft()"
-          (input)="updateCatalogRating(controlValue($event))"
-        />
-      </label>
-
-      <label class="price-field">
-        <span>Rating count</span>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          [value]="catalogRatingCountDraft()"
-          (input)="updateCatalogRatingCount(controlValue($event))"
-        />
-      </label>
 
       <label class="price-field">
         <span>Category</span>
