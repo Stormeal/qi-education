@@ -184,3 +184,30 @@ describe('US-A003 Mongo conditional write command (memory collection only)', () 
     expect(records.size).toBe(0);
   });
 });
+
+describe.each(['memory', 'mongo'] as const)('US-P021 legacy career selection (%s)', kind => {
+  afterEach(() => { vi.restoreAllMocks(); });
+  it('exports and removes only the caller selection, retaining public paths and other followers', async () => {
+    const paths = collectionFixture();
+    const selections = new Map<string, { _id: string; pathId: string; revision: number; selectedAt: string }>();
+    const selectionCollection = {
+      async findOne(filter: { _id: string }) { return structuredClone(selections.get(filter._id) ?? null); },
+      async replaceOne(filter: { _id: string }, value: { _id: string; pathId: string; revision: number; selectedAt: string }) { selections.set(filter._id, structuredClone(value)); },
+      async deleteOne(filter: { _id: string }) { return { acknowledged: true, deletedCount: selections.delete(filter._id) ? 1 : 0 }; },
+    };
+    vi.mocked(getMongoDatabase).mockResolvedValue({ collection: (name: string) =>
+      name.endsWith('_career_selections') ? selectionCollection : paths.collection } as never);
+    const repo = kind === 'memory' ? new InMemoryCareerPathRepository() : new MongoCareerPathRepository();
+    const path = await repo.savePath(document('old'));
+    await repo.saveSelection({ _id: 'one', pathId: 'test-manager', revision: 1, selectedAt: '2026-01-01' });
+    await repo.saveSelection({ _id: 'two', pathId: 'test-manager', revision: 1, selectedAt: '2026-01-01' });
+    const exported = await repo.collectForExport('one');
+    expect(exported).toEqual({ _id: 'one', pathId: 'test-manager', revision: 1, selectedAt: '2026-01-01' });
+    exported!.pathId = 'forged';
+    expect(await repo.collectForExport('one')).toEqual({ _id: 'one', pathId: 'test-manager', revision: 1, selectedAt: '2026-01-01' });
+    await repo.removeForUser('one'); await repo.removeForUser('one');
+    expect(await repo.collectForExport('one')).toBeNull();
+    expect(await repo.getSelection('two')).toEqual({ _id: 'two', pathId: 'test-manager', revision: 1, selectedAt: '2026-01-01' });
+    expect(await repo.listPaths()).toEqual([path]);
+  });
+});

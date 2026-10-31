@@ -21,9 +21,20 @@ function provider() {
       records.set(doc._id, structuredClone(doc)); return { acknowledged: true, insertedId: doc._id };
     },
     async findOne(filter: { _id: string }) { return structuredClone(records.get(filter._id) ?? null); },
-    find() { return { sort() { return { async toArray() {
-      return structuredClone([...records.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    find(filter: Record<string, unknown> = {}) { return { sort() { return { async toArray() {
+      return structuredClone([...records.values()].filter(value => Object.entries(filter).every(([key, expected]) => (value as unknown as Record<string, unknown>)[key] === expected)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
     } }; } }; },
+    async updateMany(filter: Record<string, unknown>, update: { $set: Record<string, unknown>; $unset?: Record<string, unknown> }, options: unknown) {
+      writes.push(options);
+      for (const value of records.values()) {
+        const record = value as unknown as Record<string, unknown>;
+        if (!Object.entries(filter).every(([key, expected]) => typeof expected === 'object' && expected !== null && '$exists' in expected
+          ? Object.hasOwn(record, key) === expected.$exists : record[key] === expected)) continue;
+        Object.assign(record, update.$set);
+        for (const key of Object.keys(update.$unset ?? {})) delete record[key];
+      }
+      return { acknowledged: true };
+    },
     async findOneAndUpdate(filter: { _id: string }, update: { $set: object; $unset?: object }, options: unknown) {
       writes.push(options);
       const found = records.get(filter._id); if (!found) return null;
@@ -101,5 +112,30 @@ describe('US-A006 AC07/AC09 feedback storage', () => {
     expect(await frozen.findFeedbackById(created.id)).toEqual(created);
     expect(await frozen.listFeedback()).toHaveLength(1);
     expect(createFeedbackRepository(buildApiConfig({ NODE_ENV: 'test', FEEDBACK_STORE_READ_ONLY: '1' })).readOnly).toBe(true);
+  });
+});
+
+describe.each(['memory', 'mongodb'])('US-P021 feedback privacy %s', kind => {
+  const setup = () => { const db = provider(); return { ...db, repo: kind === 'memory' ? new InMemoryFeedbackRepository() : new MongoFeedbackRepository(async () => db.collection) }; };
+  it('exports only caller submissions as detached whitelisted records', async () => {
+    const { repo } = setup(); const mine = await repo.createFeedback(input, user);
+    await repo.createFeedback({ ...input, message: 'Other text' }, { ...user, id: 'other', email: 'other@example.test' });
+    const exported = await repo.collectForExport('user'); expect(exported).toEqual([mine]);
+    exported[0].message = 'Changed'; expect((await repo.collectForExport('user'))[0].message).toBe('Useful');
+  });
+  it('anonymizes submitter email, retains general text, clears lesson text and preserves unrelated users on retry', async () => {
+    const { repo } = setup(); const general = await repo.createFeedback(input, user);
+    const lesson = await repo.createFeedback({ ...input, lessonFeedbackKind: 'problem', courseId: 'course', componentId: 'lesson', message: 'Private lesson comment' }, user);
+    const other = await repo.createFeedback(input, { ...user, id: 'other', email: 'other@example.test' });
+    await repo.anonymizeForUser('user'); await repo.anonymizeForUser('user');
+    expect(await repo.findFeedbackById(general.id)).toMatchObject({ userEmail: '', message: 'Useful', userId: 'user' });
+    expect(await repo.findFeedbackById(lesson.id)).toMatchObject({ userEmail: '', message: '', lessonFeedbackKind: 'problem', rating: 'great' });
+    expect(await repo.findFeedbackById(other.id)).toEqual(other);
+  });
+  it('allows scoped export during freeze while refusing anonymization', async () => {
+    const { repo } = setup(); await repo.createFeedback(input, user); const frozen = feedbackWriteFreeze(repo, true);
+    expect(await frozen.collectForExport('user')).toHaveLength(1);
+    await expect(frozen.anonymizeForUser('user')).rejects.toBeInstanceOf(FeedbackReadOnlyError);
+    expect((await repo.listFeedback())[0].userEmail).toBe('person@example.test');
   });
 });

@@ -45,7 +45,7 @@ describe('US-P019 A2 notification storage', () => {
 describe('US-P019 A2 Mongo driver boundary (no live database)', () => {
   function fixture() {
     const cursor = { sort: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis(), toArray: vi.fn().mockResolvedValue([]) };
-    const collection = { createIndex: vi.fn().mockResolvedValue('index'), insertOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+    const collection = { deleteMany: vi.fn().mockResolvedValue({ acknowledged: true, deletedCount: 0 }), createIndex: vi.fn().mockResolvedValue('index'), insertOne: vi.fn().mockResolvedValue({ acknowledged: true }),
       find: vi.fn(() => cursor), findOne: vi.fn().mockResolvedValue(null),
       updateOne: vi.fn().mockResolvedValue({ acknowledged: true, matchedCount: 1 }),
       updateMany: vi.fn().mockResolvedValue({ acknowledged: true }), countDocuments: vi.fn().mockResolvedValue(3) };

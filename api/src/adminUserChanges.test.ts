@@ -85,7 +85,7 @@ describe.each(['', '/api'])('US-A001 account status/change HTTP (%s)', prefix =>
     const enable = await request(statusPath(), 'PATCH', { status: 'active' }, undefined, origin); expect(enable.status).toBe(200); expect(await enable.json()).toEqual(dto(users[0]));
     expect((await request('/auth/me', 'GET', undefined, bearer, origin)).status).toBe(200); expect((await request('/auth/login', 'POST', { email: users[0].email, password: 'Password123!' }, null, origin)).status).toBe(200);
     expect(changes.entries.map(change => [change.field, change.from, change.to])).toEqual([['status', 'active', 'disabled'], ['status', 'disabled', 'active']]);
-    if (kind === 'mongodb') expect(accounts.writes).toEqual(['status', 'status']);
+    if (kind === 'mongodb') expect(accounts.writes.filter(field => !field.startsWith('privacyMutations.'))).toEqual(['status', 'status']);
   });
   it('AC08 unchanged role/status is 200 with no write or entry', async () => {
     const status = vi.spyOn(auth, 'updateStatusWithChange'), role = vi.spyOn(auth, 'updateRoleWithChange');
@@ -141,6 +141,6 @@ describe.each(['', '/api'])('US-A001 account status/change HTTP (%s)', prefix =>
     await repository.enrollUserInCourse(users[0].id, 'demo-course-1'); await repository.updateRole(users[0].id, 'teacher');
     expect((await request(`/admin/users/${users[0].id}/password-reset`, 'POST', undefined, undefined, origin)).status).toBe(202); const raw = mail.messages[0].text.match(/#token=([A-Za-z0-9_-]+)/)![1];
     expect((await request('/auth/password-reset/confirm', 'POST', { token: raw, password: 'Changed456!' }, null, origin)).status).toBe(204);
-    release.resolve(); expect((await disable).status).toBe(200); const stored = await repository.findById(users[0].id, { fresh: true }); expect(stored!.status).toBe('disabled'); expect(stored!.role).toBe('teacher'); expect(stored!.enrolledCourseIds).toEqual(['demo-course-1']); expect(stored!.passwordHash).not.toBe(users[0].passwordHash); expect(accounts.writes).toEqual(['enrolledCourseIds', 'role', 'passwordHash', 'status']);
+    release.resolve(); expect((await disable).status).toBe(200); const stored = await repository.findById(users[0].id, { fresh: true }); expect(stored!.status).toBe('disabled'); expect(stored!.role).toBe('teacher'); expect(stored!.enrolledCourseIds).toEqual(['demo-course-1']); expect(stored!.passwordHash).not.toBe(users[0].passwordHash); expect(accounts.writes.filter(field => !field.startsWith('privacyMutations.'))).toEqual(['enrolledCourseIds', 'role', 'passwordHash', 'status']);
   });
 });

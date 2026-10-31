@@ -94,3 +94,81 @@ describe('X8 F6 organization lookups ask MongoDB for only what they need', () =>
     ]));
   });
 });
+
+describe.each(['memory', 'mongodb'])('US-P021 organization privacy (%s)', kind => {
+  const store = () => kind === 'memory' ? new InMemoryOrganizationRepository() : new MongoOrganizationRepository(fakeOrganizationCollections());
+  const member = (userId: string, orgId = 'o', role: 'member' | 'owner' = 'member') => ({ userId, orgId, role, state: 'active' as const, careerId: null, startedCourseIds: [], consentAt: 'now', joinedAt: 'now' });
+  const org = (id = 'o') => ({ id, displayName: 'Organization', companyName: 'Company', cvr: '12345678', billingEmail: 'owner@example.test', state: 'active' as const, originalOwnerId: 'owner', createdAt: 'now' });
+  const invite = (id: string, email: string) => ({ id, orgId: 'o', email, state: 'sent' as const, tokenHash: `secret-${id}`, expiresAt: 'later', createdAt: 'now' });
+  it('exports only caller membership, personal requests and matching invitations without token hashes', async () => {
+    const repo = store(); await repo.createOrganization(org());
+    await repo.insertMembership(member('user')); await repo.insertMembership(member('other'));
+    await repo.createInvitation(invite('mine', 'person@example.test')); await repo.createInvitation(invite('other', 'other@example.test'));
+    await repo.createCourseRequest({ id: 'request', orgId: 'o', userId: 'user', userName: 'Person', courseId: 'course', state: 'pending', addOnPriceDkk: null, createdAt: 'now' });
+    await repo.createCourseRequest({ id: 'other-request', orgId: 'o', userId: 'other', userName: 'Other', courseId: 'other-course', state: 'pending', addOnPriceDkk: null, createdAt: 'now' });
+    const result = await repo.collectForExport('user', ' PERSON@example.test ');
+    expect(result.membership).toEqual(member('user'));
+    expect(result.courseRequests.map(value => value.id)).toEqual(['request']);
+    expect(result.invitations.map(value => value.id)).toEqual(['mine']);
+    expect(JSON.stringify(result)).not.toMatch(/secret-|tokenHash|other@example/);
+  });
+  it('removes caller data and half-complete invitation joins without touching another user, twice', async () => {
+    const repo = store(); await repo.createOrganization(org());
+    await repo.insertMembership(member('user')); await repo.insertMembership(member('other'));
+    await repo.createInvitation({ ...invite('mine', 'person@example.test'), state: 'accepted', acceptedBy: 'user', joining: true });
+    await repo.createInvitation(invite('other', 'other@example.test'));
+    await repo.createCourseRequest({ id: 'request', orgId: 'o', userId: 'user', userName: 'Person', courseId: 'course', state: 'pending', addOnPriceDkk: null, createdAt: 'now' });
+    await repo.removeForUser('user', 'person@example.test'); await repo.removeForUser('user', 'person@example.test');
+    expect(await repo.getMembership('user')).toBeNull(); expect(await repo.getMembership('other')).toEqual(member('other'));
+    expect(await repo.findInvitationByTokenHash('secret-mine')).toBeNull();
+    expect(await repo.listInvitations()).toEqual([invite('other', 'other@example.test')]);
+    expect(await repo.listCourseRequests('o')).toEqual([]);
+  });
+  it('refuses owner erasure before any mutation when another member needs ownership transfer', async () => {
+    const repo = store(); await repo.createOrganization(org());
+    await repo.insertMembership(member('owner', 'o', 'owner')); await repo.insertMembership(member('other'));
+    await repo.createInvitation(invite('mine', 'owner@example.test'));
+    expect(await repo.erasureBlockers('owner')).toEqual([{ id: 'o', name: 'Organization' }]);
+    await expect(repo.removeForUser('owner', 'owner@example.test')).rejects.toMatchObject({ status: 409, message: 'transfer-organization-first' });
+    expect(await repo.getMembership('owner')).toEqual(member('owner', 'o', 'owner'));
+    expect(await repo.findInvitationByTokenHash('secret-mine')).not.toBeNull();
+  });
+});
+
+
+it('US-P021 omits unexpected stored membership secrets from exports', async () => {
+  const repo = new InMemoryOrganizationRepository();
+  await repo.insertMembership({ userId: 'user', orgId: 'org', role: 'member', state: 'active', careerId: null, startedCourseIds: [], consentAt: 'now', joinedAt: 'now', tokenHash: 'private-secret' } as never);
+  expect(JSON.stringify(await repo.collectForExport('user'))).not.toMatch(/tokenHash|private-secret/);
+});
+
+
+it('US-P021 historical ownership is anonymized after transfer without blocking or changing current owners', async () => {
+  const repo = new InMemoryOrganizationRepository();
+  await repo.createOrganization({ id: 'org', displayName: 'Org', companyName: 'Company', cvr: '12345678', billingEmail: 'person@example.test', state: 'active', originalOwnerId: 'user', createdAt: 'now' });
+  const other = { userId: 'other', orgId: 'org', role: 'owner' as const, state: 'active' as const, careerId: null, startedCourseIds: [], consentAt: 'now', joinedAt: 'now' };
+  await repo.insertMembership(other);
+  expect(await repo.erasureBlockers('user')).toEqual([]);
+  await repo.removeForUser('user', 'person@example.test'); await repo.removeForUser('user', 'person@example.test');
+  expect(await repo.getMembership('other')).toEqual(other);
+  expect(await repo.getOrganization('org')).toMatchObject({ originalOwnerId: 'qi-academy-system', billingEmail: '', state: 'active' });
+});
+
+it('US-P021 Mongo export queries are scoped to the caller rather than whole collections', async () => {
+  const finds: { table: string; filter: Record<string, unknown> }[] = [], indexes: { table: string; keys: Record<string, unknown> }[] = [];
+  const repo = new MongoOrganizationRepository(fakeOrganizationCollections({ finds, indexes }));
+  expect(await repo.collectForExport('user', 'person@example.test')).toEqual({ membership: null, ownedOrganizations: [], requests: [], courseRequests: [], invitations: [] });
+  expect(finds).toEqual(expect.arrayContaining([
+    { table: 'memberships', filter: { _id: 'user' } }, { table: 'requests', filter: { userId: 'user' } },
+    { table: 'course_requests', filter: { userId: 'user' } }, { table: 'invitations', filter: { acceptedBy: 'user' } }, { table: 'invitations', filter: { email: 'person@example.test' } },
+  ]));
+  expect(finds.every(value => Object.keys(value.filter).length > 0)).toBe(true);
+});
+
+
+it('US-P021 removes the erased billing contact email without changing organization ownership or business details', async () => {
+  const repo = new InMemoryOrganizationRepository();
+  await repo.createOrganization({ id: 'org', displayName: 'Org', companyName: 'Company', cvr: '12345678', billingEmail: 'person@example.test', state: 'active', originalOwnerId: 'other', createdAt: 'now' });
+  await repo.removeForUser('user', 'person@example.test');
+  expect(await repo.getOrganization('org')).toMatchObject({ billingEmail: '', originalOwnerId: 'other', companyName: 'Company' });
+});

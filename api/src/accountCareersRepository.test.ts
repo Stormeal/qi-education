@@ -4,6 +4,7 @@ import { InMemoryAccountCareersRepository, MongoAccountCareersRepository, type A
 function fixture() {
   const records = new Map<string, AccountCareersDocument>();
   const collection = {
+    async deleteOne(filter: { _id: string }) { return { acknowledged: true, deletedCount: records.delete(filter._id) ? 1 : 0 }; },
     findOne: vi.fn(async ({ _id }: { _id: string }) => structuredClone(records.get(_id) ?? null)),
     insertOne: vi.fn(async (document: AccountCareersDocument) => {
       if (records.has(document._id)) throw Object.assign(new Error('Duplicate id'), { code: 11000 });

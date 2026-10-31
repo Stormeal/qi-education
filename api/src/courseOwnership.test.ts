@@ -228,7 +228,7 @@ describe('course authoring ownership (DEF-001)', () => {
     expect((await request('owned-course')).status).toBe(401);
     expect((await request('owned-course', student)).status).toBe(403);
     expect((await request('missing-course', owner)).status).toBe(404);
-    owner.status = 'disabled';
+    await auth.updateStatus(owner.id, 'disabled');
     expect((await request('owned-course', owner)).status).toBe(401);
     for (const write of writes) expect(write).not.toHaveBeenCalled();
     expect(mux.createDirectUpload).not.toHaveBeenCalled();

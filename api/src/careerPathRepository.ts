@@ -26,6 +26,8 @@ function withLegacyRequirementDefaults(document: CareerPathDocument): CareerPath
 }
 
 export interface CareerPathRepository {
+  collectForExport(userId: string): Promise<CareerPathSelection | null>;
+  removeForUser(userId: string): Promise<void>;
   withPublicationLock<T>(operation: () => Promise<T>): Promise<T>;
   listPaths(): Promise<CareerPathDocument[]>;
   // Nonempty expected versions must be checked atomically with replacement.
@@ -36,6 +38,16 @@ export interface CareerPathRepository {
 }
 
 export class MongoCareerPathRepository implements CareerPathRepository {
+  async collectForExport(userId: string): Promise<CareerPathSelection | null> {
+    const selection = await this.getSelection(userId);
+    return selection ? { _id: selection._id, pathId: selection.pathId, revision: selection.revision, selectedAt: selection.selectedAt } : null;
+  }
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collection<CareerPathSelection>('career_selections'))
+      .deleteOne({ _id: userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Career selection deletion was not confirmed.');
+  }
+
   constructor(private readonly publicationLock: CourseMutationLock = new MongoCourseMutationLock(async () =>
     (await getMongoDatabase()).collection(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_career_path_locks`))) {}
 
@@ -110,6 +122,12 @@ export class MongoCareerPathRepository implements CareerPathRepository {
 }
 
 export class InMemoryCareerPathRepository implements CareerPathRepository {
+  async collectForExport(userId: string): Promise<CareerPathSelection | null> {
+    const selection = await this.getSelection(userId);
+    return selection ? { _id: selection._id, pathId: selection.pathId, revision: selection.revision, selectedAt: selection.selectedAt } : null;
+  }
+  async removeForUser(userId: string): Promise<void> { this.selections.delete(userId); }
+
   private readonly publicationLock = new InMemoryCourseMutationLock();
   withPublicationLock<T>(operation: () => Promise<T>): Promise<T> {
     return this.publicationLock.run('published-graph', operation);

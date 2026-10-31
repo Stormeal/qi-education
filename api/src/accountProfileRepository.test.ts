@@ -13,6 +13,7 @@ const input = { bio: 'Bio', jobTitle: 'Title', company: 'Company', learningGoals
 function memoryCollection() {
   const rows = new Map<string, AccountProfileDocument>();
   const collection: AccountProfileCollection = {
+    async deleteOne(filter) { rows.delete(filter._id); return { acknowledged: true }; },
     async findOne(filter) { return structuredClone(rows.get(filter._id) ?? null); },
     async updateOne(filter, update, options) {
       const existing = rows.has(filter._id);

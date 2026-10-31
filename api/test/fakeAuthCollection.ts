@@ -11,7 +11,8 @@ export function fakeAuthCollection() {
   const calls = { finds: [] as Record<string, unknown>[], counts: [] as Record<string, unknown>[], indexes: [] as unknown[], writes: [] as unknown[] };
   type Filter = Record<string, unknown>;
   const matches = (doc: MongoAuthDocument, filter: Filter) => Object.entries(filter).every(([key, value]) => {
-    const actual = doc[key as keyof MongoAuthDocument];
+    const actual = key.split('.').reduce<unknown>((value, field) => value && typeof value === 'object' ? (value as Record<string, unknown>)[field] : undefined, doc);
+    if (value && typeof value === 'object' && '$exists' in value) return (actual !== undefined) === value.$exists;
     if (value && typeof value === 'object' && '$ne' in value) return Array.isArray(actual) ? !actual.includes(value.$ne as string) : actual !== value.$ne;
     return Array.isArray(actual) ? actual.includes(value as string) : actual === value;
   });
@@ -63,8 +64,8 @@ export function fakeAuthCollection() {
         delete target[fields.at(-1)!];
       }
       checkEmail(next);
-      Object.assign(document, next);
-      return structuredClone(options.returnDocument === 'before' ? before : document);
+      documents.set(next._id, next);
+      return structuredClone(options.returnDocument === 'before' ? before : next);
     },
     async countDocuments(filter: Filter) { calls.counts.push(filter); return [...documents.values()].filter(doc => matches(doc, filter)).length; },
   };

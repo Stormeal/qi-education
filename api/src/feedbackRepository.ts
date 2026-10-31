@@ -16,6 +16,8 @@ import { createSheetsClient, ensureWorksheetHeaders } from './googleSheets.js';
 export interface FeedbackRepository {
   readonly storageType?: 'memory' | 'mongodb' | 'google-sheets' | 'unavailable';
   readonly readOnly?: boolean;
+  collectForExport(userId: string): Promise<FeedbackEntry[]>;
+  anonymizeForUser(userId: string): Promise<void>;
   createFeedback(input: CreateFeedbackInput, user: AuthenticatedUser): Promise<FeedbackEntry>;
   listFeedback(): Promise<FeedbackEntry[]>;
   findFeedbackById(id: string): Promise<FeedbackEntry | null>;
@@ -32,6 +34,23 @@ export type UpdateFeedbackTriageRecord = UpdateFeedbackTriageInput & {
 
 export class GoogleSheetsFeedbackRepository implements FeedbackRepository {
   readonly storageType = 'google-sheets' as const;
+  async collectForExport(userId: string): Promise<FeedbackEntry[]> {
+    return structuredClone((await this.listFeedback()).filter(entry => entry.userId === userId));
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    const sheets = await createSheetsClient();
+    const result = await sheets.spreadsheets.values.get({ spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID, range: feedbackDataRange() });
+    const rows = result.data.values ?? [];
+    for (let index = 1; index < rows.length; index++) {
+      const row = rows[index] as string[];
+      if (row[2] !== userId) continue;
+      // Update personal cells only: concurrent triage must not be overwritten.
+      await sheets.spreadsheets.values.update({ spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+        range: `${feedbackSheetTitle()}!D${index + 1}`, valueInputOption: 'RAW', requestBody: { values: [['']] } });
+      if (row[15]) await sheets.spreadsheets.values.update({ spreadsheetId: apiConfig.GOOGLE_SHEETS_SPREADSHEET_ID,
+        range: `${feedbackSheetTitle()}!H${index + 1}`, valueInputOption: 'RAW', requestBody: { values: [['']] } });
+    }
+  }
   async createFeedback(input: CreateFeedbackInput, user: AuthenticatedUser): Promise<FeedbackEntry> {
     const feedback = createFeedbackEntry(input, user);
     const sheets = await createSheetsClient();
@@ -117,6 +136,16 @@ export class InMemoryFeedbackRepository implements FeedbackRepository {
   readonly storageType = 'memory' as const;
   readonly readOnly = false;
   private readonly feedback: FeedbackEntry[] = [];
+  async collectForExport(userId: string): Promise<FeedbackEntry[]> {
+    return this.feedback.filter(entry => entry.userId === userId).reverse().map(entry => fromFeedbackDocument({ ...entry, _id: entry.id }));
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    for (let index = 0; index < this.feedback.length; index++) {
+      const entry = this.feedback[index];
+      if (entry.userId !== userId) continue;
+      this.feedback[index] = fromFeedbackDocument({ ...entry, _id: entry.id, userEmail: '', ...(entry.lessonFeedbackKind ? { message: '', summary: undefined, reproductionSteps: undefined, expectedBehavior: undefined } : {}) });
+    }
+  }
 
   async createFeedback(input: CreateFeedbackInput, user: AuthenticatedUser): Promise<FeedbackEntry> {
     const feedback = createFeedbackEntry(input, user);
@@ -165,6 +194,8 @@ export class FeedbackReadOnlyError extends Error {
 
 export class UnavailableFeedbackRepository implements FeedbackRepository {
   readonly storageType = 'unavailable' as const;
+  async collectForExport(_userId: string): Promise<FeedbackEntry[]> { throw new FeedbackStoreUnavailableError(); }
+  async anonymizeForUser(_userId: string): Promise<void> { throw new FeedbackStoreUnavailableError(); }
   readonly readOnly = false;
   async createFeedback(_input: CreateFeedbackInput, _user: AuthenticatedUser): Promise<FeedbackEntry> { throw new FeedbackStoreUnavailableError(); }
   async listFeedback(): Promise<FeedbackEntry[]> { throw new FeedbackStoreUnavailableError(); }
@@ -173,7 +204,7 @@ export class UnavailableFeedbackRepository implements FeedbackRepository {
 }
 
 export type FeedbackDocument = FeedbackEntry & { _id: string };
-export type FeedbackCollection = Pick<Collection<FeedbackDocument>, 'createIndex' | 'insertOne' | 'find' | 'findOne' | 'findOneAndUpdate'>;
+export type FeedbackCollection = Pick<Collection<FeedbackDocument>, 'createIndex' | 'insertOne' | 'find' | 'findOne' | 'findOneAndUpdate' | 'updateMany'>;
 
 export class MongoFeedbackRepository implements FeedbackRepository {
   readonly storageType = 'mongodb' as const;
@@ -203,6 +234,20 @@ export class MongoFeedbackRepository implements FeedbackRepository {
     const entry = createFeedbackEntry(input, user);
     await this.importFeedback(entry);
     return entry;
+  }
+
+  async collectForExport(userId: string): Promise<FeedbackEntry[]> {
+    return this.access(async collection => (await collection.find({ userId }).sort({ createdAt: -1, _id: -1 }).toArray()).map(fromFeedbackDocument));
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    await this.access(async collection => {
+      const options = { writeConcern: { w: 'majority' as const } };
+      const identity = await collection.updateMany({ userId }, { $set: { userEmail: '' }, $unset: { userName: '', displayName: '' } }, options);
+      if (!identity.acknowledged) throw new Error('Feedback anonymization was not acknowledged');
+      const lessons = await collection.updateMany({ userId, lessonFeedbackKind: { $exists: true } },
+        { $set: { message: '' }, $unset: { summary: '', reproductionSteps: '', expectedBehavior: '' } }, options);
+      if (!lessons.acknowledged) throw new Error('Lesson feedback anonymization was not acknowledged');
+    });
   }
 
   /** Stable-ID insertion only: never replaces a target record during migration. */
@@ -260,6 +305,8 @@ export function feedbackWriteFreeze(repository: FeedbackRepository, enabled: boo
     readOnly: true,
     async createFeedback() { throw new FeedbackReadOnlyError(); },
     async updateFeedbackTriage() { throw new FeedbackReadOnlyError(); },
+    collectForExport: userId => repository.collectForExport(userId),
+    async anonymizeForUser() { throw new FeedbackReadOnlyError(); },
     listFeedback: () => repository.listFeedback(),
     findFeedbackById: id => repository.findFeedbackById(id),
   };

@@ -21,7 +21,7 @@ export function authStoreDouble(users: AuthUser[] = []) {
   };
   const update = fake.operations.findOneAndUpdate;
   fake.operations.findOneAndUpdate = async (filter, change, options) => {
-    const field = Object.keys(change.$set ?? change.$addToSet ?? {})[0];
+    const field = Object.keys(change.$set ?? change.$addToSet ?? change.$unset ?? {})[0];
     await state.beforeWrite(field);
     const result = await update(filter, change, options);
     if (result) state.writes.push(field);

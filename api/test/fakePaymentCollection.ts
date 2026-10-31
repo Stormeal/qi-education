@@ -24,6 +24,15 @@ export function fakePaymentCollection() {
     return structuredClone(rows);
   };
   const operations = {
+    async updateMany(filter: Record<string, unknown>, pipeline: { $project: Record<string, number> }[], options: unknown) {
+      calls.writes.push({ filter, pipeline, options });
+      let matchedCount = 0;
+      for (const [id, doc] of documents) if (matches(doc, filter)) {
+        documents.set(id, Object.fromEntries(Object.entries(doc).filter(([field]) => pipeline[0].$project[field] === 1)) as CoursePayment);
+        matchedCount++;
+      }
+      return { acknowledged: true, matchedCount };
+    },
     async createIndex() { return 'index'; },
     async insertOne(doc: CoursePayment, options: unknown) {
       calls.writes.push({ doc, options });

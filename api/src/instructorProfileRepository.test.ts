@@ -17,7 +17,7 @@ function memoryCollection() {
       if (existing || options.upsert) rows.set(filter._id, { _id: filter._id, description: update.$set.description });
       return { matchedCount: existing ? 1 : 0 };
     },
-    async deleteOne(filter) { rows.delete(filter._id); },
+    async deleteOne(filter) { rows.delete(filter._id); return { acknowledged: true }; },
   };
   return collection;
 }

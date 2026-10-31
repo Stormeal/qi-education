@@ -4,6 +4,7 @@ import type { AuthRepository } from './authRepository.js';
 import type { NewNotification, NotificationType } from './notification.js';
 import type { NotificationRepository } from './notificationRepository.js';
 import type { OrganizationRepository } from './organizationRepository.js';
+import { PrivacyMutationCoordinator } from './privacyMutationCoordinator.js';
 
 export const TYPE_GROUP: Record<NotificationType, keyof NotificationPrefs> = {
   'review-requested': 'reviewActivity', 'course-submitted': 'reviewActivity',
@@ -19,12 +20,14 @@ export async function safelyNotify(operation: () => Promise<unknown>): Promise<v
 }
 
 export class NotificationService {
+  private readonly mutations: PrivacyMutationCoordinator;
   constructor(private readonly dependencies: {
     repository: NotificationRepository; auth: AuthRepository; profiles: AccountProfileRepository;
     organizations: OrganizationRepository;
-  }) {}
+  }) { this.mutations = new PrivacyMutationCoordinator(dependencies.organizations, dependencies.auth); }
   async notify(input: NotificationEvent & { recipientUserId: string }): Promise<void> {
     try {
+      await this.mutations.mutate(input.recipientUserId, async () => {
       const { repository, auth, profiles } = this.dependencies;
       const user = await auth.findById(input.recipientUserId, { fresh: true });
       if (!user || user.status !== 'active') return;
@@ -33,6 +36,7 @@ export class NotificationService {
       if (group === 'reviewActivity' && user.role === 'student') return;
       if (!accountProfileResponse(await profiles.get(user.id)).notificationPrefs[group]) return;
       await repository.create({ userId: user.id, type: input.type, title: input.title, link: input.link });
+      });
     } catch { warn(); }
   }
   async notifyAdmins(input: NotificationEvent): Promise<void> {

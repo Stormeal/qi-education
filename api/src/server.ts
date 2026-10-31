@@ -1,6 +1,9 @@
 import { coursePriceMessage, courseReviewerIds, courseTeacherIds } from './course.js';
 import { sendReviewRequest } from './courseReviewerMail.js';
 import { logError } from './errorLogger.js';
+import { PrivacyService } from './privacyService.js';
+import { registerPrivacyRoutes } from './privacyRoutes.js';
+import { PrivacyMutationCoordinator } from './privacyMutationCoordinator.js';
 import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
@@ -200,15 +203,22 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const lessonNotes = dependencies.lessonNotesRepository ?? createLessonNotesRepository();
   const storedContent = dependencies.courseContentRepository ?? createCourseContentRepository();
   const { courses: reviewedCourses, courseAssets, courseContent, review } = reviewedRepositories(storedCourses, storedContent, storedAssets);
-  const accountCareers = new AccountCareersService(dependencies.accountCareersRepository ?? createAccountCareersRepository(),
+  const accountCareersStore = dependencies.accountCareersRepository ?? createAccountCareersRepository();
+  const accountCareers = new AccountCareersService(accountCareersStore,
     careerPaths, learningProgress, courseContent);
   // Author metadata/thumbnail methods write review snapshots instead of the base
   // repository. Apply the same freeze above that existing review projection.
   const courses = courseWriteFreeze(reviewedCourses, storedCourses.readOnly === true);
   const organizationStore = dependencies.organizationRepository ?? createOrganizationRepository();
+  const privacyMutations = new PrivacyMutationCoordinator(organizationStore, auth);
+  const privacy = new PrivacyService({ auth, profile: accountProfiles, instructorProfile: instructorProfiles,
+    progress: learningProgress, notes: lessonNotes, careers: accountCareersStore, legacyCareers: careerPaths,
+    payments, organizations: organizationStore, feedback, notifications, resetTokens: passwordResetTokens,
+    confirmationTokens: emailConfirmations, audit: userChanges, courses: storedCourses, content: storedContent }, privacyMutations.run);
   const notificationService = new NotificationService({ repository: notifications, auth, profiles: accountProfiles, organizations: organizationStore });
   const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
-    careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService });
+    careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService,
+    withUserMutation: privacyMutations.mutate });
   const withOrganizationCourses = async (user: AuthenticatedUser): Promise<AuthenticatedUser> => ({
     ...user,
     enrolledCourseIds: [...new Set([...user.enrolledCourseIds, ...await organizations.learnableOrgCourseIds(user.id)])],
@@ -223,6 +233,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const turnstile = dependencies.turnstileVerifier ?? createTurnstileVerifier();
   const muxWebhook = dependencies.muxWebhookService ?? createMuxWebhookService();
 
+  app.use(privacyMutations.middleware);
   app.use((request, _response, next) => courseRequestReads.run({ reads: new Map(), reuseRecent: request.method === 'GET' }, next));
 
   const reviewStateForViewer = async (id: string, user?: AuthenticatedUser) => {
@@ -770,6 +781,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     requireAdmin, profiles: instructorProfiles, auth, courses });
   registerAccountProfileRoutes(app, { authenticate: authenticateRequest(auth), profiles: accountProfiles });
   registerNotificationRoutes(app, { authenticate: authenticateRequest(auth), notifications });
+  registerPrivacyRoutes(app, { authenticate: authenticateRequest(auth), auth, privacy, signInLimit });
   registerPaymentRoutes(app, paymentDependencies);
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {

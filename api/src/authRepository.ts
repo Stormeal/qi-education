@@ -2,13 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { apiConfig, getServicesMode, hasMongoConfig } from './config.js';
 import { MongoAuthRepository } from './mongoAuthRepository.js';
 import { accountWriteFreeze, DuplicateAccountError, type AuthStorageType } from './authStore.js';
+import { SYSTEM_ACCOUNT_ID } from './systemAccount.js';
 export { MongoAuthRepository } from './mongoAuthRepository.js';
 export { DuplicateAccountError, AuthReadOnlyError, ReadOnlyAuthRepository } from './authStore.js';
 import {
   type AuthUser,
+  type AuthenticatedUser,
   type UserRole,
   type UserStatus,
-  hashPassword
+  hashPassword,
+  assertPrivacyMutationId,
+  toAuthenticatedUser
 } from './auth.js';
 
 export type AuthEnrollmentMutation = { user: AuthUser; added: boolean; purchaseSessionId?: string };
@@ -33,6 +37,13 @@ export interface AuthRepository {
   reconcileCoursePurchase(userId: string, courseId: string, remainingSessionId: string | null): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null>;
   confirmEmail(userId: string): Promise<AuthUser | null>;
+  collectForExport(userId: string): Promise<AuthenticatedUser | null>;
+  beginErasure(userId: string, expectedPasswordHash: string): Promise<AuthUser | null>;
+  anonymizeForUser(userId: string): Promise<void>;
+  beginPrivacyMutation(userId: string, mutationId: string, expiresAt: number): Promise<boolean>;
+  finishPrivacyMutation(userId: string, mutationId: string): Promise<void>;
+  cancelErasure(userId: string, expectedPasswordHash: string): Promise<boolean>;
+  markErasureCleaning(userId: string): Promise<void>;
 }
 
 export class InMemoryAuthRepository implements AuthRepository {
@@ -55,12 +66,74 @@ export class InMemoryAuthRepository implements AuthRepository {
   async listUsers(): Promise<AuthUser[]> { return [...this.users]; }
   async countEnrolledUsers(courseId: string): Promise<number> { return this.users.filter(user => user.enrolledCourseIds.includes(courseId)).length; }
 
+  async collectForExport(userId: string): Promise<AuthenticatedUser | null> {
+    const user = await this.findById(userId);
+    return user ? toAuthenticatedUser(user) : null;
+  }
+
+  async beginPrivacyMutation(userId: string, mutationId: string, expiresAt: number): Promise<boolean> {
+    assertPrivacyMutationId(mutationId);
+    const index = this.users.findIndex(user => user.id === userId && user.status === 'active' && !user.privacyErasure);
+    if (index < 0) return false;
+    const user = this.users[index];
+    this.users[index] = { ...user, privacyMutations: { ...user.privacyMutations, [mutationId]: expiresAt } };
+    return true;
+  }
+
+  async finishPrivacyMutation(userId: string, mutationId: string): Promise<void> {
+    assertPrivacyMutationId(mutationId);
+    const index = this.users.findIndex(user => user.id === userId);
+    if (index < 0 || !this.users[index].privacyMutations) return;
+    const { privacyMutations: current, ...user } = this.users[index], privacyMutations = { ...current };
+    delete privacyMutations[mutationId];
+    this.users[index] = Object.keys(privacyMutations).length ? { ...user, privacyMutations } : user;
+  }
+
+  async beginErasure(userId: string, expectedPasswordHash: string): Promise<AuthUser | null> {
+    if (userId === SYSTEM_ACCOUNT_ID) return null;
+    const index = this.users.findIndex(user => user.id === userId && user.passwordHash === expectedPasswordHash);
+    if (index < 0) return null;
+    const user = this.users[index];
+    if (user.privacyErasure?.state === 'pending') return user;
+    if (user.status !== 'active' || user.privacyErasure) return null;
+    // No yield between comparison and write: competing password/admin changes
+    // cannot reopen the account after erasure starts.
+    this.users[index] = { ...user, status: 'disabled', privacyErasure: { state: 'pending', startedAt: new Date().toISOString() } };
+    return this.users[index];
+  }
+
+  async cancelErasure(userId: string, expectedPasswordHash: string): Promise<boolean> {
+    const index = this.users.findIndex(user => user.id === userId && user.status === 'disabled' && user.passwordHash === expectedPasswordHash &&
+      user.privacyErasure?.state === 'pending' && user.privacyErasure.cleanupStarted !== true);
+    if (index < 0) return false;
+    const { privacyErasure: _erasure, ...user } = this.users[index];
+    this.users[index] = { ...user, status: 'active' };
+    return true;
+  }
+
+  async markErasureCleaning(userId: string): Promise<void> {
+    const index = this.users.findIndex(user => user.id === userId && user.status === 'disabled' && user.privacyErasure?.state === 'pending');
+    if (index < 0) throw new Error('Account erasure is not pending.');
+    const user = this.users[index];
+    this.users[index] = { ...user, privacyErasure: { ...user.privacyErasure!, cleanupStarted: true } };
+  }
+
+  async anonymizeForUser(userId: string): Promise<void> {
+    if (userId === SYSTEM_ACCOUNT_ID) return;
+    const index = this.users.findIndex(user => user.id === userId);
+    if (index < 0) return;
+    const user = this.users[index];
+    this.users[index] = { id: user.id, email: `erased:${user.id}`, displayName: 'Deleted user', passwordHash: '',
+      role: 'student', status: 'disabled', emailConfirmed: false, createdAt: user.createdAt, enrolledCourseIds: [...user.enrolledCourseIds],
+      privacyErasure: { state: 'complete', startedAt: user.privacyErasure?.startedAt ?? new Date().toISOString() } };
+  }
+
   async updateRole(userId: string, role: UserRole): Promise<AuthUser | null> {
     return (await this.updateRoleWithChange(userId, role))?.user ?? null;
   }
   async updateRoleWithChange(userId: string, role: UserRole): Promise<AuthAccessMutation | null> {
     const index = this.users.findIndex(user => user.id === userId);
-    if (index < 0) return null;
+    if (index < 0 || userId === SYSTEM_ACCOUNT_ID || this.users[index].privacyErasure) return null;
     const previous = this.users[index];
     if (previous.role === role) return { user: previous, previous: null };
     this.users[index] = { ...previous, role };
@@ -71,7 +144,7 @@ export class InMemoryAuthRepository implements AuthRepository {
   }
   async updateStatusWithChange(userId: string, status: UserStatus): Promise<AuthAccessMutation | null> {
     const index = this.users.findIndex(user => user.id === userId);
-    if (index < 0) return null;
+    if (index < 0 || userId === SYSTEM_ACCOUNT_ID || this.users[index].privacyErasure) return null;
     const previous = this.users[index];
     if (previous.status === status) return { user: previous, previous: null };
     this.users[index] = { ...previous, status };
@@ -80,7 +153,7 @@ export class InMemoryAuthRepository implements AuthRepository {
 
   async createUser(user: AuthUser): Promise<AuthUser> {
     const email = user.email.trim().toLowerCase();
-    if (this.users.some(existing => existing.email === email)) throw new DuplicateAccountError();
+    if (this.users.some(existing => existing.email === email || existing.id === user.id)) throw new DuplicateAccountError();
     user = { ...user, email };
     this.users.push(user);
     return user;
@@ -114,14 +187,14 @@ export class InMemoryAuthRepository implements AuthRepository {
     return this.users[index];
   }
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
-    const index = this.users.findIndex(user => user.id === userId && user.status === 'active' && (expectedPasswordHash === undefined || user.passwordHash === expectedPasswordHash));
+    const index = this.users.findIndex(user => user.id === userId && userId !== SYSTEM_ACCOUNT_ID && !user.privacyErasure && user.status === 'active' && (expectedPasswordHash === undefined || user.passwordHash === expectedPasswordHash));
     if (index < 0) return null;
     this.users[index] = { ...this.users[index], passwordHash };
     return this.users[index];
   }
 
   async confirmEmail(userId: string): Promise<AuthUser | null> {
-    const index = this.users.findIndex(user => user.id === userId && user.status === 'active');
+    const index = this.users.findIndex(user => user.id === userId && userId !== SYSTEM_ACCOUNT_ID && !user.privacyErasure && user.status === 'active');
     if (index < 0) return null;
     this.users[index] = { ...this.users[index], emailConfirmed: true };
     return this.users[index];
@@ -161,6 +234,13 @@ class UnavailableAuthRepository implements AuthRepository {
   async reconcileCoursePurchase(_userId: string, _courseId: string, _remaining: string | null): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async confirmEmail(_userId: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
+  async collectForExport(_userId: string): Promise<AuthenticatedUser | null> { throw new AuthUnavailableError(); }
+  async beginErasure(_userId: string, _expectedPasswordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
+  async anonymizeForUser(_userId: string): Promise<void> { throw new AuthUnavailableError(); }
+  async beginPrivacyMutation(_userId: string, _mutationId: string, _expiresAt: number): Promise<boolean> { throw new AuthUnavailableError(); }
+  async finishPrivacyMutation(_userId: string, _mutationId: string): Promise<void> { throw new AuthUnavailableError(); }
+  async cancelErasure(_userId: string, _expectedPasswordHash: string): Promise<boolean> { throw new AuthUnavailableError(); }
+  async markErasureCleaning(_userId: string): Promise<void> { throw new AuthUnavailableError(); }
 }
 
 function createDemoUser(role: AuthUser['role'], email: string, displayName: string): AuthUser {

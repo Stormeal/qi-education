@@ -25,6 +25,13 @@ describe('US-P016-AC01 account store selection', () => {
     const repo = auth.createAuthRepository();
     expect(repo.storageType).toBe('mongodb'); expect(repo.unavailableReason).toBe('Production user store is not configured. Authentication is unavailable.');
     expect(await repo.findByEmail('student@qi-education.local')).toBeNull();
+    await expect(repo.collectForExport('id')).rejects.toThrow('Authentication is unavailable');
+    await expect(repo.beginErasure('id', 'hash')).rejects.toThrow('Authentication is unavailable');
+    await expect(repo.anonymizeForUser('id')).rejects.toThrow('Authentication is unavailable');
+    await expect(repo.beginPrivacyMutation('id', 'ed5b3472-429f-4ba3-8062-2049cbeb2a01', 2000)).rejects.toThrow('Authentication is unavailable');
+    await expect(repo.finishPrivacyMutation('id', 'ed5b3472-429f-4ba3-8062-2049cbeb2a01')).rejects.toThrow('Authentication is unavailable');
+    await expect(repo.cancelErasure('id', 'hash')).rejects.toThrow('Authentication is unavailable');
+    await expect(repo.markErasureCleaning('id')).rejects.toThrow('Authentication is unavailable');
   });
   it('keeps the maintenance freeze validation', async () => {
     const { config } = await load({ NODE_ENV: 'test' });
@@ -35,7 +42,11 @@ describe('US-P016-AC01 account store selection', () => {
     const { auth } = await load({ USER_STORE_READ_ONLY: '1' });
     const repo = auth.createAuthRepository(); expect(repo.readOnly).toBe(true); expect(repo.storageType).toBe(store);
     const calls = [() => repo.createUser({} as never), () => repo.enrollUserInCourse('id', 'course'), () => repo.updatePasswordHash('id', 'hash'),
-      () => repo.updateRole('id', 'teacher'), () => repo.updateStatus('id', 'disabled'), () => repo.updateRoleWithChange('id', 'teacher'), () => repo.updateStatusWithChange('id', 'disabled'), () => repo.confirmEmail('id')];
+      () => repo.updateRole('id', 'teacher'), () => repo.updateStatus('id', 'disabled'), () => repo.updateRoleWithChange('id', 'teacher'), () => repo.updateStatusWithChange('id', 'disabled'), () => repo.confirmEmail('id'),
+      () => repo.beginErasure('id', 'hash'), () => repo.anonymizeForUser('id'),
+      () => repo.beginPrivacyMutation('id', 'ed5b3472-429f-4ba3-8062-2049cbeb2a01', 2000),
+      () => repo.finishPrivacyMutation('id', 'ed5b3472-429f-4ba3-8062-2049cbeb2a01'),
+      () => repo.cancelErasure('id', 'hash'), () => repo.markErasureCleaning('id')];
     for (const call of calls) await expect(call()).rejects.toThrow('Accounts are briefly read-only for maintenance. Try again in a few minutes.');
   });
 });

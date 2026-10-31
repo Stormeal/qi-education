@@ -20,6 +20,13 @@ export class ReadOnlyAuthRepository implements AuthRepository {
   findByEmail(email: string, options?: { fresh?: boolean }) { return this.repository.findByEmail(email, options); }
   listUsers(options?: { fresh?: boolean }) { return this.repository.listUsers(options); }
   countEnrolledUsers(courseId: string, users?: AuthUser[]) { return this.repository.countEnrolledUsers(courseId, users); }
+  collectForExport(userId: string) { return this.repository.collectForExport(userId); }
+  async beginErasure(_userId: string, _expectedPasswordHash: string): Promise<never> { throw new AuthReadOnlyError(); }
+  async anonymizeForUser(_userId: string): Promise<never> { throw new AuthReadOnlyError(); }
+  async beginPrivacyMutation(_userId: string, _mutationId: string, _expiresAt: number): Promise<never> { throw new AuthReadOnlyError(); }
+  async finishPrivacyMutation(_userId: string, _mutationId: string): Promise<never> { throw new AuthReadOnlyError(); }
+  async cancelErasure(_userId: string, _expectedPasswordHash: string): Promise<never> { throw new AuthReadOnlyError(); }
+  async markErasureCleaning(_userId: string): Promise<never> { throw new AuthReadOnlyError(); }
   async reconcileCoursePurchase(_id: string, _courseId: string, _remaining: string | null): Promise<never> { throw new AuthReadOnlyError(); }
   async createUser(_user: AuthUser): Promise<never> { throw new AuthReadOnlyError(); }
   async enrollUserInCourseWithChange(_id: string, _courseId: string): Promise<never> { throw new AuthReadOnlyError(); }

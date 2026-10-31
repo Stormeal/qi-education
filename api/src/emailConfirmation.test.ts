@@ -79,7 +79,7 @@ describe('US-L014 email confirmation HTTP', () => {
     const reused = await post(confirm, { token: raw });
     expect(reused.status).toBe(410); expect(await reused.json()).toEqual(invalid);
     if (kind === 'mongodb') expect(fake.calls.writes).toContainEqual(expect.objectContaining({
-      filter: { _id: session.user.id, status: 'active' }, update: { $set: { emailConfirmed: true } },
+      filter: { _id: session.user.id, status: 'active', privacyErasure: { $exists: false } }, update: { $set: { emailConfirmed: true } },
       options: expect.objectContaining({ writeConcern: { w: 'majority' } }),
     }));
   });

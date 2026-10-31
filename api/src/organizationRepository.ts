@@ -1,11 +1,23 @@
 import type { Collection, Document } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
+import { SYSTEM_ACCOUNT_ID } from './systemAccount.js';
 import { AmbiguousCourseWriteError, protectCourseWrite, CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
 import { OrganizationError, type Organization, type OrganizationMembership, type Prices,
   type StoredOrgRequest, type StoredInvitation, type StoredCourseRequest } from './organization.js';
 
+export type OrganizationPrivacyExport = {
+  membership: OrganizationMembership | null;
+  ownedOrganizations: { id: string; displayName: string }[];
+  requests: StoredOrgRequest[];
+  courseRequests: StoredCourseRequest[];
+  invitations: Omit<StoredInvitation, 'tokenHash' | 'acceptedBy' | 'joining'>[];
+};
+
 export interface OrganizationRepository {
+  collectForExport(userId: string, email?: string): Promise<OrganizationPrivacyExport>;
+  erasureBlockers(userId: string): Promise<{ id: string; name: string }[]>;
+  removeForUser(userId: string, email?: string): Promise<void>;
   withOrganizationLock<T>(orgId: string, operation: () => Promise<T>): Promise<T>;
   createRequest(value: StoredOrgRequest): Promise<void>;
   findPendingOrLatestRequest(userId: string): Promise<StoredOrgRequest | null>;
@@ -147,6 +159,62 @@ class Repository implements OrganizationRepository {
   async withOrganizationLock<T>(orgId: string, operation: () => Promise<T>): Promise<T> {
     try { return await this.lock.run(orgId, operation); }
     catch (error) { if (error instanceof CourseBusyError) throw new OrganizationError(409, 'Organization is being updated. Try again shortly.'); throw error; }
+  }
+  private async personalInvitations(userId: string, email?: string): Promise<StoredInvitation[]> {
+    const accepted = await this.store.list('invitations', { acceptedBy: userId });
+    const addressed = email?.trim() ? await this.store.list('invitations', { email: email.trim().toLowerCase() }) : [];
+    return [...new Map([...accepted, ...addressed].map(value => [value.id, value])).values()];
+  }
+  async collectForExport(userId: string, email?: string): Promise<OrganizationPrivacyExport> {
+    const [membership, requests, courseRequests, invitations] = await Promise.all([
+      this.getMembership(userId), this.store.list('requests', { userId }), this.store.list('course_requests', { userId }), this.personalInvitations(userId, email),
+    ]);
+    const owned = membership?.role === 'owner' ? await this.getOrganization(membership.orgId) : null;
+    return structuredClone({ membership: membership ? { userId: membership.userId, orgId: membership.orgId, role: membership.role,
+      state: membership.state, careerId: membership.careerId, startedCourseIds: membership.startedCourseIds, consentAt: membership.consentAt, joinedAt: membership.joinedAt } : null, ownedOrganizations: owned ? [{ id: owned.id, displayName: owned.displayName }] : [],
+      requests: requests.map(value => ({ id: value.id, userId: value.userId, state: value.state, displayName: value.displayName,
+        companyName: value.companyName, cvr: value.cvr, billingEmail: value.billingEmail, message: value.message,
+        declineReason: value.declineReason, submittedAt: value.submittedAt, decidedAt: value.decidedAt, organizationId: value.organizationId })),
+      courseRequests: courseRequests.map(value => ({ id: value.id, orgId: value.orgId, userId: value.userId, userName: value.userName,
+        courseId: value.courseId, state: value.state, addOnPriceDkk: value.addOnPriceDkk, createdAt: value.createdAt })),
+      invitations: invitations.map(value => ({ id: value.id, orgId: value.orgId, email: value.email, state: value.state, expiresAt: value.expiresAt, createdAt: value.createdAt })),
+    });
+  }
+  async erasureBlockers(userId: string): Promise<{ id: string; name: string }[]> {
+    const membership = await this.getMembership(userId);
+    if (membership?.role !== 'owner') return [];
+    const organization = await this.getOrganization(membership.orgId);
+    if (!organization) return [];
+    // Billing has no separate state yet; an active owner requires transfer conservatively.
+    if (organization.state === 'active' || (await this.listMembers(organization.id)).some(member => member.userId !== userId)) {
+      return [{ id: organization.id, name: organization.displayName }];
+    }
+    return [];
+  }
+  async removeForUser(userId: string, email?: string): Promise<void> {
+    await this.withOrganizationLock(`join:${userId}`, async () => {
+      const membership = await this.getMembership(userId);
+      const [invitations, requests, courseRequests, originals, billingContacts] = await Promise.all([
+        this.personalInvitations(userId, email), this.store.list('requests', { userId }),
+        this.store.list('course_requests', { userId }), this.store.list('organizations', { originalOwnerId: userId }),
+        email?.trim() ? this.store.list('organizations', { billingEmail: email.trim().toLowerCase() }) : [],
+      ]);
+      const orgIds = [...new Set([...(membership ? [membership.orgId] : []), ...invitations.map(value => value.orgId),
+        ...courseRequests.map(value => value.orgId), ...originals.map(value => value.id), ...billingContacts.map(value => value.id)])].sort();
+      const locked = async (index: number): Promise<void> => {
+        if (index < orgIds.length) return this.withOrganizationLock(orgIds[index], () => locked(index + 1));
+        if ((await this.erasureBlockers(userId)).length) throw new OrganizationError(409, 'transfer-organization-first');
+        // Delete invites before membership so interrupted joins cannot recreate access on replay.
+        for (const invitation of invitations) await this.store.delete('invitations', invitation.id, {});
+        for (const request of courseRequests) await this.store.delete('course_requests', request.id, { userId });
+        for (const request of requests) await this.store.delete('requests', request.id, { userId });
+        for (const organization of originals) await this.store.update('organizations', organization.id, { originalOwnerId: userId },
+          { originalOwnerId: SYSTEM_ACCOUNT_ID });
+        for (const organization of billingContacts) await this.store.update('organizations', organization.id, { billingEmail: organization.billingEmail }, { billingEmail: '' });
+        if (membership) await this.deleteMembership(userId, membership.orgId);
+      };
+      await locked(0);
+    });
   }
   async createRequest(v: StoredOrgRequest) { if (!await this.store.insert('requests', v.id, v)) throw new OrganizationError(409, 'An organization request is already pending'); }
   async findPendingOrLatestRequest(userId: string) { return (await this.store.list('requests', { userId })).sort((a,b) => Number(b.state === 'pending') - Number(a.state === 'pending') || b.submittedAt.localeCompare(a.submittedAt))[0] ?? null; }

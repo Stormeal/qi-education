@@ -16,6 +16,14 @@ function memoryCollection() {
     return doc;
   }
   const operations = {
+    find(filter: { userId: string }) {
+      return { async toArray() { return structuredClone([...documents.values()].filter(doc => doc.userId === filter.userId)); } };
+    },
+    async deleteMany(filter: { userId: string }) {
+      let deletedCount = 0;
+      for (const [id, doc] of documents) if (doc.userId === filter.userId) { documents.delete(id); deletedCount++; }
+      return { acknowledged: true, deletedCount };
+    },
     async findOne(filter: Filter) { return structuredClone(matching(filter)); },
     async updateOne(filter: Filter, update: any, options?: { upsert?: boolean }) {
       let doc = matching(filter);

@@ -5,6 +5,8 @@ import { getMongoDatabase } from './mongo.js';
 import type { NewNotification, Notification } from './notification.js';
 
 export interface NotificationRepository {
+  collectForExport(userId: string): Promise<Notification[]>;
+  removeForUser(userId: string): Promise<void>;
   create(input: NewNotification): Promise<Notification>;
   listForUser(userId: string, limit?: number): Promise<Notification[]>;
   markRead(id: string, userId: string): Promise<boolean>;
@@ -13,13 +15,22 @@ export interface NotificationRepository {
 }
 type NotificationDocument = Notification & { _id: string };
 export type NotificationCollection = Pick<Collection<NotificationDocument>,
-  'createIndex' | 'insertOne' | 'find' | 'findOne' | 'updateOne' | 'updateMany' | 'countDocuments'>;
+  'createIndex' | 'insertOne' | 'find' | 'findOne' | 'updateOne' | 'updateMany' | 'countDocuments' | 'deleteMany'>;
+const exportNotification = ({ id, userId, type, title, link, createdAt, readAt }: Notification): Notification =>
+  ({ id, userId, type, title, link, createdAt, readAt });
 const limitFor = (limit = 50) => Number.isSafeInteger(limit) ? Math.max(1, Math.min(50, limit)) : 50;
 const createRow = (input: NewNotification, now: () => Date): Notification => ({
   ...input, id: randomUUID(), createdAt: now().toISOString(), readAt: null,
 });
 
 export class InMemoryNotificationRepository implements NotificationRepository {
+  async collectForExport(userId: string): Promise<Notification[]> {
+    return [...this.rows.values()].filter(row => row.userId === userId).map(exportNotification);
+  }
+  async removeForUser(userId: string): Promise<void> {
+    for (const [id, row] of this.rows) if (row.userId === userId) this.rows.delete(id);
+  }
+
   private readonly rows = new Map<string, Notification>();
   constructor(private readonly now: () => Date = () => new Date()) {}
   async create(input: NewNotification): Promise<Notification> {
@@ -45,6 +56,14 @@ export class InMemoryNotificationRepository implements NotificationRepository {
 }
 
 export class MongoNotificationRepository implements NotificationRepository {
+  async collectForExport(userId: string): Promise<Notification[]> {
+    return (await (await this.collection()).find({ userId }).toArray()).map(exportNotification);
+  }
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collection()).deleteMany({ userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Notification deletion was not confirmed.');
+  }
+
   private indexes?: Promise<NotificationCollection>;
   constructor(private readonly loader: () => Promise<NotificationCollection> = async () =>
     (await getMongoDatabase()).collection<NotificationDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_notifications`),
@@ -88,5 +107,5 @@ export function createNotificationRepository(): NotificationRepository {
   if (apiConfig.mode === 'isolated') return new InMemoryNotificationRepository();
   if (hasMongoConfig()) return new MongoNotificationRepository();
   const unavailable = async (): Promise<never> => { throw new Error('Notification storage is temporarily unavailable.'); };
-  return { create: unavailable, listForUser: unavailable, markRead: unavailable, markAllRead: unavailable, countUnread: unavailable };
+  return { create: unavailable, listForUser: unavailable, markRead: unavailable, markAllRead: unavailable, countUnread: unavailable, collectForExport: unavailable, removeForUser: unavailable };
 }

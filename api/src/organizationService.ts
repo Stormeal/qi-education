@@ -22,7 +22,7 @@ export class OrganizationService {
   private readonly now: () => number;
   constructor(private readonly dependencies: { repository: OrganizationRepository; auth: AuthRepository;
     sender: MailSender; options?: OrganizationOptions; careers?: CareerPathRepository; courses?: CourseRepository;
-    notifications?: NotificationService }) {
+    notifications?: NotificationService; withUserMutation?: <T>(userId: string, operation: () => Promise<T>) => Promise<T> }) {
     this.repository = dependencies.repository; this.auth = dependencies.auth; this.sender = dependencies.sender;
     this.now = dependencies.options?.now ?? Date.now;
   }
@@ -40,6 +40,10 @@ export class OrganizationService {
     const user = await this.auth.findById(id, { fresh: true });
     if (!user || user.status !== 'active') throw new OrganizationError(403, 'Not allowed');
     return user;
+  }
+  private withTargetMutation<T>(userId: string, operation: () => Promise<T>): Promise<T> {
+    const admitted = async () => { await this.account(userId); return operation(); };
+    return this.dependencies.withUserMutation ? this.dependencies.withUserMutation(userId, admitted) : admitted();
   }
   async submitRequest(user: User, input: unknown): Promise<OrgRequest> {
     const fields = this.parse(organizationRequestInputSchema, input);
@@ -92,7 +96,9 @@ export class OrganizationService {
     if ((await this.account(adminId)).role !== 'admin') throw new OrganizationError(403, 'Not allowed');
     if (!['approve', 'decline'].includes(decision.action)) throw new OrganizationError(400, 'Invalid decision');
     const reason = decision.action === 'decline' ? this.parse(declineSchema, decision).reason : null;
-    return this.repository.withOrganizationLock(`request:${requestId}`, async () => {
+    const target = (await this.repository.listRequests()).find(value => value.id === requestId);
+    if (!target) throw new OrganizationError(404, 'Request not found');
+    return this.withTargetMutation(target.userId, () => this.repository.withOrganizationLock(`request:${requestId}`, async () => {
       const request = (await this.repository.listRequests()).find(v => v.id === requestId);
       if (!request) throw new OrganizationError(404, 'Request not found');
       if (request.state !== 'pending') throw new OrganizationError(409, 'Request is no longer pending');
@@ -124,7 +130,7 @@ export class OrganizationService {
         type: patch.state === 'approved' ? 'org-request-approved' : 'org-request-declined',
         title: `Organization request ${patch.state}: ${request.displayName}`, link: '/organization' }));
       return this.requestView({ ...request, ...patch });
-    });
+    }));
   }
   private async organization(id: string): Promise<Organization> {
     const organization = await this.repository.getOrganization(id);
@@ -178,16 +184,21 @@ export class OrganizationService {
     return this.invitationView(saved);
   }
   async invite(ownerId: string, orgId: string, email: unknown): Promise<Invitation> {
-    const organization = await this.owner(ownerId, orgId, true), input = this.parse(inviteSchema, { email });
+    await this.owner(ownerId, orgId, true);
+    const input = this.parse(inviteSchema, { email });
     const user = await this.auth.findByEmail(input.email, { fresh: true });
-    if (user && (await this.repository.getMembership(user.id))?.orgId === orgId) throw new OrganizationError(409, 'Already a member');
-    await this.expireInvitations(orgId);
-    const { raw, ...token } = this.newInvitationToken();
-    const invitation: StoredInvitation = { ...token, id: randomUUID(), orgId, email: input.email, state: 'not-sent', createdAt: new Date(this.now()).toISOString() };
-    await this.repository.createInvitation(invitation);
-    if (user) await safelyNotify(async () => this.dependencies.notifications?.notify({ recipientUserId: user.id,
-      type: 'org-invitation', title: `Invitation to ${organization.displayName}. Check your email to join.`, link: '/organization' }));
-    return this.sendInvitation(organization, invitation, raw);
+    const operation = () => this.repository.withOrganizationLock(orgId, async () => {
+      const organization = await this.owner(ownerId, orgId, true);
+      if (user && (await this.repository.getMembership(user.id))?.orgId === orgId) throw new OrganizationError(409, 'Already a member');
+      await this.expireInvitations(orgId);
+      const { raw, ...token } = this.newInvitationToken();
+      const invitation: StoredInvitation = { ...token, id: randomUUID(), orgId, email: input.email, state: 'not-sent', createdAt: new Date(this.now()).toISOString() };
+      await this.repository.createInvitation(invitation);
+      if (user) await safelyNotify(async () => this.dependencies.notifications?.notify({ recipientUserId: user.id,
+        type: 'org-invitation', title: `Invitation to ${organization.displayName}. Check your email to join.`, link: '/organization' }));
+      return this.sendInvitation(organization, invitation, raw);
+    });
+    return user ? this.withTargetMutation(user.id, operation) : operation();
   }
   async listInvitations(ownerId: string, orgId: string) {
     await this.owner(ownerId, orgId); await this.expireInvitations(orgId);
@@ -200,16 +211,24 @@ export class OrganizationService {
     return value;
   }
   async resend(ownerId: string, orgId: string, inviteId: string) {
-    const organization = await this.owner(ownerId, orgId, true), current = await this.scopedInvitation(orgId, inviteId);
-    if (['accepted', 'cancelled'].includes(current.state)) throw new OrganizationError(409, 'Invitation is no longer open');
-    const { raw, ...token } = this.newInvitationToken(), patch = { ...token, state: 'not-sent' as const };
-    if (!await this.repository.updateInvitation(inviteId, current.state, patch, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
-    return this.sendInvitation(organization, { ...current, ...patch }, raw);
+    await this.owner(ownerId, orgId, true);
+    const previous = await this.scopedInvitation(orgId, inviteId);
+    const user = await this.auth.findByEmail(previous.email, { fresh: true });
+    const operation = () => this.repository.withOrganizationLock(orgId, async () => {
+      const organization = await this.owner(ownerId, orgId, true), current = await this.scopedInvitation(orgId, inviteId);
+      if (['accepted', 'cancelled'].includes(current.state)) throw new OrganizationError(409, 'Invitation is no longer open');
+      const { raw, ...token } = this.newInvitationToken(), patch = { ...token, state: 'not-sent' as const };
+      if (!await this.repository.updateInvitation(inviteId, current.state, patch, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
+      return this.sendInvitation(organization, { ...current, ...patch }, raw);
+    });
+    return user ? this.withTargetMutation(user.id, operation) : operation();
   }
   async cancel(ownerId: string, orgId: string, inviteId: string) {
-    await this.owner(ownerId, orgId); const current = await this.scopedInvitation(orgId, inviteId);
-    if (['accepted', 'cancelled'].includes(current.state)) throw new OrganizationError(409, 'Invitation is no longer open');
-    if (!await this.repository.updateInvitation(inviteId, current.state, { state: 'cancelled' }, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
+    return this.repository.withOrganizationLock(orgId, async () => {
+      await this.owner(ownerId, orgId); const current = await this.scopedInvitation(orgId, inviteId);
+      if (['accepted', 'cancelled'].includes(current.state)) throw new OrganizationError(409, 'Invitation is no longer open');
+      if (!await this.repository.updateInvitation(inviteId, current.state, { state: 'cancelled' }, current.tokenHash)) throw new OrganizationError(409, 'Invitation changed. Try again.');
+    });
   }
   private invalidInvitation(): never { throw new OrganizationError(410, 'This invitation is no longer valid. Ask the owner for a new one.'); }
   private async validInvitation(token: unknown, joiningUserId?: string) {
@@ -311,23 +330,23 @@ export class OrganizationService {
     return this.repository.withOrganizationLock(member.orgId, async () => { await this.account(userId); await this.remove(userId, member.orgId); });
   }
   async promote(ownerId: string, orgId: string, userId: string) {
-    return this.repository.withOrganizationLock(orgId, async () => {
+    return this.withTargetMutation(userId, () => this.repository.withOrganizationLock(orgId, async () => {
       const org = await this.owner(ownerId, orgId);
       if (org.originalOwnerId !== ownerId) throw new OrganizationError(403, 'Only the original owner can promote members');
       await this.membership(userId, orgId);
       if (!await this.repository.updateMembership(userId, orgId, { role: 'owner' })) throw new OrganizationError(404, 'Member not found');
       return this.memberView((await this.repository.getMembership(userId))!);
-    });
+    }));
   }
   async setCareer(ownerId: string, orgId: string, userId: string, careerId: string | null) {
-    return this.repository.withOrganizationLock(orgId, async () => {
+    return this.withTargetMutation(userId, () => this.repository.withOrganizationLock(orgId, async () => {
       await this.owner(ownerId, orgId); await this.membership(userId, orgId);
       if (careerId !== null && !(await this.dependencies.careers?.listPaths())?.some(v => v._id === careerId && v.published)) {
         throw new OrganizationError(400, 'Choose a published career');
       }
       if (!await this.repository.updateMembership(userId, orgId, { careerId })) throw new OrganizationError(404, 'Member not found');
       return this.memberView((await this.repository.getMembership(userId))!);
-    });
+    }));
   }
   async openCourseIds(userId: string): Promise<string[]> {
     const member = await this.repository.getMembership(userId);

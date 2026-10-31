@@ -151,9 +151,11 @@ describe.each(['', '/api'])('US-A001 isolated HTTP (%s)', prefix => {
     const response = await request(rolePath(users[2].id), 'PATCH', { role }); expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ message: 'You cannot change your own role.', code: 'own-role' }); expect(users[2].role).toBe('admin');
   });
-  it('AC04 same-role retry is 200 and writes no account field', async () => {
-    const origin = await start(accounts.repository()); const response = await request(rolePath(), 'PATCH', { role: 'student' }, undefined, origin);
-    expect(response.status).toBe(200); expect((await response.json()).role).toBe('student'); expect(accounts.writes).toEqual([]);
+  it('AC04 same-role retry is 200 and leaves the target account unchanged', async () => {
+    const repo = accounts.repository(), before = await repo.findById(users[0].id);
+    const origin = await start(repo); const response = await request(rolePath(), 'PATCH', { role: 'student' }, undefined, origin);
+    expect(response.status).toBe(200); expect((await response.json()).role).toBe('student');
+    expect(await repo.findById(users[0].id)).toEqual(before); expect(accounts.writes).not.toContain('role');
   });
   it('AC04 role update survives overlapping enrollment and an actual reset confirmation', async () => {
     const repo = accounts.repository(), origin = await start(repo); const pause = deferred(), entered = deferred();

@@ -5,6 +5,7 @@ const lifetime = 60 * 60 * 1000;
 type ResetToken = { hash: string; createdAt: number; expiresAt: number; state: 'pending' | 'active' | 'used'; credentialVersion?: string };
 export type PasswordResetDocument = { _id: string; version: number; tokens: ResetToken[] };
 export interface PasswordResetRepository {
+  removeForUser(userId: string): Promise<void>;
   reserve(userId: string, hash: string, now: number, credentialVersion?: string): Promise<boolean>;
   activate(userId: string, hash: string): Promise<boolean>;
   findActive(hash: string, now: number): Promise<{ userId: string; hash: string; credentialVersion?: string } | null>;
@@ -13,6 +14,7 @@ export interface PasswordResetRepository {
 }
 // Exercise the real CAS adapter against a collection double without a live database.
 export type PasswordResetCollection = {
+  deleteOne(filter: { _id: string }, options: { writeConcern: { w: 'majority' } }): Promise<{ acknowledged: boolean }>;
   findOne(filter: { _id?: string; 'tokens.hash'?: string }): Promise<PasswordResetDocument | null>;
   insertOne(document: PasswordResetDocument, options: { writeConcern: { w: 'majority' } }): Promise<unknown>;
   replaceOne(filter: { _id: string; version: number }, document: PasswordResetDocument,
@@ -20,6 +22,11 @@ export type PasswordResetCollection = {
 };
 
 export class MongoPasswordResetRepository implements PasswordResetRepository {
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collectionLoader()).deleteOne({ _id: userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Account mail token deletion was not confirmed.');
+  }
+
   constructor(private readonly collectionLoader: () => Promise<PasswordResetCollection> = async () =>
     (await getMongoDatabase()).collection<PasswordResetDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_password_resets`),
     private readonly tokenLifetimeMs = lifetime) {}
@@ -101,6 +108,7 @@ export class InMemoryPasswordResetRepository extends MongoPasswordResetRepositor
   constructor(tokenLifetimeMs = lifetime) {
     const documents = new Map<string, PasswordResetDocument>();
     super(async () => ({
+      async deleteOne(filter) { documents.delete(filter._id); return { acknowledged: true }; },
       async findOne(filter) {
         return structuredClone(filter._id ? documents.get(filter._id) ?? null
           : [...documents.values()].find(document => document.tokens.some(token => token.hash === filter['tokens.hash'])) ?? null);
@@ -123,5 +131,5 @@ export function createPasswordResetRepository(): PasswordResetRepository {
   if (hasMongoConfig()) return new MongoPasswordResetRepository();
   if (!isHostedApi()) return new InMemoryPasswordResetRepository();
   const unavailable = async (): Promise<never> => { throw new Error('Password reset storage is unavailable.'); };
-  return { reserve: unavailable, activate: unavailable, findActive: unavailable, consume: unavailable, invalidateAll: unavailable };
+  return { reserve: unavailable, activate: unavailable, findActive: unavailable, consume: unavailable, invalidateAll: unavailable, removeForUser: unavailable };
 }

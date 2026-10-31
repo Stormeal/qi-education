@@ -5,22 +5,34 @@ import { getMongoDatabase } from './mongo.js';
 import { LessonNoteLimitError, type CreateLessonNoteInput, type LessonNote } from './lessonNotes.js';
 
 export interface LessonNotesRepository {
+  collectForExport(userId: string): Promise<LessonNote[]>;
+  removeForUser(userId: string): Promise<void>;
   list(userId: string, courseId: string): Promise<LessonNote[]>;
   add(userId: string, courseId: string, input: CreateLessonNoteInput): Promise<LessonNote>;
   update(userId: string, courseId: string, noteId: string, text: string): Promise<LessonNote | null>;
   delete(userId: string, courseId: string, noteId: string): Promise<boolean>;
 }
 export type LessonNotesDocument = { _id: string; userId: string; courseId: string; notes: LessonNote[] };
-export type LessonNotesCollection = Pick<Collection<LessonNotesDocument>, 'findOne' | 'updateOne' | 'findOneAndUpdate'>;
+export type LessonNotesCollection = Pick<Collection<LessonNotesDocument>, 'findOne' | 'updateOne' | 'findOneAndUpdate' | 'find' | 'deleteMany'>;
 const key = (userId: string, courseId: string) => JSON.stringify([userId, courseId]);
 const filter = (userId: string, courseId: string) => ({ _id: key(userId, courseId), userId, courseId });
 const createNote = (courseId: string, input: CreateLessonNoteInput): LessonNote => {
   const now = new Date().toISOString();
   return { ...input, courseId, id: randomUUID(), createdAt: now, updatedAt: now };
 };
+const exportNote = ({ id, courseId, componentId, text, videoSeconds, createdAt, updatedAt }: LessonNote): LessonNote =>
+  ({ id, courseId, componentId, text, videoSeconds, createdAt, updatedAt });
 const ordered = (notes: LessonNote[]) => structuredClone(notes).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
 export class InMemoryLessonNotesRepository implements LessonNotesRepository {
+  async collectForExport(userId: string): Promise<LessonNote[]> {
+    return [...this.documents].filter(([id]) => (JSON.parse(id) as string[])[0] === userId)
+      .flatMap(([, notes]) => notes.map(exportNote));
+  }
+  async removeForUser(userId: string): Promise<void> {
+    for (const id of this.documents.keys()) if ((JSON.parse(id) as string[])[0] === userId) this.documents.delete(id);
+  }
+
   private readonly documents = new Map<string, LessonNote[]>();
   async list(userId: string, courseId: string): Promise<LessonNote[]> {
     return ordered(this.documents.get(key(userId, courseId)) ?? []);
@@ -49,6 +61,15 @@ export class InMemoryLessonNotesRepository implements LessonNotesRepository {
 // One bounded document per account/course makes the limit atomic across hosts.
 // These writes do not acquire or alter the course authoring lock.
 export class MongoLessonNotesRepository implements LessonNotesRepository {
+  async collectForExport(userId: string): Promise<LessonNote[]> {
+    const documents = await (await this.collection()).find({ userId }).toArray();
+    return documents.flatMap(document => document.notes.map(exportNote));
+  }
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collection()).deleteMany({ userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Lesson notes deletion was not confirmed.');
+  }
+
   constructor(private readonly collection: () => Promise<LessonNotesCollection> = async () =>
     (await getMongoDatabase()).collection<LessonNotesDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_lesson_notes`)) {}
 

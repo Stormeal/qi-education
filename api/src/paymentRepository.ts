@@ -6,6 +6,8 @@ export type CoursePayment = {
   _id: string; userId: string; courseId: string; amountDkk: number; stripeCustomerId: string; paidAt: string; refundedAt?: string;
 };
 export interface PaymentRepository {
+  collectForExport(userId: string): Promise<CoursePayment[]>;
+  anonymizeForUser(userId: string): Promise<void>;
   add(payment: CoursePayment): Promise<boolean>;
   findById(sessionId: string): Promise<CoursePayment | null>;
   markRefunded(sessionId: string, refundedAt: string): Promise<CoursePayment | null>;
@@ -13,9 +15,21 @@ export interface PaymentRepository {
   latestCustomerId(userId: string): Promise<string | null>;
   listByUser(userId: string): Promise<CoursePayment[]>;
 }
-export type PaymentCollection = Pick<Collection<CoursePayment>, 'insertOne' | 'find' | 'findOne' | 'findOneAndUpdate' | 'createIndex'>;
+export type PaymentCollection = Pick<Collection<CoursePayment>, 'insertOne' | 'find' | 'findOne' | 'findOneAndUpdate' | 'createIndex' | 'updateMany'>;
+
+// This allowlist is also the retained accounting record: keep approved Stripe
+// customer/session references, but never legacy name/email or unknown fields.
+const accountingFields = ({ _id, userId, courseId, amountDkk, stripeCustomerId, paidAt, refundedAt }: CoursePayment): CoursePayment =>
+  ({ _id, userId, courseId, amountDkk, stripeCustomerId, paidAt, ...(refundedAt === undefined ? {} : { refundedAt }) });
 
 export class InMemoryPaymentRepository implements PaymentRepository {
+  async collectForExport(userId: string): Promise<CoursePayment[]> {
+    return (await this.listByUser(userId)).map(accountingFields);
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    for (const [id, payment] of this.payments) if (payment.userId === userId) this.payments.set(id, accountingFields(payment));
+  }
+
   private readonly payments = new Map<string, CoursePayment>();
   async add(payment: CoursePayment): Promise<boolean> {
     if (this.payments.has(payment._id)) return false;
@@ -42,6 +56,18 @@ export class InMemoryPaymentRepository implements PaymentRepository {
 }
 
 export class MongoPaymentRepository implements PaymentRepository {
+  async collectForExport(userId: string): Promise<CoursePayment[]> {
+    return (await this.listByUser(userId)).map(accountingFields);
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    // Project the current document atomically so an arriving refund is never
+    // replaced with an older export snapshot during account erasure.
+    const result = await (await this.indexedCollection()).updateMany({ userId }, [{ $project: {
+      _id: 1, userId: 1, courseId: 1, amountDkk: 1, stripeCustomerId: 1, paidAt: 1, refundedAt: 1,
+    } }], { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Payment anonymization was not confirmed.');
+  }
+
   private indexReady?: Promise<unknown>;
   constructor(private readonly collection: () => Promise<PaymentCollection> = async () =>
     (await getMongoDatabase()).collection<CoursePayment>('payments')) {}

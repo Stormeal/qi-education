@@ -24,5 +24,5 @@ export function createEmailConfirmationRepository(): EmailConfirmationRepository
   if (hasMongoConfig()) return new MongoEmailConfirmationRepository();
   const unavailable = async (): Promise<never> => { throw new Error('Email confirmation storage is unavailable.'); };
   return { reserve: unavailable, activate: unavailable, findActive: unavailable, consume: unavailable,
-    invalidateAll: unavailable, mailRetryAfter: unavailable };
+    invalidateAll: unavailable, mailRetryAfter: unavailable, removeForUser: unavailable };
 }

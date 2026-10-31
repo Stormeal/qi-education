@@ -10,6 +10,8 @@ export type LearningProgressDocument = {
   passedQuizzes: string[];
 };
 export interface LearningProgressRepository {
+  collectForExport(userId: string): Promise<LearningProgressDocument[]>;
+  removeForUser(userId: string): Promise<void>;
   list(userId: string): Promise<LearningProgressDocument[]>;
   listForCourse(courseId: string, userIds: string[]): Promise<LearningProgressDocument[]>;
   get(userId: string, courseId: string): Promise<LearningProgressDocument | null>;
@@ -17,9 +19,18 @@ export interface LearningProgressRepository {
   recordPass(userId: string, courseId: string, fingerprint: string): Promise<void>;
 }
 const key = (userId: string, courseId: string) => JSON.stringify([userId, courseId]);
-type ProgressCollection = Pick<Collection<LearningProgressDocument>, 'find' | 'findOne' | 'updateOne'>;
+type ProgressCollection = Pick<Collection<LearningProgressDocument>, 'find' | 'findOne' | 'updateOne' | 'deleteMany'>;
 
 export class MongoLearningProgressRepository implements LearningProgressRepository {
+  async collectForExport(userId: string): Promise<LearningProgressDocument[]> {
+    return (await this.list(userId)).map(({ _id, userId, courseId, completedIds, passedQuizzes }) =>
+      ({ _id, userId, courseId, completedIds: [...completedIds], passedQuizzes: [...passedQuizzes] }));
+  }
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collection()).deleteMany({ userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Learning progress deletion was not confirmed.');
+  }
+
   constructor(private readonly collection: () => Promise<ProgressCollection> = async () =>
     (await getMongoDatabase()).collection<LearningProgressDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_learning_progress`)) {}
 
@@ -55,6 +66,14 @@ export class MongoLearningProgressRepository implements LearningProgressReposito
 }
 
 export class InMemoryLearningProgressRepository implements LearningProgressRepository {
+  async collectForExport(userId: string): Promise<LearningProgressDocument[]> {
+    return (await this.list(userId)).map(({ _id, userId, courseId, completedIds, passedQuizzes }) =>
+      ({ _id, userId, courseId, completedIds: [...completedIds], passedQuizzes: [...passedQuizzes] }));
+  }
+  async removeForUser(userId: string): Promise<void> {
+    for (const [id, document] of this.documents) if (document.userId === userId) this.documents.delete(id);
+  }
+
   private readonly documents = new Map<string, LearningProgressDocument>();
   async list(userId: string): Promise<LearningProgressDocument[]> {
     return structuredClone([...this.documents.values()].filter(document => document.userId === userId));

@@ -3,6 +3,8 @@ import type { InstructorProfileDocument } from './instructorProfile.js';
 import { getMongoDatabase } from './mongo.js';
 
 export interface InstructorProfileRepository {
+  collectForExport(userId: string): Promise<InstructorProfileDocument | null>;
+  anonymizeForUser(userId: string): Promise<void>;
   get(userId: string): Promise<InstructorProfileDocument | null>;
   save(userId: string, description: string): Promise<void>;
   list(): Promise<InstructorProfileDocument[]>;
@@ -16,10 +18,19 @@ export type InstructorProfileCollection = {
   updateOne(filter: { _id: string }, update: { $set: { description: string } }, options: {
     upsert: boolean; writeConcern: { w: 'majority' };
   }): Promise<{ matchedCount: number }>;
-  deleteOne(filter: { _id: string }, options?: { writeConcern: { w: 'majority' } }): Promise<unknown>;
+  deleteOne(filter: { _id: string }, options?: { writeConcern: { w: 'majority' } }): Promise<{ acknowledged: boolean }>;
 };
 
 export class MongoInstructorProfileRepository implements InstructorProfileRepository {
+  async collectForExport(userId: string): Promise<InstructorProfileDocument | null> {
+    const profile = await this.get(userId);
+    return profile ? { _id: profile._id, description: profile.description } : null;
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    const result = await (await this.collectionLoader()).deleteOne({ _id: userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Instructor profile anonymization was not confirmed.');
+  }
+
   constructor(private readonly collectionLoader: () => Promise<InstructorProfileCollection> = async () =>
     (await getMongoDatabase()).collection<InstructorProfileDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_instructor_profiles`)) {}
 
@@ -53,6 +64,12 @@ export class MongoInstructorProfileRepository implements InstructorProfileReposi
 }
 
 export class InMemoryInstructorProfileRepository implements InstructorProfileRepository {
+  async collectForExport(userId: string): Promise<InstructorProfileDocument | null> {
+    const profile = await this.get(userId);
+    return profile ? { _id: profile._id, description: profile.description } : null;
+  }
+  async anonymizeForUser(userId: string): Promise<void> { await this.clear(userId); }
+
   private readonly profiles = new Map<string, InstructorProfileDocument>();
   async get(userId: string): Promise<InstructorProfileDocument | null> {
     return structuredClone(this.profiles.get(userId) ?? null);
@@ -73,7 +90,7 @@ export function createInstructorProfileRepository(): InstructorProfileRepository
   if (hasMongoConfig()) return new MongoInstructorProfileRepository();
   if (isHostedApi()) {
     const unavailable = async (): Promise<never> => { throw new InstructorProfileUnavailableError(); };
-    return { get: unavailable, save: unavailable, list: unavailable, clear: unavailable };
+    return { get: unavailable, save: unavailable, list: unavailable, clear: unavailable, collectForExport: unavailable, anonymizeForUser: unavailable };
   }
   return new InMemoryInstructorProfileRepository();
 }

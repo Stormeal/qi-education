@@ -19,7 +19,8 @@ export const loginSchema = z.object({
 export const signupSchema = z.object({
   turnstileToken: z.string().min(1).max(2048).optional(),
   displayName: z.string().trim().min(2).max(120),
-  email: z.email().transform((value) => value.trim().toLowerCase()),
+  email: z.email().transform((value) => value.trim().toLowerCase())
+    .refine(value => !value.endsWith('.invalid'), 'This email domain is reserved.'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -43,9 +44,11 @@ export type AuthUser = {
   createdAt: string;
   enrolledCourseIds: string[];
   emailConfirmed?: boolean;
+  privacyErasure?: { state: 'pending' | 'complete'; startedAt: string; cleanupStarted?: boolean };
+  privacyMutations?: Record<string, number>;
 };
 
-export type AuthenticatedUser = Omit<AuthUser, 'passwordHash' | 'emailConfirmed'> & { emailConfirmed: boolean };
+export type AuthenticatedUser = Pick<AuthUser, 'id' | 'email' | 'displayName' | 'role' | 'status' | 'createdAt' | 'enrolledCourseIds'> & { emailConfirmed: boolean };
 
 type SessionPayload = {
   sub: string;
@@ -56,8 +59,12 @@ type SessionPayload = {
 };
 
 export function toAuthenticatedUser(user: AuthUser): AuthenticatedUser {
-  const { passwordHash: _passwordHash, ...publicUser } = user;
-  return { ...publicUser, emailConfirmed: user.emailConfirmed !== false };
+  return { id: user.id, email: user.email, displayName: user.displayName, role: user.role, status: user.status,
+    createdAt: user.createdAt, enrolledCourseIds: [...user.enrolledCourseIds], emailConfirmed: user.emailConfirmed !== false };
+}
+
+export function assertPrivacyMutationId(mutationId: string): void {
+  if (!z.uuid().safeParse(mutationId).success) throw new Error('Invalid privacy mutation ID.');
 }
 
 export function requireConfirmedEmail(user: { emailConfirmed?: boolean }): boolean {

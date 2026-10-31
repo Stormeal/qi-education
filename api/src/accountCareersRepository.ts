@@ -6,13 +6,26 @@ export type CareerAchievement = { actionId: string; provenance: 'self-reported' 
 export type StoredAccountCareers = { followedPathIds: string[]; focusPathId: string | null; achievements: CareerAchievement[] };
 export type AccountCareersDocument = StoredAccountCareers & { _id: string; version: number };
 export interface AccountCareersRepository {
+  collectForExport(userId: string): Promise<AccountCareersDocument | null>;
+  removeForUser(userId: string): Promise<void>;
   get(userId: string): Promise<AccountCareersDocument | null>;
   // change may run again after a competing write; it must have no external side effects.
   mutate(userId: string, initial: StoredAccountCareers, change: (document: AccountCareersDocument) => void): Promise<AccountCareersDocument>;
 }
-type CareersCollection = Pick<Collection<AccountCareersDocument>, 'findOne' | 'insertOne' | 'replaceOne'>;
+type CareersCollection = Pick<Collection<AccountCareersDocument>, 'findOne' | 'insertOne' | 'replaceOne' | 'deleteOne'>;
 
 export class MongoAccountCareersRepository implements AccountCareersRepository {
+  async collectForExport(userId: string): Promise<AccountCareersDocument | null> {
+    const document = await this.get(userId);
+    return document ? { _id: document._id, version: document.version, followedPathIds: [...document.followedPathIds],
+      focusPathId: document.focusPathId, achievements: document.achievements.map(({ actionId, provenance, declaredAt }) =>
+        ({ actionId, provenance, declaredAt })) } : null;
+  }
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collection()).deleteOne({ _id: userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Account careers deletion was not confirmed.');
+  }
+
   constructor(private readonly collection: () => Promise<CareersCollection> = async () =>
     (await getMongoDatabase()).collection<AccountCareersDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_account_careers`)) {}
 
@@ -46,6 +59,14 @@ export class MongoAccountCareersRepository implements AccountCareersRepository {
 }
 
 export class InMemoryAccountCareersRepository implements AccountCareersRepository {
+  async collectForExport(userId: string): Promise<AccountCareersDocument | null> {
+    const document = await this.get(userId);
+    return document ? { _id: document._id, version: document.version, followedPathIds: [...document.followedPathIds],
+      focusPathId: document.focusPathId, achievements: document.achievements.map(({ actionId, provenance, declaredAt }) =>
+        ({ actionId, provenance, declaredAt })) } : null;
+  }
+  async removeForUser(userId: string): Promise<void> { this.documents.delete(userId); }
+
   private readonly documents = new Map<string, AccountCareersDocument>();
   async get(userId: string): Promise<AccountCareersDocument | null> {
     return structuredClone(this.documents.get(userId) ?? null);

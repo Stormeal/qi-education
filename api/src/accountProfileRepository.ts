@@ -4,12 +4,15 @@ import { apiConfig, hasMongoConfig, isHostedApi } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 
 export interface AccountProfileRepository {
+  collectForExport(userId: string): Promise<AccountProfileDocument | null>;
+  removeForUser(userId: string): Promise<void>;
   get(userId: string): Promise<AccountProfileDocument | null>;
   save(userId: string, input: AccountProfileInput): Promise<AccountProfileDocument>;
 }
 
 export type AccountProfileOptions = { now?: () => Date };
 export type AccountProfileCollection = {
+  deleteOne(filter: { _id: string }, options: { writeConcern: { w: 'majority' } }): Promise<{ acknowledged: boolean }>;
   findOne(filter: { _id: string }): Promise<AccountProfileDocument | null>;
   updateOne(filter: { _id: string }, update: { $set: AccountProfileInput & { updatedAt: string } }, options: {
     upsert: boolean; writeConcern: { w: 'majority' };
@@ -21,6 +24,12 @@ export class AccountProfileUnavailableError extends Error {
 }
 
 export class InMemoryAccountProfileRepository implements AccountProfileRepository {
+  async collectForExport(userId: string): Promise<AccountProfileDocument | null> {
+    const profile = await this.get(userId);
+    return profile ? { _id: profile._id, ...accountProfileFields(profile), updatedAt: profile.updatedAt } : null;
+  }
+  async removeForUser(userId: string): Promise<void> { this.profiles.delete(userId); }
+
   private readonly profiles = new Map<string, AccountProfileDocument>();
   private readonly now: () => Date;
   constructor(options: AccountProfileOptions = {}) { this.now = options.now ?? (() => new Date()); }
@@ -35,6 +44,15 @@ export class InMemoryAccountProfileRepository implements AccountProfileRepositor
 }
 
 export class MongoAccountProfileRepository implements AccountProfileRepository {
+  async collectForExport(userId: string): Promise<AccountProfileDocument | null> {
+    const profile = await this.get(userId);
+    return profile ? { _id: profile._id, ...accountProfileFields(profile), updatedAt: profile.updatedAt } : null;
+  }
+  async removeForUser(userId: string): Promise<void> {
+    const result = await (await this.collectionLoader()).deleteOne({ _id: userId }, { writeConcern: { w: 'majority' } });
+    if (!result.acknowledged) throw new Error('Account profile deletion was not confirmed.');
+  }
+
   private readonly now: () => Date;
   constructor(private readonly collectionLoader: () => Promise<AccountProfileCollection> = async () =>
     (await getMongoDatabase()).collection<AccountProfileDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_account_profiles`),
@@ -68,5 +86,5 @@ export function createAccountProfileRepository(): AccountProfileRepository {
   if (!isHostedApi()) return new InMemoryAccountProfileRepository();
   if (hasMongoConfig()) return new MongoAccountProfileRepository();
   const unavailable = async (): Promise<never> => { throw new AccountProfileUnavailableError(); };
-  return { get: unavailable, save: unavailable };
+  return { get: unavailable, save: unavailable, collectForExport: unavailable, removeForUser: unavailable };
 }

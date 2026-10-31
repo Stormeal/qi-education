@@ -4,6 +4,7 @@ import type { PasswordResetCollection, PasswordResetDocument } from '../src/pass
 export function fakeAccountMailTokenCollection() {
   const documents = new Map<string, PasswordResetDocument>();
   const collection: PasswordResetCollection = {
+    async deleteOne(filter) { documents.delete(filter._id); return { acknowledged: true }; },
     async findOne(filter) { return structuredClone(filter._id ? documents.get(filter._id) ?? null
       : [...documents.values()].find(doc => doc.tokens.some(token => token.hash === filter['tokens.hash'])) ?? null); },
     async insertOne(document) {

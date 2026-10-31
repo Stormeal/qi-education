@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { Collection } from 'mongodb';
 import type { AuthRepository, AuthAccessMutation, AuthEnrollmentMutation } from './authRepository.js';
-import type { AuthUser, UserRole, UserStatus } from './auth.js';
+import { assertPrivacyMutationId, toAuthenticatedUser, type AuthenticatedUser, type AuthUser, type UserRole, type UserStatus } from './auth.js';
+import { SYSTEM_ACCOUNT_ID } from './systemAccount.js';
 import { DuplicateAccountError } from './authStore.js';
 import { apiConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
@@ -14,7 +15,10 @@ function account(document: MongoAuthDocument): AuthUser {
   // A whitelist keeps internal Mongo fields out of callers and session DTOs.
   return { id: document._id, email: document.email, displayName: document.displayName, passwordHash: document.passwordHash,
     role: document.role, status: document.status, createdAt: document.createdAt, enrolledCourseIds: [...document.enrolledCourseIds],
-    ...(document.emailConfirmed === undefined ? {} : { emailConfirmed: document.emailConfirmed }) };
+    ...(document.emailConfirmed === undefined ? {} : { emailConfirmed: document.emailConfirmed }),
+    ...(document.privacyErasure === undefined ? {} : { privacyErasure: { state: document.privacyErasure.state, startedAt: document.privacyErasure.startedAt,
+      ...(document.privacyErasure.cleanupStarted === undefined ? {} : { cleanupStarted: document.privacyErasure.cleanupStarted }) } }),
+    ...(!document.privacyMutations || Object.keys(document.privacyMutations).length === 0 ? {} : { privacyMutations: { ...document.privacyMutations } }) };
 }
 export async function ensureAuthIndexes(collection: Pick<MongoAuthCollection, 'createIndex'>): Promise<void> {
   await collection.createIndex({ email: 1 }, { unique: true });
@@ -39,6 +43,53 @@ export class MongoAuthRepository implements AuthRepository {
   }
   async countEnrolledUsers(courseId: string): Promise<number> {
     return (await this.collection()).countDocuments({ enrolledCourseIds: courseId });
+  }
+  async collectForExport(userId: string): Promise<AuthenticatedUser | null> {
+    const user = await this.findById(userId);
+    return user ? toAuthenticatedUser(user) : null;
+  }
+  async beginPrivacyMutation(userId: string, mutationId: string, expiresAt: number): Promise<boolean> {
+    assertPrivacyMutationId(mutationId);
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active', privacyErasure: { $exists: false } },
+      { $set: { [`privacyMutations.${mutationId}`]: expiresAt } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    return document !== null;
+  }
+  async finishPrivacyMutation(userId: string, mutationId: string): Promise<void> {
+    assertPrivacyMutationId(mutationId);
+    await (await this.collection()).findOneAndUpdate({ _id: userId }, { $unset: { [`privacyMutations.${mutationId}`]: '' } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+  }
+  async beginErasure(userId: string, expectedPasswordHash: string): Promise<AuthUser | null> {
+    if (userId === SYSTEM_ACCOUNT_ID) return null;
+    const collection = await this.collection();
+    const document = await collection.findOneAndUpdate({ _id: userId, status: 'active', passwordHash: expectedPasswordHash, privacyErasure: { $exists: false } },
+      { $set: { status: 'disabled', privacyErasure: { state: 'pending', startedAt: new Date().toISOString() } } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    if (document) return account(document);
+    const pending = await collection.findOne({ _id: userId, status: 'disabled', passwordHash: expectedPasswordHash, 'privacyErasure.state': 'pending' });
+    return pending ? account(pending) : null;
+  }
+  async cancelErasure(userId: string, expectedPasswordHash: string): Promise<boolean> {
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'disabled', passwordHash: expectedPasswordHash,
+      'privacyErasure.state': 'pending', 'privacyErasure.cleanupStarted': { $ne: true } },
+      { $set: { status: 'active' }, $unset: { privacyErasure: '' } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    return document !== null;
+  }
+  async markErasureCleaning(userId: string): Promise<void> {
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'disabled', 'privacyErasure.state': 'pending' },
+      { $set: { 'privacyErasure.cleanupStarted': true } }, { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    if (!document) throw new Error('Account erasure is not pending.');
+  }
+  async anonymizeForUser(userId: string): Promise<void> {
+    if (userId === SYSTEM_ACCOUNT_ID) return;
+    const user = await this.findById(userId);
+    if (!user) return;
+    await (await this.collection()).findOneAndUpdate({ _id: userId },
+      { $set: { email: `erased:${userId}`, displayName: 'Deleted user', passwordHash: '', status: 'disabled', role: 'student', emailConfirmed: false,
+        privacyErasure: { state: 'complete', startedAt: user.privacyErasure?.startedAt ?? new Date().toISOString() } }, $unset: { privacyMutations: '' } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority });
   }
   async createUser(user: AuthUser): Promise<AuthUser> {
     const collection = await this.collection();
@@ -88,12 +139,14 @@ export class MongoAuthRepository implements AuthRepository {
     return document ? account(document) : null;
   }
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active', ...(expectedPasswordHash === undefined ? {} : { passwordHash: expectedPasswordHash }) }, { $set: { passwordHash } },
+    if (userId === SYSTEM_ACCOUNT_ID) return null;
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, privacyErasure: { $exists: false }, status: 'active', ...(expectedPasswordHash === undefined ? {} : { passwordHash: expectedPasswordHash }) }, { $set: { passwordHash } },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
     return document ? account(document) : null;
   }
   async confirmEmail(userId: string): Promise<AuthUser | null> {
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, status: 'active' }, { $set: { emailConfirmed: true } },
+    if (userId === SYSTEM_ACCOUNT_ID) return null;
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, privacyErasure: { $exists: false }, status: 'active' }, { $set: { emailConfirmed: true } },
       { returnDocument: 'after', includeResultMetadata: false, ...majority });
     return document ? account(document) : null;
   }
@@ -102,13 +155,14 @@ export class MongoAuthRepository implements AuthRepository {
   updateRoleWithChange(userId: string, role: UserRole): Promise<AuthAccessMutation | null> { return this.accessChange(userId, 'role', role); }
   updateStatusWithChange(userId: string, status: UserStatus): Promise<AuthAccessMutation | null> { return this.accessChange(userId, 'status', status); }
   private async accessChange(userId: string, field: 'role' | 'status', value: UserRole | UserStatus): Promise<AuthAccessMutation | null> {
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, [field]: { $ne: value } }, { $set: { [field]: value } },
+    if (userId === SYSTEM_ACCOUNT_ID) return null;
+    const document = await (await this.collection()).findOneAndUpdate({ _id: userId, privacyErasure: { $exists: false }, [field]: { $ne: value } }, { $set: { [field]: value } },
       { returnDocument: 'before', includeResultMetadata: false, ...majority });
     if (document) {
       const previous = account(document);
       return { previous, user: { ...previous, [field]: value } };
     }
     const current = await this.findById(userId);
-    return current ? { previous: null, user: current } : null;
+    return current && !current.privacyErasure ? { previous: null, user: current } : null;
   }
 }
