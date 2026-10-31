@@ -86,7 +86,7 @@ describe('US-P015 Mongo HTTP behavior', () => {
     expect((await act('submit', teacher, prefix)).status).toBe(200); expect((await act('publish', admin, prefix)).status).toBe(200);
     await auth.enrollUserInCourse(student.id, 'course');
     const listed = await (await request(prefix + '/courses')).json();
-    expect(listed).toHaveLength(1); expect(listed[0]).toMatchObject({ ...catalog, title: 'Reviewed Mongo title', status: 'published', priceDkk: 500 });
+    expect(listed).toHaveLength(1); expect(listed[0]).toMatchObject({ ...catalog, rating: 0, ratingCount: 0, title: 'Reviewed Mongo title', status: 'published', priceDkk: 500 });
     for (const path of ['/courses/course/outline', '/courses/course/content', '/courses/course/notes', '/courses/course/learners/count', '/courses/course/thumbnail']) expect((await request(prefix + path, student)).status).toBe(200);
     expect((await (await request(prefix + '/health/config')).json()).courses).toEqual({ storage: 'mongodb', readOnly: false });
 

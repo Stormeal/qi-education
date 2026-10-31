@@ -17,6 +17,7 @@ type PrivacyFeedback = {
 export type PrivacyExport = {
   exportedAt: string;
   termsAcceptances: { documentId: 'tos' | 'purchase'; version: number; acceptedAt: string }[];
+  courseRatings: { courseId: string; stars: number; comment?: string; hidden: boolean; createdAt: string; updatedAt: string }[];
   account: { id: string; email: string; displayName: string; role: 'student' | 'teacher' | 'admin';
     status: 'active' | 'disabled'; createdAt: string; enrolledCourseIds: string[]; emailConfirmed: boolean };
   profile: { _id: string; bio: string; jobTitle: string; company: string; learningGoals: string; avatarColor: string;

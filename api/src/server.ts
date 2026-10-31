@@ -7,6 +7,8 @@ import { PrivacyMutationCoordinator } from './privacyMutationCoordinator.js';
 import { createTermsAcceptanceRepository, type TermsAcceptanceRepository } from './termsAcceptanceRepository.js';
 import { TERMS_VERSIONS } from './termsDocuments.js';
 import { registerTermsRoutes } from './termsRoutes.js';
+import { createCourseRatingRepository, type CourseRatingRepository } from './courseRatingRepository.js';
+import { registerCourseRatingRoutes } from './courseRatingRoutes.js';
 import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
@@ -134,6 +136,7 @@ import {
 } from './muxService.js';
 
 type ServerDependencies = {
+  courseRatingRepository?: CourseRatingRepository;
   termsAcceptanceRepository?: TermsAcceptanceRepository;
   authRepository?: AuthRepository;
   signInAttemptRepository?: SignInAttemptRepository;
@@ -189,6 +192,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   });
   const auth = accountWriteFreeze(dependencies.authRepository ?? createAuthRepository(), apiConfig.USER_STORE_READ_ONLY === '1');
   const termsAcceptances = dependencies.termsAcceptanceRepository ?? createTermsAcceptanceRepository();
+  const courseRatings = dependencies.courseRatingRepository ?? createCourseRatingRepository();
   const signInLimit = new SignInLimit(dependencies.signInAttemptRepository ?? createSignInAttemptRepository(), dependencies.signInLimitOptions);
   const clientLimit = new ClientLimit(dependencies.clientLimitRepository ?? createClientLimitRepository(), dependencies.clientLimitOptions);
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
@@ -219,7 +223,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const privacy = new PrivacyService({ auth, profile: accountProfiles, instructorProfile: instructorProfiles,
     progress: learningProgress, notes: lessonNotes, careers: accountCareersStore, legacyCareers: careerPaths,
     payments, organizations: organizationStore, feedback, notifications, resetTokens: passwordResetTokens,
-    confirmationTokens: emailConfirmations, audit: userChanges, courses: storedCourses, content: storedContent, termsAcceptances }, privacyMutations.run);
+    confirmationTokens: emailConfirmations, audit: userChanges, courses: storedCourses, content: storedContent, termsAcceptances, courseRatings }, privacyMutations.run);
   const notificationService = new NotificationService({ repository: notifications, auth, profiles: accountProfiles, organizations: organizationStore });
   const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
     careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService,
@@ -799,6 +803,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerNotificationRoutes(app, { authenticate: authenticateRequest(auth), notifications });
   registerPrivacyRoutes(app, { authenticate: authenticateRequest(auth), auth, privacy, signInLimit });
   registerTermsRoutes(app, { authenticate: authenticateRequest(auth), terms: termsAcceptances });
+  registerCourseRatingRoutes(app, { authenticate: authenticateRequest(auth), optionalAuthenticate: optionalAuthentication(auth),
+    requireAdmin, auth, courses, storedCourses, content: courseContent, progress: learningProgress, ratings: courseRatings });
   registerPaymentRoutes(app, paymentDependencies);
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {
@@ -1364,7 +1370,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
         if (!Object.hasOwn(request.body, 'status')) input.status = current.status;
         if (!Object.hasOwn(request.body, 'priceDkk')) input.priceDkk = current.priceDkk;
         if ((request as AuthenticatedRequest).user.role !== 'admin' && (
-          (['isPremium', 'isBestseller', 'rating', 'ratingCount', 'category', 'languages'] as const).some((key) =>
+          (['isPremium', 'isBestseller', 'category', 'languages'] as const).some((key) =>
             Object.hasOwn(request.body, key) && JSON.stringify(request.body[key]) !== JSON.stringify(current[key])) ||
           input.priceDkk !== current.priceDkk || (input.status !== current.status && (
             !['draft', 'ready-for-review'].includes(current.status) || !['draft', 'ready-for-review'].includes(input.status)
@@ -1502,8 +1508,11 @@ export function createServer(dependencies: ServerDependencies = {}) {
     requireAdmin,
     withCourseLock(async (request, response, next) => {
       try {
-        const input = updateCourseCatalogMetadataSchema.parse(request.body);
         const courseId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+        const current = (await courses.listCourses()).find(course => course.id === courseId);
+        // Ratings are derived from learner rows, including when an older client
+        // sends them back or a newer client omits them altogether.
+        const input = updateCourseCatalogMetadataSchema.parse({ ...request.body, rating: current?.rating ?? 0, ratingCount: current?.ratingCount ?? 0 });
         const updatedCourse = await courses.updateCourseCatalogMetadata(courseId, input);
 
         if (!updatedCourse) {

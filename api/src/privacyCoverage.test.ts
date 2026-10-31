@@ -14,6 +14,19 @@ const retainedInfrastructure = {
   'clientLimitRepository.ts': 'hashed network/purpose counters expire after their hour window',
 };
 describe('US-P021 repository privacy coverage', () => {
+  it('US-L028 exports only the caller ratings and erases comments while retaining anonymous stars', async () => {
+    const { stores, service, user, other, passwordHash } = await privacyFixture();
+    const row = await stores.courseRatings.upsert('course-1', user.id, { stars: 5, comment: 'Private review' });
+    await stores.courseRatings.upsert('course-1', other.id, { stars: 3, comment: 'Other review' });
+    expect(await service.exportUserData(user.id)).toHaveProperty('courseRatings', [
+      { courseId: 'course-1', stars: 5, comment: 'Private review', hidden: false, createdAt: row.createdAt, updatedAt: row.updatedAt },
+    ]);
+    await service.eraseUser(user.id, passwordHash);
+    expect(await stores.courseRatings.get('course-1', user.id)).toEqual({
+      id: row.id, courseId: 'course-1', userId: user.id, stars: 5, hidden: false, createdAt: row.createdAt, updatedAt: row.updatedAt,
+    });
+    expect(await stores.courseRatings.get('course-1', other.id)).toMatchObject({ stars: 3, comment: 'Other review' });
+  });
   it('requires every repository to declare a personal-data or retention policy', async () => {
     const files = (await readdir(new URL('.', import.meta.url))).filter(file => file.endsWith('Repository.ts'));
     const covered = new Set([...Object.values(PERSONAL_DATA_DOMAINS).map(policy => policy.file), ...Object.keys(retainedInfrastructure)]);
@@ -28,7 +41,7 @@ describe('US-P021 repository privacy coverage', () => {
       if (policy.export && !['courses', 'content'].includes(key)) expect(typeof repository.collectForExport, key).toBe('function');
     }
     const result = await service.exportUserData(user.id);
-    expect(result).toMatchObject({ profile: null, instructorProfile: null, progress: [], notes: [], notifications: [], payments: [], authoring: [], termsAcceptances: [] });
+    expect(result).toMatchObject({ profile: null, instructorProfile: null, progress: [], notes: [], notifications: [], payments: [], authoring: [], termsAcceptances: [], courseRatings: [] });
     await service.eraseUser(user.id, passwordHash);
     expect((await stores.auth.findById(user.id))?.privacyErasure?.state).toBe('complete');
   });

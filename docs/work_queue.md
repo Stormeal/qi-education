@@ -12,7 +12,7 @@ messages hold them.
 
 | Owner | Scope | State |
 | --- | --- | --- |
-| Codex | API: rating store, routes, eligibility, course aggregate, admin hide, privacy wiring | Not started |
+| Codex | API: rating store, routes, eligibility, course aggregate, admin hide, privacy wiring | Verified, local commit next; owner Codex, `main`, base `a22faab` (contains `6c7216d`), 2026-10-31. AC01–AC03 covered on both aliases, including replacement, hidden reviews, cross-instance aggregates, unchanged review revisions, ignored legacy inputs and privacy anonymization. API build passes; full suite `(cd api && npx vitest run --maxWorkers=4)` 3,124/3,124 in 130 files; privacy-service spec 9/9. Default `npm run api:test`: 3,123 passed + unchanged DEF-034 /11 `/auth/login` AbortError in `signInLimit.test.ts`. Fresh review: no blocking issues; maintenance error metadata fixed RED→GREEN. Isolated stores only; real Mongo/hosted/browser checks left to integration. |
 | Claude | App: learning-page rating panel, course details reviews and admin hide, catalog settings without rating inputs; specs | Built, waits on the API for the browser check |
 
 US-P021 and US-P022 are live in 0.1.561 (pushed 2026-10-31); hosted checks not done yet.

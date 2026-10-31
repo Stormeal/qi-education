@@ -425,13 +425,19 @@ describe('course lifecycle boundaries (DEF-002, DEF-003, DEF-004)', () => {
     });
 
     it.each([{ status: 'published' }, { status: 'archived' }, { priceDkk: 100 },
-      { isPremium: true }, { category: 'API Testing' }, { languages: ['English'] }, { rating: 5 }, { ratingCount: 99 }, { isBestseller: true }])(
+      { isPremium: true }, { category: 'API Testing' }, { languages: ['English'] }, { isBestseller: true }])(
       `LC-02 ${prefix} denies teacher restricted update %j`, async (fields) => {
         const update = vi.spyOn(courses, 'updateCourse');
         const response = await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, ...fields });
         expect(response.status).toBe(403);
         expect(update).not.toHaveBeenCalled();
       });
+
+    it.each([{ rating: 5 }, { ratingCount: 99 }])(`US-L028 ${prefix} ignores old rating fields on ordinary teacher saves %j`, async fields => {
+      const response = await request(`${prefix}/courses/course`, teacher, 'PATCH', { ...metadata, ...fields });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ rating: 0, ratingCount: 0 });
+    });
 
     it(`LC-02 ${prefix} preserves omitted restricted fields and accepts an unchanged price/status`, async () => {
       await setStatus('published', 500);

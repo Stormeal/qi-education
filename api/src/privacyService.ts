@@ -14,6 +14,7 @@ import type { UserChangeRepository } from './userChangeRepository.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { CourseContentRepository } from './courseContentRepository.js';
 import type { TermsAcceptanceRepository } from './termsAcceptanceRepository.js';
+import type { CourseRatingRepository } from './courseRatingRepository.js';
 import { updateCourseSchema } from './course.js';
 import { ensureSystemAccount, SYSTEM_ACCOUNT_ID } from './systemAccount.js';
 import { KeyedSerialQueue } from './keyedSerialQueue.js';
@@ -26,6 +27,7 @@ export type PrivacyRepositories = {
   confirmationTokens: PasswordResetRepository; audit: UserChangeRepository;
   courses: CourseRepository; content: CourseContentRepository;
   termsAcceptances: TermsAcceptanceRepository;
+  courseRatings: CourseRatingRepository;
 };
 
 // Every constructed personal-data store has an explicit export/erasure policy.
@@ -48,6 +50,7 @@ export const PERSONAL_DATA_DOMAINS = {
   courses: { file: 'courseRepository.ts', export: 'authoring', erase: 'transfer under course lock' },
   content: { file: 'courseContentRepository.ts', export: 'authoring', erase: 'pseudonymize review history under course lock' },
   termsAcceptances: { file: 'termsAcceptanceRepository.ts', export: 'termsAcceptances', erase: 'retain' },
+  courseRatings: { file: 'courseRatingRepository.ts', export: 'courseRatings', erase: 'anonymizeForUser' },
 } satisfies Record<keyof PrivacyRepositories, { file: string; export: string | null; erase: string }>;
 
 export class PrivacyError extends Error {
@@ -67,12 +70,13 @@ export class PrivacyService {
       const s = this.stores;
       const account = await s.auth.collectForExport(userId);
       if (!account || account.status !== 'active') throw new PrivacyError(401, 'Authentication required');
-      const [profile, instructorProfile, progress, notes, careers, legacySelection, payments, organizations, feedback, notifications, termsAcceptances] = await Promise.all([
+      const [profile, instructorProfile, progress, notes, careers, legacySelection, payments, organizations, feedback, notifications, termsAcceptances, courseRatings] = await Promise.all([
         s.profile.collectForExport(userId), s.instructorProfile.collectForExport(userId), s.progress.collectForExport(userId),
         s.notes.collectForExport(userId), s.careers.collectForExport(userId), s.legacyCareers.collectForExport(userId),
         s.payments.collectForExport(userId), s.organizations.collectForExport(userId, account.email),
         s.feedback.collectForExport(userId), s.notifications.collectForExport(userId),
         s.termsAcceptances.collectForExport(userId),
+        s.courseRatings.collectForExport(userId),
       ]);
       const authoring = [];
       for (const course of await s.courses.listCourses()) {
@@ -87,7 +91,7 @@ export class PrivacyService {
       return { exportedAt: new Date().toISOString(), account, profile, instructorProfile,
         enrolments: [...account.enrolledCourseIds], progress, notes, lessonFeedback: feedback.filter(entry => entry.lessonFeedbackKind),
         careers: { current: careers, legacySelection }, payments, organizations,
-        feedback: feedback.filter(entry => !entry.lessonFeedbackKind), notifications, authoring, termsAcceptances };
+        feedback: feedback.filter(entry => !entry.lessonFeedbackKind), notifications, authoring, termsAcceptances, courseRatings };
     });
   }
 

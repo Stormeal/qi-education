@@ -567,8 +567,8 @@ describe('QI Academy API', () => {
       thumbnailAssetId: withThumbnail.thumbnailAssetId,
       isPremium: true,
       isBestseller: true,
-      rating: 4.8,
-      ratingCount: 312,
+      rating: 0,
+      ratingCount: 0,
       category: 'API Testing',
       languages: ['English', 'Danish'],
     });
@@ -641,8 +641,8 @@ describe('QI Academy API', () => {
       id: created.id,
       isPremium: true,
       isBestseller: true,
-      rating: 4.8,
-      ratingCount: 312,
+      rating: 0,
+      ratingCount: 0,
       category: 'Performance Testing',
       languages: ['English'],
     });
