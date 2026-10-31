@@ -6,7 +6,15 @@ messages hold them.
 
 ## Active work
 
-No active implementation. **US-P021 GDPR data rights is delivered locally (2026-10-31), not
+**US-P022 terms of service, in progress (started 2026-10-31).** Picked as the next release-1 Must
+(no open defects); legal wording stays placeholder until Alex supplies it.
+- **Codex:** acceptance store, `termsPending` on `/auth/me`, `POST /users/me/terms/accept`,
+  signup and checkout recording, privacy export/erasure wiring (plan Tasks 1–3). Files in
+  [handoffs/US-P022-codex.md](handoffs/US-P022-codex.md). State: not started (owner Codex, `main`).
+- **Claude:** terms content constants, `/terms` and `/purchase-terms` pages, footer links, signup and
+  checkout checkboxes, re-accept gate (Tasks 4–6). Files: the rest of `app/`. State: in progress.
+
+**US-P021 GDPR data rights is delivered locally (2026-10-31), not
 pushed**: API `30a2cac`, cookie consent `a72845a`, privacy client and erase 400 `74ed267` (Codex),
 Privacy & data tab (Claude). Checks: API 3,024, app 657, journeys 20, Pages build; browser check on
 isolated stores. Waits on Alex: push, then the hosted check in [privacy](specs/accounts/privacy.md)

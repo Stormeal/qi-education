@@ -125,6 +125,13 @@ injection pattern.
 - The legal content itself (owner: Alex/legal) — placeholders until supplied.
 - Relationship to the privacy notice (US-P018) and the US-P021 cookie-preferences link — the footer
   leaves a slot; wording aligned when US-P021 lands.
+- Signup without `acceptTos` (an old frontend during a deploy) still creates the account but records
+  nothing, so the gate asks at next load; `acceptTos: false` answers 400. Keeps the API backward
+  compatible while the new frontend waits for its tests (Claude, 2026-10-31). Confirm or change.
+- Every existing account has no acceptance row, so everyone meets the gate once after release.
+  Intended: nobody has accepted versioned terms yet (Claude, 2026-10-31). Confirm or change.
+- Acceptance rows are exported and kept on erasure (US-P021) as evidence of what was agreed; they
+  hold no name or email (Claude, 2026-10-31). Confirm or change.
 
 ## Codex split (at implementation)
 
