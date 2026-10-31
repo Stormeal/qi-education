@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ConfirmDialog } from './ui/confirm-dialog/confirm-dialog';
+import { CookieConsent } from './ui/cookie-consent/cookie-consent';
 import { AppStateService } from './services/app-state.service';
 import { FeedbackDialog } from './ui/feedback-dialog/feedback-dialog';
 import { Button } from './ui/button/button';
@@ -8,7 +9,7 @@ import { NavigationRecoveryService } from './services/navigation-recovery.servic
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ConfirmDialog, FeedbackDialog, Button],
+  imports: [RouterOutlet, ConfirmDialog, CookieConsent, FeedbackDialog, Button],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

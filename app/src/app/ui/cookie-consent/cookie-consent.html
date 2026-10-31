@@ -1,0 +1,25 @@
+@if (consent.preferencesOpen()) {
+  <section class="cc-panel" role="dialog" aria-labelledby="cc-preferences-title" (keydown)="keydown($event)">
+    <h2 id="cc-preferences-title" #preferencesHeading tabindex="-1">Cookie preferences</h2>
+    <label class="cc-option">
+      <input type="checkbox" checked disabled />
+      <span><strong>Essential</strong> Always on. Keeps you signed in and remembers your settings.</span>
+    </label>
+    <label class="cc-option">
+      <input type="checkbox" [checked]="analytics()" (change)="toggle($event)" />
+      <span><strong>Analytics</strong> Off unless you turn it on. None in use yet.</span>
+    </label>
+    <div class="cc-actions">
+      <button appButton="ghost" type="button" (click)="consent.closePreferences()">Cancel</button>
+      <button appButton="primary" type="button" (click)="save()">Save preferences</button>
+    </div>
+  </section>
+} @else if (consent.pending()) {
+  <section class="cc-panel cc-banner" aria-label="Cookie notice">
+    <p>We use only essential cookies needed to run the site.</p>
+    <div class="cc-actions">
+      <button appButton="ghost" type="button" (click)="consent.openPreferences()">Preferences</button>
+      <button appButton="primary" type="button" (click)="accept()">Accept</button>
+    </div>
+  </section>
+}

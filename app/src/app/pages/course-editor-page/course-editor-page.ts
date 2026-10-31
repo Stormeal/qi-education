@@ -21,10 +21,11 @@ import { Button } from '../../ui/button/button';
 import { CourseBuilder } from '../../ui/course-builder/course-builder';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
+import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
 
 @Component({
   selector: 'app-course-editor-page',
-  imports: [Icon, CourseDraftStatus, CourseReviewPanel, CourseTeachers, Button, CourseBuilder, PageHeader, ProgressBar],
+  imports: [Icon, CourseDraftStatus, CourseReviewPanel, CourseTeachers, Button, CourseBuilder, PageHeader, ProgressBar, CookieLink],
   templateUrl: './course-editor-page.html',
   styleUrls: ['../../app.scss', './course-editor-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

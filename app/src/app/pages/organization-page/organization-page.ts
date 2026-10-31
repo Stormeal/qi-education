@@ -8,6 +8,7 @@ import {
 } from '../../services/organization.service';
 import { Button } from '../../ui/button/button';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
 
 type CourseRef = { id: string; title: string };
 const emptyForm = (): OrgRequestInput => ({ displayName: '', companyName: '', cvr: '', billingEmail: '', message: '' });
@@ -15,7 +16,7 @@ const emptyForm = (): OrgRequestInput => ({ displayName: '', companyName: '', cv
 /** US-O001 release 1: request an organization, or work in one as a member or owner. */
 @Component({
   selector: 'app-organization-page',
-  imports: [Button, PageHeader],
+  imports: [Button, PageHeader, CookieLink],
   templateUrl: './organization-page.html',
   styleUrls: ['../../app.scss', './organization-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

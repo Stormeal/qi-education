@@ -59,6 +59,7 @@ import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
+import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
 import {
   formatDuration,
   formatFileSize,
@@ -76,7 +77,7 @@ const VIDEO_COMPLETE_SHARE = 0.9;
 
 @Component({
   selector: 'app-learning-page',
-  imports: [Button, Chip, DatePipe, IconButton, LoadingSkeleton, PageHeader, ProgressBar, Tabs],
+  imports: [Button, Chip, DatePipe, IconButton, LoadingSkeleton, PageHeader, ProgressBar, Tabs, CookieLink],
   templateUrl: './learning-page.html',
   styleUrl: './learning-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

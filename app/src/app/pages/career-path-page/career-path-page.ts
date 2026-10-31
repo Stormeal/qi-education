@@ -12,6 +12,7 @@ import { IconButton } from '../../ui/icon-button/icon-button';
 import { CvScan } from '../../ui/cv-scan/cv-scan';
 import { plural } from '../../utils/plural';
 import { PageHeader } from '../../ui/page-header/page-header';
+import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
 
 type CareerPathWizardStep = 'intro' | 'upload' | 'questions' | 'choose-career' | 'roadmap';
 
@@ -35,7 +36,7 @@ const CAREER_WINDOW = 4;
 
 @Component({
   selector: 'app-career-path-page',
-  imports: [Icon, Button, CareerMap, CareerTree, CvScan, IconButton, PageHeader],
+  imports: [Icon, Button, CareerMap, CareerTree, CvScan, IconButton, PageHeader, CookieLink],
   templateUrl: './career-path-page.html',
   styleUrls: ['../../app.scss', './career-path-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
