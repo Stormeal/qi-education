@@ -6,8 +6,17 @@ messages hold them.
 
 ## Active work
 
-No active implementation. **US-P022 terms of service is delivered locally (2026-10-31), not
-pushed**: Claude `48bd3f2` (pages, footer links, checkboxes, re-accept gate), Codex `ed3053a`
+**US-L028 course ratings** (selected by Alex 2026-10-31). Decisions in
+[the story contract](stories/US-L028-course-ratings.md), split in
+[handoffs/US-L028-codex.md](handoffs/US-L028-codex.md).
+
+| Owner | Scope | State |
+| --- | --- | --- |
+| Codex | API: rating store, routes, eligibility, course aggregate, admin hide, privacy wiring | Not started |
+| Claude | App: learning-page rating panel, course details reviews and admin hide, catalog settings without rating inputs; specs | In progress |
+
+US-P021 and US-P022 are live in 0.1.561 (pushed 2026-10-31); hosted checks not done yet.
+**US-P022 terms of service was delivered locally (2026-10-31)**: Claude `48bd3f2` (pages, footer links, checkboxes, re-accept gate), Codex `ed3053a`
 (acceptance store, `termsPending`, accept route, signup/checkout recording, privacy wiring).
 Checks: API 3,075, app 663, journeys 20, Pages build. Browser on isolated stores: the demo student
 meets the gate at sign-in (page behind inert), I accept clears it for good, a ticked signup never

@@ -47,7 +47,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
-| US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
+| US-L028 | Learner course ratings and reviews | In progress | P2 | — | [stories/US-L028](stories/US-L028-course-ratings.md) |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Delivered 2026-10-31 (not live) | P1 | Release 1 | [Spec](specs/accounts/privacy.md) |
 | US-P022 | Terms of service and purchase-terms page | Delivered 2026-10-31 (not live); legal wording placeholder | P1 | Legal content (Alex), Release 1 | [Spec](specs/accounts/terms.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
