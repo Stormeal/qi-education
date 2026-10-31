@@ -48,7 +48,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
-| US-P021 | GDPR data rights (export, erasure, cookie consent) | Designed | P1 | Release 1 | [Contract](stories/US-P021-gdpr-data-rights.md) |
+| US-P021 | GDPR data rights (export, erasure, cookie consent) | Delivered 2026-10-31 (not live) | P1 | Release 1 | [Spec](specs/accounts/privacy.md) |
 | US-P022 | Terms of service and purchase-terms page | Designed | P1 | Legal content (Alex), Release 1 | [Contract](stories/US-P022-terms-of-service.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
@@ -281,7 +281,7 @@ Feature: Fit for company use
 **As a user in the EU, I want to see, export and delete my personal data and control non-essential
 cookies, so that the platform meets GDPR.**
 
-State: Designed (Alex, 2026-10-30) — contract: [stories/US-P021-gdpr-data-rights.md](stories/US-P021-gdpr-data-rights.md).
+State: Delivered locally 2026-10-31, not live. Behavior: [specs/accounts/privacy.md](specs/accounts/privacy.md).
 Release 1 (assigned by Alex, 2026-10-30), full self-service; staged admin-assisted fallback available if the December timeline is tight. A central injected `PrivacyService` composes
 per-repo `collectForExport` / `anonymizeForUser` / `removeForUser` methods, guarded by a coverage test.
 Export: one JSON object plus a readable/printable summary (`GET /users/me/privacy/export`). Erasure
@@ -289,8 +289,8 @@ Export: one JSON object plus a readable/printable summary (`GET /users/me/privac
 payments and the audit log pseudonymized, transfer a teacher's courses to a seeded system account, block
 an org owner until ownership is transferred (409); gated by re-auth + a typed phrase, immediate and
 irreversible. Cookie consent: a minimal, extensible client-only mechanism (essential-only today, analytics
-opt-in by construction). Remaining open decisions in the contract: reconfirm R2 at planning, Stripe-side
-customer deletion, and the confirmation-phrase wording. Implementation plan:
+opt-in by construction). Open decisions (Stripe customer deletion, phrase wording, wrong-password
+status, tab and banner placement) are listed in the spec. Implementation plan:
 [superpowers/plans/2026-10-30-us-p021-gdpr-data-rights.md](superpowers/plans/2026-10-30-us-p021-gdpr-data-rights.md).
 
 ### US-P022 — Terms of service and purchase-terms page

@@ -6,19 +6,11 @@ messages hold them.
 
 ## Active work
 
-**US-P021 privacy — app increment, in progress (started 2026-10-31).** API delivered in `30a2cac`.
-- **Codex:** erase wrong password → 400 `password-incorrect` (was 401, which logs the app out) and
-  the app data service `privacy.service.ts` (Task 7). Files: `api/src/privacyRoutes.ts` (+ test),
-  `app/src/app/services/privacy.service.ts` (+ spec). State: in progress (owner Codex,
-  `main`, base `a72845a`; 2026-10-31). Implementation verified, local delivery commit next.
-  Checks: `npm run api:test` 3,024/3,024 (126 files); focused Angular privacy service 9/9.
-  Both route aliases cover exact 400, preserved session 401s, retries and attempt limiting.
-  Handoff: [handoffs/US-P021-app-codex.md](handoffs/US-P021-app-codex.md).
-- **Claude:** Privacy & data tab in Settings (Task 8), cookie consent banner, preferences and
-  footer link (Task 9). Files: `pages/profile-page/*`, `services/consent.service.ts`,
-  `ui/cookie-consent/*`, app shell/footer. State: in progress.
-
-No active implementation. The selected DEF-066/DEF-067 release and teacher/review/learner
+No active implementation. **US-P021 GDPR data rights is delivered locally (2026-10-31), not
+pushed**: API `30a2cac`, cookie consent `a72845a`, privacy client and erase 400 `74ed267` (Codex),
+Privacy & data tab (Claude). Checks: API 3,024, app 657, journeys 20, Pages build; browser check on
+isolated stores. Waits on Alex: push, then the hosted check in [privacy](specs/accounts/privacy.md)
+Limits, and the "confirm or change" decisions there. The selected DEF-066/DEF-067 release and teacher/review/learner
 walkthrough is complete (Codex, `main`, base `f8659ec`; released 0.1.542 in `9610f47`).
 Hosted evidence covers DEF-066 recovery, reviewer changes, admin Return, saved Review activity
 off/on and muted suppression, persisted read state, approval/publication and teacher metrics

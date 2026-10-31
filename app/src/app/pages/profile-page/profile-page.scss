@@ -331,3 +331,38 @@ h2.profile-label {
 .notification-setting strong { display: block; color: var(--color-ink); font-size: var(--text-body); }
 .notification-setting small { display: block; margin-top: 4px; color: var(--color-text-muted); font-size: var(--text-meta); line-height: 1.5; }
 .notification-setting input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--color-primary); cursor: pointer; }
+
+/* US-P021 Privacy & data */
+.privacy-summary {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-sunken);
+
+  h3 { margin: 0; color: var(--color-ink); font-size: var(--text-body); font-weight: 700; }
+  dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 20px; margin: 0; }
+  dt { color: var(--color-text-muted); font-size: var(--text-meta); }
+  dd { margin: 0; color: var(--color-ink); font-weight: 600; overflow-wrap: anywhere; }
+}
+
+.privacy-danger {
+  border-color: var(--color-danger);
+}
+
+.privacy-error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-card);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  font-size: var(--text-meta);
+
+  p, ul { margin: 0 0 6px; }
+}
+
+/* Print summary prints the summary only, not the page around it. */
+@media print {
+  app-page-header, app-tabs, .profile-identity, .site-footer, .privacy-danger, .privacy-actions { display: none !important; }
+  .privacy-export { border: 0; box-shadow: none; }
+}

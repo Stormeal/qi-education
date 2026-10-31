@@ -39,7 +39,8 @@ Story: `docs/stories/US-P021-gdpr-data-rights.md`. Plan: `docs/superpowers/plans
 
 ## Progress
 
-- In progress: Codex on `main`, base `a72845a` (contains `c0be8e0`), 2026-10-31.
+- Done locally: Codex on `main`, base `a72845a` (contains `c0be8e0`), 2026-10-31.
+  Delivery commit: `74ed267`, version `0.1.554`. No push or deployment.
 - Contract precedence: this handoff and Alex's request supersede Task 7's older signatures
   and the story's older wrong-password 401 wording. No app-state integration in this part.
 - Implemented both pieces: wrong-password 400 with the exact message/code, after awaited
@@ -52,5 +53,9 @@ Story: `docs/stories/US-P021-gdpr-data-rights.md`. Plan: `docs/superpowers/plans
   passes 9/9. Angular reports the existing `src/test-setup.ts` compilation warning.
 - Fresh read-only review found no critical, important or minor issues. Tests use isolated
   in-memory stores and fetch spies; no hosted/shared mutation probes or fixed-port servers.
-- Next: patch-bump the current version, commit locally, then record the delivery commit here
-  and in Codex's queue row. No push; Claude owns Settings integration and final story closure.
+- Version bump read the current `0.1.553` immediately before commit and aligned root/app package
+  versions, all three matching lockfile entries, and only `AppStateService.appVersion`.
+- Delivery commit recorded here and in Codex's queue row after committing, as requested;
+  those post-commit record updates remain uncommitted. Claude's Settings files were preserved
+  and excluded from this commit. No additional file access was needed for implementation.
+- Next: Claude owns Settings integration, remaining whole-story checks and final story closure.

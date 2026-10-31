@@ -8,7 +8,7 @@
 
 **Tech Stack:** Express + Zod + the pluggable repository pattern (in-memory for isolated/test, Mongo in prod); Angular signals frontend.
 
-**Spec:** `docs/stories/US-P021-gdpr-data-rights.md`
+**Spec:** `docs/specs/accounts/privacy.md` (contract removed on delivery; read it with `git show 74ed267:docs/stories/US-P021-gdpr-data-rights.md`)
 
 ## Global Constraints
 

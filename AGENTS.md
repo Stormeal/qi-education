@@ -26,6 +26,7 @@ or names an old ID. Keep this table identical to the one in `CLAUDE.md`.
 | login, signup, session, token, remember me, `/auth/me`, sign-in limit, 429, disabled account | `specs/accounts/sign-in-and-sessions.md` |
 | password reset, reset link, change password, account mail, email confirmation, `/confirm-email`, Brevo | `specs/accounts/passwords-and-email.md` |
 | profile, avatar, bio, job title, instructor description | `specs/accounts/profiles.md` |
+| privacy, GDPR, export my data, delete account, erase, tombstone, cookie consent | `specs/accounts/privacy.md` |
 | catalog, `/courses`, carousel, search, filter, sort, category, course card | `specs/catalog/browse.md` |
 | course details, `/courses/:id`, enroll, enrollment, outline, price shown | `specs/catalog/course-details-and-enrollment.md` |
 | payment, buy, Stripe, checkout, receipts, billing portal, 402 | `specs/payments/payments.md` |

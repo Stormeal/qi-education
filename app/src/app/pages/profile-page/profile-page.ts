@@ -1,6 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { PrivacyService, type PrivacyBlockingOrganization, type PrivacyExport } from '../../services/privacy.service';
 import { CoursePurchase, ProfileService } from '../../services/profile.service';
 import { FeedbackOption, type NotificationPreferences } from '../../app.models';
 import { Button } from '../../ui/button/button';
@@ -14,7 +16,7 @@ const GOALS_MAX_LENGTH = 280;
 
 @Component({
   selector: 'app-profile-page',
-  imports: [Button, Chip, DatePipe, PageHeader, Tabs, CookieLink],
+  imports: [Button, Chip, DatePipe, PageHeader, RouterLink, Tabs, CookieLink],
   templateUrl: './profile-page.html',
   styleUrls: ['../../app.scss', './profile-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,6 +86,7 @@ export class ProfilePage {
     { id: 'password', label: 'Password' },
     { id: 'purchases', label: 'Purchases' },
     { id: 'notifications', label: 'Notifications' },
+    { id: 'privacy', label: 'Privacy & data' },
   ];
   protected readonly activeTab = signal('details');
   constructor() { effect(() => this.activeTab.set(this.initialTab())); }
@@ -155,6 +158,76 @@ export class ProfilePage {
     this.billingBusy.set(false);
     if (result.ok) this.assignLocation(result.url);
     else this.billingMessage.set(result.message);
+  }
+  // US-P021: export (JSON + printable summary) and self-service account deletion.
+  private readonly privacy = inject(PrivacyService);
+  private saveFile = (name: string, json: string) => {
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const link = Object.assign(document.createElement('a'), { href: url, download: name });
+    link.click(); URL.revokeObjectURL(url);
+  };
+  private print = () => window.print();
+  protected readonly exportBusy = signal(false);
+  protected readonly exportMessage = signal('');
+  protected readonly exportData = signal<PrivacyExport | null>(null);
+  protected readonly exportSummary = computed(() => {
+    const data = this.exportData() as unknown as Record<string, unknown> | null;
+    if (!data) return [];
+    const count = (value: unknown, noun: string) => {
+      const n = Array.isArray(value) ? value.length : value ? 1 : 0;
+      return n === 0 ? 'None' : `${n} ${noun}${n === 1 ? '' : 's'}`;
+    };
+    const account = (data['account'] ?? {}) as Record<string, string>;
+    const careers = (data['careers'] ?? {}) as Record<string, unknown>;
+    return [
+      { label: 'Name', value: account['displayName'] ?? '' },
+      { label: 'Email', value: account['email'] ?? '' },
+      { label: 'Role', value: account['role'] ?? '' },
+      { label: 'Profile', value: data['profile'] ? 'Saved' : 'None' },
+      { label: 'Instructor description', value: data['instructorProfile'] ? 'Saved' : 'None' },
+      { label: 'Enrolled courses', value: count(data['enrolments'], 'course') },
+      { label: 'Course progress', value: count(data['progress'], 'course') },
+      { label: 'Notes', value: count(data['notes'], 'note') },
+      { label: 'Lesson feedback', value: count(data['lessonFeedback'], 'item') },
+      { label: 'Careers', value: careers['current'] || careers['legacySelection'] ? 'Saved' : 'None' },
+      { label: 'Purchases', value: count(data['payments'], 'purchase') },
+      { label: 'Organization', value: (data['organizations'] as Record<string, unknown> | null)?.['membership'] ? 'Member' : 'None' },
+      { label: 'Feedback sent', value: count(data['feedback'], 'item') },
+      { label: 'Notifications', value: count(data['notifications'], 'notification') },
+      { label: 'Courses you teach or review', value: count(data['authoring'], 'course') },
+    ];
+  });
+
+  protected async downloadExport(): Promise<void> {
+    if (this.exportBusy()) return;
+    this.exportBusy.set(true); this.exportMessage.set('');
+    const result = await this.privacy.exportMyData(this.authToken());
+    this.exportBusy.set(false);
+    if (!result.ok) { this.exportMessage.set(result.message); return; }
+    this.exportData.set(result.body);
+    this.saveFile(`qi-academy-data-${result.body.exportedAt.slice(0, 10)}.json`, JSON.stringify(result.body, null, 2));
+    this.exportMessage.set('Your data was downloaded. A summary is shown below.');
+  }
+  protected printSummary(): void { this.print(); }
+
+  protected readonly deletePassword = signal('');
+  protected readonly deleteConfirmation = signal('');
+  protected readonly deleteBusy = signal(false);
+  protected readonly deleteError = signal('');
+  protected readonly blockingOrganizations = signal<PrivacyBlockingOrganization[]>([]);
+  protected readonly accountDeleted = signal(false);
+  protected readonly canDelete = computed(() =>
+    !this.deleteBusy() && this.deletePassword().length > 0 && this.deleteConfirmation() === 'DELETE');
+
+  protected async deleteAccount(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.canDelete()) return;
+    this.deleteBusy.set(true); this.deleteError.set(''); this.blockingOrganizations.set([]);
+    const result = await this.privacy.eraseMyAccount(this.authToken(), this.deletePassword(), this.deleteConfirmation());
+    this.deleteBusy.set(false);
+    if (result.ok) { this.deletePassword.set(''); this.accountDeleted.set(true); return; }
+    if (result.status === 409 && result.organizations?.length) { this.blockingOrganizations.set(result.organizations); return; }
+    this.deleteError.set(result.message);
   }
   protected readonly goalsMaxLength = GOALS_MAX_LENGTH;
 

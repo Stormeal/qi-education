@@ -266,6 +266,86 @@
           </div>
         </section>
       }
+      @case ('privacy') {
+        @if (accountDeleted()) {
+          <section class="profile-card" aria-labelledby="privacy-deleted-title" role="status">
+            <div class="profile-section">
+              <h2 id="privacy-deleted-title" class="profile-label">Your account and data have been deleted</h2>
+              <p class="profile-section-hint">You are now signed out. Purchase records are kept without your name or email, as accounting law requires.</p>
+            </div>
+            <div class="profile-actions">
+              <button appButton="primary" type="button" (click)="loggedOut.emit()">Close</button>
+            </div>
+          </section>
+        } @else {
+          <section class="profile-card privacy-export" aria-labelledby="privacy-export-title">
+            <div class="profile-section">
+              <h2 id="privacy-export-title" class="profile-label">Download your data</h2>
+              <p class="profile-section-hint">
+                Get a copy of everything QI Academy stores about you: account, profile, courses, progress, notes,
+                feedback, careers, purchases, organizations and notifications.
+              </p>
+            </div>
+            <div class="profile-actions privacy-actions">
+              <p class="profile-save-state" role="status" aria-live="polite">{{ exportMessage() }}</p>
+              @if (exportData()) {
+                <button appButton type="button" (click)="printSummary()">Print summary</button>
+              }
+              <button appButton="primary" type="button" [disabled]="exportBusy()" (click)="downloadExport()">
+                {{ exportBusy() ? 'Preparing…' : 'Download JSON' }}
+              </button>
+            </div>
+            @if (exportData(); as data) {
+              <div class="privacy-summary" aria-label="Summary of your data">
+                <h3>Your data on {{ data.exportedAt | date: 'd MMM y, HH:mm' }}</h3>
+                <dl>
+                  @for (row of exportSummary(); track row.label) {
+                    <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+                  }
+                </dl>
+              </div>
+            }
+          </section>
+
+          <form class="profile-card privacy-danger" aria-labelledby="privacy-delete-title" (submit)="deleteAccount($event)">
+            <div class="profile-section">
+              <h2 id="privacy-delete-title" class="profile-label">Delete your account</h2>
+              <p class="profile-section-hint">
+                This cannot be undone. Your profile, progress, notes, careers and notifications are deleted, and you can
+                never sign in with this account again. Purchase records are kept without your name or email, as
+                accounting law requires. Courses you teach stay available to learners under "Former instructor".
+              </p>
+            </div>
+            <div class="profile-grid">
+              <div class="profile-section">
+                <label class="profile-label" for="privacy-delete-password">Your password</label>
+                <input id="privacy-delete-password" class="profile-input" type="password" autocomplete="current-password"
+                  [value]="deletePassword()" [disabled]="deleteBusy()" (input)="deletePassword.set(controlValue($event))" />
+              </div>
+              <div class="profile-section">
+                <label class="profile-label" for="privacy-delete-confirm">Type DELETE to confirm</label>
+                <input id="privacy-delete-confirm" class="profile-input" autocomplete="off" spellcheck="false"
+                  [value]="deleteConfirmation()" [disabled]="deleteBusy()" (input)="deleteConfirmation.set(controlValue($event))" />
+              </div>
+            </div>
+            @if (deleteError()) { <p class="privacy-error" role="alert">{{ deleteError() }}</p> }
+            @if (blockingOrganizations().length) {
+              <div class="privacy-error" role="alert">
+                <p>You own an organization. Transfer ownership to another member first:</p>
+                <ul>
+                  @for (org of blockingOrganizations(); track org.id) { <li>{{ org.name }}</li> }
+                </ul>
+                <a routerLink="/organization">Open your organization</a>
+              </div>
+            }
+            <div class="profile-actions">
+              <button appButton="danger" type="submit" [disabled]="!canDelete()">
+                {{ deleteBusy() ? 'Deleting…' : 'Delete my account' }}
+              </button>
+            </div>
+          </form>
+        }
+      }
     }
   </div>
 

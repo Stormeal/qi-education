@@ -26,8 +26,9 @@ public instructor description shown with their published courses.
 - **Moderation**: admins list every stored description and can clear one
   (`GET/DELETE /admin/instructor-profiles…`).
 - The private bio never flows into the public description.
-- The account page has four tabs: **Profile** (avatar colour, about you, job, company, goals),
-  **Password**, **Purchases** and **Notifications**. Unsaved edits survive switching tabs.
+- The account page has five tabs: **Profile** (avatar colour, about you, job, company, goals),
+  **Password**, **Purchases**, **Notifications** and **Privacy & data** ([privacy](privacy.md)).
+  Unsaved edits survive switching tabs.
   `/settings` reuses that page and initially selects Notifications; `/profile` starts on Profile.
   The header gear and avatar-menu Settings open `/settings`.
 - **Purchases** (every role): each bought course with date, amount and "Refunded" when refunded,
