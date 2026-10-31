@@ -38,11 +38,13 @@ export function registerPrivacyRoutes(app: Express, deps: {
       let outcome: 'failure' | 'cancel' = 'cancel';
       try {
         if (!await verifyPasswordAsync(input.password, user.passwordHash)) {
-          outcome = 'failure'; throw new PrivacyError(401, 'Incorrect password');
-        }
-        await deps.privacy.eraseUser(user.id, user.passwordHash);
+          outcome = 'failure';
+        } else await deps.privacy.eraseUser(user.id, user.passwordHash);
       } finally {
         if (reservation.ticket) await deps.signInLimit.complete(user.email, reservation.ticket, outcome);
+      }
+      if (outcome === 'failure') {
+        response.status(400).json({ message: 'Your password is not correct.', code: 'password-incorrect' }); return;
       }
       response.status(204).send();
     } catch (error) {

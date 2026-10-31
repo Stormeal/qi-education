@@ -10,10 +10,10 @@ const servers: Server[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map(server => new Promise<void>((resolve, reject) => {
   server.close(error => error ? reject(error) : resolve()); server.closeAllConnections();
 }))); });
-async function setup() {
+async function setup(signInLimit = 10) {
   const fixture = await privacyFixture();
   const s = fixture.stores;
-  const app = createServer({ authRepository: s.auth, accountProfileRepository: s.profile, instructorProfileRepository: s.instructorProfile,
+  const app = createServer({ signInLimitOptions: { limit: signInLimit }, authRepository: s.auth, accountProfileRepository: s.profile, instructorProfileRepository: s.instructorProfile,
     learningProgressRepository: s.progress, lessonNotesRepository: s.notes, accountCareersRepository: s.careers,
     careerPathRepository: s.legacyCareers, paymentRepository: s.payments, organizationRepository: s.organizations,
     feedbackRepository: s.feedback, notificationRepository: s.notifications, passwordResetRepository: s.resetTokens,
@@ -30,6 +30,20 @@ async function setup() {
 }
 
 describe.each(['', '/api'])('US-P021 privacy HTTP %s', prefix => {
+  it('keeps missing, invalid and disabled sessions at 401 before checking the password', async () => {
+    const { request, stores, user } = await setup();
+    const body = { password: 'wrong', confirmation: 'DELETE' };
+    for (const bearer of [null, 'invalid-session']) {
+      const response = await request(`${prefix}/users/me/privacy/erase`, body, bearer);
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ message: 'Authentication required' });
+    }
+    await stores.auth.updateStatus(user.id, 'disabled');
+    const disabled = await request(`${prefix}/users/me/privacy/erase`, body);
+    expect(disabled.status).toBe(401);
+    expect(await disabled.json()).toEqual({ message: 'Authentication required' });
+  });
+
   it('exports only the caller with private no-store and rejects missing credentials', async () => {
     const { request, user, stores, other } = await setup();
     await stores.progress.complete(other.id, 'other-secret', 'private-lesson');
@@ -44,7 +58,10 @@ describe.each(['', '/api'])('US-P021 privacy HTTP %s', prefix => {
   });
   it('requires password and DELETE, refuses arbitrary target IDs, then permanently closes only the caller', async () => {
     const { request, stores, user, other } = await setup();
-    expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'wrong', confirmation: 'DELETE' })).status).toBe(401);
+    const wrongPassword = await request(`${prefix}/users/me/privacy/erase`, { password: 'wrong', confirmation: 'DELETE' });
+    expect(wrongPassword.status).toBe(400);
+    expect(await wrongPassword.json()).toEqual({ message: 'Your password is not correct.', code: 'password-incorrect' });
+    expect((await request(`${prefix}/auth/me`)).status).toBe(200);
     expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'Password123!', confirmation: 'delete' })).status).toBe(400);
     expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'Password123!', confirmation: 'DELETE', userId: other.id })).status).toBe(400);
     const response = await request(`${prefix}/users/me/privacy/erase`, { password: 'Password123!', confirmation: 'DELETE' });
@@ -60,10 +77,25 @@ describe.each(['', '/api'])('US-P021 privacy HTTP %s', prefix => {
     stores.notes.removeForUser = async () => { throw new Error('Synthetic cleanup failure'); };
     expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'Password123!', confirmation: 'DELETE' })).status).toBe(500);
     expect((await request(`${prefix}/auth/me`)).status).toBe(401);
-    expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'wrong', confirmation: 'DELETE' })).status).toBe(401);
+    const wrongPassword = await request(`${prefix}/users/me/privacy/erase`, { password: 'wrong', confirmation: 'DELETE' });
+    expect(wrongPassword.status).toBe(400);
+    expect(await wrongPassword.json()).toEqual({ message: 'Your password is not correct.', code: 'password-incorrect' });
     stores.notes.removeForUser = remove;
     expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'Password123!', confirmation: 'DELETE' })).status).toBe(204);
     expect((await stores.auth.findById(user.id))?.privacyErasure?.state).toBe('complete');
+  });
+
+  it('still counts wrong passwords toward the sign-in limit and returns Retry-After', async () => {
+    const { request, stores, user } = await setup(2);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      expect((await request(`${prefix}/users/me/privacy/erase`, { password: 'wrong', confirmation: 'DELETE' })).status).toBe(400);
+    }
+    const limited = await request(`${prefix}/users/me/privacy/erase`, { password: 'Password123!', confirmation: 'DELETE' });
+    expect(limited.status).toBe(429);
+    expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(await limited.json()).toEqual({ message: 'Too many password attempts. Try again later.' });
+    expect(await stores.auth.findById(user.id)).toEqual(user);
+    expect((await request(`${prefix}/auth/me`)).status).toBe(200);
   });
 
   it('waits for an admitted profile write before erasing it and refuses queued writes after erasure', async () => {

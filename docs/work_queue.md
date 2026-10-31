@@ -9,7 +9,10 @@ messages hold them.
 **US-P021 privacy — app increment, in progress (started 2026-10-31).** API delivered in `30a2cac`.
 - **Codex:** erase wrong password → 400 `password-incorrect` (was 401, which logs the app out) and
   the app data service `privacy.service.ts` (Task 7). Files: `api/src/privacyRoutes.ts` (+ test),
-  `app/src/app/services/privacy.service.ts` (+ spec). State: not started.
+  `app/src/app/services/privacy.service.ts` (+ spec). State: in progress (owner Codex,
+  `main`, base `a72845a`; 2026-10-31). Implementation verified, local delivery commit next.
+  Checks: `npm run api:test` 3,024/3,024 (126 files); focused Angular privacy service 9/9.
+  Both route aliases cover exact 400, preserved session 401s, retries and attempt limiting.
   Handoff: [handoffs/US-P021-app-codex.md](handoffs/US-P021-app-codex.md).
 - **Claude:** Privacy & data tab in Settings (Task 8), cookie consent banner, preferences and
   footer link (Task 9). Files: `pages/profile-page/*`, `services/consent.service.ts`,

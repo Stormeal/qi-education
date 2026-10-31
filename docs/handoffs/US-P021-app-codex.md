@@ -39,4 +39,18 @@ Story: `docs/stories/US-P021-gdpr-data-rights.md`. Plan: `docs/superpowers/plans
 
 ## Progress
 
-- Not started.
+- In progress: Codex on `main`, base `a72845a` (contains `c0be8e0`), 2026-10-31.
+- Contract precedence: this handoff and Alex's request supersede Task 7's older signatures
+  and the story's older wrong-password 401 wording. No app-state integration in this part.
+- Implemented both pieces: wrong-password 400 with the exact message/code, after awaited
+  failure recording; typed `PrivacyService` with the full export shape (including `authoring`),
+  supplied bearer tokens, uncached requests, 204 support and safe error results.
+- Route regressions first failed on the old 401 for both aliases, then passed. Coverage also
+  preserves missing/invalid/disabled session 401s, pending-erasure retries and 429/Retry-After.
+- Checks: `npm run api:test` passes 3,024/3,024 tests across 126 files;
+  `(cd app && npx ng test --watch=false --include src/app/services/privacy.service.spec.ts)`
+  passes 9/9. Angular reports the existing `src/test-setup.ts` compilation warning.
+- Fresh read-only review found no critical, important or minor issues. Tests use isolated
+  in-memory stores and fetch spies; no hosted/shared mutation probes or fixed-port servers.
+- Next: patch-bump the current version, commit locally, then record the delivery commit here
+  and in Codex's queue row. No push; Claude owns Settings integration and final story closure.
