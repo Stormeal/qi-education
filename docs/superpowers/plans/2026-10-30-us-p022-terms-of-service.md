@@ -8,7 +8,7 @@
 
 **Tech Stack:** Express + Zod + repository pattern; Angular signals frontend.
 
-**Spec:** `docs/stories/US-P022-terms-of-service.md`
+**Spec:** `docs/specs/accounts/terms.md` (contract removed on delivery; read it with `git show ed3053a:docs/stories/US-P022-terms-of-service.md`)
 
 ## Global Constraints
 

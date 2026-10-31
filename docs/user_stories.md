@@ -49,7 +49,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
 | US-L028 | Learner course ratings and reviews | Proposed | P2 | — | Below |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Delivered 2026-10-31 (not live) | P1 | Release 1 | [Spec](specs/accounts/privacy.md) |
-| US-P022 | Terms of service and purchase-terms page | Designed | P1 | Legal content (Alex), Release 1 | [Contract](stories/US-P022-terms-of-service.md) |
+| US-P022 | Terms of service and purchase-terms page | Delivered 2026-10-31 (not live); legal wording placeholder | P1 | Legal content (Alex), Release 1 | [Spec](specs/accounts/terms.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
 | US-T017 | Record and lightly edit course video in the browser | Proposed | P3 | — | Below |
@@ -298,7 +298,7 @@ status, tab and banner placement) are listed in the spec. Implementation plan:
 **As a user, I want to read the platform's terms and purchase terms, so that I know the rules
 before I sign up or buy.**
 
-State: Designed (Alex, 2026-10-30) — contract: [stories/US-P022-terms-of-service.md](stories/US-P022-terms-of-service.md).
+State: Delivered locally 2026-10-31, not live; legal wording is placeholder until Alex/legal supply it. Behavior: [specs/accounts/terms.md](specs/accounts/terms.md).
 Release 1 (assigned by Alex, 2026-10-30); the ToS acceptance, versioning + re-accept gate and footer are the R1 deliverable, with purchase-terms/checkout acceptance dormant until charging is enabled (R2, courses are free in R1). Two in-code versioned documents — Terms of Service (accepted at signup) and Purchase & Refund
 Terms (accepted at checkout) — stored as typed constants (the `release-notes.ts` pattern). A per-account
 `termsAcceptances` record stores `{ userId, documentId, version, acceptedAt }`; the server stamps the

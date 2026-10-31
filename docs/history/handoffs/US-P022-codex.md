@@ -44,7 +44,8 @@ Isolated in-memory stores only; no hosted or shared-service calls.
 
 ## Progress
 
-- In progress: Codex, `main`, base `10e0742`, 2026-10-31. History requirement verified.
+- Done locally: Codex, `main`, base `10e0742`, 2026-10-31. History requirement verified.
+  Delivery commit `ed3053a`, version `0.1.558`. No push or deployment.
 - Following this handoff where plan/story differ: optional legacy signup acceptance,
   best-effort `termsPending`, idempotent acceptance per version and retention on erasure.
 - Tasks 1–3 share one injected repository and server-owned versions. Tests run before each
@@ -71,4 +72,10 @@ Isolated in-memory stores only; no hosted or shared-service calls.
 - Final fresh review: no critical/important findings. Deferred minor test gaps: direct Mongo
   initialization retry and hosted-without-Mongo factory coverage. Real providers/Mongo and
   Claude-owned UI/browser/legal content remain outside this increment's verification.
-- No shared-provider probes. Final checks passed; local delivery commit and version bump next.
+- No shared-provider probes. Final checks passed and local delivery committed. Version read
+  immediately before commit: `0.1.557` after Claude's `48bd3f2`, bumped to `0.1.558`; root/app
+  packages, all three matching lockfile entries and only `AppStateService.appVersion` aligned.
+- Queue row and this Progress section updated with the delivery hash after committing, as
+  requested; these post-commit record updates remain uncommitted. Claude's files were preserved.
+- Next: Claude completes whole-story UI/browser integration checks and documentation. Live
+  Mongo/provider checks and legal wording remain outside this isolated API increment.

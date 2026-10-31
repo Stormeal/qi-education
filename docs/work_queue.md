@@ -6,16 +6,14 @@ messages hold them.
 
 ## Active work
 
-**US-P022 terms of service, in progress (started 2026-10-31).** Picked as the next release-1 Must
-(no open defects); legal wording stays placeholder until Alex supplies it.
-- **Codex:** acceptance store, `termsPending` on `/auth/me`, `POST /users/me/terms/accept`,
-  signup and checkout recording, privacy export/erasure wiring (plan Tasks 1–3). Files in
-  [handoffs/US-P022-codex.md](handoffs/US-P022-codex.md). State: in progress (owner Codex,
-  `main`, base `10e0742`). Implementation verified; local delivery commit next.
-  Checks: complete API suite 3,075/3,075 across 128 files with four workers (default concurrency
-  hit unchanged timing tests); focused Angular privacy-service spec 9/9; API build passes.
-- **Claude:** terms content constants, `/terms` and `/purchase-terms` pages, footer links, signup and
-  checkout checkboxes, re-accept gate (Tasks 4–6). Files: the rest of `app/`. State: in progress.
+No active implementation. **US-P022 terms of service is delivered locally (2026-10-31), not
+pushed**: Claude `48bd3f2` (pages, footer links, checkboxes, re-accept gate), Codex `ed3053a`
+(acceptance store, `termsPending`, accept route, signup/checkout recording, privacy wiring).
+Checks: API 3,075, app 663, journeys 20, Pages build. Browser on isolated stores: the demo student
+meets the gate at sign-in (page behind inert), I accept clears it for good, a ticked signup never
+sees it, and the export lists the acceptance. Buy's checkbox is covered by specs only. Waits on
+Alex: the legal wording, push, and the "confirm or change" decisions in
+[terms](specs/accounts/terms.md).
 
 **US-P021 GDPR data rights is delivered locally (2026-10-31), not
 pushed**: API `30a2cac`, cookie consent `a72845a`, privacy client and erase 400 `74ed267` (Codex),
