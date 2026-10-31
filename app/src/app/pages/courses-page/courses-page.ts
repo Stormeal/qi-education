@@ -386,7 +386,7 @@ export class CoursesPage {
   }
 
   protected ratingCountLabel(value: number): string {
-    return `${new Intl.NumberFormat('en-US').format(value)} ratings`;
+    return `${new Intl.NumberFormat('en-US').format(value)} ${value === 1 ? 'rating' : 'ratings'}`;
   }
 
   protected instructorMetaLabel(value: PopularInstructorCard): string {

@@ -11,7 +11,7 @@ agreements and the privacy notice come from US-P018-AC03.
 - **Export** (`GET /users/me/privacy/export`, `/api` alias, any signed-in role, own account only):
   one JSON object `{ exportedAt, account, profile, instructorProfile, enrolments, progress, notes,
   lessonFeedback, careers, payments, organizations, feedback, notifications, authoring,
-  termsAcceptances }` (US-P022 acceptances are kept on erasure, see [terms](terms.md)). No
+  termsAcceptances, courseRatings }` (US-P022 acceptances are kept on erasure, see [terms](terms.md)). No
   password hash, tokens or card data. Never cached by the API or the app.
 - **Erase** (`POST /users/me/privacy/erase`, `/api` alias), body
   `{ password, confirmation: 'DELETE' }`, checked before any change:
@@ -36,6 +36,7 @@ agreements and the privacy notice come from US-P018-AC03.
   | Instructor profile | "Former instructor" |
   | Enrolments | Kept, under the tombstone id |
   | Lesson feedback | Text deleted, rating kept anonymously |
+  | Course ratings (US-L028) | Comment deleted, stars kept under the tombstone id |
   | Payments, admin change log | Kept, pseudonymized (accounting and audit) |
   | Organization membership | Removed (owners are blocked first) |
   | Feedback submissions | Submitter anonymized, text kept |

@@ -27,6 +27,7 @@ lessons, keeps notes, gets the files and tells the teacher how a lesson went.
 - **Lesson feedback**: helpful / not helpful, or **Report a problem** with a category (Video does
   not play, Mistake in the content, Hard to understand, Files or links, Other). Reports go to the
   admin feedback list tagged with course and lesson.
+- **Rate this course** (Overview tab): see [course ratings](../catalog/ratings.md).
 - **Course facts**: length, lessons, level, enrolled learners, last updated and caption languages
   when a video has ready captions.
 - Keyboard: every control is reachable; after saving a note, sending feedback or finishing a quiz,

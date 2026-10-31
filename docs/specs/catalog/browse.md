@@ -33,4 +33,5 @@ Learners discover published courses; teachers and admins also find their own unp
 
 ## Limits
 
-- "Popular" and rating come from stored course fields; there are no learner ratings.
+- "Popular" comes from stored course fields. Rating and rating count are learner ratings (see
+  [ratings](ratings.md)).

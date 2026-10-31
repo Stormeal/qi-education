@@ -6,14 +6,14 @@ messages hold them.
 
 ## Active work
 
-**US-L028 course ratings** (selected by Alex 2026-10-31). Decisions in
-[the story contract](stories/US-L028-course-ratings.md), split in
-[handoffs/US-L028-codex.md](handoffs/US-L028-codex.md).
-
-| Owner | Scope | State |
-| --- | --- | --- |
-| Codex | API: rating store, routes, eligibility, course aggregate, admin hide, privacy wiring | Verified, local commit next; owner Codex, `main`, base `a22faab` (contains `6c7216d`), 2026-10-31. AC01–AC03 covered on both aliases, including replacement, hidden reviews, cross-instance aggregates, unchanged review revisions, ignored legacy inputs and privacy anonymization. API build passes; full suite `(cd api && npx vitest run --maxWorkers=4)` 3,124/3,124 in 130 files; privacy-service spec 9/9. Default `npm run api:test`: 3,123 passed + unchanged DEF-034 /11 `/auth/login` AbortError in `signInLimit.test.ts`. Fresh review: no blocking issues; maintenance error metadata fixed RED→GREEN. Isolated stores only; real Mongo/hosted/browser checks left to integration. |
-| Claude | App: learning-page rating panel, course details reviews and admin hide, catalog settings without rating inputs; specs | Built, waits on the API for the browser check |
+No active implementation. **US-L028 course ratings is delivered locally (2026-11-01), not pushed**:
+Claude `a22faab` (rating box, reviews with admin Hide/Show, catalog settings without rating
+inputs), Codex `4f8eec5` (rating store, routes, eligibility, course aggregate, privacy). Checks: API
+3,123 + DEF-034/11 timing failure that passes alone (24/24), app 668, journeys 20, Pages build.
+Browser on isolated stores: rating refused before a completed lesson, 4 stars with a comment saved
+and updated, course details and catalog show 4.0 (1) with first name only, admin Hide drops it to
+0.0 (0) and Show restores it. Behavior in [ratings](specs/catalog/ratings.md). Waits on Alex: push,
+and the "confirm or change" decisions there.
 
 US-P021 and US-P022 are live in 0.1.561 (pushed 2026-10-31); hosted checks not done yet.
 **US-P022 terms of service was delivered locally (2026-10-31)**: Claude `48bd3f2` (pages, footer links, checkboxes, re-accept gate), Codex `ed3053a`

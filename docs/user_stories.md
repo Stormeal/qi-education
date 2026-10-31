@@ -47,7 +47,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
-| US-L028 | Learner course ratings and reviews | In progress | P2 | — | [stories/US-L028](stories/US-L028-course-ratings.md) |
+| US-L028 | Learner course ratings and reviews | Delivered 2026-11-01 (not live) | P2 | — | [Spec](specs/catalog/ratings.md) |
 | US-P021 | GDPR data rights (export, erasure, cookie consent) | Delivered 2026-10-31 (not live) | P1 | Release 1 | [Spec](specs/accounts/privacy.md) |
 | US-P022 | Terms of service and purchase-terms page | Delivered 2026-10-31 (not live); legal wording placeholder | P1 | Legal content (Alex), Release 1 | [Spec](specs/accounts/terms.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
@@ -149,11 +149,8 @@ Feature: Course completion certificate
 **As a learner, I want to rate a course and read others' ratings, so that I can choose good
 courses; as a teacher, I want to know what learners think.**
 
-State: Proposed (added by Alex 2026-10-27). Today the catalog shows "0.0, 0 ratings" from stored
-course fields ([browse spec](specs/catalog/browse.md)), so the stars, "Highest rated" sort,
-rating filter and "highly rated" instructors mean nothing. Open decisions: when a learner may rate
-(default: after completing at least one lesson), whether comments are shown publicly with the
-learner's name (default: first name only), and whether admins can hide a review (default: yes).
+State: Delivered 2026-11-01 (not live). Behavior and the decisions to confirm or change in
+[course ratings](specs/catalog/ratings.md).
 
 ```gherkin
 Feature: Course ratings

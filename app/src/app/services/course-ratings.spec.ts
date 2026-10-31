@@ -117,7 +117,7 @@ describe('US-L028 course ratings', () => {
       const { body } = await setup(false);
       const reviews = text(body.querySelector('#course-reviews'));
       expect(reviews).toContain('4.0');
-      expect(reviews).toContain('1 ratings');
+      expect(reviews).toContain('1 rating');
       expect(reviews).toContain('Mette');
       expect(reviews).toContain('Useful exercises');
       expect(text(body.querySelector('.course-view-meta'))).toContain('4.0 (1)');

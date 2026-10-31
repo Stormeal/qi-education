@@ -340,7 +340,7 @@
                           @if (courseRatingError()) { <p class="form-error" role="alert">{{ courseRatingError() }}</p> }
                           <div class="form-actions">
                             <span class="note-private" aria-live="polite">
-                              @if (courseRatingSaved()) { Saved. Others see your first name with your rating. }
+                              @if (courseRatingSaved()) { Saved. }
                               @else if (myCourseRating()?.rating?.hidden) { An admin has hidden your review. }
                               @else { Shown with your first name. }
                             </span>

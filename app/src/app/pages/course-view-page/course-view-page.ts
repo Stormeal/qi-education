@@ -623,7 +623,7 @@ export class CourseViewPage {
   }
 
   protected ratingCountLabel(value: number): string {
-    return `${new Intl.NumberFormat('en-US').format(value)} ratings`;
+    return `${new Intl.NumberFormat('en-US').format(value)} ${value === 1 ? 'rating' : 'ratings'}`;
   }
 
   protected thumbnailUrl(course: CourseListItem): string {

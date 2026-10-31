@@ -30,6 +30,8 @@ A learner reads what a course offers, then joins it so it appears in My Learning
 - A direct link or refresh of a course URL restores the session first, then loads the course;
   "missing", "failed to load" and "not entitled" are shown as different states.
 
+- **Learner reviews** and admin Hide/Show: see [course ratings](ratings.md).
+
 ## Rules
 
 - Enrollment never comes from a career path or a declaration. A priced course is enrolled by
