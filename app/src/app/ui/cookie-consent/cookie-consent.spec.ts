@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { CONSENT_VERSION, ConsentService } from '../../services/consent.service';
-import { CookieConsent, CookieLink } from './cookie-consent';
+import { provideRouter } from '@angular/router';
+import { CookieConsent } from './cookie-consent';
+import { LegalLinks } from '../legal-links/legal-links';
 
 const KEY = 'qi-education:cookie-consent';
 
@@ -29,6 +31,7 @@ describe('US-P021 cookie consent', () => {
   });
 
   it('lets the preferences panel turn analytics on, and the footer link reopens it', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
     const { fixture, page, button, consent } = render();
     button('Preferences').click(); fixture.detectChanges();
     const boxes = page.querySelectorAll<HTMLInputElement>('input[type=checkbox]');
@@ -37,8 +40,10 @@ describe('US-P021 cookie consent', () => {
     button('Save preferences').click(); fixture.detectChanges();
     expect(consent.hasConsent('analytics')).toBe(true);
     expect(page.querySelector('.cc-panel')).toBeNull();
-    const link = TestBed.createComponent(CookieLink); link.detectChanges();
-    (link.nativeElement as HTMLElement).querySelector('button')!.click(); fixture.detectChanges();
+    const links = TestBed.createComponent(LegalLinks); links.detectChanges();
+    const footer = links.nativeElement as HTMLElement;
+    expect([...footer.querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual(['/terms', '/purchase-terms']);
+    footer.querySelector('button')!.click(); fixture.detectChanges();
     expect(page.textContent).toContain('Cookie preferences');
     expect(page.querySelectorAll<HTMLInputElement>('input[type=checkbox]')[1].checked).toBe(true);
   });

@@ -83,7 +83,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.556';
+  readonly appVersion = '0.1.557';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -91,6 +91,11 @@ export class AppStateService {
   readonly authMode = signal<'login' | 'signup'>('login');
   readonly signupDisplayName = signal('');
   readonly signupPasswordConfirmation = signal('');
+  readonly signupTermsAccepted = signal(false);
+  /** US-P022: set only at sign-in and page load, so the gate never interrupts work in progress. */
+  readonly termsPending = signal(false);
+  readonly termsAccepting = signal(false);
+  readonly termsAcceptError = signal('');
   readonly signupError = signal('');
   readonly signupConfigLoading = signal(false);
   readonly turnstileSiteKey = signal<string | null>(null);
@@ -210,7 +215,7 @@ export class AppStateService {
       this.signupDisplayName().trim().length > 1 &&
       this.email().trim().length > 0 &&
       this.password().length >= 8 &&
-      this.signupPasswordConfirmation().length > 0 &&
+      this.signupPasswordConfirmation().length > 0 && this.signupTermsAccepted() &&
       !this.signupConfigLoading() && (!this.turnstileSiteKey() || !!this.turnstileToken()) &&
       !this.isSubmitting(),
   );
@@ -508,6 +513,10 @@ export class AppStateService {
     this.signupError.set('');
   }
 
+  toggleSignupTerms(): void {
+    this.signupTermsAccepted.update(accepted => !accepted);
+  }
+
   setAuthMode(mode: 'login' | 'signup'): void {
     if (this.authMode() === mode || this.isSubmitting()) {
       return;
@@ -613,6 +622,7 @@ export class AppStateService {
         email: this.email(),
         password: this.password(),
         turnstileToken: this.turnstileToken() || undefined,
+        acceptTos: true,
       });
 
       if (!result.ok) {
@@ -634,6 +644,7 @@ export class AppStateService {
       this.sessionService.storeSession(login, this.rememberMe());
       this.password.set('');
       this.signupPasswordConfirmation.set('');
+      this.signupTermsAccepted.set(false);
       this.signupDisplayName.set('');
       this.authMode.set('login');
       this.feedbackSubmitted.set(false);
@@ -680,7 +691,10 @@ export class AppStateService {
     const request = this.notifications.beginCountRefresh();
     try {
       const result = await this.authService.restoreSession(token);
-      if (this.loginState()?.token === token && result) this.notifications.setUnreadCount(result.unreadNotifications ?? 0, request);
+      if (this.loginState()?.token === token && result) {
+        this.notifications.setUnreadCount(result.unreadNotifications ?? 0, request);
+        this.termsPending.set(result.termsPending === true);
+      }
     } catch { /* A notification outage does not interrupt sign-in. */ }
   }
 
@@ -696,8 +710,22 @@ export class AppStateService {
     else this.emailConfirmationMessage.set(result.message);
   }
 
+  async acceptTerms(): Promise<void> {
+    const token = this.loginState()?.token;
+    if (!token || this.termsAccepting()) return;
+    this.termsAccepting.set(true);
+    this.termsAcceptError.set('');
+    const accepted = await this.authService.acceptTerms(token).catch(() => false);
+    this.termsAccepting.set(false);
+    if (this.loginState()?.token !== token) return;
+    if (accepted) this.termsPending.set(false);
+    else this.termsAcceptError.set('Your acceptance could not be saved. Please try again.');
+  }
+
   private endSession(): void {
     this.purchaseReturnGeneration++;
+    this.termsPending.set(false);
+    this.termsAcceptError.set('');
     this.feedbackComposer.setSession('');
     this.learningProgress.reset();
     this.initializedCourseEditorPath = '';
@@ -770,6 +798,7 @@ export class AppStateService {
         return;
       }
 
+      this.termsPending.set(restored.termsPending === true);
       this.notifications.setSession(restoredSession.token, restoredSession.user.id);
       this.notifications.setUnreadCount(restored.unreadNotifications ?? 0, countRequest);
       void this.notifications.prefetch();

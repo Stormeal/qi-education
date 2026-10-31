@@ -17,6 +17,7 @@ describe('US-P020 signup state', () => {
     state.setAuthMode('signup');
     state.updateSignupDisplayName('New Learner'); state.updateEmail('new@example.test');
     state.updatePassword('Password123!'); state.updateSignupPasswordConfirmation('Password123!');
+    state.toggleSignupTerms();
     await vi.waitFor(() => expect(state.signupConfigLoading()).toBe(false));
     return state;
   }
@@ -37,6 +38,15 @@ describe('US-P020 signup state', () => {
     expect(state.turnstileResetVersion()).toBeGreaterThan(version);
     expect(state.canSignupSubmit()).toBe(false);
     expect(state.signupError()).toBe('Duplicate account');
+  });
+  it('US-P022 requires the Terms of Service box and sends the acceptance', async () => {
+    const state = await signup(null);
+    state.toggleSignupTerms();
+    expect(state.canSignupSubmit()).toBe(false);
+    state.toggleSignupTerms();
+    const request = vi.spyOn(TestBed.inject(AuthService), 'signup').mockResolvedValue({ ok: false, message: 'Duplicate account' });
+    await state.submitSignup();
+    expect(request.mock.calls[0][0].acceptTos).toBe(true);
   });
   it('does not submit while the public configuration is still loading', async () => {
     vi.spyOn(TestBed.inject(ApiClientService), 'getPublicConfig').mockReturnValue(new Promise(() => {}));

@@ -51,6 +51,11 @@ describe('course details page', () => {
     const button = page.querySelector<HTMLButtonElement>('.course-enroll-body button')!;
     expect(button.textContent?.trim()).toBe('Buy for 499 DKK');
     expect(page.textContent).not.toContain('Price for information only');
+    // US-P022: Buy waits for the purchase terms, which link to their page.
+    expect(button.disabled).toBe(true);
+    expect(page.querySelector('.purchase-terms a')?.getAttribute('href')).toBe('/purchase-terms');
+    page.querySelector<HTMLInputElement>('.purchase-terms input')!.click(); fixture.detectChanges();
+    expect(button.disabled).toBe(false);
     button.click();
     expect(started).toEqual(['course']);
   });

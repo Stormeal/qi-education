@@ -28,14 +28,3 @@ export class CookieConsent {
   protected keydown(event: KeyboardEvent): void { if (event.key === 'Escape') this.consent.closePreferences(); }
   protected toggle(event: Event): void { this.analytics.set((event.target as HTMLInputElement).checked); }
 }
-
-/** The footer's "Cookie preferences" trigger. */
-@Component({
-  selector: 'app-cookie-link',
-  template: `<button type="button" class="cookie-link" (click)="consent.openPreferences()">Cookie preferences</button>`,
-  styles: `.cookie-link { padding: 0; border: 0; color: inherit; background: none; font: inherit; text-decoration: underline; cursor: pointer; }`,
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class CookieLink {
-  protected readonly consent = inject(ConsentService);
-}

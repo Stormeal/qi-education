@@ -1,0 +1,50 @@
+/* --z-overlay sits above the shell's dialogs (30) and the cookie banner (20). */
+.tg-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+
+.tg-panel {
+  display: grid;
+  gap: 14px;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 32px);
+  padding: 22px 24px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-card);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-text);
+
+  h2 { margin: 0; color: var(--color-ink); font-family: var(--font-display); font-size: var(--text-title-sm); font-weight: 700; }
+  p { margin: 0; }
+}
+
+.tg-lead { color: var(--color-text-muted); }
+
+.tg-document {
+  overflow-y: auto;
+  min-height: 120px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  font-size: 14px;
+  line-height: 1.5;
+
+  h3 { margin: 0; color: var(--color-ink); font-size: 16px; }
+  h4 { margin: 12px 0 2px; color: var(--color-ink); font-size: 14px; }
+}
+
+.tg-meta { color: var(--color-text-muted); font-size: 12px; }
+.tg-error { color: var(--color-danger); }
+
+.tg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

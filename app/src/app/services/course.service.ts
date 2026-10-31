@@ -785,7 +785,7 @@ export class CourseService {
     const response = await this.apiClient.fetch(`/users/me/courses/${encodeURIComponent(courseId)}/checkout`, {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ returnUrl }),
+      body: JSON.stringify({ returnUrl, acceptPurchaseTerms: true }),
     });
     const body = (await response.json().catch(() => ({}))) as { url?: string; message?: string };
     return response.ok && body.url ? { ok: true, url: body.url }

@@ -100,7 +100,7 @@ describe('US-P019 C1 notification session service', () => {
     vi.spyOn(TestBed.inject(AuthService), 'signup').mockResolvedValue({ ok: true, login: session });
     const state = TestBed.inject(AppStateService);
     state.signupDisplayName.set('One User'); state.updateEmail('one@example.test');
-    state.updatePassword('Password123!'); state.signupPasswordConfirmation.set('Password123!');
+    state.updatePassword('Password123!'); state.signupPasswordConfirmation.set('Password123!'); state.toggleSignupTerms();
     await state.submitSignup();
     expect(state.loginState()?.token).toBe('signed-up'); expect(state.isSubmitting()).toBe(false);
     expect(fetcher).toHaveBeenCalledWith('/notifications', expect.objectContaining({ method: 'GET' }));

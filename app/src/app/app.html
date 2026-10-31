@@ -1,4 +1,4 @@
-<div [attr.inert]="state.isFeedbackOpen() ? '' : null">
+<div [attr.inert]="state.isFeedbackOpen() || state.termsPending() ? '' : null">
   @if (navigationRecovery.loadFailed()) {
     <section class="navigation-recovery" aria-label="Page loading problem">
       <div role="alert">
@@ -15,6 +15,10 @@
 </div>
 <app-confirm-dialog />
 <app-cookie-consent />
+@if (state.termsPending()) {
+  <app-terms-gate [busy]="state.termsAccepting()" [error]="state.termsAcceptError()"
+    (accepted)="state.acceptTerms()" (loggedOut)="state.logout()" />
+}
 @if (state.isFeedbackOpen()) {
   <app-feedback-dialog
     [submitted]="state.feedbackSubmitted()"

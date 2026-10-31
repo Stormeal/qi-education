@@ -165,6 +165,7 @@ describe('US-L024 checkout requests', () => {
     fetchMock.mockResolvedValueOnce(json(200, { url: 'https://checkout.stripe.test/cs_1' }));
     expect(await service.startCheckout('course-1', 'token', 'http://localhost:4200/courses/course-1'))
       .toEqual({ ok: true, url: 'https://checkout.stripe.test/cs_1' });
+    expect(JSON.parse(String(fetchMock.mock.calls.at(-1)![1].body))).toEqual({ returnUrl: 'http://localhost:4200/courses/course-1', acceptPurchaseTerms: true });
     fetchMock.mockResolvedValueOnce(json(409, { message: 'You are already enrolled in this course.' }));
     expect(await service.startCheckout('course-1', 'token', 'http://localhost:4200/courses/course-1'))
       .toEqual({ ok: false, message: 'You are already enrolled in this course.' });

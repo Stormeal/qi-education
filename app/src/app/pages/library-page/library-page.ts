@@ -4,11 +4,11 @@ import { CourseListItem, CourseSummary, FeedbackOption, StudentSummary } from '.
 import { Button } from '../../ui/button/button';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 @Component({
   selector: 'app-library-page',
-  imports: [Button, LoadingSkeleton, PageHeader, RouterLink, CookieLink],
+  imports: [Button, LoadingSkeleton, PageHeader, RouterLink, LegalLinks],
   templateUrl: './library-page.html',
   styleUrls: ['../../app.scss', './library-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

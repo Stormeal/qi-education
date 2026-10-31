@@ -5,6 +5,8 @@ export type CoursePurchaseStatus = 'idle' | 'redirecting' | 'confirming' | 'paid
 
 export type LoginResponse = {
   unreadNotifications?: number;
+  /** US-P022, on `/auth/me` only: a newer Terms of Service waits for acceptance. Missing means false. */
+  termsPending?: boolean;
   token: string;
   user: {
     id: string;
@@ -28,6 +30,8 @@ export type SignupRequest = {
   displayName: string;
   email: string;
   password: string;
+  /** US-P022: the server records its current Terms of Service version. */
+  acceptTos?: true;
 };
 
 export type NotificationItem = {

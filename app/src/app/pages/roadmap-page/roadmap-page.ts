@@ -5,7 +5,7 @@ import { Chip, ChipVariant } from '../../ui/chip/chip';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 import { RELEASE_NOTES } from './release-notes';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 // Teacher/admin copy of the roadmap Alex agreed on 2026-10-23 (docs/user_stories.md, Releases).
 // Management decisions (budget, staffing) are left out on purpose.
@@ -66,7 +66,7 @@ const RELEASE_1_GROUPS: { title: string; items: { name: string; must: boolean; s
 
 @Component({
   selector: 'app-roadmap-page',
-  imports: [Chip, DatePipe, PageHeader, Tabs, CookieLink],
+  imports: [Chip, DatePipe, PageHeader, Tabs, LegalLinks],
   templateUrl: './roadmap-page.html',
   styleUrls: ['../../app.scss', './roadmap-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

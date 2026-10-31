@@ -51,6 +51,18 @@
   font-weight: 800;
 }
 
+.purchase-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+
+  input { flex-shrink: 0; width: 16px; height: 16px; margin-top: 1px; accent-color: var(--color-primary); }
+  a { color: var(--color-ink); font-weight: 600; text-decoration: underline; }
+}
+
 .course-empty,
 .course-error {
   border: 1px dashed var(--color-border-strong);

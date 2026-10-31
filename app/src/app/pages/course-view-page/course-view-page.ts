@@ -46,11 +46,12 @@ import { Button } from '../../ui/button/button';
 import { IconButton } from '../../ui/icon-button/icon-button';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { RouterLink } from '@angular/router';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 @Component({
   selector: 'app-course-view-page',
-  imports: [OrganizationPriceField, Button, DatePipe, IconButton, LoadingSkeleton, PageHeader, CookieLink],
+  imports: [OrganizationPriceField, Button, DatePipe, IconButton, LoadingSkeleton, PageHeader, RouterLink, LegalLinks],
   templateUrl: './course-view-page.html',
   styleUrls: ['./course-view-page.scss', './course-view-page-learning.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +75,8 @@ export class CourseViewPage {
   protected readonly exerciseIcon = this.asSafeIcon(lucideWrench);
   protected readonly formatFileSize = formatFileSize;
 
+  /** US-P022: Buy stays disabled until the purchase terms are ticked. */
+  protected readonly purchaseTermsAccepted = signal(false);
   protected readonly priceDraft = signal('');
   protected readonly priceDraftError = signal('');
   protected readonly isPriceModalOpen = signal(false);

@@ -12,11 +12,11 @@ import { TeachingOverview } from '../../ui/teaching-overview/teaching-overview';
 import { Button } from '../../ui/button/button';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { ProgressBar } from '../../ui/progress-bar/progress-bar';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [Icon, AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar, TeachingOverview, CookieLink],
+  imports: [Icon, AdminAttention, Button, MyReviews, PageHeader, RouterLink, ProgressBar, TeachingOverview, LegalLinks],
   templateUrl: './dashboard-page.html',
   styleUrls: ['../../app.scss', './dashboard-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

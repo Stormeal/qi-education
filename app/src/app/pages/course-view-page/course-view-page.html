@@ -262,9 +262,13 @@
             } @else if (currentCourse.status === 'published' && includedBy()) {
               <button appButton="primary" (click)="openEnrollDialog()" fullWidth>Enroll (included by {{ includedBy() }})</button>
             } @else if (currentCourse.status === 'published' && isPriced(currentCourse.priceDkk)) {
+              <label class="purchase-terms">
+                <input type="checkbox" [checked]="purchaseTermsAccepted()" (change)="purchaseTermsAccepted.set(!purchaseTermsAccepted())" />
+                <span>I agree to the <a routerLink="/purchase-terms" target="_blank">Purchase &amp; Refund Terms</a></span>
+              </label>
               <button
                 appButton="primary"
-                [disabled]="confirmationRequired() || enrollmentSubmitting() || purchaseStatus() === 'confirming'"
+                [disabled]="!purchaseTermsAccepted() || confirmationRequired() || enrollmentSubmitting() || purchaseStatus() === 'confirming'"
                 (click)="coursePurchaseStarted.emit(currentCourse.id)"
                 fullWidth
               >
@@ -362,7 +366,7 @@
       Made with <span class="footer-heart" aria-label="love">&hearts;</span> by Testhuset A/S
       <span>&copy; {{ currentYear() }}</span>
     </span>
-    <app-cookie-link />
+    <app-legal-links />
     <span class="footer-version">Version {{ appVersion() }}</span>
   </footer>
 </main>

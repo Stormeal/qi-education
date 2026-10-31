@@ -26,6 +26,7 @@ export class LoginPage {
   readonly canSubmit = input.required<boolean>();
   readonly canSignupSubmit = input.required<boolean>();
   readonly learningHighlights = input.required<string[]>();
+  readonly signupTermsAccepted = input(false);
   readonly turnstileSiteKey = input<string | null>(null);
   readonly turnstileResetVersion = input(0);
   readonly turnstileTokenChanged = output<string>();
@@ -39,6 +40,7 @@ export class LoginPage {
   readonly passwordVisibilityToggled = output<void>();
   readonly loginSubmitted = output<void>();
   readonly signupSubmitted = output<void>();
+  readonly signupTermsToggled = output<void>();
 
   protected inputValue(event: Event): string {
     const input = event.target;

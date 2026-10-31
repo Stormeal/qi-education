@@ -17,7 +17,7 @@ import { Button } from '../../ui/button/button';
 import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 type FeedbackPriority = 'low' | 'medium' | 'high';
 type FeedbackWorkStatus = 'work' | 'completed' | 'wont-do';
@@ -36,7 +36,7 @@ function storedSection(): AdminSection {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [AdminOrganizations, DatePipe, Button, CareerPathEditor, LoadingSkeleton, PageHeader, Tabs, CookieLink],
+  imports: [AdminOrganizations, DatePipe, Button, CareerPathEditor, LoadingSkeleton, PageHeader, Tabs, LegalLinks],
   templateUrl: './admin-page.html',
   styleUrls: ['../../app.scss', './admin-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

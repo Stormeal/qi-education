@@ -67,6 +67,7 @@ export class AuthService {
         email: input.email.trim(),
         password: input.password,
         turnstileToken: input.turnstileToken,
+        acceptTos: input.acceptTos,
       }),
     });
     const body = (await response.json()) as LoginResponse | { message?: string };
@@ -100,6 +101,16 @@ export class AuthService {
     if (!response.ok) throw new Error('The session could not be checked.');
 
     return (await response.json()) as Omit<LoginResponse, 'token'>;
+  }
+
+  /** US-P022: accept the current Terms of Service; the server stamps its own version. */
+  async acceptTerms(token: string): Promise<boolean> {
+    const response = await this.apiClient.fetch('/users/me/terms/accept', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentId: 'tos' }),
+    });
+    return response.ok;
   }
 
   /** US-L004. The reply is the same whether or not the address has an account. */

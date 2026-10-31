@@ -1,0 +1,21 @@
+<div class="tg-backdrop">
+  <section class="tg-panel" role="dialog" aria-modal="true" aria-labelledby="terms-gate-title">
+    <h2 id="terms-gate-title" #heading tabindex="-1">Our Terms of Service have been updated</h2>
+    <p class="tg-lead">Please read and accept them to continue using QI Academy.</p>
+    <div class="tg-document" tabindex="0" aria-label="{{ document.title }}">
+      <h3>{{ document.title }}</h3>
+      <p class="tg-meta">Version {{ document.version }}, effective {{ document.effectiveDate }}</p>
+      @for (section of document.sections; track section.heading; let index = $index) {
+        <h4>{{ index + 1 }}. {{ section.heading }}</h4>
+        <p>{{ section.body }}</p>
+      }
+    </div>
+    @if (error()) { <p class="tg-error" role="alert">{{ error() }}</p> }
+    <div class="tg-actions">
+      <button appButton="ghost" type="button" (click)="loggedOut.emit()">Log out</button>
+      <button appButton="primary" type="button" [disabled]="busy()" (click)="accepted.emit()">
+        {{ busy() ? 'Saving…' : 'I accept' }}
+      </button>
+    </div>
+  </section>
+</div>

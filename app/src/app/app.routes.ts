@@ -41,7 +41,11 @@ export const routes: Routes = [
     loadComponent: () => import('./routes/profile-route').then(module => module.ProfileRoute),
   },
   {
-    path: 'terms',
+    path: 'terms', data: { document: 'tos' },
+    loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
+  },
+  {
+    path: 'purchase-terms', data: { document: 'purchase' },
     loadComponent: () => import('./routes/terms-route').then((module) => module.TermsRoute),
   },
   {

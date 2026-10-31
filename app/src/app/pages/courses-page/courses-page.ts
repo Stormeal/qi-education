@@ -20,7 +20,7 @@ import { LoadingSkeleton } from '../../ui/loading-skeleton/loading-skeleton';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
 import { courseTeacherIds } from '../../utils/course-permissions';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 type CourseCollectionTab = 'popular' | 'newest';
 type CourseCatalogView = 'published' | 'drafts';
@@ -48,7 +48,7 @@ type PopularInstructorCard = {
 
 @Component({
   selector: 'app-courses-page',
-  imports: [Button, IconButton, LoadingSkeleton, PageHeader, RouterLink, Tabs, CookieLink],
+  imports: [Button, IconButton, LoadingSkeleton, PageHeader, RouterLink, Tabs, LegalLinks],
   templateUrl: './courses-page.html',
   styleUrls: ['../../app.scss', './courses-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

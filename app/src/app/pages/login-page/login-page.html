@@ -268,6 +268,21 @@
               </div>
             }
 
+            @if (authMode() === 'signup') {
+              <label class="flex items-start gap-2 text-[13px] leading-5 text-[var(--muted)]">
+                <input
+                  type="checkbox"
+                  class="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-deep)]"
+                  [checked]="signupTermsAccepted()"
+                  (change)="signupTermsToggled.emit()"
+                />
+                <span>
+                  I agree to the
+                  <a class="font-semibold text-[var(--form-ink)] underline underline-offset-2" routerLink="/terms" target="_blank">Terms of Service</a>
+                </span>
+              </label>
+            }
+
             <button
               type="submit"
               appButton="primary" size="lg" fullWidth
@@ -284,18 +299,6 @@
               }}
             </button>
 
-            @if (authMode() === 'signup') {
-              <p class="mx-auto max-w-[380px] text-center text-[11px] leading-4 text-[var(--muted)]">
-                By creating an account, you agree to the
-                <a
-                  class="font-semibold text-[var(--form-ink)] underline decoration-[rgba(47,79,67,0.35)] underline-offset-2 transition hover:text-[var(--accent-deep)]"
-                  routerLink="/terms"
-                >
-                  Terms and Conditions
-                </a>
-                .
-              </p>
-            }
           </div>
         </form>
 

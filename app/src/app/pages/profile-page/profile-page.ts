@@ -9,14 +9,14 @@ import { Button } from '../../ui/button/button';
 import { Chip } from '../../ui/chip/chip';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { TabItem, Tabs, tabId, tabPanelId } from '../../ui/tabs/tabs';
-import { CookieLink } from '../../ui/cookie-consent/cookie-consent';
+import { LegalLinks } from '../../ui/legal-links/legal-links';
 
 const BIO_MAX_LENGTH = 280;
 const GOALS_MAX_LENGTH = 280;
 
 @Component({
   selector: 'app-profile-page',
-  imports: [Button, Chip, DatePipe, PageHeader, RouterLink, Tabs, CookieLink],
+  imports: [Button, Chip, DatePipe, PageHeader, RouterLink, Tabs, LegalLinks],
   templateUrl: './profile-page.html',
   styleUrls: ['../../app.scss', './profile-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
