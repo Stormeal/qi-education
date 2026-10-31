@@ -1,24 +1,20 @@
 # Work queue
 
-Updated: 2026-10-30. Working branch: `main`. Where to resume: active work first, then what waits on
+Updated: 2026-10-31. Working branch: `main`. Where to resume: active work first, then what waits on
 Alex, then the next candidate. Finished records are not kept here: Git history and the commit
 messages hold them.
 
 ## Active work
 
-**Release DEF-066 / DEF-067 — In progress** (2026-10-30, Codex, `main`, base `f8659ec`).
-Alex authorized push and the hosted walkthrough. Released 0.1.542 (`9610f47`); Pages/CI green,
-Vercel Ready. API 2,916, frontend 620, journeys 20 and both builds pass. DEF-066 hosted public
-and learner/teacher Home checks pass; teacher overview, feedback summary, empty bell and
-role-specific Settings checked. [Evidence](history/verification/2026-10-30-release/walkthrough.md).
-Alex created Test Course and requested reviewer changes with “This is a test”; the teacher received
-the notice, review history matched, and user-performed read marking persisted. US-P024 background
-loading is delivered locally in `3fcd215` (637 frontend tests, Pages build and delayed-response
-browser pass), awaiting an authorized release; [evidence](history/verification/2026-10-30-us-p024/README.md).
-Next: Alex was asked to use admin **Return for changes** with reason **Return notification test**,
-then report “returned”; observe the new teacher notice and editable course. Resubmit/publish and
-preference checks follow. Hosted mutations remain user-performed;
-agent probes stay isolated. DEF-067 cohort check needs a later deployment with a fixed tab open.
+No active implementation. The selected DEF-066/DEF-067 release and teacher/review/learner
+walkthrough is complete (Codex, `main`, base `f8659ec`; released 0.1.542 in `9610f47`).
+Hosted evidence covers DEF-066 recovery, reviewer changes, admin Return, saved Review activity
+off/on and muted suppression, persisted read state, approval/publication and teacher metrics
+after learner completion/Helpful feedback. Admin submission delivery was user-reported.
+[Evidence](history/verification/2026-10-30-release/walkthrough.md).
+US-P024 background loading is delivered locally in `3fcd215`, awaiting an authorized release.
+Remaining integration coverage and the later-deployment DEF-067 check are under Open release
+checks. Hosted mutations were user-performed; agent probes stayed isolated.
 
 US-P019 / US-P020 are live; hosted Turnstile, real signup/mail/
 confirmation, free enrollment and Stripe test-mode paid return were verified with Alex on
@@ -37,7 +33,8 @@ to its files and the contract; its one shared change, an optional 403 for disabl
 Browser on isolated servers: a teacher's published course with one enrolled learner shows "1 enrolled,
 1 started, 0 completed", "Average progress 50%", "1 helpful, 1 not helpful, 1 problem" and the three
 items with lesson titles and no learner identity; student and admin get 403. Behavior in
-[specs/learning/home-and-library.md](specs/learning/home-and-library.md). Not verified: live MongoDB.
+[specs/learning/home-and-library.md](specs/learning/home-and-library.md). Hosted MongoDB walkthrough
+2026-10-31 also verified 1 enrolled/started/completed learner, 100% average progress and Helpful feedback.
 
 US-L027 (certificate) and US-L028 (ratings) added as Proposed the same day; not started.
 
@@ -51,7 +48,8 @@ isolated servers: admin assigns a reviewer, publish refused with "Waiting for 1 
 (API 409), reviewer sees "To review" on Home, opens the course read-only (no Save, Submit or Publish),
 approves with a comment, Home shows "Approved", admin's Publish is enabled and the history shows the
 verdict; no console errors. The browser check found the reviewer's form empty ("Untitled course"),
-fixed in `9fa42e6`. Not verified: a real Brevo email and MongoDB storage (see Open release checks).
+fixed in `9fa42e6`. Hosted history on 2026-10-31 verifies reviewer approval followed by publication;
+reviewer-assignment email delivery remains unchecked (see Open release checks).
 
 Pushed 2026-10-26 as 0.1.482 (live, Vercel and Pages green): X9 API security headers, X10
 accessibility pass and its follow-up, the US-P018-AC04 follow-up (compressed bodies refused, Zod
@@ -158,16 +156,19 @@ as they arrive.
   correctly changed from blocked to available. Free enrollment and the real Stripe test-mode
   return pass, including DEF-064; both courses persist in My Learning. Stripe webhook returned
   200. Authenticated student/admin/teacher header/bell/settings pass read-only checks. Teacher
-  overview's assigned-draft/empty-enrollment state and historical feedback pass; populated progress
-  metrics remain unchecked. DEF-066 hosted check passes; DEF-067 awaits a later-deployment cohort.
-  Check Mongo notification indexes, all nine event recipients, muted groups and read/preferences
-  across devices. Direct read-only metadata inspection timed out. Isolated synthetic-provider
+  overview's assigned-draft/empty-enrollment state, historical feedback and populated metrics pass:
+  1 enrolled/started/completed learner, 100% average progress and a new Helpful item. Reviewer
+  changes, admin Return, publication, persisted read state and saved Review activity off/on with
+  muted Return suppression pass; admin submission delivery was user-reported.
+  DEF-066 hosted check passes; DEF-067 awaits a later-deployment cohort. Check Mongo notification
+  indexes, remaining event recipients/muted groups and read/preferences across devices.
+  Direct read-only metadata inspection timed out. Isolated synthetic-provider
   evidence does not establish real integrations. Include the new controls in the real screen
   reader pass. User performs hosted mutation walkthroughs; agent probes use isolated stores.
 
-- US-A007 course reviewers, after the next push: as admin assign a second real account as reviewer
-  on a submitted course; it receives the email (link opens the course), Publish stays disabled until
-  it approves, then publishes.
+- US-A007 course reviewers: verify a newly assigned reviewer's real email and its course link.
+  Hosted review history already confirms Request changes, the waiting-for-reviewer state, later
+  approval and publication (2026-10-30/31); assignment mail was not observed.
 - US-A006 feedback, live since 0.1.482 (copy verified 2026-10-26): still open, as admin open the
   feedback inbox on the live site (24 old items, type filters), send one feedback of each type,
   and mark one for follow-up to check a real GitHub issue is created once.

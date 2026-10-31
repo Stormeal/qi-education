@@ -72,11 +72,13 @@ session counts are connected through `AppStateService`.
 
 - No retention deletion, realtime channel or new poller. Notifications are best effort and have
   no delivery retry queue. Mongo behavior is verified at the isolated driver boundary; live
-  event delivery/index metadata and cross-device browser behavior remain release checks. The bell
-  was exercised with isolated HTTP stores and authenticated hosted empty inboxes; student/admin/
-  teacher preference visibility was checked live without saving. On 2026-10-30 the user performed
-  a real reviewer Request changes on Test Course, the teacher received the notice, and marking it
-  read persisted. [Hosted evidence](../../history/verification/2026-10-30-release/walkthrough.md).
+  index metadata, remaining event recipients and cross-device browser behavior remain release
+  checks. The bell was exercised with isolated HTTP stores and authenticated hosted empty inboxes;
+  student/admin/teacher preference visibility was checked live. Hosted checks on 2026-10-30/31
+  verified teacher delivery for reviewer Request changes, admin Return and publication, persisted
+  read state, saved Review activity off/on and suppression of a muted Return notice. Admin
+  submission delivery was user-reported from a separate session.
+  [Hosted evidence](../../history/verification/2026-10-30-release/walkthrough.md).
   Background loading is verified locally with delayed responses; its hosted check remains pending.
 - The design mentions feedback notifications but specifies no feedback event type or recipients;
   those remain undefined and are not implemented.
