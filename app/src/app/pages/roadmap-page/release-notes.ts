@@ -9,6 +9,16 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.550',
+    date: '2026-10-31',
+    sections: [{ title: 'New', items: [
+      'QI Academy has a new hand-drawn logo.',
+      'Home has cleaner, easier-to-scan cards, and admins see at a glance what is waiting for them.',
+      'The notification bell updates by itself when something new arrives, without reloading the page.',
+      'Your notifications stay in place when you reload the page.',
+    ] }],
+  },
+  {
     version: '0.1.542',
     date: '2026-10-30',
     sections: [{ title: 'Fixed', items: [
