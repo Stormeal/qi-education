@@ -11,6 +11,18 @@ Mirror review and organization events in a private inbox, reached from the heade
   read (204, repeatable); a foreign or unknown ID answers 404. `POST /notifications/read-all`
   marks only that account's rows. All routes also work under `/api`, with private/no-store and
   `Vary: Authorization`. Storage failure answers a retryable 503.
+- **Live count** (2026-10-31): `GET /notifications/stream` is a server-sent event stream that
+  sends `event: count` with the caller's unread count on connect and after every change to the
+  caller's rows (new, read, all read). Memory mode uses an in-process emitter; Mongo uses a change
+  stream filtered on `userId`, so a notice written by another server instance still arrives. A
+  stream ends after 50 seconds (under Vercel's shortest limit) with a 20-second keep-alive; the app
+  reconnects at once and gets a fresh count, backing off up to 30 seconds after failures. The app
+  reads it with `fetch` (EventSource cannot send the bearer token), opens it from sign-in/restore
+  preload, closes it while the tab is hidden and on logout. A changed count refreshes an
+  already-loaded list.
+- **Saved inbox** (2026-10-31): the list and count are kept in `sessionStorage`
+  (`qi-education:notifications`) labelled with the account id. A reload shows them at once; a
+  different account or logout discards them. Blocked storage falls back to loading from the API.
 - `/auth/me` and `/me` add top-level `unreadNotifications`, counting all unread rows, including
   those older than the displayed 50. A failed count logs a generic warning and falls back to zero;
   it does not fail session refresh.
@@ -30,7 +42,7 @@ Mirror review and organization events in a private inbox, reached from the heade
 
 - The bell shows an orange unread dot and an accessible unread count. Opening it fetches the
   newest list and refreshes `/me` count, without marking anything read. Counts also refresh on
-  session restore and fresh sign-in; there is no background poller. Replies from an old session
+  session restore, fresh sign-in and through the live stream; there is no poller. Replies from an old session
   cannot update a new account, and logout clears the list/count.
 - **Background loading** (US-P024): successful sign-in/signup and validated session restoration
   start a non-blocking list preload. Opening the bell immediately displays its session-memory
@@ -70,7 +82,9 @@ session counts are connected through `AppStateService`.
 
 ## Limits
 
-- No retention deletion, realtime channel or new poller. Notifications are best effort and have
+- No retention deletion or poller. The live stream on hosted Vercel is unverified: if Vercel
+  buffers the response, counts arrive when each 50-second stream ends instead of at once.
+  Each open, visible tab holds one function invocation, which counts against Vercel usage. Notifications are best effort and have
   no delivery retry queue. Mongo behavior is verified at the isolated driver boundary; live
   index metadata, remaining event recipients and cross-device browser behavior remain release
   checks. The bell was exercised with isolated HTTP stores and authenticated hosted empty inboxes;

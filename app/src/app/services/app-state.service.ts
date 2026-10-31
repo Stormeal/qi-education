@@ -83,7 +83,7 @@ export class AppStateService {
   readonly latestCourseLoading = signal(false);
 
 
-  readonly appVersion = '0.1.548';
+  readonly appVersion = '0.1.549';
   readonly currentYear = new Date().getFullYear();
 
   readonly email = signal('');
@@ -403,8 +403,8 @@ export class AppStateService {
   private courseCatalogLoadPromise: Promise<CourseListItem[]> | null = null;
 
   constructor() {
-    this.notifications.setSession(this.loginState()?.token ?? '');
-    effect(() => { const token = this.loginState()?.token ?? ''; untracked(() => this.notifications.setSession(token)); });
+    this.notifications.setSession(this.loginState()?.token ?? '', this.loginState()?.user.id);
+    effect(() => { const login = this.loginState(); untracked(() => this.notifications.setSession(login?.token ?? '', login?.user.id)); });
     effect(() => { const token = this.loginState()?.token ?? ''; untracked(() => this.feedbackComposer.setSession(token)); });
     effect(() => { const token = this.sessionToken(); untracked(() => void this.refreshOrganizationAccess(token)); });
     effect(() => this.instructorProfiles.token.set(this.loginState()?.token ?? ''));
@@ -558,7 +558,7 @@ export class AppStateService {
 
       const login = result.login;
       this.learningProgress.reset();
-      this.notifications.setSession(login.token);
+      this.notifications.setSession(login.token, login.user.id);
       void this.notifications.prefetch();
       void this.refreshUnreadNotifications(login.token);
       this.loginState.set({
@@ -624,7 +624,7 @@ export class AppStateService {
 
       const login = result.login;
       this.learningProgress.reset();
-      this.notifications.setSession(login.token);
+      this.notifications.setSession(login.token, login.user.id);
       void this.notifications.prefetch();
       this.loginState.set({
         token: login.token,
@@ -770,7 +770,7 @@ export class AppStateService {
         return;
       }
 
-      this.notifications.setSession(restoredSession.token);
+      this.notifications.setSession(restoredSession.token, restoredSession.user.id);
       this.notifications.setUnreadCount(restored.unreadNotifications ?? 0, countRequest);
       void this.notifications.prefetch();
 

@@ -170,3 +170,39 @@ describe('US-P019 C1 notification session service', () => {
     expect(service.unreadCount()).toBe(3);
   });
 });
+
+describe('Notification saved inbox and live count', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); TestBed.configureTestingModule({ providers: [provideRouter([])] }); });
+  afterEach(() => { vi.restoreAllMocks(); TestBed.resetTestingModule(); });
+  const stream = (...chunks: string[]) => new Response(new ReadableStream({
+    start(controller) { for (const chunk of chunks) controller.enqueue(new TextEncoder().encode(chunk)); },
+  }), { headers: { 'content-type': 'text/event-stream' } });
+
+  it('restores the saved inbox only for the account that owns it', async () => {
+    const first = TestBed.inject(NotificationService);
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockResolvedValue(new Response(JSON.stringify({ notifications: [row] })));
+    first.liveUpdates = false;
+    first.setSession('token-a', 'user-a'); first.setUnreadCount(1); await first.list();
+    TestBed.resetTestingModule(); TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    const reloaded = TestBed.inject(NotificationService); reloaded.liveUpdates = false;
+    reloaded.setSession('token-a', 'user-a');
+    expect(reloaded.unreadCount()).toBe(1); expect(reloaded.cachedList()).toEqual([row]);
+    reloaded.setSession('token-b', 'user-b');
+    expect(reloaded.unreadCount()).toBe(0); expect(reloaded.cachedList()).toBeUndefined();
+    expect(sessionStorage.getItem('qi-education:notifications')).toBeNull();
+  });
+
+  it('applies counts pushed by the stream and refreshes a loaded list', async () => {
+    const service = TestBed.inject(NotificationService);
+    const later = { ...row, id: 'm' };
+    let lists = 0;
+    vi.spyOn(TestBed.inject(ApiClientService), 'fetch').mockImplementation(async path => {
+      if (path === '/notifications/stream') return stream('event: count\ndata: 1\n\n', ': keep-alive\n\nevent: co', 'unt\ndata: 2\n\n');
+      lists++; return new Response(JSON.stringify({ notifications: lists === 1 ? [row] : [later, row] }));
+    });
+    service.setSession('token', 'user'); await service.prefetch();
+    await vi.waitFor(() => expect(service.unreadCount()).toBe(2));
+    await vi.waitFor(() => expect(service.cachedList()).toEqual([later, row]));
+    service.setSession('');
+  });
+});

@@ -94,6 +94,7 @@ const permissionTable: Record<string, Permission> = {
   'POST /signup': 'public',
   'GET /auth/me': 'signed-in',
   'GET /notifications': 'signed-in',
+  'GET /notifications/stream': 'signed-in',
   'POST /notifications/:id/read': 'signed-in',
   'POST /notifications/read-all': 'signed-in',
   'GET /me': 'signed-in',
@@ -228,7 +229,8 @@ async function fixture() {
   return { app, server, request, auth, learnerA, learnerB, profiles, notes, progress, accounts, payments, paymentService, courses };
 }
 type Fixture = Awaited<ReturnType<typeof fixture>>;
-const close = (server: Server) => new Promise<void>(resolve => server.close(() => resolve()));
+// Open event streams (GET /notifications/stream) would otherwise hold close() for their full lifetime.
+const close = (server: Server) => new Promise<void>(resolve => { server.close(() => resolve()); server.closeAllConnections(); });
 
 describe('X1 every registered route and /api alias', () => {
   let f: Fixture;

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 import type { Collection } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
@@ -12,10 +13,13 @@ export interface NotificationRepository {
   markRead(id: string, userId: string): Promise<boolean>;
   markAllRead(userId: string): Promise<void>;
   countUnread(userId: string): Promise<number>;
+  /** Calls listener after any change to this account's rows; resolves to an unsubscribe. */
+  subscribe(userId: string, listener: () => void): Promise<() => void>;
 }
 type NotificationDocument = Notification & { _id: string };
 export type NotificationCollection = Pick<Collection<NotificationDocument>,
-  'createIndex' | 'insertOne' | 'find' | 'findOne' | 'updateOne' | 'updateMany' | 'countDocuments' | 'deleteMany'>;
+  'createIndex' | 'insertOne' | 'find' | 'findOne' | 'updateOne' | 'updateMany' | 'countDocuments' | 'deleteMany'>
+  & Partial<Pick<Collection<NotificationDocument>, 'watch'>>;
 const exportNotification = ({ id, userId, type, title, link, createdAt, readAt }: Notification): Notification =>
   ({ id, userId, type, title, link, createdAt, readAt });
 const limitFor = (limit = 50) => Number.isSafeInteger(limit) ? Math.max(1, Math.min(50, limit)) : 50;
@@ -29,13 +33,15 @@ export class InMemoryNotificationRepository implements NotificationRepository {
   }
   async removeForUser(userId: string): Promise<void> {
     for (const [id, row] of this.rows) if (row.userId === userId) this.rows.delete(id);
+    this.changes.emit(userId);
   }
 
   private readonly rows = new Map<string, Notification>();
+  private readonly changes = new EventEmitter().setMaxListeners(0);
   constructor(private readonly now: () => Date = () => new Date()) {}
   async create(input: NewNotification): Promise<Notification> {
     const row = createRow(input, this.now);
-    this.rows.set(row.id, structuredClone(row)); return structuredClone(row);
+    this.rows.set(row.id, structuredClone(row)); this.changes.emit(row.userId); return structuredClone(row);
   }
   async listForUser(userId: string, limit = 50): Promise<Notification[]> {
     return structuredClone([...this.rows.values()].filter(n => n.userId === userId)
@@ -44,14 +50,20 @@ export class InMemoryNotificationRepository implements NotificationRepository {
   async markRead(id: string, userId: string): Promise<boolean> {
     const row = this.rows.get(id);
     if (!row || row.userId !== userId) return false;
-    row.readAt ??= this.now().toISOString(); return true;
+    if (row.readAt === null) { row.readAt = this.now().toISOString(); this.changes.emit(userId); }
+    return true;
   }
   async markAllRead(userId: string): Promise<void> {
     const time = this.now().toISOString();
     for (const row of this.rows.values()) if (row.userId === userId) row.readAt ??= time;
+    this.changes.emit(userId);
   }
   async countUnread(userId: string): Promise<number> {
     return [...this.rows.values()].filter(n => n.userId === userId && n.readAt === null).length;
+  }
+  async subscribe(userId: string, listener: () => void): Promise<() => void> {
+    this.changes.on(userId, listener);
+    return () => { this.changes.off(userId, listener); };
   }
 }
 
@@ -101,11 +113,20 @@ export class MongoNotificationRepository implements NotificationRepository {
   async countUnread(userId: string): Promise<number> {
     return (await this.collection()).countDocuments({ userId, readAt: null });
   }
+  // A change stream reaches every server instance, so a notice written elsewhere still arrives.
+  async subscribe(userId: string, listener: () => void): Promise<() => void> {
+    const collection = await this.collection();
+    if (!collection.watch) return () => {};
+    const stream = collection.watch([{ $match: { 'fullDocument.userId': userId } }], { fullDocument: 'updateLookup' });
+    stream.on('change', listener);
+    stream.on('error', () => { void stream.close().catch(() => {}); });
+    return () => { void stream.close().catch(() => {}); };
+  }
 }
 
 export function createNotificationRepository(): NotificationRepository {
   if (apiConfig.mode === 'isolated') return new InMemoryNotificationRepository();
   if (hasMongoConfig()) return new MongoNotificationRepository();
   const unavailable = async (): Promise<never> => { throw new Error('Notification storage is temporarily unavailable.'); };
-  return { create: unavailable, listForUser: unavailable, markRead: unavailable, markAllRead: unavailable, countUnread: unavailable, collectForExport: unavailable, removeForUser: unavailable };
+  return { create: unavailable, listForUser: unavailable, markRead: unavailable, markAllRead: unavailable, countUnread: unavailable, subscribe: unavailable, collectForExport: unavailable, removeForUser: unavailable };
 }

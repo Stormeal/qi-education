@@ -56,6 +56,30 @@ describe.each(['', '/api'])('US-P019 A4 notification HTTP (%s)', prefix => {
     expect(await f.notifications.countUnread(f.user.id)).toBe(0);
     expect(await f.notifications.countUnread(f.other.id)).toBe(1);
   });
+  it('streams the caller unread count on connect and after each own change only', async () => {
+    const f = await setup(); await f.create(f.user.id);
+    const response = await f.request(prefix + '/notifications/stream');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    const nextCount = async () => {
+      for (;;) {
+        const match = /event: count\ndata: (\d+)\n\n/.exec(buffer);
+        if (match) { buffer = buffer.slice(match.index + match[0].length); return Number(match[1]); }
+        const { value, done } = await reader.read();
+        if (done) throw new Error('stream ended');
+        buffer += value;
+      }
+    };
+    expect(await nextCount()).toBe(1);
+    await f.create(f.other.id); const own = await f.create(f.user.id);
+    expect(await nextCount()).toBe(2);
+    await f.request(prefix + `/notifications/${own.id}/read`, 'POST');
+    expect(await nextCount()).toBe(1);
+    await reader.cancel();
+  });
   it('requires an active authenticated caller on every route', async () => {
     const f = await setup();
     for (const [path, method] of [['/notifications', 'GET'], ['/notifications/id/read', 'POST'], ['/notifications/read-all', 'POST']]) {
