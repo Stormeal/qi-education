@@ -186,7 +186,7 @@ describe('X4 US-T006 media / US-T014 assets / US-L024 payment error branches', (
       const path = operation === 'webhook' ? '/webhooks/stripe' : operation === 'portal'
         ? '/users/me/billing-portal' : `/users/me/courses/course/checkout${operation === 'confirm' ? '/confirm' : ''}`;
       const body = operation === 'webhook' ? { type: 'checkout.session.completed', data: { object: { id: sessionId, payment_status: 'paid' } } }
-        : operation === 'confirm' ? { sessionId } : { returnUrl };
+        : operation === 'confirm' ? { sessionId } : { returnUrl, ...(operation === 'checkout' ? { acceptPurchaseTerms: true } : {}) };
       const response = await request(path, 'POST', body, student, { 'stripe-signature': 'fake-signature' });
       expect(response.status).toBe(status);
       expect(await response.json()).toEqual(status === 500 ? { message: 'Unexpected server error' }

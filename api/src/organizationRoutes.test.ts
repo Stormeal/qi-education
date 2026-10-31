@@ -152,7 +152,7 @@ describe.each(['', '/api'])('US-O001 HTTP permission matrix (%s)', prefix => {
   it('Review Focus 4 an organization learner can buy the course and keeps it after leaving', async () => {
     const f = await setup(); expect((await f.request(prefix + '/users/me/courses/included', f.member, 'POST')).status).toBe(200);
     expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).not.toContain('included');
-    const checkout = await f.request(prefix + '/users/me/courses/included/checkout', f.member, 'POST', { returnUrl: `${getCorsOrigins()[0]}/courses/included` });
+    const checkout = await f.request(prefix + '/users/me/courses/included/checkout', f.member, 'POST', { returnUrl: `${getCorsOrigins()[0]}/courses/included`, acceptPurchaseTerms: true });
     expect(checkout.status).toBe(200); const sessionId = new URL((await checkout.json()).url).searchParams.get('session_id');
     expect((await f.request(prefix + '/users/me/courses/included/checkout/confirm', f.member, 'POST', { sessionId })).status).toBe(200);
     expect((await f.auth.findById(f.member.id))?.enrolledCourseIds).toContain('included');

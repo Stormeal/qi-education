@@ -24,7 +24,7 @@ it.each([['', false, false], ['/api', false, false], ['', true, false], ['/api',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + createSessionToken(user, apiConfig.AUTH_TOKEN_SECRET) }, body: JSON.stringify(body) });
   const path = '/users/me/courses/demo-course-1/checkout';
   const sessionIds = await Promise.all(bases.map(async base => {
-    const response = await request(base, path, { returnUrl: 'http://localhost:4200/courses/demo-course-1' });
+    const response = await request(base, path, { returnUrl: 'http://localhost:4200/courses/demo-course-1', acceptPurchaseTerms: true });
     expect(response.status).toBe(200); return new URL((await response.json()).url).searchParams.get('session_id')!;
   }));
   const secondSession = sessionIds[1];

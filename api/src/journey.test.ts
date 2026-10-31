@@ -147,7 +147,7 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect((await request(`/courses/${courseId}/content`, earlyLearner)).status).toBe(200);
     expect((await request(`/users/me/courses/${courseId}`, student, 'POST')).status).toBe(402);
     const checkout = await request(`/users/me/courses/${courseId}/checkout`, student, 'POST',
-      { returnUrl: `http://localhost:4200/courses/${courseId}` });
+      { returnUrl: `http://localhost:4200/courses/${courseId}`, acceptPurchaseTerms: true });
     expect(checkout.status).toBe(200);
     const sessionId = new URL((await checkout.json()).url).searchParams.get('session_id');
     expect(sessionId).toMatch(/^fake_cs_/);

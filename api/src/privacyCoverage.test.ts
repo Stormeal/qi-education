@@ -24,12 +24,31 @@ describe('US-P021 repository privacy coverage', () => {
     for (const [key, policy] of Object.entries(PERSONAL_DATA_DOMAINS)) {
       const repository = stores[key as keyof typeof stores] as unknown as Record<string, unknown>;
       expect(repository, key).toBeDefined();
-      if (!['courses', 'content'].includes(key)) expect(typeof repository[policy.erase], key).toBe('function');
+      if (policy.erase !== 'retain' && !['courses', 'content'].includes(key)) expect(typeof repository[policy.erase], key).toBe('function');
       if (policy.export && !['courses', 'content'].includes(key)) expect(typeof repository.collectForExport, key).toBe('function');
     }
     const result = await service.exportUserData(user.id);
-    expect(result).toMatchObject({ profile: null, instructorProfile: null, progress: [], notes: [], notifications: [], payments: [], authoring: [] });
+    expect(result).toMatchObject({ profile: null, instructorProfile: null, progress: [], notes: [], notifications: [], payments: [], authoring: [], termsAcceptances: [] });
     await service.eraseUser(user.id, passwordHash);
+    expect((await stores.auth.findById(user.id))?.privacyErasure?.state).toBe('complete');
+  });
+
+  it('US-P022 exports only the caller terms evidence and retains it unchanged after erasure', async () => {
+    const { stores, service, user, other, passwordHash } = await privacyFixture();
+    await stores.termsAcceptances.record(user.id, 'tos', 1);
+    await stores.termsAcceptances.record(user.id, 'purchase', 1);
+    await stores.termsAcceptances.record(other.id, 'tos', 2);
+    const evidence = await stores.termsAcceptances.listForUser(user.id);
+    const exported = await service.exportUserData(user.id);
+    expect(exported).toHaveProperty('termsAcceptances', [
+      { documentId: 'tos', version: 1, acceptedAt: expect.any(String) },
+      { documentId: 'purchase', version: 1, acceptedAt: expect.any(String) },
+    ]);
+    await service.eraseUser(user.id, passwordHash);
+    expect(await stores.termsAcceptances.listForUser(user.id)).toEqual(evidence);
+    expect(await stores.termsAcceptances.listForUser(other.id)).toEqual([
+      { userId: other.id, documentId: 'tos', version: 2, acceptedAt: expect.any(String) },
+    ]);
     expect((await stores.auth.findById(user.id))?.privacyErasure?.state).toBe('complete');
   });
 });

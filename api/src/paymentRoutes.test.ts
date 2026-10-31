@@ -9,6 +9,7 @@ import { InMemoryPaymentRepository, type CoursePayment } from './paymentReposito
 import { FakePaymentService } from './paymentService.js';
 import { apiConfig } from './config.js';
 import { createServer } from './server.js';
+import { InMemoryTermsAcceptanceRepository } from './termsAcceptanceRepository.js';
 
 class CountingPayments extends InMemoryPaymentRepository {
   readonly stored: CoursePayment[] = [];
@@ -21,6 +22,7 @@ class CountingPayments extends InMemoryPaymentRepository {
 describe('US-L024 course payments HTTP contract', () => {
   let server: Server, base: string, auth: InMemoryAuthRepository, courses: InMemoryCourseRepository;
   let payments: CountingPayments, service: FakePaymentService, student: AuthUser, teacher: AuthUser, admin: AuthUser;
+  let terms: InMemoryTermsAcceptanceRepository;
   const id = 'demo-course-1', coursePath = `/users/me/courses/${id}`, returnUrl = `http://localhost:4200/courses/${id}`;
   const request = (path: string, user: AuthUser | undefined = student, body?: unknown, method = 'POST') => fetch(base + path, {
     method, headers: { 'Content-Type': 'application/json', ...(user ? { authorization: `Bearer ${createSessionToken(toAuthenticatedUser(user), apiConfig.AUTH_TOKEN_SECRET)}` } : {}) },
@@ -31,7 +33,7 @@ describe('US-L024 course payments HTTP contract', () => {
     body: JSON.stringify({ type: 'checkout.session.completed', data: { object: { id: sessionId, payment_status: 'paid' } } }),
   });
   async function start(user = student) {
-    const response = await request(coursePath + '/checkout', user, { returnUrl });
+    const response = await request(coursePath + '/checkout', user, { returnUrl, acceptPurchaseTerms: true });
     expect(response.status).toBe(200);
     const { url } = await response.json();
     return new URL(url).searchParams.get('session_id')!;
@@ -42,14 +44,48 @@ describe('US-L024 course payments HTTP contract', () => {
     teacher = (await auth.findByEmail('teacher@qi-education.local'))!;
     admin = (await auth.findByEmail('admin@qi-education.local'))!;
     (await courses.listCourses())[0].ownerUserId = teacher.id;
-    payments = new CountingPayments(); service = new FakePaymentService();
+    payments = new CountingPayments(); service = new FakePaymentService(); terms = new InMemoryTermsAcceptanceRepository();
     const content = new InMemoryCourseContentRepository();
     await content.createEmptyCourseContent(id, '2026-10-20T00:00:00.000Z');
-    server = createServer({ authRepository: auth, courseRepository: courses, courseContentRepository: content, paymentRepository: payments, paymentService: service }).listen(0);
+    server = createServer({ authRepository: auth, termsAcceptanceRepository: terms, courseRepository: courses, courseContentRepository: content, paymentRepository: payments, paymentService: service }).listen(0);
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     expect((await request(`/courses/${id}/price`, admin, { priceDkk: 499 }, 'PATCH')).status).toBe(200);
   });
   afterEach(async () => { vi.restoreAllMocks(); await new Promise<void>(resolve => server.close(() => resolve())); });
+  it.each(['', '/api'])('US-P022 requires explicit purchase acceptance before any Stripe call (%s)', async prefix => {
+    const create = vi.spyOn(service, 'createCheckout');
+    for (const acceptPurchaseTerms of [undefined, false, null, 'true', 1, {}]) {
+      const response = await request(prefix + coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ message: 'Accept the purchase terms to continue.' });
+    }
+    expect(create).not.toHaveBeenCalled();
+    expect(await terms.listForUser(student.id)).toEqual([]);
+  });
+  it.each(['', '/api'])('US-P022 records the current purchase version before every checkout, without duplicate evidence (%s)', async prefix => {
+    const create = service.createCheckout.bind(service);
+    const record = vi.spyOn(terms, 'record');
+    vi.spyOn(service, 'createCheckout').mockImplementation(async input => {
+      expect(await terms.listForUser(student.id)).toEqual([
+        { userId: student.id, documentId: 'purchase', version: 1, acceptedAt: expect.any(String) },
+      ]);
+      return create(input);
+    });
+    for (let attempt = 0; attempt < 2; attempt++) {
+      expect((await request(prefix + coursePath + '/checkout', student,
+        { returnUrl, acceptPurchaseTerms: true, version: 999 })).status).toBe(200);
+    }
+    expect(record.mock.calls).toEqual([[student.id, 'purchase', 1], [student.id, 'purchase', 1]]);
+    expect(await terms.listForUser(teacher.id)).toEqual([]);
+  });
+  it.each(['', '/api'])('US-P022 refuses checkout on acceptance storage failure without calling Stripe (%s)', async prefix => {
+    vi.spyOn(terms, 'record').mockRejectedValue(new Error('Private store details'));
+    const create = vi.spyOn(service, 'createCheckout');
+    const response = await request(prefix + coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms: true });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ message: 'Purchases are temporarily unavailable.' });
+    expect(create).not.toHaveBeenCalled();
+  });
   it('US-L024-AC01 checkout answers a success URL for a priced published course', async () => {
     const sessionId = await start();
     expect(await service.readCheckout(sessionId)).toMatchObject({ paid: true, amountDkk: 499, userId: student.id, courseId: id });
@@ -72,31 +108,31 @@ describe('US-L024 course payments HTTP contract', () => {
     const create = vi.spyOn(service, 'createCheckout');
     for (const priceDkk of [1, 2, -1, 3.5, 1000000, Number.MAX_SAFE_INTEGER, NaN, Infinity]) {
       await courses.updateCoursePrice(id, { priceDkk });
-      const response = await request(prefix + coursePath + '/checkout', student, { returnUrl });
+      const response = await request(prefix + coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms: true });
       expect(response.status, String(priceDkk)).toBe(400);
       expect(await response.json()).toEqual({ message: 'Enter 0 for free, or a whole number of DKK from 3 to 999,999.' });
     }
     expect(create).not.toHaveBeenCalled();
     for (const priceDkk of [3, 999999]) {
       await courses.updateCoursePrice(id, { priceDkk });
-      expect((await request(prefix + coursePath + '/checkout', student, { returnUrl })).status).toBe(200);
+      expect((await request(prefix + coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms: true })).status).toBe(200);
     }
     expect(create.mock.calls.map(call => call[0].amountDkk)).toEqual([3, 999999]);
   });
   it('checkout refuses free, unpublished, unknown and enrolled courses', async () => {
-    expect((await request('/users/me/courses/missing/checkout', student, { returnUrl })).status).toBe(404);
+    expect((await request('/users/me/courses/missing/checkout', student, { returnUrl, acceptPurchaseTerms: true })).status).toBe(404);
     expect((await request(`/courses/${id}/price`, admin, { priceDkk: 0 }, 'PATCH')).status).toBe(200);
-    expect((await request(coursePath + '/checkout', student, { returnUrl })).status).toBe(400);
+    expect((await request(coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms: true })).status).toBe(400);
     (await courses.listCourses())[0].status = 'draft';
-    expect((await request(coursePath + '/checkout', student, { returnUrl })).status).toBe(403);
+    expect((await request(coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms: true })).status).toBe(403);
     (await courses.listCourses())[0].status = 'published';
     await courses.updateCoursePrice(id, { priceDkk: 499 });
     await auth.enrollUserInCourse(student.id, id);
-    expect((await request(coursePath + '/checkout', student, { returnUrl })).status).toBe(409);
+    expect((await request(coursePath + '/checkout', student, { returnUrl, acceptPurchaseTerms: true })).status).toBe(409);
   });
   it.each(['https://foreign.test/courses/c1', 'not a URL', 'http://localhost:4200.evil.test/'])('refuses a foreign return address %s', async address => {
     for (const path of [coursePath + '/checkout', '/users/me/billing-portal']) {
-      const response = await request(path, student, { returnUrl: address });
+      const response = await request(path, student, { returnUrl: address, ...(path.endsWith('/checkout') ? { acceptPurchaseTerms: true } : {}) });
       expect(response.status).toBe(400); expect(await response.json()).toEqual({ message: 'Return address is not allowed.' });
     }
   });
@@ -222,7 +258,7 @@ describe('US-L024 course payments HTTP contract', () => {
     vi.spyOn(service, 'createCheckout').mockRejectedValue(new Error('Offline'));
     vi.spyOn(service, 'readCheckout').mockRejectedValue(new Error('Offline'));
     vi.spyOn(service, 'createPortal').mockRejectedValue(new Error('Offline'));
-    for (const [path, body] of [[coursePath + '/checkout', { returnUrl }], [coursePath + '/checkout/confirm', { sessionId }], ['/users/me/billing-portal', { returnUrl }]] as const) {
+    for (const [path, body] of [[coursePath + '/checkout', { returnUrl, acceptPurchaseTerms: true }], [coursePath + '/checkout/confirm', { sessionId }], ['/users/me/billing-portal', { returnUrl }]] as const) {
       const response = await request(path, path.endsWith('/checkout') ? teacher : student, body);
       expect(response.status).toBe(503); expect(await response.json()).toEqual({ message: 'Purchases are temporarily unavailable.' });
     }
@@ -231,7 +267,7 @@ describe('US-L024 course payments HTTP contract', () => {
     await new Promise<void>(resolve => server.close(() => resolve()));
     server = createServer({ authRepository: auth, courseRepository: courses, paymentRepository: payments, paymentService: null }).listen(0);
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-    for (const [path, body] of [[coursePath + '/checkout', { returnUrl }], [coursePath + '/checkout/confirm', { sessionId: 'cs_1' }], ['/users/me/billing-portal', { returnUrl }]] as const) {
+    for (const [path, body] of [[coursePath + '/checkout', { returnUrl, acceptPurchaseTerms: true }], [coursePath + '/checkout/confirm', { sessionId: 'cs_1' }], ['/users/me/billing-portal', { returnUrl }]] as const) {
       const response = await request(path, student, body);
       expect(response.status).toBe(503); expect(await response.json()).toEqual({ message: 'Purchases are temporarily unavailable.' });
     }

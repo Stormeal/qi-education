@@ -9,15 +9,19 @@ import type { CourseRepository } from './courseRepository.js';
 import type { KeyedSerialQueue } from './keyedSerialQueue.js';
 import type { PaymentRepository } from './paymentRepository.js';
 import { PaymentSignatureError, type CheckoutSession, type PaymentService } from './paymentService.js';
+import type { TermsAcceptanceRepository } from './termsAcceptanceRepository.js';
+import { TERMS_VERSIONS } from './termsDocuments.js';
 
 type PaymentDependencies = {
   authenticate: RequestHandler; auth: AuthRepository; courses: CourseRepository; payments: PaymentRepository;
   paymentService: PaymentService | null; enrollmentWrites: KeyedSerialQueue;
+  terms: TermsAcceptanceRepository;
 };
 const unavailable = (response: Response) => response.status(503).json({ message: 'Purchases are temporarily unavailable.' });
 const caller = (request: Request) => (request as Request & { user: AuthenticatedUser }).user;
 const returnSchema = z.object({ returnUrl: z.url() });
 const confirmSchema = z.object({ sessionId: z.string().min(1) });
+const purchaseTermsSchema = z.object({ acceptPurchaseTerms: z.literal(true) });
 
 function returnAddress(body: unknown): string | null {
   const parsed = returnSchema.safeParse(body);
@@ -103,6 +107,9 @@ export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): 
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
   });
   app.post('/users/me/courses/:id/checkout', authenticate, async (request, response) => {
+    if (!purchaseTermsSchema.safeParse(request.body).success) {
+      response.status(400).json({ message: 'Accept the purchase terms to continue.' }); return;
+    }
     const returnUrl = returnAddress(request.body);
     if (!returnUrl) { response.status(400).json({ message: 'Return address is not allowed.' }); return; }
     if (!paymentService) { unavailable(response); return; }
@@ -116,6 +123,7 @@ export function registerPaymentRoutes(app: Express, deps: PaymentDependencies): 
     if (!requireConfirmedEmail(user)) { response.status(403).json({ message: 'email-not-confirmed' }); return; }
     const customerId = await payments.latestCustomerId(user.id);
     try {
+      await deps.terms.record(user.id, 'purchase', TERMS_VERSIONS.purchase);
       response.json(await paymentService.createCheckout({ userId: user.id, email: user.email, courseId: course.id,
         courseTitle: course.title, amountDkk: course.priceDkk, customerId,
         successUrl: checkoutReturn(returnUrl, true), cancelUrl: checkoutReturn(returnUrl, false) }));

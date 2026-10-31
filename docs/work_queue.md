@@ -10,7 +10,10 @@ messages hold them.
 (no open defects); legal wording stays placeholder until Alex supplies it.
 - **Codex:** acceptance store, `termsPending` on `/auth/me`, `POST /users/me/terms/accept`,
   signup and checkout recording, privacy export/erasure wiring (plan Tasks 1–3). Files in
-  [handoffs/US-P022-codex.md](handoffs/US-P022-codex.md). State: not started (owner Codex, `main`).
+  [handoffs/US-P022-codex.md](handoffs/US-P022-codex.md). State: in progress (owner Codex,
+  `main`, base `10e0742`). Implementation verified; local delivery commit next.
+  Checks: complete API suite 3,075/3,075 across 128 files with four workers (default concurrency
+  hit unchanged timing tests); focused Angular privacy-service spec 9/9; API build passes.
 - **Claude:** terms content constants, `/terms` and `/purchase-terms` pages, footer links, signup and
   checkout checkboxes, re-accept gate (Tasks 4–6). Files: the rest of `app/`. State: in progress.
 

@@ -44,4 +44,31 @@ Isolated in-memory stores only; no hosted or shared-service calls.
 
 ## Progress
 
-- Not started.
+- In progress: Codex, `main`, base `10e0742`, 2026-10-31. History requirement verified.
+- Following this handoff where plan/story differ: optional legacy signup acceptance,
+  best-effort `termsPending`, idempotent acceptance per version and retention on erasure.
+- Tasks 1–3 share one injected repository and server-owned versions. Tests run before each
+  implementation piece; delivery will be one local commit after the required final checks.
+- Task 1: repository tests fail before the module exists, then pass 10/10 (memory and Mongo
+  boundary double; unique index, immutable timestamps, caller scoping and failed writes).
+- Task 2: missing flag/route regressions fail before implementation, then repository/routes/
+  permission checks pass 276/276. All four session aliases and both acceptance aliases covered.
+- Task 3: signup, checkout and privacy regressions fail for absent recording/guards/export,
+  then focused API checks pass 344/344. Privacy type fixture fails compilation before adding
+  `termsAcceptances`, then the Angular privacy-service spec passes 9/9. API build passes.
+- Implementation decision: after account creation, a failed signup acceptance write preserves
+  signup's 201/session and leaves acceptance pending (tested); retrying signup would otherwise
+  collide with the already-created account. Checkout and explicit acceptance fail closed (503).
+- Existing checkout-route tests in enrollment, journey, multi-instance payment, organization,
+  refund and error-branch suites now send the required flag; their original assertions remain.
+- Full API run: 3,072 passed, 3 timed out at the existing 5-second limit (signInLimit cases
+  03 and 05; databaseBackup large UTF-8 chunk/batch case). These files are unchanged; isolated
+  rerun passes 47/47 across those two files. The default-concurrency retry also passes 3,072
+  with three timing failures: clientLimitRoutes AC06 (5-second timeout), signInLimit 03
+  (5-second timeout) and DEF-034 /11 `/auth/login` (250-ms abort). All remain unchanged.
+  Complete-suite rerun with `(cd api && npx vitest run --maxWorkers=4)` passes all 3,075 tests
+  across 128 files (180.83 seconds); no timeout or unrelated implementation changes were made.
+- Final fresh review: no critical/important findings. Deferred minor test gaps: direct Mongo
+  initialization retry and hosted-without-Mongo factory coverage. Real providers/Mongo and
+  Claude-owned UI/browser/legal content remain outside this increment's verification.
+- No shared-provider probes. Final checks passed; local delivery commit and version bump next.

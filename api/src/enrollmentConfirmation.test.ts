@@ -40,7 +40,7 @@ describe('US-P020 API-04 confirmation at course acquisition', () => {
     const free = await f.post(prefix + f.path);
     expect(free.status).toBe(403); expect(await free.json()).toEqual({ message: 'email-not-confirmed' });
     await f.courses.updateCoursePrice(f.course.id, { priceDkk: 499 });
-    const paid = await f.post(prefix + f.path + '/checkout', { returnUrl: 'http://localhost:4200/courses/test' });
+    const paid = await f.post(prefix + f.path + '/checkout', { returnUrl: 'http://localhost:4200/courses/test', acceptPurchaseTerms: true });
     expect(paid.status).toBe(403); expect(await paid.json()).toEqual({ message: 'email-not-confirmed' });
     expect(create).not.toHaveBeenCalled(); expect(enroll).not.toHaveBeenCalled();
     expect((await f.auth.findById(f.user.id))?.enrolledCourseIds).toEqual([]);
@@ -50,7 +50,7 @@ describe('US-P020 API-04 confirmation at course acquisition', () => {
     expect((await f.post(f.path)).status).toBe(200);
     const paid = { ...f.course, id: 'paid', priceDkk: 499 };
     (await f.courses.listCourses()).push(paid);
-    expect((await f.post('/users/me/courses/paid/checkout', { returnUrl: 'http://localhost:4200/courses/paid' })).status).toBe(200);
+    expect((await f.post('/users/me/courses/paid/checkout', { returnUrl: 'http://localhost:4200/courses/paid', acceptPurchaseTerms: true })).status).toBe(200);
   });
   it('keeps already-held free enrollment idempotent for an unconfirmed user', async () => {
     const f = await setup(false);

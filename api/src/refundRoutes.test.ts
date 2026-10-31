@@ -39,7 +39,7 @@ describe.each(['memory', 'mongo'])('US-L025 refund HTTP (%s)', kind => {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     async function checkout() {
-      const response = await request(path, { returnUrl: 'http://localhost:4200/courses/' + courseId });
+      const response = await request(path, { returnUrl: 'http://localhost:4200/courses/' + courseId, acceptPurchaseTerms: true });
       expect(response.status).toBe(200); return new URL((await response.json()).url).searchParams.get('session_id')!;
     }
     async function buy(id?: string) {

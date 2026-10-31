@@ -4,6 +4,9 @@ import { logError } from './errorLogger.js';
 import { PrivacyService } from './privacyService.js';
 import { registerPrivacyRoutes } from './privacyRoutes.js';
 import { PrivacyMutationCoordinator } from './privacyMutationCoordinator.js';
+import { createTermsAcceptanceRepository, type TermsAcceptanceRepository } from './termsAcceptanceRepository.js';
+import { TERMS_VERSIONS } from './termsDocuments.js';
+import { registerTermsRoutes } from './termsRoutes.js';
 import { isMongoConnectionError } from './storageErrors.js';
 import { createUserChangeRepository, type UserChangeOptions, type UserChangeRepository } from './userChangeRepository.js';
 import { createSignInAttemptRepository, type SignInAttemptRepository } from './signInAttemptRepository.js';
@@ -131,6 +134,7 @@ import {
 } from './muxService.js';
 
 type ServerDependencies = {
+  termsAcceptanceRepository?: TermsAcceptanceRepository;
   authRepository?: AuthRepository;
   signInAttemptRepository?: SignInAttemptRepository;
   signInLimitOptions?: SignInLimitOptions;
@@ -184,6 +188,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     next();
   });
   const auth = accountWriteFreeze(dependencies.authRepository ?? createAuthRepository(), apiConfig.USER_STORE_READ_ONLY === '1');
+  const termsAcceptances = dependencies.termsAcceptanceRepository ?? createTermsAcceptanceRepository();
   const signInLimit = new SignInLimit(dependencies.signInAttemptRepository ?? createSignInAttemptRepository(), dependencies.signInLimitOptions);
   const clientLimit = new ClientLimit(dependencies.clientLimitRepository ?? createClientLimitRepository(), dependencies.clientLimitOptions);
   const userChanges = dependencies.userChangeRepository ?? createUserChangeRepository();
@@ -214,7 +219,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const privacy = new PrivacyService({ auth, profile: accountProfiles, instructorProfile: instructorProfiles,
     progress: learningProgress, notes: lessonNotes, careers: accountCareersStore, legacyCareers: careerPaths,
     payments, organizations: organizationStore, feedback, notifications, resetTokens: passwordResetTokens,
-    confirmationTokens: emailConfirmations, audit: userChanges, courses: storedCourses, content: storedContent }, privacyMutations.run);
+    confirmationTokens: emailConfirmations, audit: userChanges, courses: storedCourses, content: storedContent, termsAcceptances }, privacyMutations.run);
   const notificationService = new NotificationService({ repository: notifications, auth, profiles: accountProfiles, organizations: organizationStore });
   const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
     careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService,
@@ -226,7 +231,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   const gitHubFeedback = dependencies.gitHubFeedbackService ?? new ConfiguredGitHubFeedbackService();
   const signupWrites = new KeyedSerialQueue();
   const enrollmentWrites = new KeyedSerialQueue();
-  const paymentDependencies = { authenticate: authenticateRequest(auth), auth, courses, payments, paymentService, enrollmentWrites };
+  const paymentDependencies = { authenticate: authenticateRequest(auth), auth, courses, payments, paymentService, enrollmentWrites, terms: termsAcceptances };
   const feedbackTriage = new FeedbackTriageService(feedback, gitHubFeedback,
     dependencies.feedbackIssueOperationRepository ?? createFeedbackIssueOperationRepository());
   const muxVideo = dependencies.muxVideoService ?? createMuxVideoService();
@@ -745,6 +750,13 @@ export function createServer(dependencies: ServerDependencies = {}) {
           emailConfirmed: false,
         });
 
+        // The account is already created. If evidence storage is unavailable,
+        // its missing acceptance will be requested again at session restoration.
+        if (input.acceptTos) {
+          try { await termsAcceptances.record(user.id, 'tos', TERMS_VERSIONS.tos); }
+          catch { console.warn('Signup terms acceptance unavailable; acceptance remains pending.'); }
+        }
+
         // The account already exists: confirmation delivery must never turn a
         // successful signup into a failure or encourage another signup attempt.
         try { await sendEmailConfirmationLink(user, { tokens: emailConfirmations, sender: mailSender, options: dependencies.emailConfirmationOptions }); }
@@ -769,8 +781,12 @@ export function createServer(dependencies: ServerDependencies = {}) {
     let unreadNotifications = 0;
     try { unreadNotifications = await notifications.countUnread(authenticatedRequest.user.id); }
     catch { console.warn('Notification count unavailable; session remains available.'); }
+    let termsPending: boolean | undefined;
+    try { termsPending = (await termsAcceptances.latestAccepted(authenticatedRequest.user.id, 'tos') ?? 0) < TERMS_VERSIONS.tos; }
+    catch { /* Acceptance storage must not prevent restoring the rest of the session. */ }
     response.json({
       user: publicUser,
+      ...(termsPending === undefined ? {} : { termsPending }),
       unreadNotifications,
       permissions: getRolePermissions(authenticatedRequest.user.role),
       organization: membership?.state === 'active' ? { id: membership.orgId, role: membership.role } : null,
@@ -782,6 +798,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerAccountProfileRoutes(app, { authenticate: authenticateRequest(auth), profiles: accountProfiles });
   registerNotificationRoutes(app, { authenticate: authenticateRequest(auth), notifications });
   registerPrivacyRoutes(app, { authenticate: authenticateRequest(auth), auth, privacy, signInLimit });
+  registerTermsRoutes(app, { authenticate: authenticateRequest(auth), terms: termsAcceptances });
   registerPaymentRoutes(app, paymentDependencies);
 
   app.post('/users/me/courses/:id', authenticateRequest(auth), withCourseLock(async (request, response, next) => {

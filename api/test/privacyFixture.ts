@@ -17,6 +17,7 @@ import { InMemoryCourseRepository } from '../src/courseRepository.js';
 import { InMemoryCourseContentRepository } from '../src/courseContentRepository.js';
 import { createCourseSchema } from '../src/course.js';
 import { PrivacyService } from '../src/privacyService.js';
+import { InMemoryTermsAcceptanceRepository } from '../src/termsAcceptanceRepository.js';
 
 export async function privacyFixture() {
   const auth = new InMemoryAuthRepository();
@@ -29,7 +30,7 @@ export async function privacyFixture() {
     legacyCareers: new InMemoryCareerPathRepository(), payments: new InMemoryPaymentRepository(), organizations: new InMemoryOrganizationRepository(),
     feedback: new InMemoryFeedbackRepository(), notifications: new InMemoryNotificationRepository(), resetTokens: new InMemoryPasswordResetRepository(),
     confirmationTokens: new InMemoryEmailConfirmationRepository(), audit: new InMemoryUserChangeRepository(),
-    courses: new InMemoryCourseRepository(), content: new InMemoryCourseContentRepository() };
+    courses: new InMemoryCourseRepository(), content: new InMemoryCourseContentRepository(), termsAcceptances: new InMemoryTermsAcceptanceRepository() };
   const service = new PrivacyService(stores);
   return { stores, service, user, other, passwordHash };
 }

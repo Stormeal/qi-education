@@ -27,6 +27,7 @@ const exported: PrivacyExport = {
     link: '/courses/course-1', createdAt: '2026-10-31T11:00:00.000Z', readAt: null }],
   authoring: [{ courseId: 'course-1', title: 'Testing', owner: true, teacher: true, reviewer: false,
     reviewEvents: [{ id: 'review-1', action: 'submit', createdAt: '2026-10-31T11:00:00.000Z', reason: '' }] }],
+  termsAcceptances: [{ documentId: 'tos', version: 1, acceptedAt: '2026-10-31T11:00:00.000Z' }],
 };
 
 describe('PrivacyService (US-P021 Task 7 contract)', () => {
