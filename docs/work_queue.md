@@ -141,6 +141,7 @@ and US-A005 (admins assign course teachers, built with Codex; record in
 | Item | What Alex does | How to tell it is done |
 | --- | --- | --- |
 | Release 1 department interviews (week of 26 October) | Ask marketing, then IT, then sales, then the course department what they need and want for release 1 | Each request handed to Claude; Claude adds it to `user_stories.md` as Proposed with a release |
+| US-A008 campaigns feedback (designed 2026-11-01) | Show marketing the [campaign deck](https://claude.ai/artifact/Eddz8CT6ravxhygXufMVBD) on Thursday 12 November; collect their feedback on the [contract](stories/US-A008-campaigns.md) and the order of US-A009, US-A010, US-A011, US-L030 | Feedback handed to Claude; Claude updates the contract, then starts the build with Codex |
 | Release 1 decisions for management | Hosting budget (about 450–700 DKK a month, needed by mid-November), curriculum owner, backup developer ([roadmap](https://claude.ai/artifact/M5vCXNJZqTWmxhFcWQLVCJ)) | Answers recorded under Releases in `user_stories.md` |
 | US-A004-AC04 curriculum review (release 1, Must) | Review the [candidate course map](stories/US-A004-curriculum-review.md) | Every course mapped or deferred with a reason |
 | Go-live for payments (release 2) | Stripe live mode: business verification, live secret key and a live webhook destination into Vercel, and **Settings → Customer emails → Successful payments** on | A real purchase sends a receipt email |

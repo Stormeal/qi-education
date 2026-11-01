@@ -4,7 +4,8 @@
 that I can promote courses and careers and see whether a campaign worked.**
 
 Designed with Alex on 2026-11-01 (brainstorming). Builds on [payments](../specs/payments/payments.md)
-and [careers](../specs/career-paths/careers.md). Release: built now and checked on Stripe test mode.
+and [careers](../specs/career-paths/careers.md). Not started: Alex shows marketing the design on 2026-11-12 and brings their feedback
+before the build begins. Release: built after that feedback and checked on Stripe test mode.
 Release 1 courses are free, so campaigns change no price until public prices start at launch
 (confirm or change).
 
