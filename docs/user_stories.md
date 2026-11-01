@@ -29,7 +29,8 @@ budget, curriculum owner, backup developer.
 
 New candidates from Alex's 2026-10-27 brainstorm, filed below as Proposed and awaiting triage into
 a release: US-L029 (account achievements), US-T017 (browser video editing), US-A008 (discount
-campaigns), US-P023 (Azure storage spike). The suggested release in each story is confirm-or-change;
+campaigns, designed 2026-11-01), US-P023 (Azure storage spike). From the US-A008 design on
+2026-11-01: US-A009, US-A010, US-A011, US-L030. The suggested release in each story is confirm-or-change;
 Alex (product owner) assigns the release. US-P021 (GDPR data rights) and US-P022 (terms of service)
 were designed and assigned to release 1 by Alex on 2026-10-30. Organization-private courses from the same brainstorm are
 already delivered under US-O001. US-P019 and US-P020 were delivered locally on 2026-10-29; hosted checks are in the work queue.
@@ -53,7 +54,11 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
 | US-T017 | Record and lightly edit course video in the browser | Proposed | P3 | — | Below |
-| US-A008 | Sales and discount campaigns | Proposed | P3 | Payments, careers | Below |
+| US-A008 | Sales and discount campaigns, codes, banner, results (marketing role) | Designed 2026-11-01 | P3 | Payments, careers | [stories/US-A008](stories/US-A008-campaigns.md) |
+| US-A009 | Career bundle price | Proposed | P3 | US-A008 | Below |
+| US-A010 | Marketing email opt-in | Proposed | P3 | US-P021 | Below |
+| US-A011 | Refer a colleague | Proposed | P3 | US-A008 | Below |
+| US-L030 | Free preview lesson on priced courses | Proposed | P3 | — | Below |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -102,16 +107,29 @@ in-progress recording. The heaviest new item. Needs its own `stories/` contract 
 
 ### US-A008 — Sales and discount campaigns
 
-**As an admin, I want time-boxed discounts, so that I can promote individual courses and whole
-careers.**
+**As someone in marketing, I want time-boxed sales and discount codes, with a banner and results, so
+that I can promote courses and careers and see whether a campaign worked.**
 
-State: Proposed (Alex, 2026-10-27). Suggested release 2+ (release 1 is free/internal; public prices
-begin at launch) — confirm or change. Builds on payments ([payments](specs/payments/payments.md))
-and careers. Scope: a campaign targets one course or every course under a career, with a discount
-(percent or fixed) and a start/end window; the catalog and course pages show the sale price while
-active, and checkout records the amount actually paid. Open decisions: discount type and whether
-course and career campaigns stack or conflict; rounding and currency; automatic vs code-based; and
-interaction with organization add-on prices. Needs its own contract.
+State: Designed with Alex on 2026-11-01: a new `marketing` role, automatic sales and codes, best
+single discount wins, sale ribbon and "On sale" row, banner, results and campaign links. Contract:
+[stories/US-A008](stories/US-A008-campaigns.md).
+
+### US-A009 — Career bundle price
+
+**As a learner, I want to buy every course in a career at once for less, so that following a career
+costs less than buying course by course.** State: Proposed (Alex, 2026-11-01, from US-A008). Open:
+how the bundle price is set, what happens to courses added later and to courses already owned.
+
+### US-A010 — Marketing email opt-in
+
+**As someone in marketing, I want to email learners who agreed to it, so that I can announce
+campaigns and new courses.** State: Proposed (Alex, 2026-11-01). Needs a separate GDPR consent,
+unsubscribe in every mail (Brevo) and an export entry (US-P021).
+
+### US-A011 — Refer a colleague
+
+**As a learner, I want to invite a colleague with a discount, so that we both save.** State:
+Proposed (Alex, 2026-11-01). Builds on US-A008 codes. Open: reward for the referrer and abuse limits.
 
 ## Learner journey
 
@@ -183,6 +201,12 @@ automatic (for example first login, total hours watched, completion streaks), sh
 Open decisions: the starter set and thresholds; computing them server-side from existing
 progress/activity (cross-device) as milestones do; where they display and whether they are
 shareable; and whether earning one notifies the learner. Needs its own contract.
+
+### US-L030 — Free preview lesson on priced courses
+
+**As a visitor, I want to try a lesson of a priced course before I buy, so that I know it suits
+me.** State: Proposed (Alex, 2026-11-01). Open: who marks the preview lesson, and whether it needs
+sign-in.
 
 ## Platform reliability
 
