@@ -2,7 +2,7 @@
 
 ## Purpose
 
-US-L028 (delivered locally 2026-11-01, not live). Learners rate courses they have started; the
+US-L028 (delivered 2026-11-01, live since 0.1.566). Learners rate courses they have started; the
 catalog's stars, rating filter, "Highest rated" sort and instructor ratings use those real ratings.
 
 ## Behavior

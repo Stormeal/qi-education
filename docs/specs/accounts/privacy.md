@@ -2,7 +2,7 @@
 
 ## Purpose
 
-US-P021 (delivered locally 2026-10-31, release 1, not live). A user exports and deletes their own
+US-P021 (delivered 2026-10-31, release 1, live since 0.1.561). A user exports and deletes their own
 personal data without admin help, and controls non-essential cookies. EU storage, processor
 agreements and the privacy notice come from US-P018-AC03.
 

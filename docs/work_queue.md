@@ -6,13 +6,13 @@ messages hold them.
 
 ## Active work
 
-No active implementation. **US-L028 course ratings is delivered locally (2026-11-01), not pushed**:
+No active implementation. **US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
 Claude `a22faab` (rating box, reviews with admin Hide/Show, catalog settings without rating
 inputs), Codex `4f8eec5` (rating store, routes, eligibility, course aggregate, privacy). Checks: API
 3,123 + DEF-034/11 timing failure that passes alone (24/24), app 668, journeys 20, Pages build.
 Browser on isolated stores: rating refused before a completed lesson, 4 stars with a comment saved
 and updated, course details and catalog show 4.0 (1) with first name only, admin Hide drops it to
-0.0 (0) and Show restores it. Behavior in [ratings](specs/catalog/ratings.md). Waits on Alex: push,
+0.0 (0) and Show restores it. Behavior in [ratings](specs/catalog/ratings.md). Waits on Alex: the hosted check
 and the "confirm or change" decisions there.
 
 US-P021 and US-P022 are live in 0.1.561 (pushed 2026-10-31); hosted checks not done yet.
@@ -21,20 +21,19 @@ US-P021 and US-P022 are live in 0.1.561 (pushed 2026-10-31); hosted checks not d
 Checks: API 3,075, app 663, journeys 20, Pages build. Browser on isolated stores: the demo student
 meets the gate at sign-in (page behind inert), I accept clears it for good, a ticked signup never
 sees it, and the export lists the acceptance. Buy's checkbox is covered by specs only. Waits on
-Alex: the legal wording, push, and the "confirm or change" decisions in
+Alex: the legal wording, the hosted check and the "confirm or change" decisions in
 [terms](specs/accounts/terms.md).
 
-**US-P021 GDPR data rights is delivered locally (2026-10-31), not
-pushed**: API `30a2cac`, cookie consent `a72845a`, privacy client and erase 400 `74ed267` (Codex),
+**US-P021 GDPR data rights was delivered locally (2026-10-31)**: API `30a2cac`, cookie consent `a72845a`, privacy client and erase 400 `74ed267` (Codex),
 Privacy & data tab (Claude). Checks: API 3,024, app 657, journeys 20, Pages build; browser check on
-isolated stores. Waits on Alex: push, then the hosted check in [privacy](specs/accounts/privacy.md)
+isolated stores. Waits on Alex: the hosted check in [privacy](specs/accounts/privacy.md)
 Limits, and the "confirm or change" decisions there. The selected DEF-066/DEF-067 release and teacher/review/learner
 walkthrough is complete (Codex, `main`, base `f8659ec`; released 0.1.542 in `9610f47`).
 Hosted evidence covers DEF-066 recovery, reviewer changes, admin Return, saved Review activity
 off/on and muted suppression, persisted read state, approval/publication and teacher metrics
 after learner completion/Helpful feedback. Admin submission delivery was user-reported.
 [Evidence](history/verification/2026-10-30-release/walkthrough.md).
-US-P024 background loading is delivered locally in `3fcd215`, awaiting an authorized release.
+US-P024 background loading (`3fcd215`) is live, pushed by 0.1.566 at the latest.
 Remaining integration coverage and the later-deployment DEF-067 check are under Open release
 checks. Hosted mutations were user-performed; agent probes stayed isolated.
 
@@ -161,7 +160,7 @@ as they arrive.
 
 ## Open release checks
 
-- US-P024, delivered locally in `3fcd215`: after authorized deployment, check background list
+- US-P024, live (`3fcd215`, pushed by 0.1.566): check background list
   loading after real sign-in/session restoration, ready cached display and freshness on open.
   Local app 637/637, UI foundation, Pages build and delayed-response browser pass;
   [evidence](history/verification/2026-10-30-us-p024/README.md).

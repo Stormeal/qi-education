@@ -2,7 +2,7 @@
 
 ## Purpose
 
-US-P022 (release 1, not live). Users read and accept the platform's Terms of Service at signup
+US-P022 (release 1, live since 0.1.561). Users read and accept the platform's Terms of Service at signup
 and the Purchase & Refund Terms at each checkout; acceptance is recorded per version, and a new
 Terms of Service version asks everyone to accept again. In release 1 courses stay free, so the
 checkout half is dormant until charging is enabled (release 2).

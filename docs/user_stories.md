@@ -1,6 +1,6 @@
 # User stories
 
-Updated: 2026-10-30. Open work only. Priority order chosen by Alex: **teachers, learners,
+Updated: 2026-11-01. Open work only. Priority order chosen by Alex: **teachers, learners,
 platform reliability**, with confirmed defects before enhancements. What the app already does is
 in [specs/](specs/README.md); use [work_queue.md](work_queue.md) for the next item and active work.
 
@@ -18,7 +18,7 @@ department); new requests enter here as Proposed stories.
 
 | Release | Target | Goal | In scope |
 | --- | --- | --- | --- |
-| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26), US-A007 course reviewers (Must, added by Alex 2026-10-26; built 2026-10-26, not live), US-P021 GDPR data rights (Must, added by Alex 2026-10-30), US-P022 terms of service (Must, added by Alex 2026-10-30; purchase-terms half dormant until charging) |
+| 1, internal | Mid-December 2026 | TestHuset colleagues learn and teachers build courses; no public sales | US-P018 (Must), US-O001 without the owner overview: requests, approval, owner invites, members, billed careers, add-on requests and prices shown but not charged (Must), US-A004-AC04 (Must), live-site checks in [work_queue.md](work_queue.md) (Must), US-A004-AC06 (Should), US-A006 feedback/INV-004 cutover (Should; live since 0.1.482, 2026-10-26), US-A007 course reviewers (Must, added by Alex 2026-10-26; built 2026-10-26, live since 0.1.503), US-P021 GDPR data rights (Must, added by Alex 2026-10-30), US-P022 terms of service (Must, added by Alex 2026-10-30; purchase-terms half dormant until charging) |
 | 2, public launch | Around Q2 2027 | Sell to individuals and organizations | US-O001 owner overview, Stripe live mode, external security test, accessibility review, US-P001, dependency majors (Angular 22) |
 | 3, organization billing | After launch, 2027 | Paid organization seats | US-O002 |
 
@@ -40,16 +40,16 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
-| US-O001 | Organizations: request, approval, invites, owner overview | Release 1 delivered 2026-10-24 (not live); owner overview in release 2 | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
+| US-O001 | Organizations: request, approval, invites, owner overview | Release 1 delivered 2026-10-24 (live since 0.1.464); owner overview in release 2 | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-O002 | Organization billing: career seats, course add-ons, card or invoice | Decided, not designed | P2 | US-O001 | [stories/US-O001](stories/US-O001-organizations.md) |
 | US-A004 | Curriculum review (changed criteria delivered) | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |
 | US-P018 | Ready for internal company use (release 1) | Proposed | P1 | Hosting budget (management) | Below |
 | US-L027 | Course completion certificate | Proposed | P2 | — | Below |
-| US-L028 | Learner course ratings and reviews | Delivered 2026-11-01 (not live) | P2 | — | [Spec](specs/catalog/ratings.md) |
-| US-P021 | GDPR data rights (export, erasure, cookie consent) | Delivered 2026-10-31 (not live) | P1 | Release 1 | [Spec](specs/accounts/privacy.md) |
-| US-P022 | Terms of service and purchase-terms page | Delivered 2026-10-31 (not live); legal wording placeholder | P1 | Legal content (Alex), Release 1 | [Spec](specs/accounts/terms.md) |
+| US-L028 | Learner course ratings and reviews | Delivered 2026-11-01 (live since 0.1.566) | P2 | — | [Spec](specs/catalog/ratings.md) |
+| US-P021 | GDPR data rights (export, erasure, cookie consent) | Delivered 2026-10-31 (live since 0.1.561) | P1 | Release 1 | [Spec](specs/accounts/privacy.md) |
+| US-P022 | Terms of service and purchase-terms page | Delivered 2026-10-31 (live since 0.1.561); legal wording placeholder | P1 | Legal content (Alex), Release 1 | [Spec](specs/accounts/terms.md) |
 | US-P023 | Spike: move storage from MongoDB to Azure | Proposed | P3 | Decision + spike | Below |
 | US-L029 | Earn account-level achievements | Proposed | P3 | — | Below |
 | US-T017 | Record and lightly edit course video in the browser | Proposed | P3 | — | Below |
@@ -149,7 +149,7 @@ Feature: Course completion certificate
 **As a learner, I want to rate a course and read others' ratings, so that I can choose good
 courses; as a teacher, I want to know what learners think.**
 
-State: Delivered 2026-11-01 (not live). Behavior and the decisions to confirm or change in
+State: Delivered 2026-11-01 (live since 0.1.566). Behavior and the decisions to confirm or change in
 [course ratings](specs/catalog/ratings.md).
 
 ```gherkin
@@ -278,7 +278,7 @@ Feature: Fit for company use
 **As a user in the EU, I want to see, export and delete my personal data and control non-essential
 cookies, so that the platform meets GDPR.**
 
-State: Delivered locally 2026-10-31, not live. Behavior: [specs/accounts/privacy.md](specs/accounts/privacy.md).
+State: Delivered 2026-10-31, live since 0.1.561. Behavior: [specs/accounts/privacy.md](specs/accounts/privacy.md).
 Release 1 (assigned by Alex, 2026-10-30), full self-service; staged admin-assisted fallback available if the December timeline is tight. A central injected `PrivacyService` composes
 per-repo `collectForExport` / `anonymizeForUser` / `removeForUser` methods, guarded by a coverage test.
 Export: one JSON object plus a readable/printable summary (`GET /users/me/privacy/export`). Erasure
@@ -295,7 +295,7 @@ status, tab and banner placement) are listed in the spec. Implementation plan:
 **As a user, I want to read the platform's terms and purchase terms, so that I know the rules
 before I sign up or buy.**
 
-State: Delivered locally 2026-10-31, not live; legal wording is placeholder until Alex/legal supply it. Behavior: [specs/accounts/terms.md](specs/accounts/terms.md).
+State: Delivered 2026-10-31, live since 0.1.561; legal wording is placeholder until Alex/legal supply it. Behavior: [specs/accounts/terms.md](specs/accounts/terms.md).
 Release 1 (assigned by Alex, 2026-10-30); the ToS acceptance, versioning + re-accept gate and footer are the R1 deliverable, with purchase-terms/checkout acceptance dormant until charging is enabled (R2, courses are free in R1). Two in-code versioned documents — Terms of Service (accepted at signup) and Purchase & Refund
 Terms (accepted at checkout) — stored as typed constants (the `release-notes.ts` pattern). A per-account
 `termsAcceptances` record stores `{ userId, documentId, version, acceptedAt }`; the server stamps the
