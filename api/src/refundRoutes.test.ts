@@ -81,6 +81,13 @@ describe.each(['memory', 'mongo'])('US-L025 refund HTTP (%s)', kind => {
       expect((await request('/courses/' + courseId + '/content', undefined, 'GET')).status).toBe(403);
       if (kind === 'mongo') expect(authFake.documents.get(user.id)?.enrollmentPurchases?.[createHash('sha256').update(courseId).digest('hex')]).toBeUndefined();
     });
+    it('F1 refunding a purchase of a course the learner already had keeps that earlier enrollment', async () => {
+      const id = await checkout(); await auth.enrollUserInCourse(user.id, courseId); await buy(id);
+      expect((await refund(id)).status).toBe(200);
+      expect((await payments.findById(id))?.refundedAt).toEqual(expect.any(String));
+      expect(await enrolled()).toEqual(['other-course', courseId]);
+      expect((await request('/courses/' + courseId + '/content', undefined, 'GET')).status).toBe(200);
+    });
     it('US-L025-AC02 partial refund keeps access until the remainder is fully refunded', async () => {
       const id = await buy(); expect((await refund(id, false)).status).toBe(200); expect(await enrolled()).toContain(courseId);
       expect((await request('/courses/' + courseId + '/content', undefined, 'GET')).status).toBe(200);

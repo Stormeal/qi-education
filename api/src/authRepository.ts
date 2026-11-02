@@ -35,6 +35,8 @@ export interface AuthRepository {
   enrollUserInCourse(userId: string, courseId: string): Promise<AuthUser | null>;
   enrollUserInCourseWithChange(userId: string, courseId: string, purchaseSessionId?: string): Promise<AuthEnrollmentMutation | null>;
   reconcileCoursePurchase(userId: string, courseId: string, remainingSessionId: string | null): Promise<AuthUser | null>;
+  /** Removes an enrollment no purchase gave; a bought one stays. */
+  removeUnpaidEnrollment(userId: string, courseId: string): Promise<AuthUser | null>;
   updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null>;
   confirmEmail(userId: string): Promise<AuthUser | null>;
   collectForExport(userId: string): Promise<AuthenticatedUser | null>;
@@ -180,9 +182,17 @@ export class InMemoryAuthRepository implements AuthRepository {
     if (remainingSessionId) {
       this.users[index] = { ...user, enrolledCourseIds: [...new Set([...user.enrolledCourseIds, courseId])] };
       this.enrollmentPurchases.set(key, remainingSessionId);
-    } else {
+    } else if (this.enrollmentPurchases.delete(key)) {
+      // Only an enrollment a purchase gave is removed; a free or earlier one stays (F1).
       this.users[index] = { ...user, enrolledCourseIds: user.enrolledCourseIds.filter(id => id !== courseId) };
-      this.enrollmentPurchases.delete(key);
+    }
+    return this.users[index];
+  }
+  async removeUnpaidEnrollment(userId: string, courseId: string): Promise<AuthUser | null> {
+    const index = this.users.findIndex(user => user.id === userId);
+    if (index < 0) return null;
+    if (!this.enrollmentPurchases.has(JSON.stringify([userId, courseId]))) {
+      this.users[index] = { ...this.users[index], enrolledCourseIds: this.users[index].enrolledCourseIds.filter(id => id !== courseId) };
     }
     return this.users[index];
   }
@@ -232,6 +242,7 @@ class UnavailableAuthRepository implements AuthRepository {
   async enrollUserInCourse(_userId: string, _courseId: string): Promise<AuthUser | null> { return null; }
   async enrollUserInCourseWithChange(_userId: string, _courseId: string): Promise<AuthEnrollmentMutation | null> { throw new AuthUnavailableError(); }
   async reconcileCoursePurchase(_userId: string, _courseId: string, _remaining: string | null): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
+  async removeUnpaidEnrollment(_userId: string, _courseId: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async updatePasswordHash(_userId: string, _passwordHash: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async confirmEmail(_userId: string): Promise<AuthUser | null> { throw new AuthUnavailableError(); }
   async collectForExport(_userId: string): Promise<AuthenticatedUser | null> { throw new AuthUnavailableError(); }

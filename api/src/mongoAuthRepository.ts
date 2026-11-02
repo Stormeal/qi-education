@@ -134,8 +134,17 @@ export class MongoAuthRepository implements AuthRepository {
     const update = remainingSessionId
       ? { $addToSet: { enrolledCourseIds: courseId }, $set: { [source]: remainingSessionId } }
       : { $pull: { enrolledCourseIds: courseId }, $unset: { [source]: '' as const } };
-    const document = await (await this.collection()).findOneAndUpdate({ _id: userId }, update,
-      { returnDocument: 'after', includeResultMetadata: false, ...majority });
+    // Only an enrollment a purchase gave is removed; a free or earlier one stays (F1).
+    const collection = await this.collection();
+    const document = await collection.findOneAndUpdate({ _id: userId, ...(remainingSessionId ? {} : { [source]: { $exists: true } }) }, update,
+      { returnDocument: 'after', includeResultMetadata: false, ...majority }) ?? (remainingSessionId ? null : await collection.findOne({ _id: userId }));
+    return document ? account(document) : null;
+  }
+  async removeUnpaidEnrollment(userId: string, courseId: string): Promise<AuthUser | null> {
+    const source = `enrollmentPurchases.${createHash('sha256').update(courseId).digest('hex')}`;
+    const collection = await this.collection();
+    const document = await collection.findOneAndUpdate({ _id: userId, [source]: { $exists: false } }, { $pull: { enrolledCourseIds: courseId } },
+      { returnDocument: 'after', includeResultMetadata: false, ...majority }) ?? await collection.findOne({ _id: userId });
     return document ? account(document) : null;
   }
   async updatePasswordHash(userId: string, passwordHash: string, expectedPasswordHash?: string): Promise<AuthUser | null> {

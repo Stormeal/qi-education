@@ -27,12 +27,13 @@ export function courseForViewer(course: Course | null, user?: AuthenticatedUser)
 export function canLearnCourse(course: Course, user?: AuthenticatedUser, orgCourseIds: readonly string[] = []): boolean {
   return canAuthorCourse(course, user) || (!!user &&
     (['published', 'archived'].includes(course.status) && user.enrolledCourseIds.includes(course.id) ||
-      course.status === 'published' && orgCourseIds.includes(course.id)));
+      ['published', 'archived'].includes(course.status) && orgCourseIds.includes(course.id)));
 }
 
-export function canSeeCourse(course: Course, user?: AuthenticatedUser): boolean {
+/** orgCourseIds: the organization courses the user has started; only needed for archived courses. */
+export function canSeeCourse(course: Course, user?: AuthenticatedUser, orgCourseIds: readonly string[] = []): boolean {
   return course.status === 'published' || canReadAuthorView(course, user) ||
-    (course.status === 'archived' && canLearnCourse(course, user));
+    (course.status === 'archived' && canLearnCourse(course, user, orgCourseIds));
 }
 
 export function courseOutline(content: CourseContentDocument) {

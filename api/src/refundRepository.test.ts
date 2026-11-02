@@ -43,6 +43,13 @@ describe.each(['memory', 'mongo'])('US-L025 storage (%s)', kind => {
     expect((await auth.enrollUserInCourseWithChange(user.id, 'course', 'cs_second'))?.purchaseSessionId).toBe('cs_second');
     await auth.reconcileCoursePurchase(user.id, 'course', null); await auth.reconcileCoursePurchase(user.id, 'course', null);
     expect((await auth.findById(user.id))?.enrolledCourseIds).toEqual(['other']);
+    await auth.reconcileCoursePurchase(user.id, 'other', null);
+    expect((await auth.findById(user.id))?.enrolledCourseIds).toEqual(['other']);
+    await expect(new ReadOnlyAuthRepository(auth).removeUnpaidEnrollment(user.id, 'other')).rejects.toBeInstanceOf(AuthReadOnlyError);
+    await auth.enrollUserInCourseWithChange(user.id, 'bought', 'cs_bought');
+    await auth.removeUnpaidEnrollment(user.id, 'bought');
+    expect((await auth.removeUnpaidEnrollment(user.id, 'other'))?.enrolledCourseIds).toEqual(['bought']);
+    await auth.enrollUserInCourse(user.id, 'other');
     expect(await auth.enrollUserInCourseWithChange(user.id, 'course', 'cs_new')).toMatchObject({ added: true, purchaseSessionId: 'cs_new' });
     expect((await auth.findById(user.id))?.passwordHash).toBe(user.passwordHash);
     expect(await auth.findById(user.id)).not.toHaveProperty('enrollmentPurchases');

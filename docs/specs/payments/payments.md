@@ -54,7 +54,9 @@ Nothing here changed for them.
   repeated, late or unknown refund events change nothing (unknown ones are logged as
   `Refund for unknown payment`). A refund that arrives before its paid event is recorded is stored
   as a refunded payment (logged as `Refund recorded before its payment`), so the paid event, when it
-  comes, finds it refunded and grants nothing. A refunded purchase never grants access again, even if its paid
+  comes, finds it refunded and grants nothing. A refund removes only an enrollment that a purchase gave: a learner
+  who already had the course (enrolled free, or before it got a price) keeps it (F1, Alex 2026-11-02).
+  A refunded purchase never grants access again, even if its paid
   event is replayed. Progress, notes and achievements are kept, so buying again continues where
   the learner left off.
 - A price is free (empty or 0) or 3–999,999 whole DKK; checkout refuses a stored price outside that

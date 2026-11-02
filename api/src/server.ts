@@ -1,4 +1,4 @@
-import { coursePriceMessage, courseReviewerIds, courseTeacherIds } from './course.js';
+import { coursePriceMessage, courseReviewerIds, courseTeacherIds, type Course } from './course.js';
 import { sendReviewRequest } from './courseReviewerMail.js';
 import { logError } from './errorLogger.js';
 import { PrivacyService } from './privacyService.js';
@@ -233,6 +233,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
     billingService: organizationBilling,
     careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService,
     withUserMutation: privacyMutations.mutate });
+  // Archived courses stay visible to members who started them through their organization (F3).
+  const archivedOrgCourseIds = async (user: AuthenticatedUser | undefined, list: readonly Course[]): Promise<string[]> =>
+    user && list.some(course => course.status === 'archived') ? organizations.learnableOrgCourseIds(user.id) : [];
   const withOrganizationCourses = async (user: AuthenticatedUser): Promise<AuthenticatedUser> => ({
     ...user,
     enrolledCourseIds: [...new Set([...user.enrolledCourseIds, ...await organizations.learnableOrgCourseIds(user.id)])],
@@ -674,7 +677,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerCourseLocksRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, content: storedContent, courses: storedCourses });
   registerCourseReviewersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth,
     sender: mailSender, appUrl: apiConfig.APP_PUBLIC_URL ?? 'http://localhost:4200', notifications: notificationService });
-  registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth });
+  registerCourseTeachersRoutes(app, { authenticate: authenticateRequest(auth), requireAdmin, withCourseLock, courses: reviewedCourses, auth, enrollmentWrites });
   registerTeachingRoutes(app, { authenticate: authenticateRequest(auth, 403), auth, courses, content: courseContent,
     progress: learningProgress, feedback });
   registerOrganizationRoutes(app, authenticateRequest(auth), requireAdmin, organizations, clientLimit);
@@ -884,8 +887,9 @@ export function createServer(dependencies: ServerDependencies = {}) {
 
   app.get('/courses', optionalAuthentication(auth), async (request, response, next) => {
     try {
-      const user = (request as Partial<AuthenticatedRequest>).user;
-      response.json((await courses.listCourses()).filter(course => canSeeCourse(course, user))
+      const user = (request as Partial<AuthenticatedRequest>).user, list = await courses.listCourses();
+      const orgIds = await archivedOrgCourseIds(user, list);
+      response.json(list.filter(course => canSeeCourse(course, user, orgIds))
         .map(course => courseForViewer(course, user)));
     } catch (error) {
       next(error);
@@ -905,7 +909,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
           else matchingCourse = undefined;
         } else matchingCourse = undefined;
       }
-      if (!matchingCourse || !matchingCourse.thumbnailAssetId || !canSeeCourse(matchingCourse, (request as Partial<AuthenticatedRequest>).user)) {
+      const viewer = (request as Partial<AuthenticatedRequest>).user;
+      if (!matchingCourse || !matchingCourse.thumbnailAssetId || !canSeeCourse(matchingCourse, viewer, await archivedOrgCourseIds(viewer, [matchingCourse]))) {
         response.status(404).json({ message: 'Course thumbnail not found' });
         return;
       }
@@ -985,7 +990,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
     try {
       const courseId = String(request.params.id);
       const course = (await courses.listCourses()).find((item) => item.id === courseId);
-      if (!course || !canSeeCourse(course, (request as Partial<AuthenticatedRequest>).user)) {
+      const viewer = (request as Partial<AuthenticatedRequest>).user;
+      if (!course || !canSeeCourse(course, viewer, await archivedOrgCourseIds(viewer, [course]))) {
         response.status(404).json({ message: 'Course not found' });
         return;
       }

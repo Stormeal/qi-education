@@ -28,6 +28,7 @@ export class ReadOnlyAuthRepository implements AuthRepository {
   async cancelErasure(_userId: string, _expectedPasswordHash: string): Promise<never> { throw new AuthReadOnlyError(); }
   async markErasureCleaning(_userId: string): Promise<never> { throw new AuthReadOnlyError(); }
   async reconcileCoursePurchase(_id: string, _courseId: string, _remaining: string | null): Promise<never> { throw new AuthReadOnlyError(); }
+  async removeUnpaidEnrollment(_id: string, _courseId: string): Promise<never> { throw new AuthReadOnlyError(); }
   async createUser(_user: AuthUser): Promise<never> { throw new AuthReadOnlyError(); }
   async enrollUserInCourseWithChange(_id: string, _courseId: string): Promise<never> { throw new AuthReadOnlyError(); }
   async enrollUserInCourse(_id: string, _courseId: string): Promise<never> { throw new AuthReadOnlyError(); }

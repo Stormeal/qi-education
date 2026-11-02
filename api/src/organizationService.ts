@@ -550,7 +550,8 @@ export class OrganizationService {
     }));
     await this.syncBilling(orgId); return result;
   }
-  async openCourseIds(userId: string): Promise<string[]> {
+  async openCourseIds(userId: string): Promise<string[]> { return this.orgCourseIds(userId, ['published']); }
+  private async orgCourseIds(userId: string, statuses: string[]): Promise<string[]> {
     const member = await this.repository.getMembership(userId);
     if (member?.state !== 'active') return [];
     const org = await this.repository.getOrganization(member.orgId);
@@ -563,8 +564,8 @@ export class OrganizationService {
       for (const action of step.actions) if (action.kind === 'course' && action.courseId) ids.add(action.courseId);
     }
     for (const request of await this.repository.listCourseRequests(member.orgId)) if (request.userId === userId && request.state === 'approved') ids.add(request.courseId);
-    const published = new Set((await this.dependencies.courses?.listCourses() ?? []).filter(v => v.status === 'published').map(v => v.id));
-    return [...ids].filter(id => published.has(id));
+    const allowed = new Set((await this.dependencies.courses?.listCourses() ?? []).filter(v => statuses.includes(v.status)).map(v => v.id));
+    return [...ids].filter(id => allowed.has(id));
   }
   async startCourse(userId: string, courseId: string): Promise<boolean> {
     const member = await this.repository.getMembership(userId); if (!member) return false;
@@ -576,7 +577,8 @@ export class OrganizationService {
   }
   async learnableOrgCourseIds(userId: string) {
     const started = new Set((await this.repository.getMembership(userId))?.startedCourseIds ?? []);
-    return (await this.openCourseIds(userId)).filter(id => started.has(id));
+    // A member keeps a course they started after it is archived (F3); nobody can start it then.
+    return (await this.orgCourseIds(userId, ['published', 'archived'])).filter(id => started.has(id));
   }
   // X8 F6: prices are read once per answer, not once per request in a list.
   private courseRequestView({ orgId: _orgId, ...value }: StoredCourseRequest, prices: Prices): CourseRequest {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { AuthRepository } from './authRepository.js';
 import { courseTeacherIds, courseReviewerIds } from './course.js';
 import type { CourseRepository } from './courseRepository.js';
+import type { KeyedSerialQueue } from './keyedSerialQueue.js';
 
 export type CourseTeacher = { id: string; displayName: string; email: string; active: boolean };
 const teacherListSchema = z.object({ teacherIds: z.array(z.string().trim().min(1).max(120)).max(20) });
@@ -10,9 +11,10 @@ const teacherListSchema = z.object({ teacherIds: z.array(z.string().trim().min(1
 export function registerCourseTeachersRoutes(app: Express, dependencies: {
   authenticate: RequestHandler; requireAdmin: RequestHandler;
   withCourseLock: (handler: (request: Request, response: Response, next: NextFunction) => Promise<unknown>) => RequestHandler;
-  courses: CourseRepository; auth: Pick<AuthRepository, 'findById'>;
+  courses: CourseRepository; auth: Pick<AuthRepository, 'findById' | 'removeUnpaidEnrollment'>;
+  enrollmentWrites: KeyedSerialQueue;
 }): void {
-  const { authenticate, requireAdmin, withCourseLock, courses, auth } = dependencies;
+  const { authenticate, requireAdmin, withCourseLock, courses, auth, enrollmentWrites } = dependencies;
   const path = '/courses/:id/teachers';
   app.use(path, (_request, response, next) => {
     response.set('Cache-Control', 'private, no-store'); response.vary('Authorization'); next();
@@ -51,6 +53,10 @@ export function registerCourseTeachersRoutes(app: Express, dependencies: {
     }
     const updated = await courses.updateCourseTeachers(String(request.params.id), teacherIds);
     if (!updated) { response.status(404).json({ message: 'Course not found' }); return; }
+    // A removed teacher keeps a priced course only if they bought it (F4); free courses stay open to all.
+    if ((updated.priceDkk ?? 0) > 0) {
+      for (const id of storedIds) if (!teacherIds.includes(id)) await enrollmentWrites.run(id, () => auth.removeUnpaidEnrollment(id, updated.id));
+    }
     response.json({ teachers: await teachers(courseTeacherIds(updated)) });
   }));
 }

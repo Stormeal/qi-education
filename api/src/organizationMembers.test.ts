@@ -5,6 +5,7 @@ import { InMemoryCareerPathRepository } from './careerPathRepository.js';
 import { InMemoryCourseRepository } from './courseRepository.js';
 import { careerPathContentSchema } from './careerPath.js';
 import { OrganizationService } from './organizationService.js';
+import { canLearnCourse, canSeeCourse } from './courseAccess.js';
 async function setup() {
   const repository = new InMemoryOrganizationRepository(), auth = new InMemoryAuthRepository(),
     careers = new InMemoryCareerPathRepository(), courses = new InMemoryCourseRepository();
@@ -53,6 +54,19 @@ describe('US-O001 members, billed careers and add-ons', () => {
     const path = (await f.careers.listPaths()).find(v => v._id === 'career')!;
     await f.careers.savePath({ ...path, published: null });
     expect(await f.service.openCourseIds(f.member.id)).toEqual([]);
+  });
+  it('F3 a member keeps a started course after it is archived, but cannot start an archived one', async () => {
+    const f = await setup(); await f.service.setCareer(f.owner.id, f.orgId, f.member.id, 'career');
+    expect(await f.service.startCourse(f.member.id, 'required')).toBe(true);
+    const catalog = await f.courses.listCourses();
+    for (const id of ['required', 'optional']) catalog.find(v => v.id === id)!.status = 'archived';
+    expect(await f.service.openCourseIds(f.member.id)).toEqual([]);
+    expect(await f.service.learnableOrgCourseIds(f.member.id)).toEqual(['required']);
+    expect(await f.service.startCourse(f.member.id, 'optional')).toBe(false);
+    const course = catalog.find(v => v.id === 'required')!, user = { ...f.member, enrolledCourseIds: [] } as never;
+    expect(canSeeCourse(course, user)).toBe(false);
+    expect(canSeeCourse(course, user, ['required'])).toBe(true);
+    expect(canLearnCourse(course, user, ['required'])).toBe(true);
   });
   it('AC10 opens an approved add-on, refuses duplicates/already-open courses and preserves access on decline', async () => {
     const f = await setup(); await f.service.setCareer(f.owner.id, f.orgId, f.member.id, 'career'); await f.service.setCoursePrice('addon', 35);

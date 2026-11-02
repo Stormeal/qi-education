@@ -16,6 +16,8 @@ any course.
   at once (`PUT /courses/:id/teachers`, 0–20 teacher accounts), announces "Teachers saved", and on
   failure keeps the previous list with the error. It never touches the course draft. Teachers do
   not see the panel. `ownerUserId` is kept as a copy of the first teacher for older clients.
+  Removing a teacher from a priced course also removes their enrollment unless they bought it;
+  progress and notes stay (F4, Alex 2026-11-02). On a free course the enrollment stays.
 - **Importing a Rise course** (US-T015): an operator command, `npm --prefix api run import:rise`
   (`npm.cmd` in PowerShell), turns an extracted Articulate Rise SCORM export into a draft through the
   API: Rise lessons become sections; videos (uploaded straight to Mux), knowledge checks (one quiz

@@ -39,7 +39,7 @@ The API enforces every rule here; the UI only mirrors them.
 | Who | Sees |
 | --- | --- |
 | Anyone | Published course metadata, lesson-title outline, thumbnails, published careers, public instructor descriptions |
-| Enrolled learner | Full learner content and live files of a published or archived course; never correct answers before an attempt |
+| Enrolled learner | Full learner content and live files of a published or archived course (organization members: archived only if started before); never correct answers before an attempt |
 | Owner / admin | Everything about the course, including the working revision, review history and author view |
 | Assigned reviewer | The author view (read-only) and review history of the course they review; not the reviewer list |
 

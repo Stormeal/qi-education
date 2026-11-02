@@ -131,6 +131,22 @@ describe.each(['', '/api'])('US-A005 course teacher HTTP (%s)', prefix => {
     expect((await request('/courses/c/content', teacherB, 'PATCH', { sections: [] })).status).toBe(200);
   });
 
+  it('F4 removing teachers from a priced course removes their enrollment unless they bought it', async () => {
+    await courses.updateCourseTeachers('c', [teacherA.id, teacherB.id, 'teacher-c']);
+    await auth.createUser({ ...teacherA, id: 'teacher-c', email: 'teacher-c@example.test', enrolledCourseIds: [] });
+    await courses.updateCoursePrice('c', { priceDkk: 499 });
+    await auth.enrollUserInCourse(teacherA.id, 'c'); await auth.enrollUserInCourseWithChange(teacherB.id, 'c', 'cs_bought');
+    await auth.enrollUserInCourse('teacher-c', 'c');
+    expect((await request('/courses/c/teachers', admin, 'PUT', { teacherIds: ['teacher-c'] })).status).toBe(200);
+    expect((await auth.findById(teacherA.id))?.enrolledCourseIds).not.toContain('c');
+    expect((await auth.findById(teacherB.id))?.enrolledCourseIds).toContain('c');
+    expect((await auth.findById('teacher-c'))?.enrolledCourseIds).toContain('c');
+    await courses.updateCoursePrice('c', { priceDkk: null });
+    await auth.enrollUserInCourse(teacherA.id, 'c');
+    expect((await request('/courses/c/teachers', admin, 'PUT', { teacherIds: [] })).status).toBe(200);
+    expect((await auth.findById(teacherA.id))?.enrolledCourseIds).toContain('c');
+  });
+
   it('US-A005-AC06 an owner-only legacy course remains authorable by its teacher', async () => {
     await courses.createCourse(metadata, { id: 'legacy', createdAt: 'x', ownerUserId: teacherA.id });
     expect((await request('/courses/legacy/content', teacherA, 'PATCH', { sections: [] })).status).toBe(200);

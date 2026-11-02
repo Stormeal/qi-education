@@ -42,6 +42,8 @@ release 2 ([decisions](../../stories/US-O001-organizations.md)).
   While the membership is active and the organization is not suspended, those courses appear in
   My Learning and open on the learning page. After leaving, removal or suspension they disappear
   from My Learning; progress stays stored and returns on rejoining with access or buying the course.
+  A started course that is archived stays open to the member (in My Learning, the catalog list,
+  outline and thumbnail) while access lasts; nobody can start an archived course (F3, Alex 2026-11-02).
 - **Prices**: admins set a monthly seat price per career (career editor) and an add-on price per
   course (catalog settings), whole DKK excluding moms; every price shows "excl. moms". Unpriced
   careers and courses are free and not billed. They are never recorded as personal payments.
