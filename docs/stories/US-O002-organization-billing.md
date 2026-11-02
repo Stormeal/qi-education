@@ -9,7 +9,7 @@ US-O001 ([organizations](../specs/organizations/organizations.md)) and US-L024
 [US-O001](US-O001-organizations.md#us-o002-organization-billing-release-3); the API draft
 [US-O001-api-draft.md](../handoffs/US-O001-api-draft.md) §7 and §9 is background, not agreed scope.
 
-Everything marked **(confirm or change)** is a default chosen on 2026-11-02 so the work can start.
+The defaults below were chosen on 2026-11-02 and **accepted by Alex the same day**.
 Nothing here blocks on Alex until Stripe live mode (release 2).
 
 ## Decided (Alex, 2026-10-20)
@@ -23,7 +23,7 @@ Nothing here blocks on Alex until Stripe live mode (release 2).
 - Leaving or a cancelled subscription ends organization access; progress, notes, achievements and
   personal purchases stay with the account.
 
-## Defaults (confirm or change)
+## Defaults (accepted by Alex, 2026-11-02)
 
 1. **Free or paid per organization.** The admin chooses when approving: **Paid** (default) or
    **Free of charge**, and can switch later in Admin → Organizations. Organizations approved

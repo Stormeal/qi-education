@@ -7,7 +7,7 @@ messages hold them.
 ## Active work
 
 **US-O002 organization billing** (started 2026-11-02, base `af09fad`, branch `main`). Contract and
-"confirm or change" defaults: [US-O002](stories/US-O002-organization-billing.md), AC01–AC12.
+defaults (accepted by Alex 2026-11-02): [US-O002](stories/US-O002-organization-billing.md), AC01–AC12.
 Isolated in-memory stores and the fake billing service only; no Stripe calls.
 
 | Owner | Scope | State |
@@ -15,8 +15,8 @@ Isolated in-memory stores and the fake billing service only; no Stripe calls.
 | Codex | Billing service (Stripe + fake), billing fields in the organization store, access rule, billing routes, billing webhook, admin free/paid, sync on owner changes and price changes, config/doctor, permission table, journey; files in [handoff](handoffs/US-O002-codex.md) | API implementation complete locally, 2026-11-02; `main`, base `2c9dca0`; delivery commit contains this row. AC01–AC12: 73 billing tests, both prefixes and memory/Mongo driver doubles; all seven routes classified; journeys 22/22; API build passes; isolated doctor passes. Full API suite: **3,212/3,215**, three expected health-fixture failures outside Codex ownership. Next Claude: add `organizationBilling: { configured: true, webhookConfigured: false, taxRateConfigured: false }` to the exact health objects in `api/src/server.test.ts:206` and `api/src/isolatedServices.test.ts:113` (two prefix cases), then rerun API tests. App follow-up: show Resume when `bill.endsAt` exists even if state is overdue/blocked (`organization-billing.html:117`). Stripe adapter uses supported `eu_vat` + `DK<cvr>` (handoff's `dk_vat` is not supported). Shared/Stripe integration and browser checks remain unverified; no shared calls or push. |
 | Claude | App models and `organization.service.ts` billing calls, owner Billing section, card return, member notice, admin approve choice and Free/Paid switch, "excl. moms" labels, specs | App part committed (see `git log`); `npm run app:test` 678 passed on 2026-11-02 against fakes. Not verified: the browser check on isolated servers, which waits for Codex's routes. Next: check routine, then fold the result into the organizations and payments specs. |
 
-Next: both parts, then the check routine. Waits on Alex only for the "confirm or change" list and,
-later, the Stripe dashboard settings in the contract.
+Next: the check routine (both parts are committed). Waits on Alex later for the Stripe dashboard
+settings in the contract.
 
 No other active implementation. **US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
 Claude `a22faab` (rating box, reviews with admin Hide/Show, catalog settings without rating
