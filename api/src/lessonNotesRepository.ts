@@ -14,6 +14,13 @@ export interface LessonNotesRepository {
 }
 export type LessonNotesDocument = { _id: string; userId: string; courseId: string; notes: LessonNote[] };
 export type LessonNotesCollection = Pick<Collection<LessonNotesDocument>, 'findOne' | 'updateOne' | 'findOneAndUpdate' | 'find' | 'deleteMany'>;
+let notesIndex: Promise<unknown> | undefined;
+export async function notesCollection(collection: Pick<Collection<LessonNotesDocument>, 'createIndex'> & LessonNotesCollection) {
+  // Export and erasure read every note of one account; without it they scan the collection.
+  notesIndex ??= collection.createIndex({ userId: 1 }).catch(error => { notesIndex = undefined; throw error; });
+  await notesIndex;
+  return collection;
+}
 const key = (userId: string, courseId: string) => JSON.stringify([userId, courseId]);
 const filter = (userId: string, courseId: string) => ({ _id: key(userId, courseId), userId, courseId });
 const createNote = (courseId: string, input: CreateLessonNoteInput): LessonNote => {
@@ -70,8 +77,8 @@ export class MongoLessonNotesRepository implements LessonNotesRepository {
     if (!result.acknowledged) throw new Error('Lesson notes deletion was not confirmed.');
   }
 
-  constructor(private readonly collection: () => Promise<LessonNotesCollection> = async () =>
-    (await getMongoDatabase()).collection<LessonNotesDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_lesson_notes`)) {}
+  constructor(private readonly collection: () => Promise<LessonNotesCollection> = async () => notesCollection(
+    (await getMongoDatabase()).collection<LessonNotesDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_lesson_notes`))) {}
 
   async list(userId: string, courseId: string): Promise<LessonNote[]> {
     const document = await (await this.collection()).findOne(filter(userId, courseId));

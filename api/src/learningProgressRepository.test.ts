@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InMemoryLearningProgressRepository, MongoLearningProgressRepository } from './learningProgressRepository.js';
+import { InMemoryLearningProgressRepository, MongoLearningProgressRepository, progressCollection } from './learningProgressRepository.js';
+import { notesCollection } from './lessonNotesRepository.js';
 
 describe('account completion storage boundaries', () => {
   it('US-T016 bulk memory read selects only enrolled accounts on one course and returns snapshots', async () => {
@@ -72,5 +73,12 @@ describe('account completion storage boundaries', () => {
     await repository.list('learner'); await repository.get('learner', 'course');
     expect(find).toHaveBeenCalledWith({ userId: 'learner' });
     expect(findOne).toHaveBeenCalledWith({ _id: '["learner","course"]', userId: 'learner' });
+  });
+  it('F5 progress and notes collections get their account and course indexes once, before use', async () => {
+    const progress = { createIndex: vi.fn(async () => 'index') }, notes = { createIndex: vi.fn(async () => 'index') };
+    await progressCollection(progress as never); await progressCollection(progress as never);
+    await notesCollection(notes as never);
+    expect(progress.createIndex.mock.calls).toEqual([[{ userId: 1 }], [{ courseId: 1 }]]);
+    expect(notes.createIndex.mock.calls).toEqual([[{ userId: 1 }]]);
   });
 });

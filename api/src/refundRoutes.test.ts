@@ -118,11 +118,18 @@ describe.each(['memory', 'mongo'])('US-L025 refund HTTP (%s)', kind => {
       expect((await refund(id)).status).toBe(200); expect(await enrolled()).not.toContain(courseId);
       expect((await payments.findById(id))?.refundedAt).toEqual(expect.any(String));
     });
-    it('US-L025-AC04 unknown stored session and invalid signatures do not mutate enrollments', async () => {
-      const unknown = await checkout();
-      expect((await refund(unknown)).status).toBe(200);
-      expect(console.warn).toHaveBeenCalledWith('Refund for unknown payment', { sessionId: unknown });
-      const id = await buy(unknown);
+    it('US-L025-AC04 a refund arriving before its paid event keeps that event from granting access', async () => {
+      const early = await checkout();
+      expect((await refund(early)).status).toBe(200);
+      expect(console.warn).toHaveBeenCalledWith('Refund recorded before its payment', { sessionId: early });
+      expect(await enrolled()).not.toContain(courseId);
+      await buy(early); expect(await enrolled()).not.toContain(courseId);
+      expect((await payments.findById(early))?.refundedAt).toEqual(expect.any(String));
+      expect((await refund(early)).status).toBe(200); expect(await enrolled()).not.toContain(courseId);
+      await buy(); expect(await enrolled()).toContain(courseId);
+    });
+    it('US-L025-AC04 invalid signatures do not mutate enrollments', async () => {
+      const id = await buy();
       const event = { type: 'charge.refunded', data: { object: { refunded: true, payment_intent: 'fake_pi_' + id } } };
       expect((await webhook(event, base, 'wrong-signature')).status).toBe(400);
       expect((await payments.findById(id))?.refundedAt).toBeUndefined(); expect(await enrolled()).toContain(courseId);

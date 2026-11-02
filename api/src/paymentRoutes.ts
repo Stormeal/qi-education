@@ -75,10 +75,17 @@ async function recordRefund(paymentIntentId: string, deps: PaymentDependencies):
   const session = await deps.paymentService!.findCheckoutByPaymentIntent(paymentIntentId);
   if (!session) { console.warn('Refund for unknown payment', { paymentIntentId }); return; }
   const payment = await deps.payments.findById(session.id);
-  if (!payment) { console.warn('Refund for unknown payment', { sessionId: session.id }); return; }
-  await deps.enrollmentWrites.run(payment.userId, async () => {
-    await deps.payments.markRefunded(payment._id, new Date().toISOString());
-    await reconcileRefundedCourse(payment.userId, payment.courseId, deps);
+  const { userId, courseId } = payment ?? session;
+  await deps.enrollmentWrites.run(userId, async () => {
+    const refundedAt = new Date().toISOString();
+    // The refund may arrive before the paid event is recorded. Store it as a refunded record so
+    // that event finds it refunded instead of granting access. A lost insert means it just landed.
+    if (!payment && await deps.payments.add({ _id: session.id, userId, courseId, amountDkk: session.amountDkk,
+      stripeCustomerId: session.customerId ?? '', paidAt: refundedAt, refundedAt })) {
+      console.warn('Refund recorded before its payment', { sessionId: session.id }); return;
+    }
+    await deps.payments.markRefunded(session.id, refundedAt);
+    await reconcileRefundedCourse(userId, courseId, deps);
   });
 }
 

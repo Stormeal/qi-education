@@ -52,7 +52,9 @@ Nothing here changed for them.
   payment intent's Checkout session) marks the payment `refundedAt` and removes the enrollment
   unless another unrefunded purchase of the same course remains. Partial refunds change nothing;
   repeated, late or unknown refund events change nothing (unknown ones are logged as
-  `Refund for unknown payment`). A refunded purchase never grants access again, even if its paid
+  `Refund for unknown payment`). A refund that arrives before its paid event is recorded is stored
+  as a refunded payment (logged as `Refund recorded before its payment`), so the paid event, when it
+  comes, finds it refunded and grants nothing. A refunded purchase never grants access again, even if its paid
   event is replayed. Progress, notes and achievements are kept, so buying again continues where
   the learner left off.
 - A price is free (empty or 0) or 3–999,999 whole DKK; checkout refuses a stored price outside that

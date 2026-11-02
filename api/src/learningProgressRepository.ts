@@ -20,6 +20,14 @@ export interface LearningProgressRepository {
 }
 const key = (userId: string, courseId: string) => JSON.stringify([userId, courseId]);
 type ProgressCollection = Pick<Collection<LearningProgressDocument>, 'find' | 'findOne' | 'updateOne' | 'deleteMany'>;
+let progressIndexes: Promise<unknown> | undefined;
+export async function progressCollection(collection: Pick<Collection<LearningProgressDocument>, 'createIndex'> & ProgressCollection) {
+  // list() reads by account and listForCourse() by course; without these each read scans the collection.
+  progressIndexes ??= Promise.all([collection.createIndex({ userId: 1 }), collection.createIndex({ courseId: 1 })])
+    .catch(error => { progressIndexes = undefined; throw error; });
+  await progressIndexes;
+  return collection;
+}
 
 export class MongoLearningProgressRepository implements LearningProgressRepository {
   async collectForExport(userId: string): Promise<LearningProgressDocument[]> {
@@ -31,8 +39,8 @@ export class MongoLearningProgressRepository implements LearningProgressReposito
     if (!result.acknowledged) throw new Error('Learning progress deletion was not confirmed.');
   }
 
-  constructor(private readonly collection: () => Promise<ProgressCollection> = async () =>
-    (await getMongoDatabase()).collection<LearningProgressDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_learning_progress`)) {}
+  constructor(private readonly collection: () => Promise<ProgressCollection> = async () => progressCollection(
+    (await getMongoDatabase()).collection<LearningProgressDocument>(`${apiConfig.MONGODB_COURSE_CONTENT_COLLECTION}_learning_progress`))) {}
 
   async list(userId: string): Promise<LearningProgressDocument[]> {
     return (await this.collection()).find({ userId }).toArray();
