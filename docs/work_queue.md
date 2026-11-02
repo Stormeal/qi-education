@@ -6,7 +6,19 @@ messages hold them.
 
 ## Active work
 
-No active implementation. **US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
+**US-O002 organization billing** (started 2026-11-02, base `af09fad`, branch `main`). Contract and
+"confirm or change" defaults: [US-O002](stories/US-O002-organization-billing.md), AC01–AC12.
+Isolated in-memory stores and the fake billing service only; no Stripe calls.
+
+| Owner | Scope | State |
+| --- | --- | --- |
+| Codex | Billing service (Stripe + fake), billing fields in the organization store, access rule, billing routes, billing webhook, admin free/paid, sync on owner changes and price changes, config/doctor, permission table, journey; files in [handoff](handoffs/US-O002-codex.md) | Not started |
+| Claude | App models and `organization.service.ts` billing calls, owner Billing section, card return, member notice, admin approve choice and Free/Paid switch, "excl. moms" labels, specs | In progress |
+
+Next: both parts, then the check routine. Waits on Alex only for the "confirm or change" list and,
+later, the Stripe dashboard settings in the contract.
+
+No other active implementation. **US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
 Claude `a22faab` (rating box, reviews with admin Hide/Show, catalog settings without rating
 inputs), Codex `4f8eec5` (rating store, routes, eligibility, course aggregate, privacy). Checks: API
 3,123 + DEF-034/11 timing failure that passes alone (24/24), app 668, journeys 20, Pages build.

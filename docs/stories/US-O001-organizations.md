@@ -31,7 +31,7 @@ US-O001 moves into **release 1** (internal, mid-December 2026), except the owner
 **Release 2:** owner overview of members' careers, milestones and completion.
 
 Release 1 is delivered (not yet live): [organizations spec](../specs/organizations/organizations.md); its contract is in Git history (`git show 42ec9a2:docs/stories/US-O001-release-1.md`).
-**Release 3:** US-O002 billing, unchanged.
+**Release 3:** US-O002 billing, unchanged. Contract: [US-O002](US-O002-organization-billing.md).
 
 Open for the design pass: whether a seat or add-on opens a *priced* course during release 1 (the
 API draft's question 1). Default: courses stay free during the internal period, so no access change
