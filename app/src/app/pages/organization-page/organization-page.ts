@@ -7,6 +7,7 @@ import {
   type OrgRequestInput, type Prices,
 } from '../../services/organization.service';
 import { Button } from '../../ui/button/button';
+import { OrganizationBilling, type CardReturn } from '../../ui/organization-billing/organization-billing';
 import { PageHeader } from '../../ui/page-header/page-header';
 import { LegalLinks } from '../../ui/legal-links/legal-links';
 
@@ -16,7 +17,7 @@ const emptyForm = (): OrgRequestInput => ({ displayName: '', companyName: '', cv
 /** US-O001 release 1: request an organization, or work in one as a member or owner. */
 @Component({
   selector: 'app-organization-page',
-  imports: [Button, PageHeader, LegalLinks],
+  imports: [Button, PageHeader, LegalLinks, OrganizationBilling],
   templateUrl: './organization-page.html',
   styleUrls: ['../../app.scss', './organization-page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +40,8 @@ export class OrganizationPage {
   readonly feedbackSubmitting = input.required<boolean>();
   readonly feedbackError = input.required<string>();
   readonly feedbackOptions = input.required<FeedbackOption[]>();
+  /** US-O002: Stripe's card form returned here (the route reads and removes the query). */
+  readonly cardReturn = input<CardReturn | null>(null);
 
   readonly homeClicked = output<void>();
   readonly coursesClicked = output<void>();
@@ -78,6 +81,12 @@ export class OrganizationPage {
   protected readonly notice = signal('');
 
   protected readonly isOwner = computed(() => this.membership()?.role === 'owner');
+  // US-O002: why billed courses are closed, for every member.
+  protected readonly billingClosed = computed(() => ({
+    'setup-needed': 'Courses from the organization open once an owner has set up billing.',
+    blocked: 'Courses from the organization are closed until an unpaid invoice is paid. Your progress is kept.',
+    cancelled: 'The organization’s subscription has ended, so its courses are closed. Your progress is kept.',
+  } as Record<string, string>)[this.membership()?.billingState ?? ''] ?? '');
   protected readonly careers = computed(() => this.careerPaths.paths());
   protected readonly courseTitle = (id: string) => this.courses().find((course) => course.id === id)?.title ?? 'Course no longer available';
   protected readonly careerTitle = (id: string | null) => this.careers().find((path) => path.id === id)?.title ?? '';
@@ -229,11 +238,16 @@ export class OrganizationPage {
 
   protected careerOptionLabel(pathId: string, title: string): string {
     const price = this.prices().careers[pathId];
-    return price == null ? title : `${title} (${price} DKK per month)`;
+    return price == null ? title : `${title} (${price} DKK per month excl. moms)`;
   }
 
   protected priceLabel(price: number | null | undefined): string {
-    return price == null ? 'No price set' : `${price} DKK per month`;
+    return price == null ? 'No price set' : `${price} DKK per month excl. moms`;
+  }
+
+  protected async billingChanged(): Promise<void> {
+    this.organizationChanged.emit();
+    await this.load();
   }
 
   protected inputValue(event: Event): string {

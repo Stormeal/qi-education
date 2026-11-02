@@ -13,7 +13,7 @@ Isolated in-memory stores and the fake billing service only; no Stripe calls.
 | Owner | Scope | State |
 | --- | --- | --- |
 | Codex | Billing service (Stripe + fake), billing fields in the organization store, access rule, billing routes, billing webhook, admin free/paid, sync on owner changes and price changes, config/doctor, permission table, journey; files in [handoff](handoffs/US-O002-codex.md) | Not started |
-| Claude | App models and `organization.service.ts` billing calls, owner Billing section, card return, member notice, admin approve choice and Free/Paid switch, "excl. moms" labels, specs | In progress |
+| Claude | App models and `organization.service.ts` billing calls, owner Billing section, card return, member notice, admin approve choice and Free/Paid switch, "excl. moms" labels, specs | App part committed (see `git log`); `npm run app:test` 678 passed on 2026-11-02 against fakes. Not verified: the browser check on isolated servers, which waits for Codex's routes. Next: check routine, then fold the result into the organizations and payments specs. |
 
 Next: both parts, then the check routine. Waits on Alex only for the "confirm or change" list and,
 later, the Stripe dashboard settings in the contract.

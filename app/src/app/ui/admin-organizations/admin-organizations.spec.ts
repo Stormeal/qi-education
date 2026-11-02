@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ConfirmService } from '../../services/confirm.service';
 import { OrganizationService } from '../../services/organization.service';
 import { AdminOrganizations } from './admin-organizations';
 
@@ -21,10 +22,12 @@ describe('admin organizations (US-O001 release 1)', () => {
       { provide: OrganizationService, useValue: {
         adminRequests: () => ok([request]),
         adminOrganizations: () => ok([organization]),
-        decideRequest: (_t: string, id: string, decision: { action: string; reason?: string }) => {
-          calls.push(`${decision.action}:${id}${decision.reason ? ':' + decision.reason : ''}`); return ok({}); },
+        decideRequest: (_t: string, id: string, decision: { action: string; reason?: string; billing?: string }) => {
+          calls.push(`${decision.action}:${id}${decision.reason ? ':' + decision.reason : ''}${decision.billing ? ':' + decision.billing : ''}`); return ok({}); },
+        setFree: (_t: string, id: string, free: boolean) => { calls.push(`free:${id}:${free}`); return ok({}); },
         setSuspended: (_t: string, id: string, suspended: boolean) => { calls.push(`${suspended ? 'suspend' : 'reactivate'}:${id}`); return ok({}); },
       } },
+      { provide: ConfirmService, useValue: { ask: async () => true } },
     ] }).compileComponents();
     fixture = TestBed.createComponent(AdminOrganizations);
     fixture.componentRef.setInput('authToken', 'token');
@@ -47,7 +50,7 @@ describe('admin organizations (US-O001 release 1)', () => {
   it('US-O001-AC02 approves a request', async () => {
     button('Approve').click();
     await flush();
-    expect(calls).toEqual(['approve:r1']);
+    expect(calls).toEqual(['approve:r1:paid']);
   });
 
   it('US-O001-AC03 needs a reason to decline', async () => {
@@ -63,6 +66,15 @@ describe('admin organizations (US-O001 release 1)', () => {
     button('Send decline').click();
     await flush();
     expect(calls).toEqual(['decline:r1:The CVR does not match the company name.']);
+  });
+
+  it('US-O002-AC01 approves free of charge, shows billing state and switches Free and Paid', async () => {
+    button('Approve free').click();
+    await flush();
+    expect(page().textContent).toContain('Free of charge');
+    button('Require billing').click();
+    await flush();
+    expect(calls).toEqual(['approve:r1:free', 'free:o1:false']);
   });
 
   it('US-O001-AC12 suspends an organization', async () => {

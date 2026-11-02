@@ -1,9 +1,12 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untracked } from '@angular/core';
-import { OrganizationService, type Organization, type OrgRequest } from '../../services/organization.service';
+import { ConfirmService } from '../../services/confirm.service';
+import { OrganizationService, type AdminOrganization, type BillingState, type OrgRequest } from '../../services/organization.service';
 import { Button } from '../button/button';
 
-type AdminOrganization = Organization & { memberCount: number };
+// US-O002: older organizations have no billing record and are free.
+const billingLabels: Record<BillingState, string> = { free: 'Free of charge', 'setup-needed': 'Billing not set up',
+  active: 'Paying', overdue: 'Invoice overdue', blocked: 'Unpaid, courses closed', cancelling: 'Cancelling', cancelled: 'Subscription ended' };
 
 /** US-O001: the site admin's Organizations section (requests and organizations). */
 @Component({
@@ -17,6 +20,7 @@ export class AdminOrganizations {
   readonly authToken = input.required<string>();
 
   private readonly organizations = inject(OrganizationService);
+  private readonly confirm = inject(ConfirmService);
   protected readonly requests = signal<OrgRequest[]>([]);
   protected readonly list = signal<AdminOrganization[]>([]);
   protected readonly state = signal<'loading' | 'ready' | 'error'>('loading');
@@ -49,8 +53,18 @@ export class AdminOrganizations {
     this.error.set('');
   }
 
-  protected approve(request: OrgRequest): Promise<void> {
-    return this.act(() => this.organizations.decideRequest(this.authToken(), request.id, { action: 'approve' }));
+  protected approve(request: OrgRequest, billing: 'paid' | 'free'): Promise<void> {
+    return this.act(() => this.organizations.decideRequest(this.authToken(), request.id, { action: 'approve', billing }));
+  }
+
+  protected billingLabel(organization: AdminOrganization): string {
+    return billingLabels[organization.billingState ?? 'free'];
+  }
+
+  protected async setFree(organization: AdminOrganization, free: boolean): Promise<void> {
+    if (free && !await this.confirm.ask({ title: `Make ${organization.displayName} free of charge?`, confirmLabel: 'Make free',
+      message: 'Its subscription is cancelled now, without a refund. Refund in Stripe by hand if needed.' })) return;
+    await this.act(() => this.organizations.setFree(this.authToken(), organization.id, free));
   }
 
   protected decline(request: OrgRequest): Promise<void> {

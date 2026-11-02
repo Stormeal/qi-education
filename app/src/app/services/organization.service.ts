@@ -11,17 +11,26 @@ export type Organization = { id: string; displayName: string; companyName: strin
 export type CourseRequest = { id: string; userId: string; userName: string; courseId: string;
   state: 'pending' | 'approved' | 'declined'; addOnPriceDkk: number | null; createdAt: string };
 export type MyOrganization = { organization: Organization; role: 'member' | 'owner'; isOriginalOwner: boolean;
-  careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; courseRequests: CourseRequest[] };
+  careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; courseRequests: CourseRequest[];
+  billingState?: BillingState };
+// US-O002 contract: docs/stories/US-O002-organization-billing.md. Amounts are whole DKK excl. moms.
+export type BillingState = 'free' | 'setup-needed' | 'active' | 'overdue' | 'blocked' | 'cancelling' | 'cancelled';
+export type BillingLine = { kind: 'base' | 'seat' | 'course'; id: string; title: string; unitDkk: number; quantity: number };
+export type UnpaidInvoice = { id: string; amountDkk: number; dueAt: string; blocksAt: string; url: string | null };
+export type OrgBillingView = { state: BillingState; method: 'card' | 'invoice' | null; lines: BillingLine[];
+  monthlyTotalDkk: number; nextInvoiceAt: string | null; endsAt: string | null; unpaid: UnpaidInvoice[]; syncPending: boolean };
+export type BillingAddress = { line1: string; postalCode: string; city: string };
+export type AdminOrganization = Organization & { memberCount: number; billingState?: BillingState };
 export type NoOrganization = { organization: null; request: OrgRequest | null; pendingInvitation: boolean };
 export type Member = { userId: string; name: string; email: string; role: 'member' | 'owner'; careerId: string | null; joinedAt: string };
 export type Invitation = { id: string; email: string; state: 'sent' | 'not-sent' | 'accepted' | 'cancelled' | 'expired';
   expiresAt: string; createdAt: string };
 export type Prices = { careers: Record<string, number>; courses: Record<string, number> };
 export type InvitationCheck = { organizationName: string; email: string; consentText: string };
-export type RequestDecision = { action: 'approve' } | { action: 'decline'; reason: string };
+export type RequestDecision = { action: 'approve'; billing?: 'paid' | 'free' } | { action: 'decline'; reason: string };
 export type OrganizationResult<T> = { ok: true; body: T } | { ok: false; status: number; message: string };
 
-/** US-O001 release 1: organizations, invitations, members, careers, add-on requests and display prices. */
+/** US-O001 release 1 and US-O002 billing: organizations, invitations, members, careers, add-ons, prices and billing. */
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
   private readonly apiClient = inject(ApiClientService);
@@ -35,7 +44,10 @@ export class OrganizationService {
   decideRequest(token: string, id: string, decision: RequestDecision) {
     return this.request<OrgRequest>(token, `/admin/organization-requests/${enc(id)}/decision`, 'POST', decision);
   }
-  adminOrganizations(token: string) { return this.request<(Organization & { memberCount: number })[]>(token, '/admin/organizations'); }
+  adminOrganizations(token: string) { return this.request<AdminOrganization[]>(token, '/admin/organizations'); }
+  setFree(token: string, id: string, free: boolean) {
+    return this.request<AdminOrganization>(token, `/admin/organizations/${enc(id)}/billing`, 'PUT', { free });
+  }
   setSuspended(token: string, id: string, suspended: boolean) {
     return this.request<Organization>(token, `/admin/organizations/${enc(id)}/${suspended ? 'suspend' : 'reactivate'}`, 'POST');
   }
@@ -84,6 +96,23 @@ export class OrganizationService {
   }
   decideCourseRequest(token: string, orgId: string, id: string, action: 'approve' | 'decline') {
     return this.request<CourseRequest>(token, `/organizations/${enc(orgId)}/course-requests/${enc(id)}/decision`, 'POST', { action });
+  }
+
+  billing(token: string, orgId: string) { return this.request<OrgBillingView>(token, `/organizations/${enc(orgId)}/billing`); }
+  setupInvoice(token: string, orgId: string, address: BillingAddress) {
+    return this.request<OrgBillingView>(token, `/organizations/${enc(orgId)}/billing/setup`, 'POST', { method: 'invoice', address });
+  }
+  setupCard(token: string, orgId: string, address: BillingAddress, returnUrl: string) {
+    return this.request<{ url: string }>(token, `/organizations/${enc(orgId)}/billing/setup`, 'POST', { method: 'card', address, returnUrl });
+  }
+  confirmCard(token: string, orgId: string, sessionId: string) {
+    return this.request<OrgBillingView>(token, `/organizations/${enc(orgId)}/billing/card/confirm`, 'POST', { sessionId });
+  }
+  setCancellation(token: string, orgId: string, cancel: boolean) {
+    return this.request<OrgBillingView>(token, `/organizations/${enc(orgId)}/billing/cancellation`, 'PUT', { cancel });
+  }
+  billingPortal(token: string, orgId: string, returnUrl: string) {
+    return this.request<{ url: string }>(token, `/organizations/${enc(orgId)}/billing/portal`, 'POST', { returnUrl });
   }
 
   private async request<T>(token: string | null, path: string, method = 'GET', body?: unknown): Promise<OrganizationResult<T>> {

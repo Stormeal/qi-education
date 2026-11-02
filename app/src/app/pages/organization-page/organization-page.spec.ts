@@ -44,6 +44,7 @@ describe('organization page (US-O001 release 1)', () => {
         removeMember: (_t: string, _o: string, userId: string) => answer('remove:' + userId, undefined),
         promote: (_t: string, _o: string, userId: string) => answer('promote:' + userId, {}),
         requestCourse: (_t: string, _o: string, courseId: string) => answer('request:' + courseId, {}),
+        billing: () => ok({ state: 'free', method: null, lines: [], monthlyTotalDkk: 0, nextInvoiceAt: null, endsAt: null, unpaid: [], syncPending: false }),
       } },
       { provide: CareerPathService, useValue: { paths: signal([{ id: 'p1', title: 'Technical Tester' }]), load: async () => {} } },
       { provide: ConfirmService, useValue: { ask: async () => true } },
@@ -129,7 +130,7 @@ describe('organization page (US-O001 release 1)', () => {
     mine = { organization: org, role: 'owner', isOriginalOwner: true, careerId: null, seatPriceDkk: null, openCourseIds: [], courseRequests: [] };
     const page = await render();
     expect(page.textContent).toContain('Mads Member');
-    expect(page.textContent).toContain('Technical Tester (499 DKK per month)');
+    expect(page.textContent).toContain('Technical Tester (499 DKK per month excl. moms)');
     expect(page.textContent).toContain('Not sent. Try again.');
     expect(page.textContent).toContain('Playwright');
     expect(page.textContent).toContain('149 DKK per month');
@@ -150,6 +151,19 @@ describe('organization page (US-O001 release 1)', () => {
     button(page, 'Leave organization').click();
     await settle(page);
     expect(page.querySelector('[role="alert"]')?.textContent).toContain('Make another member an owner first');
+  });
+
+  it('US-O002-AC02 tells a member why billed courses are closed, and shows owners the Billing section', async () => {
+    mine = { organization: org, role: 'member', isOriginalOwner: false, careerId: 'p1', seatPriceDkk: 499, openCourseIds: [],
+      courseRequests: [], billingState: 'setup-needed' };
+    let page = await render('u-mem');
+    expect(page.textContent).toContain('Courses from the organization open once an owner has set up billing.');
+    expect(page.querySelector('#org-billing')).toBeNull();
+    mine = { ...mine, role: 'owner', billingState: 'free' };
+    fixture.destroy();
+    page = await render();
+    expect(page.querySelector('#org-billing')?.textContent).toBe('Billing');
+    expect(page.textContent).toContain('free of charge');
   });
 
   it('only the original owner sees Promote to owner', async () => {

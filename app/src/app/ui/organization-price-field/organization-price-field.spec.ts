@@ -38,13 +38,13 @@ describe('organization price field (US-O001-AC11)', () => {
 
   it('shows the stored seat price and its label', async () => {
     const page = await render('career', 'p1');
-    expect(page.querySelector('label')?.textContent).toContain('Organization seat price per month (DKK)');
+    expect(page.querySelector('label')?.textContent).toContain('Organization seat price per month (DKK excl. moms)');
     expect(page.querySelector('input')!.value).toBe('499');
   });
 
   it('saves an empty field as no price', async () => {
     const page = await render('course', 'c1');
-    expect(page.querySelector('label')?.textContent).toContain('Organization add-on price per month (DKK)');
+    expect(page.querySelector('label')?.textContent).toContain('Organization add-on price per month (DKK excl. moms)');
     set(page, '');
     await save(page);
     expect(saved).toEqual([['course', 'c1', null]]);

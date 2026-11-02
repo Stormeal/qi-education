@@ -1,0 +1,126 @@
+<section class="org-panel" aria-labelledby="org-billing" aria-live="polite">
+  <h2 id="org-billing">Billing</h2>
+
+  @if (error()) { <p class="org-error" role="alert">{{ error() }}</p> }
+  @if (notice()) { <p class="org-notice" role="status">{{ notice() }}</p> }
+
+  @if (loadError()) {
+    <p class="org-error" role="alert">{{ loadError() }}</p>
+    <button appButton="secondary" type="button" (click)="load()">Try again</button>
+  } @else if (!view()) {
+    <p class="org-muted" role="status">Loading billing…</p>
+  } @else if (view(); as bill) {
+    @switch (bill.state) {
+      @case ('free') {
+        <p>Your organization is free of charge. Nothing is billed.</p>
+      }
+      @case ('setup-needed') {
+        <p class="org-warning">Set up billing to open courses for your members. Until then you can invite people and choose their careers.</p>
+      }
+      @case ('overdue') {
+        @for (invoice of bill.unpaid; track invoice.id) {
+          <p class="org-warning">
+            An invoice of {{ invoice.amountDkk }} DKK was due {{ invoice.dueAt | date: 'd MMM y' }}.
+            Members lose organization courses on {{ invoice.blocksAt | date: 'd MMM y' }} unless it is paid.
+            @if (invoice.url) { <a [href]="invoice.url" target="_blank" rel="noopener">Pay invoice</a> }
+          </p>
+        }
+      }
+      @case ('blocked') {
+        <p class="org-error" role="alert">Members have lost access until the invoice is paid.</p>
+        @for (invoice of bill.unpaid; track invoice.id) {
+          <p>
+            {{ invoice.amountDkk }} DKK, due {{ invoice.dueAt | date: 'd MMM y' }}.
+            @if (invoice.url) { <a [href]="invoice.url" target="_blank" rel="noopener">Pay invoice</a> }
+          </p>
+        }
+      }
+      @case ('cancelling') {
+        <p class="org-warning">The subscription ends {{ bill.endsAt | date: 'd MMM y' }}. Members keep organization courses until then.</p>
+      }
+      @case ('cancelled') {
+        <p class="org-warning">The subscription has ended. Set up billing again to reopen courses for your members.</p>
+      }
+    }
+
+    @if (bill.syncPending) {
+      <p class="org-muted" role="status">Billing update pending. It is sent to Stripe the next time you open this page or make a change.</p>
+    }
+
+    @if (bill.state !== 'free') {
+      <div class="org-table-wrap">
+        <table class="org-table bill-table">
+          <caption class="sr-only">Monthly bill</caption>
+          <thead><tr><th scope="col">Item</th><th scope="col">Price per month</th><th scope="col">Count</th><th scope="col">Per month</th></tr></thead>
+          <tbody>
+            @for (line of bill.lines; track line.kind + line.id) {
+              <tr>
+                <td>{{ line.title }}<small>{{ line.kind === 'seat' ? 'Career seat' : line.kind === 'course' ? 'Extra course' : 'Included' }}</small></td>
+                <td>{{ line.unitDkk }} DKK</td>
+                <td>{{ line.quantity }}</td>
+                <td>{{ line.unitDkk * line.quantity }} DKK</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot><tr><th scope="row" colspan="3">Monthly total, excl. moms</th><td><strong>{{ bill.monthlyTotalDkk }} DKK</strong></td></tr></tfoot>
+        </table>
+      </div>
+
+      @if (bill.method) {
+        <p class="bill-facts">
+          <span>Paid by {{ bill.method === 'card' ? 'card, charged automatically' : 'invoice, 14 days to pay' }}</span>
+          @if (bill.nextInvoiceAt) { <span>Next invoice {{ bill.nextInvoiceAt | date: 'd MMM y' }}</span> }
+        </p>
+      }
+
+      @if (setupOpen() || bill.state === 'setup-needed' || bill.state === 'cancelled') {
+        <form class="bill-setup" novalidate (submit)="setUp($event)">
+          <fieldset class="bill-methods">
+            <legend>How do you want to pay?</legend>
+            <label class="bill-method">
+              <input type="radio" name="bill-method" value="invoice" [checked]="method() === 'invoice'" (change)="method.set('invoice')" />
+              <span><strong>Invoice</strong><small>Sent to your billing contact each month, 14 days to pay.</small></span>
+            </label>
+            <label class="bill-method">
+              <input type="radio" name="bill-method" value="card" [checked]="method() === 'card'" (change)="method.set('card')" />
+              <span><strong>Card</strong><small>Charged automatically each month. You enter the card on Stripe's page.</small></span>
+            </label>
+          </fieldset>
+          <div class="bill-address">
+            @for (field of [
+              { key: 'line1', label: 'Billing address', autocomplete: 'address-line1', inputmode: null },
+              { key: 'postalCode', label: 'Postcode', autocomplete: 'postal-code', inputmode: 'numeric' },
+              { key: 'city', label: 'City', autocomplete: 'address-level2', inputmode: null }
+            ]; track field.key) {
+              <div class="org-field">
+                <label [for]="'bill-' + field.key">{{ field.label }}</label>
+                <input [id]="'bill-' + field.key" type="text" [attr.autocomplete]="field.autocomplete" [attr.inputmode]="field.inputmode"
+                  [value]="$any(address())[field.key]" [attr.aria-invalid]="$any(addressErrors())[field.key] ? true : null"
+                  [attr.aria-describedby]="$any(addressErrors())[field.key] ? 'bill-' + field.key + '-error' : null"
+                  (input)="setAddress($any(field.key), inputValue($event))" />
+                @if ($any(addressErrors())[field.key]) {
+                  <small class="org-field-error" [id]="'bill-' + field.key + '-error'">{{ $any(addressErrors())[field.key] }}</small>
+                }
+              </div>
+            }
+          </div>
+          <p class="org-muted">Prices exclude moms; 25% Danish moms is added to each invoice. Changes during the month are prorated on the next invoice.</p>
+          <div class="org-inline">
+            <button appButton="primary" type="submit" [disabled]="busy()">{{ method() === 'card' ? 'Continue to card' : 'Set up invoice billing' }}</button>
+            @if (setupOpen()) { <button appButton="ghost" type="button" (click)="setupOpen.set(false)">Cancel</button> }
+          </div>
+        </form>
+      } @else {
+        <div class="org-actions">
+          <button appButton="secondary" type="button" [disabled]="busy()" (click)="openPortal()">Manage billing</button>
+          <button appButton="ghost" type="button" [disabled]="busy()" (click)="startSetup()">Change payment method</button>
+          @if (bill.state === 'cancelling') {
+            <button appButton="secondary" type="button" [disabled]="busy()" (click)="setCancelled(false)">Keep subscription</button>
+          } @else {
+            <button appButton="ghost" type="button" [disabled]="busy()" (click)="setCancelled(true)">Cancel subscription</button>
+          }
+        </div>
+      }
+    }
+  }
+</section>

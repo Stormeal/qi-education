@@ -8,7 +8,7 @@ import { Button } from '../button/button';
   imports: [Button],
   template: `
     <div class="price-field org-price">
-      <label [for]="fieldId()">{{ kind() === 'career' ? 'Organization seat price per month (DKK)' : 'Organization add-on price per month (DKK)' }}</label>
+      <label [for]="fieldId()">{{ kind() === 'career' ? 'Organization seat price per month (DKK excl. moms)' : 'Organization add-on price per month (DKK excl. moms)' }}</label>
       <div class="org-price-row">
         <input [id]="fieldId()" type="text" inputmode="numeric" [value]="value()" (input)="update($event)"
           [attr.aria-describedby]="fieldId() + '-help'" />

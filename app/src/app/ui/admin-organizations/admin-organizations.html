@@ -8,6 +8,7 @@
     @if (requests().length === 0) {
       <p class="aorg-muted">No organization requests are waiting.</p>
     } @else {
+      <p class="aorg-muted">Approve bills the organization for its seats and extra courses. Approve free never charges it.</p>
       <ul class="aorg-list">
         @for (request of requests(); track request.id) {
           <li class="aorg-request">
@@ -29,7 +30,8 @@
               </div>
             } @else {
               <div class="aorg-actions">
-                <button appButton="primary" size="sm" type="button" [disabled]="busy()" (click)="approve(request)">Approve</button>
+                <button appButton="primary" size="sm" type="button" [disabled]="busy()" (click)="approve(request, 'paid')">Approve</button>
+                <button appButton="secondary" size="sm" type="button" [disabled]="busy()" (click)="approve(request, 'free')">Approve free</button>
                 <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="startDecline(request)">Decline</button>
               </div>
             }
@@ -50,9 +52,15 @@
             <div class="aorg-request-copy">
               <strong>{{ organization.displayName }}</strong>
               <span>{{ organization.companyName }} · CVR {{ organization.cvr }} · {{ organization.memberCount }} {{ organization.memberCount === 1 ? 'member' : 'members' }}</span>
+              <span>{{ billingLabel(organization) }}</span>
               @if (organization.state === 'suspended') { <span class="aorg-suspended">Suspended</span> }
             </div>
             <div class="aorg-actions">
+              @if ((organization.billingState ?? 'free') === 'free') {
+                <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="setFree(organization, false)">Require billing</button>
+              } @else {
+                <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="setFree(organization, true)">Make free</button>
+              }
               @if (organization.state === 'active') {
                 <button appButton="ghost" size="sm" type="button" [disabled]="busy()" (click)="setSuspended(organization, true)">Suspend</button>
               } @else {

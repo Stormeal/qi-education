@@ -39,6 +39,7 @@
 
     <section class="org-panel" aria-labelledby="org-mine">
       <h2 id="org-mine">Your training</h2>
+      @if (billingClosed()) { <p class="org-warning" role="status">{{ billingClosed() }}</p> }
       @if (mine.careerId) {
         <p class="org-gives">Your organization gives you: <strong>{{ careerTitle(mine.careerId) || 'a career' }}</strong></p>
       } @else {
@@ -74,6 +75,9 @@
     </section>
 
     @if (isOwner()) {
+      <app-organization-billing [authToken]="authToken()" [orgId]="mine.organization.id" [cardReturn]="cardReturn()"
+        (accessChanged)="billingChanged()" />
+
       <section class="org-panel" aria-labelledby="org-members">
         <h2 id="org-members">Members</h2>
         <div class="org-table-wrap">
@@ -199,7 +203,7 @@
           { key: 'displayName', label: 'Organization name', type: 'text', hint: 'Shown to members, for example your team name.' },
           { key: 'companyName', label: 'Company name', type: 'text', hint: '' },
           { key: 'cvr', label: 'CVR number', type: 'text', hint: '8 digits.' },
-          { key: 'billingEmail', label: 'Billing contact email', type: 'email', hint: 'Used when billing starts. Nothing is charged now.' }
+          { key: 'billingEmail', label: 'Billing contact email', type: 'email', hint: 'Invoices and billing messages go here.' }
         ]; track field.key) {
           <div class="org-field">
             <label [for]="'org-' + field.key">{{ field.label }}</label>

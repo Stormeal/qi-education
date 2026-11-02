@@ -1,0 +1,89 @@
+.bill-table {
+  min-width: 520px;
+}
+
+.bill-table td:nth-child(n + 2),
+.bill-table th:nth-child(n + 2),
+.bill-table tfoot td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bill-table tfoot th {
+  color: var(--color-text);
+  text-align: right;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--text-meta);
+}
+
+.bill-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  color: var(--color-text-muted);
+  font-size: var(--text-meta);
+}
+
+.bill-setup {
+  display: grid;
+  gap: 16px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.bill-methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  border: 0;
+  padding: 0;
+}
+
+.bill-methods legend {
+  margin-bottom: 8px;
+  font-size: var(--text-meta);
+  font-weight: 700;
+}
+
+.bill-method {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  padding: 12px;
+  cursor: pointer;
+}
+
+.bill-method:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.bill-method input {
+  margin-top: 3px;
+  accent-color: var(--color-primary);
+}
+
+.bill-method small {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--text-caption);
+}
+
+.bill-address {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .bill-address {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bill-address .org-field {
+  min-width: 0;
+}
