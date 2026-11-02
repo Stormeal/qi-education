@@ -9,6 +9,19 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.579',
+    date: '2026-11-02',
+    sections: [
+      { title: 'New', items: [
+        'Organizations can pay one monthly bill for their members\' careers and extra courses, by card or invoice.',
+        'Organization owners see the monthly total, the payment method and the next invoice date under Billing.',
+        'Members see a short reason when their organization\'s courses are closed, without any billing details.',
+        'Admins can approve an organization as free or paid, and switch it later.',
+      ] },
+      { title: 'Fixed', items: ['A refunded course purchase can no longer give access to the course.'] },
+    ],
+  },
+  {
     version: '0.1.566',
     date: '2026-11-01',
     sections: [
