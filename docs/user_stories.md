@@ -25,7 +25,20 @@ department); new requests enter here as Proposed stories.
 Release 1 decisions (built as defaults, confirm or change): courses stay free during the internal
 period and public prices are set at launch, so colleagues enrolled before then keep free access
 (existing rule, no new feature); sign-up stays open and unannounced. Open for management: hosting
-budget, curriculum owner, backup developer.
+budget, curriculum owner, a dedicated developer (one full-time person for an external launch in
+spring 2027, Ermin's estimate; Mark takes it to Allan, 2026-10-30).
+
+Management meeting 2026-10-30 (Alex, Mark Tovia Tager, sales director, Ermin Duna, technology and
+innovation chief): release 1 stays mid-December 2026. First business customers in March–April 2027
+are an ambition, not a date; broad sales start only once the catalog has enough breadth and quality,
+so release 2 depends on course production as well as the platform. New candidates from the meeting,
+Proposed and without a release: US-T018 (course language versions), US-T019 (AI-assisted course
+production), US-L031 (AI career recommendations from a CV), US-L032 (TestHuset certification),
+US-L033 (subscriptions); points/coins added to US-L029. Undecided, no story: a mobile app (one app
+or separate ones). Out of scope for QI Academy: reusing learners' CV data for TestHuset's candidate
+database and bids (GDPR, consent and storage to be clarified separately if it comes back). Not
+platform work: new sales channels (job centres, unions, unemployment funds, recruiters) and new
+subject areas (development, Product Owner, Scrum Master, project management).
 
 New candidates from Alex's 2026-10-27 brainstorm, filed below as Proposed and awaiting triage into
 a release: US-L029 (account achievements), US-T017 (browser video editing), US-A008 (discount
@@ -59,6 +72,11 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | US-A010 | Marketing email opt-in | Proposed | P3 | US-P021 | Below |
 | US-A011 | Refer a colleague | Proposed | P3 | US-A008 | Below |
 | US-L030 | Free preview lesson on priced courses | Proposed | P3 | — | Below |
+| US-T018 | Course language versions (subtitles, voice-over) | Proposed | P3 | — | Below |
+| US-T019 | AI-assisted course production | Proposed | P3 | AI production trial | Below |
+| US-L031 | AI career recommendations from a CV | Proposed | P3 | Alex/Ermin decision | Below |
+| US-L032 | TestHuset certification by exam or assignment | Proposed | P3 | — | Below |
+| US-L033 | Subscriptions | Proposed | P3 | Payments | Below |
 
 Priorities describe impact; the queue describes delivery order. P1 is a high-impact access or
 release concern; P2 affects a core journey; P3 improves convenience.
@@ -105,6 +123,28 @@ then upload through Mux. Deliberately not a full editor. Open decisions: capture
 vs screen); client-side vs server trimming/splicing; browser support and size limits; and saving an
 in-progress recording. The heaviest new item. Needs its own `stories/` contract when selected.
 
+### US-T018 — Course language versions
+
+**As a learner abroad, I want a course in my own language, so that I can follow it without
+Danish; as TestHuset, I want to add a language without re-recording the course.**
+
+State: Proposed (management meeting 2026-10-30). Languages named: English, German, Spanish.
+Mark prefers real people for voice-over over AI voices only. Production direction: future
+recordings keep the slides and the teacher's video separate, so a language can be swapped. Open:
+which languages first; subtitles only vs dubbed audio per lesson; whether an extra language is sold
+as a subscription add-on (no price set); whether the site itself is translated too.
+
+### US-T019 — AI-assisted course production
+
+**As a teacher, I want AI help with subtitles, sound, video editing and a first quality check, so
+that a course takes less time to produce without losing quality.**
+
+State: Proposed (management meeting 2026-10-30). The admin review before publishing stays
+mandatory; AI does not replace it. Ermin expects teachers' subject content, not editing, to be the
+main bottleneck. Input: Alex and Ermin's trial on Alex's existing course, measuring time, AI use
+and cost (work queue). Related: US-T017 (browser recording), standard recording equipment and ways
+of working for teachers. Open: which steps first, and whether Mux (already used) covers subtitles.
+
 ### US-A008 — Sales and discount campaigns
 
 **As someone in marketing, I want time-boxed sales and discount codes, with a banner and results, so
@@ -141,7 +181,8 @@ put it on my CV.**
 State: Proposed (added by Alex 2026-10-27). Today nothing happens at 100%. Open decisions: what the
 certificate shows (default: learner name, course title, completion date, course length, teachers,
 a certificate ID), PDF or printable page (default: printable page with Save as PDF), and whether
-a public check link is needed (default: not in the first version).
+a public check link is needed (default: not in the first version). A completion certificate is not
+a TestHuset certification (US-L032) and must not be worded as one.
 
 ```gherkin
 Feature: Course completion certificate
@@ -200,13 +241,48 @@ must) — confirm or change. Distinct from career-milestone achievements, which 
 automatic (for example first login, total hours watched, completion streaks), shown on the account.
 Open decisions: the starter set and thresholds; computing them server-side from existing
 progress/activity (cross-device) as milestones do; where they display and whether they are
-shareable; and whether earning one notifies the learner. Needs its own contract.
+shareable; and whether earning one notifies the learner. Needs its own contract. Added from the
+management meeting 2026-10-30: whether achievements earn points (credits or coins), and what they
+could be used for (competitions, fairs); Ermin warned that badges without real validation lose
+their value.
 
 ### US-L030 — Free preview lesson on priced courses
 
 **As a visitor, I want to try a lesson of a priced course before I buy, so that I know it suits
 me.** State: Proposed (Alex, 2026-11-01). Open: who marks the preview lesson, and whether it needs
 sign-in.
+
+### US-L031 — AI career recommendations from a CV
+
+**As a learner, I want my CV analysed against a career, so that I see which skills I already have,
+which are missing, and which courses close the gap.**
+
+State: Proposed (management meeting 2026-10-30); Alex and Ermin decide how far it goes. Builds on
+the keyword CV scan (US-L023) and the career tree, which already shows achieved, ready and locked
+milestones and separates external courses from Academy courses (US-A004-AC04). New: AI analysis
+instead of keywords, recommendations that mix in-person and on-demand courses, and a profile that
+keeps growing with completed courses, badges and skills. Open: LinkedIn as another source; which AI
+service and where the CV is processed (GDPR, US-P021 export and erasure). Reusing CV data for
+TestHuset's own candidate work is out of scope.
+
+### US-L032 — TestHuset certification
+
+**As a learner, I want a TestHuset certification earned by an exam or assignment, so that my
+skills are documented in a way employers trust.**
+
+State: Proposed (management meeting 2026-10-30). Stronger than the completion certificate
+(US-L027): it requires passing a validated exam or graded assignment. Existing quizzes with a pass
+mark ([quizzes](specs/authoring/quizzes.md)) may be a starting point. Open: which certifications,
+who grades assignments, retakes, expiry, and a public check link.
+
+### US-L033 — Subscriptions
+
+**As a learner or organization, I want a subscription instead of buying course by course, so that
+I can learn continuously at a known price.**
+
+State: Proposed (management meeting 2026-10-30). Today only single-course purchases exist
+([payments](specs/payments/payments.md)); organization seats are US-O002. Open: what a subscription
+includes, prices, extra languages as an add-on (US-T018), and how it relates to US-O002 and US-A009.
 
 ## Platform reliability
 
