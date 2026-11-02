@@ -213,6 +213,7 @@ describe('QI Academy API', () => {
       },
       mail: { configured: false, provider: 'local' },
       payments: { configured: true, keyMode: null },
+      organizationBilling: { configured: true, webhookConfigured: false, taxRateConfigured: false },
       turnstile: { configured: false, siteKey: null },
       content: {
         storage: 'memory',

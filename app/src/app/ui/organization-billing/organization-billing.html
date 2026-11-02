@@ -35,12 +35,13 @@
           </p>
         }
       }
-      @case ('cancelling') {
-        <p class="org-warning">The subscription ends {{ bill.endsAt | date: 'd MMM y' }}. Members keep organization courses until then.</p>
-      }
       @case ('cancelled') {
         <p class="org-warning">The subscription has ended. Set up billing again to reopen courses for your members.</p>
       }
+    }
+    <!-- endsAt is set while a cancellation can still be undone, also when an invoice is overdue. -->
+    @if (bill.endsAt) {
+      <p class="org-warning">The subscription ends {{ bill.endsAt | date: 'd MMM y' }}. Members keep organization courses until then.</p>
     }
 
     @if (bill.syncPending) {
@@ -69,7 +70,7 @@
       @if (bill.method) {
         <p class="bill-facts">
           <span>Paid by {{ bill.method === 'card' ? 'card, charged automatically' : 'invoice, 14 days to pay' }}</span>
-          @if (bill.nextInvoiceAt) { <span>Next invoice {{ bill.nextInvoiceAt | date: 'd MMM y' }}</span> }
+          @if (bill.nextInvoiceAt && !bill.endsAt) { <span>Next invoice {{ bill.nextInvoiceAt | date: 'd MMM y' }}</span> }
         </p>
       }
 
@@ -114,9 +115,9 @@
         <div class="org-actions">
           <button appButton="secondary" type="button" [disabled]="busy()" (click)="openPortal()">Manage billing</button>
           <button appButton="ghost" type="button" [disabled]="busy()" (click)="startSetup()">Change payment method</button>
-          @if (bill.state === 'cancelling') {
+          @if (bill.endsAt) {
             <button appButton="secondary" type="button" [disabled]="busy()" (click)="setCancelled(false)">Keep subscription</button>
-          } @else {
+          } @else if (bill.state === 'active' || bill.state === 'overdue') {
             <button appButton="ghost" type="button" [disabled]="busy()" (click)="setCancelled(true)">Cancel subscription</button>
           }
         </div>

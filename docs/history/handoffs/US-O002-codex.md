@@ -1,7 +1,7 @@
 # US-O002 organization billing: Codex part
 
 Owner: Codex. Branch: `main`. Started: 2026-11-02. Lead: Claude. History must contain `af09fad`.
-Story and the API ↔ app contract: [docs/stories/US-O002-organization-billing.md](../stories/US-O002-organization-billing.md)
+Story and the API ↔ app contract: `git show c2afba2:docs/stories/US-O002-organization-billing.md`
 (defaults 1–9, scenarios AC01–AC12, the Contract section). Background only, not agreed scope:
 [US-O001-api-draft.md](US-O001-api-draft.md) §7 and §9.
 Isolated in-memory stores and the fake billing service only; no hosted, shared-service or Stripe calls.

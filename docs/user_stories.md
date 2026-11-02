@@ -55,7 +55,7 @@ Story IDs reconciled 2026-10-29: browser video editing is US-T017 and account ac
 | ID | Story | State | Priority | Dependencies | Contract |
 | --- | --- | --- | --- | --- | --- |
 | US-O001 | Organizations: request, approval, invites, owner overview | Release 1 delivered 2026-10-24 (live since 0.1.464); owner overview in release 2 | P1 | — | [stories/US-O001](stories/US-O001-organizations.md) |
-| US-O002 | Organization billing: career seats, course add-ons, card or invoice | In progress (2026-11-02) | P2 | US-O001 | [stories/US-O002](stories/US-O002-organization-billing.md) |
+| US-O002 | Organization billing: career seats, course add-ons, card or invoice | Delivered locally 2026-11-02, not pushed; Stripe setup before use | P2 | US-O001 | [organizations spec](specs/organizations/organizations.md) |
 | US-A004 | Curriculum review (changed criteria delivered) | In progress | P2 | Curriculum owner | [stories/US-A004](stories/US-A004-curriculum-review.md) |
 | US-P001 | Verify complete role journeys before release | In progress | P2 | Browser test runner decision | Below |
 | US-P003 | Safe writes across API instances | In progress | P2 | Distributed coordination decision | Below, INV-003/004 |

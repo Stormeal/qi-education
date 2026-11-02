@@ -6,19 +6,19 @@ messages hold them.
 
 ## Active work
 
-**US-O002 organization billing** (started 2026-11-02, base `af09fad`, branch `main`). Contract and
-defaults (accepted by Alex 2026-11-02): [US-O002](stories/US-O002-organization-billing.md), AC01–AC12.
-Isolated in-memory stores and the fake billing service only; no Stripe calls.
+No active implementation. **US-O002 organization billing was delivered locally (2026-11-02), not pushed**:
+contract `2c9dca0` (defaults accepted by Alex), Claude `18146dc` (owner Billing section, card return,
+member notice, admin Approve free / Make free, "excl. moms"), Codex `8d980b5` (billing API, Stripe
+adapter and fake, webhook, sync, access rule), check-routine fixes in the delivery commit. Checks:
+API 3,214/3,215 (DEF-034/11 timing failure passes alone, 24/24), app 679, journeys 22, Pages build.
+Browser on isolated stores: paid approval shows "Billing not set up"; owner sees the setup prompt
+and bill; card setup round trip through the fake confirms and opens billing; cancel and keep;
+switch to invoice; no overflow at phone width. Not checked in the browser: seat and add-on lines
+(no published career in isolated stores), overdue/blocked states and the member notice (specs
+cover them). Waits on Alex before any use: the Stripe dashboard setup in
+[organizations](specs/organizations/organizations.md) Limits; release 3 decides when it ships.
 
-| Owner | Scope | State |
-| --- | --- | --- |
-| Codex | Billing service (Stripe + fake), billing fields in the organization store, access rule, billing routes, billing webhook, admin free/paid, sync on owner changes and price changes, config/doctor, permission table, journey; files in [handoff](handoffs/US-O002-codex.md) | API implementation complete locally, 2026-11-02; `main`, base `2c9dca0`; delivery commit contains this row. AC01–AC12: 73 billing tests, both prefixes and memory/Mongo driver doubles; all seven routes classified; journeys 22/22; API build passes; isolated doctor passes. Full API suite: **3,212/3,215**, three expected health-fixture failures outside Codex ownership. Next Claude: add `organizationBilling: { configured: true, webhookConfigured: false, taxRateConfigured: false }` to the exact health objects in `api/src/server.test.ts:206` and `api/src/isolatedServices.test.ts:113` (two prefix cases), then rerun API tests. App follow-up: show Resume when `bill.endsAt` exists even if state is overdue/blocked (`organization-billing.html:117`). Stripe adapter uses supported `eu_vat` + `DK<cvr>` (handoff's `dk_vat` is not supported). Shared/Stripe integration and browser checks remain unverified; no shared calls or push. |
-| Claude | App models and `organization.service.ts` billing calls, owner Billing section, card return, member notice, admin approve choice and Free/Paid switch, "excl. moms" labels, specs | App part committed (see `git log`); `npm run app:test` 678 passed on 2026-11-02 against fakes. Not verified: the browser check on isolated servers, which waits for Codex's routes. Next: check routine, then fold the result into the organizations and payments specs. |
-
-Next: the check routine (both parts are committed). Waits on Alex later for the Stripe dashboard
-settings in the contract.
-
-No other active implementation. **US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
+**US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
 Claude `a22faab` (rating box, reviews with admin Hide/Show, catalog settings without rating
 inputs), Codex `4f8eec5` (rating store, routes, eligibility, course aggregate, privacy). Checks: API
 3,123 + DEF-034/11 timing failure that passes alone (24/24), app 668, journeys 20, Pages build.

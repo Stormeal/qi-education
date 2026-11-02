@@ -13,7 +13,7 @@ export type CourseRequest = { id: string; userId: string; userName: string; cour
 export type MyOrganization = { organization: Organization; role: 'member' | 'owner'; isOriginalOwner: boolean;
   careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; courseRequests: CourseRequest[];
   billingState?: BillingState };
-// US-O002 contract: docs/stories/US-O002-organization-billing.md. Amounts are whole DKK excl. moms.
+// US-O002: docs/specs/organizations/organizations.md (Billing). Amounts are whole DKK excl. moms.
 export type BillingState = 'free' | 'setup-needed' | 'active' | 'overdue' | 'blocked' | 'cancelling' | 'cancelled';
 export type BillingLine = { kind: 'base' | 'seat' | 'course'; id: string; title: string; unitDkk: number; quantity: number };
 export type UnpaidInvoice = { id: string; amountDkk: number; dueAt: string; blocksAt: string; url: string | null };

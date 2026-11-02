@@ -3,9 +3,10 @@
 ## Purpose
 
 A company brings its QA staff into QI Academy: an approved owner invites colleagues, gives each a
-billed career and approves extra courses, and members learn those courses without paying. Prices
-are shown so owners see what billing will cost; nothing is charged yet (US-O002). Release 1 of
-US-O001; the owner progress overview comes in release 2 ([decisions](../../stories/US-O001-organizations.md)).
+billed career and approves extra courses, and members learn those courses without paying. The
+organization pays one monthly bill for those seats and courses, by card or invoice (US-O002), unless
+an admin made it free. Release 1 of US-O001 and US-O002; the owner progress overview comes in
+release 2 ([decisions](../../stories/US-O001-organizations.md)).
 
 ## Behavior
 
@@ -42,8 +43,42 @@ US-O001; the owner progress overview comes in release 2 ([decisions](../../stori
   My Learning and open on the learning page. After leaving, removal or suspension they disappear
   from My Learning; progress stays stored and returns on rejoining with access or buying the course.
 - **Prices**: admins set a monthly seat price per career (career editor) and an add-on price per
-  course (catalog settings), whole DKK. They are shown in DKK and never charged or recorded as
-  payments.
+  course (catalog settings), whole DKK excluding moms; every price shows "excl. moms". Unpriced
+  careers and courses are free and not billed. They are never recorded as personal payments.
+- **Paid or free** (Admin → Organizations): an admin approves a request with **Approve** (paid) or
+  **Approve free**, and switches later with **Make free** / **Require billing**. Organizations
+  approved before US-O002 have no billing record and are free. Make free cancels the subscription
+  at once without a refund (refund in Stripe by hand). Each organization row shows its billing state.
+- **Billing** (owner view → **Billing**, owners only; decided with Alex 2026-11-02):
+  - A paid organization without setup shows "Set up billing to open courses for your members" and
+    the monthly total; its seats and add-ons open no courses until an owner sets up billing. There
+    is no trial.
+  - Setup asks for the billing address (street, 4-digit postcode, city; Danish companies only) and
+    the method. **Invoice** creates the subscription at once with 14 days to pay. **Card** goes to
+    Stripe's card form and back to `/organization?billing=card&session_id=…`; the route removes the
+    query and the page confirms the session with the API (or the webhook does), never trusting the
+    redirect alone. **Change payment method** runs setup again.
+  - One monthly Stripe subscription per organization from the setup day, with a 0 DKK "QI Academy
+    organization" line, one line per billed career (members with that career and a seat price)
+    and one per extra course (approved add-ons whose course is not already in that member's
+    career). The page lists the lines, the monthly total excl. moms, the method and the next
+    invoice date; Stripe adds 25% moms through `STRIPE_ORG_TAX_RATE_ID`.
+  - Owner changes (career set, changed or cleared; add-on approved; member removed or leaving)
+    update the subscription with proration on the next invoice. Admin price changes reach every
+    subscribing organization from its next invoice, without proration. If Stripe cannot be reached
+    the change still stands and the page says "Billing update pending"; it is retried, in order, on
+    the next billing read or change. A change needing a 21st billed line (Stripe's limit) is
+    refused with "Contact us to bill more different careers and courses."
+  - An unpaid invoice (card: from finalization; invoice: from its due date) shows the amount, due
+    date and the date members lose access. From 14 days after that date organization courses close
+    for members ("Members have lost access until the invoice is paid"), checked on every request
+    with no scheduled job; paying or voiding reopens them, "uncollectible" does not.
+  - **Cancel subscription** ends it at the end of the paid month; **Keep subscription** undoes that
+    until then, also while an invoice is overdue. Afterwards members stay members without
+    organization courses and an owner can set billing up again. **Manage billing** opens Stripe's
+    portal for the organization's customer (invoices, card).
+  - Members see why courses are closed ("open once an owner has set up billing", "closed until an
+    unpaid invoice is paid", "the subscription has ended"); they never see billing details.
 - **Suspend** (Admin → **Organizations**): members lose access through the organization, owners
   cannot invite, and the organization page says so with the invite and course request forms
   disabled. **Reactivate** restores both.
@@ -62,6 +97,18 @@ US-O001; the owner progress overview comes in release 2 ([decisions](../../stori
   or mail unavailable. A failed email shows "Not sent. Try again." with a resend where one exists.
 - `GET /auth/me`, sign-in and the enroll reply list organization-started courses in
   `enrolledCourseIds` (computed when answering, never stored) and add `organization: { id, role }`.
+- Billing states: `free`, `setup-needed`, `active`, `overdue`, `blocked`, `cancelling`, `cancelled`;
+  `setup-needed`, `blocked` and `cancelled` close organization courses. `GET /users/me/organization`
+  adds `billingState`; `GET /admin/organizations` adds it per row. Billing errors answer 503
+  "Billing is temporarily unavailable." when Stripe is not configured or cannot be reached, 409 for
+  a free organization or a state that does not allow the action, 400 for an address or return URL
+  that is not allowed.
+- The billing webhook (`POST /webhooks/stripe-billing`, also under `/api`, signed with
+  `STRIPE_BILLING_WEBHOOK_SECRET`, separate from the course-purchase webhook) finds the organization
+  by Stripe customer, re-reads its subscription and open invoices from Stripe and stores them, so
+  duplicates and order do not matter. Unknown customers are ignored; a storage or Stripe failure
+  answers 500 so Stripe retries. Card setup finished in the webhook counts like the page's confirm.
+- Suspension does not touch Stripe.
 - US-P019 adds private notices for requests/resubmissions (admins), decisions (requester),
   invitations (existing account only) and active joins (owners, including delayed confirmation).
   Preferences and failures are handled by the [notification service](../platform/notifications.md);
@@ -76,21 +123,40 @@ US-O001; the owner progress overview comes in release 2 ([decisions](../../stori
 | `GET /organizations/:id/members`, `DELETE …/members/:userId`, `PUT …/members/:userId/career` | owner |
 | `POST /organizations/:id/members/:userId/promote` | original owner |
 | `GET`/`POST /organizations/:id/invitations`, `POST …/:inviteId/resend`, `DELETE …/:inviteId` | owner (invite only while active) |
+| `GET /organizations/:id/billing`, `POST …/billing/setup`, `POST …/billing/card/confirm`, `PUT …/billing/cancellation`, `POST …/billing/portal` | owner |
+| `PUT /admin/organizations/:id/billing` (`{ free }`) | site admin |
+| `POST /webhooks/stripe-billing` | Stripe (signed) |
 | `POST /organization-invitations/check` | anyone |
 | `POST /organization-invitations/accept` | signed in with the invited email |
 | `GET`/`POST /organizations/:id/course-requests`, `POST …/:requestId/decision` | owner; member requests |
 
 ## Code
 
+- Billing API: `organizationBilling.ts` (states, lines, 20-line limit), `organizationBillingService.ts`
+  (Stripe adapter pinned to `2026-09-30.endive`, tax id `eu_vat` `DK<cvr>`, and the offline fake used
+  in isolated runs and tests), `organizationBillingRoutes.ts` (routes and webhook); billing state is
+  the optional `billing` field on the stored organization. `/health/config` reports
+  `organizationBilling: { configured, webhookConfigured, taxRateConfigured }`.
 - API: `api/src/organizationRoutes.ts`, `organizationService.ts`, `organizationRepository.ts`
   (memory and MongoDB: `_organization_requests`, `_organizations`, `_organization_memberships` keyed
   by user, `_organization_invitations`, `_organization_course_requests`, `_organization_prices`),
   `organization.ts`; tests `organization*.test.ts` and the organization pass in `npm run verify:journeys`.
 - App: `app/src/app/services/organization.service.ts`, `pages/organization-page/`,
-  `pages/join-organization-page/`, `ui/admin-organizations/`, `ui/organization-price-field/`.
+  `pages/join-organization-page/`, `ui/admin-organizations/`, `ui/organization-price-field/`,
+  `ui/organization-billing/` (owner Billing section); card return in `routes/organization-route.ts`.
 
 ## Limits
 
 - Not yet checked on the live site (AC01–AC12 with a second real email address).
+- Billing is not verified against real Stripe (test mode): customer, subscription, invoice,
+  proration, tax rate, portal and webhook deliveries. Before use, in the Stripe dashboard: failed
+  card payments and overdue invoices must leave the subscription as it is (never cancel it),
+  invoice reminders on, the portal allows invoices and payment methods, a 25% moms tax rate for
+  `STRIPE_ORG_TAX_RATE_ID`, and a webhook destination for `/webhooks/stripe-billing` with its own
+  secret sending `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`, `invoice.finalized`, `invoice.paid`, `invoice.payment_failed`,
+  `invoice.voided`, `invoice.marked_uncollectible`. Stripe live mode is release 2.
+- No refunds or credit notes from the app, no billing for non-Danish companies, at most 20 different
+  billed careers and courses per organization.
 - No audit log, job queue or automatic email retries, paging, organization deletion or owner
   transfer.

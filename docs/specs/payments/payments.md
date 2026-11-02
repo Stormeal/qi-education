@@ -3,7 +3,9 @@
 ## Purpose
 
 A learner buys a priced course once by card and keeps it (US-L024, 2026-10-20). Stripe hosts the
-payment pages; the API keeps the record of who paid for what.
+payment pages; the API keeps the record of who paid for what. Organization subscriptions (US-O002)
+are separate, with their own routes, webhook and secret: [organizations](../organizations/organizations.md).
+Nothing here changed for them.
 
 ## Behavior
 

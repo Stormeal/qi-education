@@ -137,6 +137,17 @@ describe('organization billing (US-O002)', () => {
     expect(accessChanges).toBe(0);
   });
 
+  it('US-O002-AC09 can keep a cancelling subscription while an invoice is overdue', async () => {
+    current = view({ state: 'overdue', endsAt: '2026-12-02T00:00:00Z',
+      unpaid: [{ id: 'in_1', amountDkk: 2058, dueAt: '2026-11-15T00:00:00Z', blocksAt: '2026-11-29T00:00:00Z', url: null }] });
+    const page = await render();
+    expect(page.textContent).toContain('The subscription ends 2 Dec 2026');
+    expect(button(page, 'Cancel subscription')).toBeUndefined();
+    button(page, 'Keep subscription').click();
+    await flush();
+    expect(calls).toEqual(['cancel:false']);
+  });
+
   it('US-O002-AC11 shows the API refusal, for example when billing is unavailable', async () => {
     current = view({});
     const page = await render();
