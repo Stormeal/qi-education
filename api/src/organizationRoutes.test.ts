@@ -30,7 +30,7 @@ async function setup() {
   await careers.savePath({ _id: 'career', published, draft: published, revision: 1, updatedAt: '' });
   const sender = { provider: 'local' as const, available: true, send: async () => {} }, raw = 'a'.repeat(43);
   const service = new OrganizationService({ repository, auth, careers, courses, sender, options: { newToken: () => raw } });
-  const orgRequest = await service.submitRequest(owner, fields), orgId = (await service.decide(admin.id, orgRequest.id, { action: 'approve' })).organizationId!;
+  const orgRequest = await service.submitRequest(owner, fields), orgId = (await service.decide(admin.id, orgRequest.id, { action: 'approve', billing: 'free' })).organizationId!;
   await repository.createOrganization({ id: 'foreign-org', ...fields, state: 'active', originalOwnerId: foreign.id, createdAt: '' });
   await repository.insertMembership({ userId: member.id, orgId, role: 'member', state: 'active', careerId: 'career', startedCourseIds: [], consentAt: '', joinedAt: '' });
   await repository.insertMembership({ userId: foreign.id, orgId: 'foreign-org', role: 'member', state: 'active', careerId: null, startedCourseIds: [], consentAt: '', joinedAt: '' });

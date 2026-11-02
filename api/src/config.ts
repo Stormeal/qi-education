@@ -50,6 +50,8 @@ const envSchema = z.object({
   MUX_TOKEN_ID: z.string().min(1).optional(),
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_BILLING_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_ORG_TAX_RATE_ID: z.string().min(1).optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
   TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   MUX_TOKEN_SECRET: z.string().min(1).optional(),

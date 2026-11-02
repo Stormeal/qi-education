@@ -74,7 +74,7 @@ function checkEnv(env) {
 
   const corsOrigin = env.get('CORS_ORIGIN') ?? '';
 
-  for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']) {
+  for (const key of ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_BILLING_WEBHOOK_SECRET', 'STRIPE_ORG_TAX_RATE_ID']) {
     if (hasValue(env, key)) pass(`${key} is set.`);
     else warn(`${key} is missing.`);
   }

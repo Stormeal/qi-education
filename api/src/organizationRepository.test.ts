@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryOrganizationRepository, MongoOrganizationRepository } from './organizationRepository.js';
 import { fakeOrganizationCollections } from './organizationTestSupport.js';
 import { organizationRequestInputSchema, priceSchema, acceptSchema } from './organization.js';
+import { emptyBilling } from './organizationBilling.js';
 
 it('validates the exact request, price and consent boundaries', () => {
   const input = { displayName: ' A ', companyName: 'B', cvr: '12345678', billingEmail: ' BILL@example.test ' };
@@ -61,6 +62,15 @@ describe.each(['memory', 'mongodb'])('organization store (%s)', kind => {
     expect(await repo.getPrices()).toEqual({ careers: { career: 120 }, courses: { course: 0 } });
     await repo.setCareerPrice('career', null);
     expect(await repo.getPrices()).toEqual({ careers: {}, courses: { course: 0 } });
+  });
+  it('a suspended sole owner cannot erase the account while its billing subscription is running', async () => {
+    const repo = store();
+    await repo.createOrganization({ id: 'org', displayName: 'Org', companyName: 'Company', cvr: '12345678', billingEmail: 'bill@example.test',
+      state: 'suspended', originalOwnerId: 'owner', createdAt: '', billing: { ...emptyBilling('paid'), status: 'active', subscriptionId: 'subscription' } });
+    await repo.insertMembership({ userId: 'owner', orgId: 'org', role: 'owner', state: 'active', careerId: null, startedCourseIds: [], consentAt: '', joinedAt: '' });
+    expect(await repo.erasureBlockers('owner')).toEqual([{ id: 'org', name: 'Org' }]);
+    await repo.setBilling('org', { ...emptyBilling('paid'), status: 'cancelled', subscriptionId: 'subscription' });
+    expect(await repo.erasureBlockers('owner')).toEqual([]);
   });
 });
 

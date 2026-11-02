@@ -2,6 +2,7 @@ import type { Collection, Document } from 'mongodb';
 import { apiConfig, hasMongoConfig } from './config.js';
 import { getMongoDatabase } from './mongo.js';
 import { SYSTEM_ACCOUNT_ID } from './systemAccount.js';
+import { billingState } from './organizationBilling.js';
 import { AmbiguousCourseWriteError, protectCourseWrite, CourseBusyError, InMemoryCourseMutationLock, MongoCourseMutationLock, type CourseMutationLock } from './courseMutationLock.js';
 import { OrganizationError, type Organization, type OrganizationMembership, type Prices,
   type StoredOrgRequest, type StoredInvitation, type StoredCourseRequest } from './organization.js';
@@ -28,6 +29,7 @@ export interface OrganizationRepository {
   getOrganization(id: string): Promise<Organization | null>;
   listOrganizations(): Promise<Organization[]>;
   setOrganizationState(id: string, state: Organization['state']): Promise<boolean>;
+  setBilling(id: string, billing: NonNullable<Organization['billing']>): Promise<boolean>;
   insertMembership(value: OrganizationMembership): Promise<boolean>;
   getMembership(userId: string): Promise<OrganizationMembership | null>;
   listMembers(orgId: string): Promise<OrganizationMembership[]>;
@@ -185,8 +187,8 @@ class Repository implements OrganizationRepository {
     if (membership?.role !== 'owner') return [];
     const organization = await this.getOrganization(membership.orgId);
     if (!organization) return [];
-    // Billing has no separate state yet; an active owner requires transfer conservatively.
-    if (organization.state === 'active' || (await this.listMembers(organization.id)).some(member => member.userId !== userId)) {
+    const subscriptionRunning = !['free', 'setup-needed', 'cancelled'].includes(billingState(organization.billing, Date.now()));
+    if (organization.state === 'active' || subscriptionRunning || (await this.listMembers(organization.id)).some(member => member.userId !== userId)) {
       return [{ id: organization.id, name: organization.displayName }];
     }
     return [];
@@ -224,6 +226,7 @@ class Repository implements OrganizationRepository {
   async deleteOrganization(id: string) { await this.store.delete('organizations', id, {}); }
   getOrganization(id: string) { return this.store.get('organizations', id); }
   listOrganizations() { return this.store.list('organizations'); }
+  setBilling(id: string, billing: NonNullable<Organization['billing']>) { return this.store.update('organizations', id, {}, { billing }); }
   setOrganizationState(id: string, state: Organization['state']) { return this.store.update('organizations', id, {}, { state }); }
   insertMembership(v: OrganizationMembership) { return this.store.insert('memberships', v.userId, v); }
   getMembership(userId: string) { return this.store.get('memberships', userId); }

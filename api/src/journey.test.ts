@@ -7,7 +7,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createSessionToken, toAuthenticatedUser, type AuthUser } from './auth.js';
 import { InMemoryAuthRepository } from './authRepository.js';
 import { InMemoryCareerPathRepository } from './careerPathRepository.js';
-import { InMemoryCourseRepository } from './courseRepository.js';
+import { InMemoryCourseRepository, type CourseRepository } from './courseRepository.js';
+import { createCourseSchema } from './course.js';
 import { MongoCourseRepository } from './mongoCourseRepository.js';
 import { fakeCourseCollection } from '../test/fakeCourseCollection.js';
 import { InMemoryCourseContentRepository } from './courseContentRepository.js';
@@ -20,6 +21,7 @@ import { InMemoryPaymentRepository } from './paymentRepository.js';
 import { InMemoryOrganizationRepository, MongoOrganizationRepository } from './organizationRepository.js';
 import { fakeOrganizationCollections } from './organizationTestSupport.js';
 import type { MailMessage } from './mailSender.js';
+import { FakeOrganizationBillingService } from './organizationBillingService.js';
 
 const answers = ['a', 'b', 'c', 'd'].map((id) => ({ id, text: `Answer ${id}`, description: `Why ${id}`, isCorrect: id === 'b' }));
 const sections = [{ id: 'intro', title: 'Introduction', components: [
@@ -32,7 +34,10 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
   let server: Server, base: string, auth: InMemoryAuthRepository;
   let teacher: AuthUser, otherTeacher: AuthUser, admin: AuthUser, student: AuthUser, earlyLearner: AuthUser;
   let courseId = '';
+  let courseStore: CourseRepository;
   const organizationMail: MailMessage[] = [];
+  const organizationBilling = new FakeOrganizationBillingService();
+  const organizationStore = store === 'mongodb' ? new MongoOrganizationRepository(fakeOrganizationCollections()) : new InMemoryOrganizationRepository();
 
   function request(path: string, user?: AuthUser, method = 'GET', body?: unknown, headers: Record<string, string> = {}) {
     return fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...headers, ...(user ? {
@@ -63,13 +68,14 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     const content = new InMemoryCourseContentRepository(), assets = new InMemoryCourseAssetRepository();
     if (store === 'mongodb') { Object.defineProperty(content, 'storageType', { value: 'mongodb' }); Object.defineProperty(assets, 'storageType', { value: 'mongodb' }); }
     const collection = fakeCourseCollection().collection;
+    courseStore = store === 'mongodb' ? new MongoCourseRepository(async () => collection) : new InMemoryCourseRepository();
     server = createServer({ authRepository: auth,
-      organizationRepository: store === 'mongodb' ? new MongoOrganizationRepository(fakeOrganizationCollections()) : new InMemoryOrganizationRepository(),
+      organizationRepository: organizationStore, organizationBillingService: organizationBilling,
       mailSender: { provider: 'local', available: true, send: async message => { organizationMail.push(message); } },
       organizationOptions: { appPublicUrl: 'http://localhost:4301' },
       emailConfirmationOptions: { appPublicUrl: 'http://localhost:4301' },
       careerPathRepository: new InMemoryCareerPathRepository(),
-      courseRepository: store === 'mongodb' ? new MongoCourseRepository(async () => collection) : new InMemoryCourseRepository(), courseContentRepository: content,
+      courseRepository: courseStore, courseContentRepository: content,
       courseAssetRepository: assets, feedbackRepository: new InMemoryFeedbackRepository(),
       muxVideoService: null, muxWebhookService: null,
       paymentService: new FakePaymentService(), paymentRepository: new InMemoryPaymentRepository(),
@@ -228,7 +234,7 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
       billingEmail: 'billing@example.test', message: 'Train our team',
     });
     expect(applied.status).toBe(201); const application = await applied.json();
-    const approved = await request(`/admin/organization-requests/${application.id}/decision`, admin, 'POST', { action: 'approve' });
+    const approved = await request(`/admin/organization-requests/${application.id}/decision`, admin, 'POST', { action: 'approve', billing: 'free' });
     expect(approved.status).toBe(200); const orgId = (await approved.json()).organizationId;
     const email = `organization-${store}@example.test`;
     expect((await request(`/organizations/${orgId}/invitations`, student, 'POST', { email })).status).toBe(201);
@@ -265,4 +271,29 @@ describe.each(['memory', 'mongodb'])('US-P001 release journey: author, review, e
     expect((await auth.findById(member.id))!.enrolledCourseIds).toEqual([]);
   });
 
+  it('US-O002 billing: paid approval, invoice setup, add-on, debt blocks and payment restores access', async () => {
+    const application = await (await request('/users/me/organization-request', earlyLearner, 'POST', {
+      displayName: 'Billed journey', companyName: 'Company', cvr: '12345678', billingEmail: 'bill@example.test',
+    })).json();
+    const approved = await request(`/admin/organization-requests/${application.id}/decision`, admin, 'POST', { action: 'approve' });
+    expect(approved.status).toBe(200);
+    const orgId = (await approved.json()).organizationId, root = `/organizations/${orgId}/billing`;
+    expect((await request(`/organizations/${orgId}/members/${earlyLearner.id}/career`, earlyLearner, 'PUT', { careerId: 'organization-journey' })).status).toBe(200);
+    expect(await (await request('/users/me/organization', earlyLearner)).json()).toMatchObject({ billingState: 'setup-needed', openCourseIds: [] });
+    const setup = await request(root + '/setup', earlyLearner, 'POST', { method: 'invoice', address: { line1: 'Street 1', postalCode: '8000', city: 'Aarhus' } });
+    expect(setup.status).toBe(200); expect(await setup.json()).toMatchObject({ state: 'active', method: 'invoice' });
+    expect(await (await request('/users/me/organization', earlyLearner)).json()).toMatchObject({ openCourseIds: [courseId] });
+    const addon = await courseStore.createCourse(createCourseSchema.parse({ title: 'Billing journey add-on', description: 'Published fixture for an approved billing add-on', level: 'Beginner', teacher: 'QI Academy', status: 'published' }));
+    expect((await request(`/admin/organization-prices/courses/${addon.id}`, admin, 'PUT', { priceDkk: 75 })).status).toBe(200);
+    const pending = await (await request(`/organizations/${orgId}/course-requests`, earlyLearner, 'POST', { courseId: addon.id })).json();
+    expect((await request(`/organizations/${orgId}/course-requests/${pending.id}/decision`, earlyLearner, 'POST', { action: 'approve' })).status).toBe(200);
+    expect(await (await request(root, earlyLearner)).json()).toMatchObject({ lines: expect.arrayContaining([expect.objectContaining({ kind: 'course', id: addon.id, quantity: 1, unitDkk: 75 })]) });
+    const customerId = (await organizationStore.getOrganization(orgId))!.billing!.customerId!;
+    organizationBilling.setUnpaid(customerId, [{ id: 'journey-debt', amountDkk: 75, dueAt: new Date(Date.now() - 15 * 86400000).toISOString(), url: null }]);
+    const webhook = () => request('/api/webhooks/stripe-billing', undefined, 'POST', { customerId }, { 'stripe-signature': 'fake-billing-signature' });
+    expect((await webhook()).status).toBe(200);
+    expect(await (await request('/users/me/organization', earlyLearner)).json()).toMatchObject({ billingState: 'blocked', openCourseIds: [] });
+    organizationBilling.setUnpaid(customerId, []); expect((await webhook()).status).toBe(200);
+    expect(await (await request('/users/me/organization', earlyLearner)).json()).toMatchObject({ billingState: 'active', openCourseIds: expect.arrayContaining([courseId, addon.id]) });
+  });
 });

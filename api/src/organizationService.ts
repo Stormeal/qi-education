@@ -7,6 +7,10 @@ import type { CareerPathRepository } from './careerPathRepository.js';
 import type { CourseRepository } from './courseRepository.js';
 import type { OrganizationRepository } from './organizationRepository.js';
 import { apiConfig } from './config.js';
+import { KeyedSerialQueue } from './keyedSerialQueue.js';
+import { assertBillingLineLimit, billingState, billingView, desiredBillingLines, emptyBilling,
+  type BillingAddress, type OrganizationBilling } from './organizationBilling.js';
+import type { BillingEvent, OrganizationBillingService } from './organizationBillingService.js';
 import { safelyNotify, type NotificationService } from './notificationService.js';
 import { resetTokenHash } from './passwordResetDelivery.js';
 import { OrganizationError, organizationRequestInputSchema, declineSchema, priceSchema, inviteSchema,
@@ -16,13 +20,15 @@ import { OrganizationError, organizationRequestInputSchema, declineSchema, price
 type User = Pick<AuthUser, 'id' | 'email' | 'displayName'>;
 export type OrganizationOptions = { now?: () => number; newToken?: () => string; appPublicUrl?: string };
 export class OrganizationService {
+  private readonly billingWrites = new KeyedSerialQueue();
   private readonly repository: OrganizationRepository;
   private readonly auth: AuthRepository;
   private readonly sender: MailSender;
   private readonly now: () => number;
   constructor(private readonly dependencies: { repository: OrganizationRepository; auth: AuthRepository;
     sender: MailSender; options?: OrganizationOptions; careers?: CareerPathRepository; courses?: CourseRepository;
-    notifications?: NotificationService; withUserMutation?: <T>(userId: string, operation: () => Promise<T>) => Promise<T> }) {
+    notifications?: NotificationService; billingService?: OrganizationBillingService | null;
+    withUserMutation?: <T>(userId: string, operation: () => Promise<T>) => Promise<T> }) {
     this.repository = dependencies.repository; this.auth = dependencies.auth; this.sender = dependencies.sender;
     this.now = dependencies.options?.now ?? Date.now;
   }
@@ -80,7 +86,7 @@ export class OrganizationService {
     }
     const organization = await this.organization(membership.orgId), prices = await this.prices();
     const openCourseIds = await this.openCourseIds(userId), started = new Set(membership.startedCourseIds);
-    return { organization, role: membership.role, isOriginalOwner: organization.originalOwnerId === userId,
+    return { organization: this.publicOrganization(organization), billingState: billingState(organization.billing, this.now()), role: membership.role, isOriginalOwner: organization.originalOwnerId === userId,
       careerId: membership.careerId, seatPriceDkk: membership.careerId ? prices.careers[membership.careerId] ?? null : null,
       openCourseIds, startedCourseIds: openCourseIds.filter(id => started.has(id)),
       courseRequests: await Promise.all((await this.repository.listCourseRequests(organization.id))
@@ -92,7 +98,7 @@ export class OrganizationService {
       return { ...this.requestView(value), requesterName: user?.displayName ?? '', requesterEmail: user?.email ?? '' };
     }));
   }
-  async decide(adminId: string, requestId: string, decision: { action: string; reason?: string }): Promise<OrgRequest> {
+  async decide(adminId: string, requestId: string, decision: { action: string; reason?: string; billing?: 'paid' | 'free' }): Promise<OrgRequest> {
     if ((await this.account(adminId)).role !== 'admin') throw new OrganizationError(403, 'Not allowed');
     if (!['approve', 'decline'].includes(decision.action)) throw new OrganizationError(400, 'Invalid decision');
     const reason = decision.action === 'decline' ? this.parse(declineSchema, decision).reason : null;
@@ -113,7 +119,7 @@ export class OrganizationService {
         if (existing && existing.originalOwnerId !== user.id) throw new OrganizationError(409, 'Organization already exists');
         if (!existing) await this.repository.createOrganization({ id: organizationId, displayName: request.displayName,
           companyName: request.companyName, cvr: request.cvr, billingEmail: request.billingEmail,
-          state: 'active', originalOwnerId: user.id, createdAt: time });
+          state: 'active', originalOwnerId: user.id, createdAt: time, billing: emptyBilling(decision.billing ?? 'paid') });
         if (!membership && !await this.repository.insertMembership({ userId: user.id, orgId: organizationId, role: 'owner', state: 'active',
           careerId: null, startedCourseIds: [], joinedAt: time, consentAt: time })) {
           await this.repository.deleteOrganization(organizationId);
@@ -138,20 +144,209 @@ export class OrganizationService {
     return organization;
   }
   async listOrganizations() {
-    return Promise.all((await this.repository.listOrganizations()).map(async value => ({ ...value,
+    return Promise.all((await this.repository.listOrganizations()).map(async value => ({ ...this.publicOrganization(value), billingState: billingState(value.billing, this.now()),
       memberCount: (await this.repository.listMembers(value.id)).filter(v => v.state === 'active').length })));
   }
   private async state(id: string, state: Organization['state']) {
     await this.organization(id);
     if (!await this.repository.setOrganizationState(id, state)) throw new OrganizationError(404, 'Organization not found');
-    return this.organization(id);
+    return this.publicOrganization(await this.organization(id));
   }
   suspend(id: string) { return this.state(id, 'suspended'); }
   reactivate(id: string) { return this.state(id, 'active'); }
   prices() { return this.repository.getPrices(); }
-  async setCareerPrice(id: string, priceDkk: unknown) { const value = this.parse(priceSchema, { priceDkk }); await this.repository.setCareerPrice(id, value.priceDkk); return this.prices(); }
-  async setCoursePrice(id: string, priceDkk: unknown) { const value = this.parse(priceSchema, { priceDkk }); await this.repository.setCoursePrice(id, value.priceDkk); return this.prices(); }
+  async setCareerPrice(id: string, priceDkk: unknown) { const value = this.parse(priceSchema, { priceDkk }); return this.changePrice(() => this.repository.setCareerPrice(id, value.priceDkk)); }
+  async setCoursePrice(id: string, priceDkk: unknown) { const value = this.parse(priceSchema, { priceDkk }); return this.changePrice(() => this.repository.setCoursePrice(id, value.priceDkk)); }
 
+  private publicOrganization({ billing: _billing, ...org }: Organization): Organization { return org; }
+  private provider(): OrganizationBillingService {
+    if (!this.dependencies.billingService) throw new OrganizationError(503, 'Billing is temporarily unavailable.');
+    return this.dependencies.billingService;
+  }
+  private withBillingWrite<T>(orgId: string, operation: () => Promise<T>): Promise<T> {
+    // Separate durable ownership serializes provider writes across API instances.
+    // Membership/price commits continue using their short organization lock.
+    return this.billingWrites.run(orgId, () => this.repository.withOrganizationLock(`billing:${orgId}`, operation));
+  }
+  private async billingCall<T>(operation: () => Promise<T>): Promise<T> {
+    try { return await operation(); }
+    catch (error) { if (error instanceof OrganizationError) throw error; throw new OrganizationError(503, 'Billing is temporarily unavailable.'); }
+  }
+  private async saveBilling(orgId: string, billing: OrganizationBilling) {
+    if (!await this.repository.setBilling(orgId, billing)) throw new OrganizationError(404, 'Organization not found');
+  }
+  private async desiredLines(orgId: string, overrides?: { member?: OrganizationMembership; request?: StoredCourseRequest }) {
+    const [members, requests, prices, paths, courses] = await Promise.all([this.repository.listMembers(orgId), this.repository.listCourseRequests(orgId),
+      this.prices(), this.dependencies.careers?.listPaths() ?? [], this.dependencies.courses?.listCourses() ?? []]);
+    const careers = paths.filter(path => path.published).map(path => ({ id: path._id, title: path.published!.title,
+      courseIds: path.published!.steps.flatMap(step => [...step.courses.map(course => course.courseId), ...step.actions.filter(action => action.kind === 'course').map(action => action.courseId)]).filter((id): id is string => !!id) }));
+    return desiredBillingLines(overrides?.member ? members.map(member => member.userId === overrides.member!.userId ? overrides.member! : member) : members,
+      overrides?.request ? requests.map(request => request.id === overrides.request!.id ? overrides.request! : request) : requests,
+      prices, careers, courses.filter(course => course.status === 'published'));
+  }
+  // Called inside the short local mutation lock, BEFORE changing the desired state.
+  // If a process stops after the membership commit, the next read still knows to sync.
+  private async markBillingPending(orgId: string, proration: 'create_prorations' | 'none' = 'create_prorations') {
+    await this.finalizeBillingPending(orgId);
+    const org = await this.organization(orgId);
+    if (!org.billing || org.billing.mode === 'free' || !org.billing.method || billingState(org.billing, this.now()) === 'cancelled') return;
+    await this.saveBilling(orgId, { ...org.billing, revision: (org.billing.revision ?? 0) + 1, syncPending: true, syncProration: proration });
+  }
+  // Capture desired states in order so an outage cannot mix an admin price change
+  // (no proration) with a later owner quantity change (proration), or vice versa.
+  // A missing capture after an interrupted local write is recovered from storage.
+  private async finalizeBillingPending(orgId: string) {
+    const billing = (await this.organization(orgId)).billing;
+    if (!billing?.syncPending || billing.mode === 'free' || !billing.method) return;
+    const revision = billing.revision ?? 0, pendingSyncs = billing.pendingSyncs ?? [];
+    if (pendingSyncs.some(step => step.revision === revision)) return;
+    await this.saveBilling(orgId, { ...billing, pendingSyncs: [...pendingSyncs,
+      { revision, lines: await this.desiredLines(orgId), proration: billing.syncProration ?? 'create_prorations' }] });
+  }
+  private async changePrice(write: () => Promise<void>) {
+    const ids = (await this.repository.listOrganizations()).filter(org => org.billing?.mode === 'paid').map(org => org.id).sort();
+    const locked = async (index: number): Promise<void> => {
+      if (index < ids.length) return this.repository.withOrganizationLock(ids[index], () => locked(index + 1));
+      // A quantity snapshot must see either the old price or an already captured
+      // non-prorated new price. Never expose a price write between those steps.
+      for (const id of ids) await this.finalizeBillingPending(id);
+      await write();
+      for (const id of ids) { await this.markBillingPending(id, 'none'); await this.finalizeBillingPending(id); }
+    };
+    await locked(0);
+    for (const id of ids) await this.syncBilling(id);
+    return this.prices();
+  }
+  private async syncBilling(orgId: string) {
+    try { await this.withBillingWrite(orgId, () => this.drainBilling(orgId)); }
+    catch (error) {
+      // Another instance may still be applying billing. The local owner change
+      // has committed and remains pending; contention must not report it refused.
+      if (!(error instanceof OrganizationError && error.status === 409)) throw error;
+    }
+  }
+  private async drainBilling(orgId: string, throwOnFailure = false) {
+    while (true) {
+      await this.repository.withOrganizationLock(orgId, () => this.finalizeBillingPending(orgId));
+      const org = await this.organization(orgId), billing = org.billing;
+      if (!billing?.syncPending || billing.mode === 'free' || !billing.method || billingState(billing, this.now()) === 'cancelled' || !this.dependencies.billingService) return;
+      const step = billing.pendingSyncs?.[0];
+      if (!step) return;
+      let snapshot;
+      try {
+        assertBillingLineLimit(step.lines);
+        snapshot = await this.dependencies.billingService.sync(org, { ...billing, revision: step.revision }, step.lines, step.proration);
+      } catch (error) { if (throwOnFailure) throw error; return; }
+      await this.repository.withOrganizationLock(orgId, async () => {
+        const current = (await this.organization(orgId)).billing!;
+        if (current.mode !== 'paid') return;
+        const pendingSyncs = (current.pendingSyncs ?? []).filter(item => item.revision !== step.revision);
+        const complete = pendingSyncs.length === 0 && current.revision === step.revision;
+        await this.saveBilling(orgId, { ...current, ...snapshot, pendingSyncs,
+          ...(complete && current.confirmingCardSessionId ? {
+            confirmedCardSessionIds: [...new Set([...(current.confirmedCardSessionIds ?? []), current.confirmingCardSessionId])], confirmingCardSessionId: null,
+          } : {}),
+          syncPending: pendingSyncs.length > 0 || current.revision !== step.revision });
+      });
+    }
+  }
+  async getBilling(ownerId: string, orgId: string) {
+    await this.owner(ownerId, orgId); await this.syncBilling(orgId);
+    const org = await this.organization(orgId);
+    return billingView(org.billing, await this.desiredLines(orgId), this.now());
+  }
+  async setupBilling(ownerId: string, orgId: string, method: 'card' | 'invoice', address: BillingAddress, urls?: { success: string; cancel: string }) {
+    await this.owner(ownerId, orgId); const provider = this.provider();
+    return this.withBillingWrite(orgId, () => this.billingCall(async () => {
+      let org = await this.owner(ownerId, orgId), billing = org.billing ?? emptyBilling('free');
+      if (billing.mode === 'free') throw new OrganizationError(409, 'This organization is free of charge.');
+      assertBillingLineLimit(await this.desiredLines(orgId));
+      const customerId = await provider.ensureCustomer(org, billing, address);
+      await this.repository.withOrganizationLock(orgId, async () => {
+        org = await this.organization(orgId); billing = org.billing!;
+        if (billing.mode === 'free') throw new OrganizationError(409, 'This organization is free of charge.');
+        billing = { ...billing, customerId };
+        await this.saveBilling(orgId, billing);
+      });
+      if (method === 'card') return provider.createCardSetup(org, billing, urls!.success, urls!.cancel);
+      await this.activateBilling(orgId, 'invoice');
+      const current = await this.organization(orgId);
+      return billingView(current.billing, await this.desiredLines(orgId), this.now());
+    }));
+  }
+  // Caller holds the provider queue, never an organization storage lock during I/O.
+  private async activateBilling(orgId: string, method: 'card' | 'invoice', sessionId?: string) {
+    await this.repository.withOrganizationLock(orgId, async () => {
+      await this.finalizeBillingPending(orgId);
+      const org = await this.organization(orgId), billing = org.billing!;
+      if (billing.mode === 'free') throw new OrganizationError(409, 'This organization is free of charge.');
+      await this.saveBilling(orgId, { ...billing, method, syncPending: true, syncProration: 'create_prorations',
+        confirmingCardSessionId: sessionId ?? null,
+        ...(billingState(billing, this.now()) === 'cancelled' ? { status: 'none', endsAt: null, pendingSyncs: [] } : {}), revision: (billing.revision ?? 0) + 1 });
+      await this.finalizeBillingPending(orgId);
+    });
+    await this.drainBilling(orgId, true);
+  }
+  async confirmBillingCard(ownerId: string, orgId: string, sessionId: string) {
+    await this.owner(ownerId, orgId); this.provider();
+    return this.withBillingWrite(orgId, () => this.billingCall(async () => {
+      const org = await this.owner(ownerId, orgId), billing = org.billing ?? emptyBilling('free');
+      if (billing.mode === 'free') throw new OrganizationError(409, 'This organization is free of charge.');
+      if (billing.confirmedCardSessionIds?.includes(sessionId)) return billingView(billing, await this.desiredLines(orgId), this.now());
+      if (!await this.provider().confirmCard(org, billing, sessionId)) throw new OrganizationError(404, 'Card setup session not found');
+      await this.activateBilling(orgId, 'card', sessionId);
+      return billingView((await this.organization(orgId)).billing, await this.desiredLines(orgId), this.now());
+    }));
+  }
+  async cancelBilling(ownerId: string, orgId: string, cancel: boolean) {
+    await this.owner(ownerId, orgId); const provider = this.provider();
+    return this.withBillingWrite(orgId, () => this.billingCall(async () => {
+      const org = await this.owner(ownerId, orgId), state = billingState(org.billing, this.now());
+      const canResume = org.billing?.status === 'cancelling' && state !== 'cancelled';
+      if (cancel ? !['active', 'overdue'].includes(state) : !canResume) throw new OrganizationError(409, 'Billing cancellation cannot be changed in this state.');
+      const snapshot = await provider.cancellation(org, org.billing!, cancel);
+      await this.repository.withOrganizationLock(orgId, async () => {
+        const current = (await this.organization(orgId)).billing!;
+        await this.saveBilling(orgId, { ...current, ...snapshot, revision: (current.revision ?? 0) + 1 });
+      });
+      return billingView((await this.organization(orgId)).billing, await this.desiredLines(orgId), this.now());
+    }));
+  }
+  async billingPortal(ownerId: string, orgId: string, returnUrl: string) {
+    const org = await this.owner(ownerId, orgId), provider = this.provider();
+    if (!org.billing?.subscriptionId || org.billing.mode === 'free') throw new OrganizationError(409, 'Set up billing first.');
+    return this.billingCall(() => provider.portal(org.billing!.customerId!, returnUrl));
+  }
+  async setFreeBilling(orgId: string, free: boolean) {
+    await this.organization(orgId);
+    await this.withBillingWrite(orgId, () => this.billingCall(async () => {
+      const org = await this.organization(orgId), current = org.billing ?? emptyBilling('free');
+      if ((current.mode === 'free') === free) return;
+      if (free && current.subscriptionId) await this.provider().cancelNow(current);
+      await this.repository.withOrganizationLock(orgId, async () => {
+        // Keep the organization customer for later setup and webhook attribution.
+        await this.saveBilling(orgId, { ...emptyBilling(free ? 'free' : 'paid'), customerId: current.customerId,
+          confirmedCardSessionIds: current.confirmedCardSessionIds, revision: (current.revision ?? 0) + 1 });
+      });
+    }));
+    return (await this.listOrganizations()).find(org => org.id === orgId)!;
+  }
+  async billingWebhook(event: BillingEvent) {
+    if (!event) return;
+    const org = (await this.repository.listOrganizations()).find(org => org.billing?.customerId === event.customerId);
+    if (!org) return;
+    await this.withBillingWrite(org.id, async () => {
+      const current = await this.organization(org.id);
+      if (current.billing?.mode !== 'paid') return;
+      if (event.sessionId && !current.billing.confirmedCardSessionIds?.includes(event.sessionId) &&
+        await this.provider().confirmCard(current, current.billing, event.sessionId)) await this.activateBilling(org.id, 'card', event.sessionId);
+      const latest = await this.organization(org.id), snapshot = await this.provider().refresh(latest, latest.billing!);
+      await this.repository.withOrganizationLock(org.id, async () => {
+        const billing = (await this.organization(org.id)).billing!;
+        if (billing.mode === 'paid') await this.saveBilling(org.id, { ...billing, ...snapshot });
+      });
+    });
+  }
   private async owner(userId: string, orgId: string, active = false) {
     await this.account(userId);
     const membership = await this.repository.getMembership(userId);
@@ -320,14 +515,17 @@ export class OrganizationService {
       await this.repository.updateInvitation(invitation.id, 'accepted', { joining: false }, invitation.tokenHash);
     }
     if (!await this.repository.deleteMembership(userId, orgId)) throw new OrganizationError(404, 'Member not found');
+    await this.finalizeBillingPending(orgId);
   }
   async removeMember(ownerId: string, orgId: string, userId: string) {
-    return this.repository.withOrganizationLock(orgId, async () => { await this.owner(ownerId, orgId); await this.remove(userId, orgId); });
+    await this.repository.withOrganizationLock(orgId, async () => { await this.owner(ownerId, orgId); await this.markBillingPending(orgId); await this.remove(userId, orgId); });
+    await this.syncBilling(orgId);
   }
   async leave(userId: string) {
     const member = await this.repository.getMembership(userId);
     if (!member) throw new OrganizationError(404, 'Organization not found');
-    return this.repository.withOrganizationLock(member.orgId, async () => { await this.account(userId); await this.remove(userId, member.orgId); });
+    await this.repository.withOrganizationLock(member.orgId, async () => { await this.account(userId); await this.markBillingPending(member.orgId); await this.remove(userId, member.orgId); });
+    await this.syncBilling(member.orgId);
   }
   async promote(ownerId: string, orgId: string, userId: string) {
     return this.withTargetMutation(userId, () => this.repository.withOrganizationLock(orgId, async () => {
@@ -339,18 +537,24 @@ export class OrganizationService {
     }));
   }
   async setCareer(ownerId: string, orgId: string, userId: string, careerId: string | null) {
-    return this.withTargetMutation(userId, () => this.repository.withOrganizationLock(orgId, async () => {
-      await this.owner(ownerId, orgId); await this.membership(userId, orgId);
+    const result = await this.withTargetMutation(userId, () => this.repository.withOrganizationLock(orgId, async () => {
+      await this.owner(ownerId, orgId); const member = await this.membership(userId, orgId);
       if (careerId !== null && !(await this.dependencies.careers?.listPaths())?.some(v => v._id === careerId && v.published)) {
         throw new OrganizationError(400, 'Choose a published career');
       }
+      assertBillingLineLimit(await this.desiredLines(orgId, { member: { ...member, careerId } }));
+      await this.markBillingPending(orgId);
       if (!await this.repository.updateMembership(userId, orgId, { careerId })) throw new OrganizationError(404, 'Member not found');
+      await this.finalizeBillingPending(orgId);
       return this.memberView((await this.repository.getMembership(userId))!);
     }));
+    await this.syncBilling(orgId); return result;
   }
   async openCourseIds(userId: string): Promise<string[]> {
     const member = await this.repository.getMembership(userId);
-    if (member?.state !== 'active' || (await this.repository.getOrganization(member.orgId))?.state !== 'active') return [];
+    if (member?.state !== 'active') return [];
+    const org = await this.repository.getOrganization(member.orgId);
+    if (org?.state !== 'active' || ['setup-needed', 'blocked', 'cancelled'].includes(billingState(org.billing, this.now()))) return [];
     const user = await this.auth.findById(userId, { fresh: true }); if (user?.status !== 'active') return [];
     const ids = new Set<string>();
     const career = member.careerId ? (await this.dependencies.careers?.listPaths())?.find(v => v._id === member.careerId)?.published : null;
@@ -397,11 +601,19 @@ export class OrganizationService {
     return (await this.repository.listCourseRequests(orgId)).map(v => this.courseRequestView(v, prices));
   }
   async decideCourseRequest(ownerId: string, orgId: string, id: string, action: string) {
+    const result = await this.repository.withOrganizationLock(orgId, async () => {
     await this.owner(ownerId, orgId);
     if (!['approve', 'decline'].includes(action)) throw new OrganizationError(400, 'Invalid decision');
     const request = (await this.repository.listCourseRequests(orgId)).find(v => v.id === id);
     if (!request) throw new OrganizationError(404, 'Course request not found');
+    if (action === 'approve') {
+      assertBillingLineLimit(await this.desiredLines(orgId, { request: { ...request, state: 'approved' } }));
+      await this.markBillingPending(orgId);
+    }
     if (!await this.repository.decideCourseRequest(id, action === 'approve' ? 'approved' : 'declined')) throw new OrganizationError(409, 'Course request is no longer pending');
+    await this.finalizeBillingPending(orgId);
     return this.courseRequestView((await this.repository.listCourseRequests(orgId)).find(v => v.id === id)!, await this.prices());
+    });
+    await this.syncBilling(orgId); return result;
   }
 }

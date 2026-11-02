@@ -8,7 +8,7 @@ import type { OrganizationService } from './organizationService.js';
 
 export const organizationRoots = ['/users/me/organization', '/users/me/organization-request', '/admin/organization-requests',
   '/admin/organizations', '/admin/organization-prices', '/organization-prices', '/organizations', '/organization-invitations'];
-const decision = z.discriminatedUnion('action', [z.object({ action: z.literal('approve') }),
+const decision = z.discriminatedUnion('action', [z.object({ action: z.literal('approve'), billing: z.enum(['paid', 'free']).optional() }),
   z.object({ action: z.literal('decline'), reason: z.string().trim().min(1).max(1000) })]);
 const courseDecision = z.object({ action: z.enum(['approve', 'decline']) });
 const career = z.object({ careerId: z.string().min(1).max(120).nullable() });

@@ -35,6 +35,13 @@ type RouterLayer = {
 // "signed-in" includes additional author/course-entitlement rules. Review actions
 // are signed-in because teachers can submit; publish itself also requires admin.
 const permissionTable: Record<string, Permission> = {
+  'GET /organizations/:id/billing': 'signed-in',
+  'POST /organizations/:id/billing/setup': 'signed-in',
+  'POST /organizations/:id/billing/card/confirm': 'signed-in',
+  'PUT /organizations/:id/billing/cancellation': 'signed-in',
+  'POST /organizations/:id/billing/portal': 'signed-in',
+  'PUT /admin/organizations/:id/billing': 'admin',
+  'POST /webhooks/stripe-billing': 'public',
   'GET /users/me/courses/:id/rating': 'signed-in',
   'PUT /users/me/courses/:id/rating': 'signed-in',
   'GET /courses/:id/reviews': 'public',

@@ -21,6 +21,8 @@ import { registerEmailConfirmationRoutes } from './emailConfirmationRoutes.js';
 import { createOrganizationRepository, type OrganizationRepository } from './organizationRepository.js';
 import { OrganizationService, type OrganizationOptions } from './organizationService.js';
 import { organizationRoots, registerOrganizationRoutes } from './organizationRoutes.js';
+import { createOrganizationBillingService, type OrganizationBillingService } from './organizationBillingService.js';
+import { createOrganizationBillingWebhook, registerOrganizationBillingRoutes } from './organizationBillingRoutes.js';
 import { CourseReviewError, type CourseReviewService, reviewActionSchema, reviewedRepositories, reviewScope } from './courseReview.js';
 import cors from 'cors';
 import { courseRequestReads, clearCourseRequestReads, requestCachedCourses } from './courseRequestReads.js';
@@ -147,6 +149,7 @@ type ServerDependencies = {
   emailConfirmationOptions?: EmailConfirmationOptions;
   organizationRepository?: OrganizationRepository;
   organizationOptions?: OrganizationOptions;
+  organizationBillingService?: OrganizationBillingService | null;
   userChangeRepository?: UserChangeRepository;
   userChangeOptions?: UserChangeOptions;
   mailSender?: MailSender;
@@ -219,6 +222,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   // repository. Apply the same freeze above that existing review projection.
   const courses = courseWriteFreeze(reviewedCourses, storedCourses.readOnly === true);
   const organizationStore = dependencies.organizationRepository ?? createOrganizationRepository();
+  const organizationBilling = dependencies.organizationBillingService === undefined ? createOrganizationBillingService() : dependencies.organizationBillingService;
   const privacyMutations = new PrivacyMutationCoordinator(organizationStore, auth);
   const privacy = new PrivacyService({ auth, profile: accountProfiles, instructorProfile: instructorProfiles,
     progress: learningProgress, notes: lessonNotes, careers: accountCareersStore, legacyCareers: careerPaths,
@@ -226,6 +230,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
     confirmationTokens: emailConfirmations, audit: userChanges, courses: storedCourses, content: storedContent, termsAcceptances, courseRatings }, privacyMutations.run);
   const notificationService = new NotificationService({ repository: notifications, auth, profiles: accountProfiles, organizations: organizationStore });
   const organizations = new OrganizationService({ repository: organizationStore, auth, sender: mailSender,
+    billingService: organizationBilling,
     careers: careerPaths, courses, options: dependencies.organizationOptions, notifications: notificationService,
     withUserMutation: privacyMutations.mutate });
   const withOrganizationCourses = async (user: AuthenticatedUser): Promise<AuthenticatedUser> => ({
@@ -355,6 +360,8 @@ export function createServer(dependencies: ServerDependencies = {}) {
   );
   app.post(['/webhooks/stripe', '/api/webhooks/stripe'],
     withRequestBodyErrors(express.raw({ type: 'application/json', inflate: false })), createPaymentWebhookHandler(paymentDependencies));
+  app.post(['/webhooks/stripe-billing', '/api/webhooks/stripe-billing'],
+    withRequestBodyErrors(express.raw({ type: 'application/json', inflate: false })), createOrganizationBillingWebhook(organizations, organizationBilling));
   app.put(
     ['/courses/:id/thumbnail', '/api/courses/:id/thumbnail'],
     authenticateRequest(auth),
@@ -600,6 +607,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
       },
       mail: { configured: hasMailConfig(), provider: mailSender.provider },
       payments: { configured: Boolean(paymentService), keyMode: stripeKeyMode() },
+      organizationBilling: { configured: Boolean(organizationBilling), webhookConfigured: Boolean(apiConfig.STRIPE_BILLING_WEBHOOK_SECRET), taxRateConfigured: Boolean(apiConfig.STRIPE_ORG_TAX_RATE_ID) },
       turnstile: { configured: turnstile.configured, siteKey: turnstile.configured ? apiConfig.TURNSTILE_SITE_KEY ?? null : null },
       content: {
         storage: courseContent.storageType,
@@ -670,6 +678,7 @@ export function createServer(dependencies: ServerDependencies = {}) {
   registerTeachingRoutes(app, { authenticate: authenticateRequest(auth, 403), auth, courses, content: courseContent,
     progress: learningProgress, feedback });
   registerOrganizationRoutes(app, authenticateRequest(auth), requireAdmin, organizations, clientLimit);
+  registerOrganizationBillingRoutes(app, authenticateRequest(auth), requireAdmin, organizations);
 
   app.post(['/auth/login', '/login'], async (request, response, next) => {
     try {

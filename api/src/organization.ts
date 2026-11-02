@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { BillingState, OrganizationBilling } from './organizationBilling.js';
 
 const name = z.string().trim().min(1).max(120);
 export const organizationRequestInputSchema = z.object({ displayName: name, companyName: name,
@@ -12,7 +13,7 @@ export type OrgRequest = { id: string; state: 'pending' | 'declined' | 'approved
   companyName: string; cvr: string; billingEmail: string; message: string; declineReason: string | null;
   submittedAt: string; decidedAt: string | null; organizationId: string | null };
 export type Organization = { id: string; displayName: string; companyName: string; cvr: string;
-  billingEmail: string; state: 'active' | 'suspended'; originalOwnerId: string; createdAt: string };
+  billingEmail: string; state: 'active' | 'suspended'; originalOwnerId: string; createdAt: string; billing?: OrganizationBilling };
 export type Member = { userId: string; name: string; email: string; role: 'member' | 'owner';
   careerId: string | null; joinedAt: string };
 export type Invitation = { id: string; email: string; state: 'sent' | 'not-sent' | 'accepted' | 'cancelled' | 'expired';
@@ -21,6 +22,7 @@ export type CourseRequest = { id: string; userId: string; userName: string; cour
   state: 'pending' | 'approved' | 'declined'; addOnPriceDkk: number | null; createdAt: string };
 export type Prices = { careers: Record<string, number>; courses: Record<string, number> };
 export type MyOrganization = { organization: Organization; role: 'member' | 'owner'; isOriginalOwner: boolean;
+  billingState: BillingState;
   careerId: string | null; seatPriceDkk: number | null; openCourseIds: string[]; startedCourseIds: string[]; courseRequests: CourseRequest[] };
 export type StoredOrgRequest = OrgRequest & { userId: string };
 export type StoredInvitation = Invitation & { orgId: string; tokenHash: string; acceptedBy?: string; joining?: boolean };
