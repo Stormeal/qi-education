@@ -149,13 +149,10 @@ release 2 ([decisions](../../stories/US-O001-organizations.md)).
 
 - Not yet checked on the live site (AC01–AC12 with a second real email address).
 - Billing is not verified against real Stripe (test mode): customer, subscription, invoice,
-  proration, tax rate, portal and webhook deliveries. Before use, in the Stripe dashboard: failed
-  card payments and overdue invoices must leave the subscription as it is (never cancel it),
-  invoice reminders on, the portal allows invoices and payment methods, a 25% moms tax rate for
-  `STRIPE_ORG_TAX_RATE_ID`, and a webhook destination for `/webhooks/stripe-billing` with its own
-  secret sending `checkout.session.completed`, `customer.subscription.updated`,
-  `customer.subscription.deleted`, `invoice.finalized`, `invoice.paid`, `invoice.payment_failed`,
-  `invoice.voided`, `invoice.marked_uncollectible`. Stripe live mode is release 2.
+  proration, tax rate, portal and webhook deliveries. The Stripe dashboard settings, Vercel
+  variables, hosted check and live-mode steps are in
+  [the billing release procedure](../../release/organization-billing.md). Until billing is wanted,
+  admins approve with **Approve free**.
 - No refunds or credit notes from the app, no billing for non-Danish companies, at most 20 different
   billed careers and courses per organization.
 - No audit log, job queue or automatic email retries, paging, organization deletion or owner

@@ -15,8 +15,8 @@ Browser on isolated stores: paid approval shows "Billing not set up"; owner sees
 and bill; card setup round trip through the fake confirms and opens billing; cancel and keep;
 switch to invoice; no overflow at phone width. Not checked in the browser: seat and add-on lines
 (no published career in isolated stores), overdue/blocked states and the member notice (specs
-cover them). Waits on Alex before any use: the Stripe dashboard setup in
-[organizations](specs/organizations/organizations.md) Limits; release 3 decides when it ships.
+cover them). Waits on Alex before any use: [the billing release procedure](release/organization-billing.md)
+(Stripe settings, Vercel variables, hosted test-mode check); until then admins use **Approve free**.
 
 **US-L028 course ratings is live in 0.1.566 (pushed 2026-11-01; CI and Pages green)**:
 Claude `a22faab` (rating box, reviews with admin Hide/Show, catalog settings without rating
