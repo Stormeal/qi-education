@@ -9,6 +9,17 @@ export type ReleaseNote = {
 // Keep notes short and plain (Alex): one sentence per item, written for a teacher, no technical terms.
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '0.1.581',
+    date: '2026-11-02',
+    sections: [
+      { title: 'Fixed', items: [
+        'A refund no longer takes away a course you already had before buying it.',
+        'Organization members keep a course they started even after it is archived.',
+        'A teacher removed from a paid course no longer keeps it for free, unless they bought it.',
+      ] },
+    ],
+  },
+  {
     version: '0.1.579',
     date: '2026-11-02',
     sections: [
